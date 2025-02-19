@@ -100,18 +100,25 @@ import { ref } from 'vue'
 import { computed } from 'vue'
 import Header from '~/components/Header.vue'
 import DailyStatus from '~/components/DailyStatus.vue'
+import { useAuthStore } from '~/stores/auth'
+import { useTaskStore } from '~/stores/tasks'
 
-const todayTasks = ref([
-  { id: 1, title: '성경통독', completed: true },
-  { id: 2, title: '하세나하시조', completed: true }
-])
+const auth = useAuthStore()
+const taskStore = useTaskStore()
 
-const introTasks = ref([
-  { id: 3, title: '출애굽기 개론', completed: true }
-])
+const todayTasks = computed(() => taskStore.todayTasks)
+const introTasks = computed(() => taskStore.introTasks)
 
 const toggleTask = (task) => {
-  task.completed = !task.completed
+  if (!task.completed) {
+    if (task.title === '성경통독') {
+      navigateTo('/reading')
+    } else if (task.title === '출애굽기 개론') {
+      navigateTo('/intro')
+    } else if (task.title === '하세나하시조') {
+      navigateTo('/video')
+    }
+  }
 }
 </script>
 
@@ -482,6 +489,14 @@ h2 {
 
 .church-icon {
   width: 24px;
-  height: 24px;
+}
+
+.task.not-logged-in {
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.task.not-logged-in .task-subtitle {
+  color: var(--primary-color);
 }
 </style> 

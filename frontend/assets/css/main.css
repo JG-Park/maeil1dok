@@ -26,4 +26,25 @@ button {
 
 h2 {
   letter-spacing: -0.05em;
+}
+
+@font-face {
+  font-family: 'NotoSerifKR';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NotoSerifKR.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
 } 
