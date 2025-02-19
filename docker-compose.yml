@@ -12,6 +12,16 @@ services:
       - dailybible_db_data:/var/lib/mysql
     ports:
       - "3306:3306"
+    command: >
+      --innodb-use-native-aio=0
+      --innodb-log-file-size=48M
+      --innodb-log-buffer-size=8M
+      --max-allowed-packet=128M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -22,7 +32,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
       - ./backend/.env
