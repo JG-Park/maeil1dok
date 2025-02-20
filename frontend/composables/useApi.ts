@@ -7,9 +7,7 @@ export const useApi = () => {
       return 'http://localhost:8000'
     }
     // 클라이언트 환경에서는 현재 호스트 기반 URL 사용
-    const baseUrl = window.location.hostname === 'localhost'
-      ? 'http://localhost:8000'
-      : `http://${window.location.hostname}`
+    const baseUrl = 'https://dailybible-api.jgplabs.kr'
     console.log("API Base URL:", baseUrl)  // 실제 사용되는 baseUrl 확인
     return baseUrl
   }
