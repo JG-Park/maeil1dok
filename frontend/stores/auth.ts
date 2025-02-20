@@ -11,15 +11,24 @@ interface User {
 interface AuthState {
   user: User | null
   token: string | null
+  isAuthenticated: boolean
 }
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
-    token: null
+    token: null,
+    isAuthenticated: false
   }),
 
   actions: {
+    async initialize() {
+      // 페이지 로드 시 토큰이 있으면 사용자 정보 가져오기
+      if (this.token) {
+        await this.fetchUser()
+      }
+    },
+
     async login(email: string, password: string) {
       try {
         const response = await fetch('http://localhost:8000/api/v1/auth/token/', {
@@ -27,28 +36,22 @@ export const useAuthStore = defineStore('auth', {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
-            email,
-            password 
-          }),
-          credentials: 'include'
+          body: JSON.stringify({ email, password }),
         })
 
         if (!response.ok) {
-          const errorData = await response.json()
-          console.error('Login error details:', errorData)
           throw new Error('Login failed')
         }
 
         const data = await response.json()
         this.token = data.access
-        localStorage.setItem('token', data.access)
+        this.isAuthenticated = true
         
         await this.fetchUser()
-        
         return true
       } catch (error) {
         console.error('Login error:', error)
+        this.logout()
         return false
       }
     },
@@ -82,8 +85,6 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async fetchUser() {
-      if (!this.token) return
-
       try {
         const response = await fetch('http://localhost:8000/api/v1/auth/user/', {
           headers: {
@@ -95,17 +96,24 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Failed to fetch user')
         }
 
-        const data = await response.json()
-        this.user = data
+        const userData = await response.json()
+        this.user = userData
+        this.isAuthenticated = true
       } catch (error) {
-        console.error('Fetch user error:', error)
+        console.error('Error fetching user:', error)
+        this.logout()
       }
     },
 
     logout() {
       this.user = null
       this.token = null
-      localStorage.removeItem('token')
+      this.isAuthenticated = false
     }
+  },
+
+  persist: {
+    key: 'auth',
+    paths: ['token', 'isAuthenticated']
   }
 }) 
