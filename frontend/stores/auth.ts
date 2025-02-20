@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', {
 
     async login(email: string, password: string) {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/auth/token/', {
+        const response = await fetch('https://dailybible-api.jgplabs.kr/api/v1/auth/token/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ export const useAuthStore = defineStore('auth', {
       birth_date: string
     }) {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/auth/register/', {
+        const response = await fetch('https://dailybible-api.jgplabs.kr/api/v1/auth/register/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser() {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/auth/user/', {
+        const response = await fetch('https://dailybible-api.jgplabs.kr/api/v1/auth/user/', {
           headers: {
             'Authorization': `Bearer ${this.token}`
           }
