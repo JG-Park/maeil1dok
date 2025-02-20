@@ -10,27 +10,31 @@
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="rounded-md shadow-sm space-y-4">
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">이메일</label>
-            <input
-              id="email"
-              v-model="formData.email"
-              type="email"
-              required
-              class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-            >
-          </div>
-          
-          <div>
             <label for="username" class="block text-sm font-medium text-gray-700">이름</label>
             <input
               id="username"
               v-model="formData.username"
               type="text"
               required
+              autocomplete="name"
+              name="username"
               class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
             >
           </div>
 
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700">이메일</label>
+            <input
+              id="email"
+              v-model="formData.email"
+              type="email"
+              required
+              autocomplete="email"
+              name="email"
+              class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+            >
+          </div>
+          
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700">비밀번호</label>
             <input
@@ -38,6 +42,8 @@
               v-model="formData.password"
               type="password"
               required
+              autocomplete="new-password"
+              name="password"
               class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
             >
           </div>
