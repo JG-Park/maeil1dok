@@ -9,19 +9,29 @@
           v-if="auth.user" 
           @click="handleLogout" 
           class="auth-button"
+          title="로그아웃"
         >
-          로그아웃
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
         <NuxtLink 
           v-else 
           to="/login"
           class="auth-button"
+          title="로그인"
         >
-          로그인
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 17L15 12L10 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </NuxtLink>
       </template>
       <button class="menu-button">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M4 6H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <path d="M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <path d="M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -58,13 +68,12 @@ const handleLogout = () => {
   padding: 0.875rem 1rem;
   letter-spacing: -0.05em;
   height: 56px;
-  background: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .title {
   display: flex;
   align-items: center;
+  margin-left: 0.5rem; /* 로고 왼쪽 여백 추가 */
 }
 
 .logo {
@@ -79,25 +88,21 @@ const handleLogout = () => {
 }
 
 .auth-button {
-  background: var(--primary-color);
+  background: none; /* 배경 제거 */
   border: none;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  color: white;
+  padding: 0.375rem;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   text-decoration: none;
   border-radius: 0.375rem;
-  font-weight: 500;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 72px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .auth-button:hover {
-  background: var(--primary-dark);
+  background: rgba(0, 0, 0, 0.05);
   transform: translateY(-1px);
 }
 
@@ -105,12 +110,17 @@ const handleLogout = () => {
   transform: translateY(0);
 }
 
+.auth-button svg {
+  width: 20px;
+  height: 20px;
+}
+
 .menu-button {
   background: none;
   border: none;
-  padding: 0.5rem;
+  padding: 0.375rem;
   margin: -0.5rem;
-  color: #333;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,5 +134,10 @@ const handleLogout = () => {
 
 .menu-button:active {
   transform: scale(0.95);
+}
+
+.menu-button svg {
+  width: 20px;
+  height: 20px;
 }
 </style> 
