@@ -1,6 +1,11 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
+import { useTaskStore } from '~/stores/tasks'
+import { useRoute, useRouter } from 'vue-router'
 
+const taskStore = useTaskStore()
+const route = useRoute()
+const router = useRouter()
 const bibleContent = ref('')
 const isLoading = ref(true)
 const chapterTitle = ref('')
@@ -9,6 +14,43 @@ const currentBook = ref('')
 const currentChapter = ref(1)
 const showModal = ref(false)
 const selectedBook = ref('gen')
+const isHeaderFloating = ref(false)
+const isTodayReadingFloating = ref(false)
+const showScheduleModal = ref(false)
+const schedules = ref([])
+const selectedMonth = ref(new Date().getMonth() + 1)
+const months = Array.from({ length: 12 }, (_, i) => i + 1)
+
+// 월 선택기 드래그 스크롤 기능
+const monthScroll = ref(null)
+let isMouseDown = false
+let startX
+let scrollLeft
+
+const onMouseDown = (e) => {
+  isMouseDown = true
+  startX = e.pageX - monthScroll.value.offsetLeft
+  scrollLeft = monthScroll.value.scrollLeft
+  monthScroll.value.style.cursor = 'grabbing'
+}
+
+const onMouseLeave = () => {
+  isMouseDown = false
+  monthScroll.value.style.cursor = 'grab'
+}
+
+const onMouseUp = () => {
+  isMouseDown = false
+  monthScroll.value.style.cursor = 'grab'
+}
+
+const onMouseMove = (e) => {
+  if (!isMouseDown) return
+  e.preventDefault()
+  const x = e.pageX - monthScroll.value.offsetLeft
+  const walk = (x - startX) * 2
+  monthScroll.value.scrollLeft = scrollLeft - walk
+}
 
 // 성경 책 목록을 구약/신약으로 구분
 const bibleBooks = {
@@ -106,11 +148,18 @@ const chaptersArray = computed(() => {
 const loadBibleContent = async (book, chapter) => {
   isLoading.value = true
   try {
+    // 성경 본문 로드
     const response = await fetch(`/bible-proxy/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`)
     const text = await response.text()
     
     currentBook.value = book
     currentChapter.value = chapter
+    
+    // 해당 구절의 일정 정보 가져오기
+    const scheduleData = await taskStore.fetchReadingSchedule(book, chapter)
+    if (scheduleData) {
+      taskStore.todayReading = scheduleData
+    }
     
     const parser = new DOMParser()
     const doc = parser.parseFromString(text, 'text/html')
@@ -137,7 +186,13 @@ const loadBibleContent = async (book, chapter) => {
         // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트
         if (node.classList?.contains('smallTitle')) {
           currentSection = node.textContent.trim()
-          verses.push(`<h3 class="section-title">${currentSection}</h3>`)
+            .replace(/\(\s*\)/g, '')  // 빈 괄호 제거
+            .replace(/\s+/g, ' ')     // 연속된 공백 하나로 통일
+            .trim()                   // 앞뒤 공백 제거
+          
+          if (currentSection) {  // 내용이 있는 경우에만 추가
+            verses.push(`<h3 class="section-title">${currentSection}</h3>`)
+          }
         }
         // span 요소이고 number 클래스를 가진 자식이 있으면 구절로 처리
         else if (node.tagName === 'SPAN' && node.querySelector('.number')) {
@@ -171,13 +226,16 @@ const goToNextChapter = () => {
   const maxChapter = bookChapters[currentBook.value]
   if (currentChapter.value < maxChapter) {
     // 같은 책의 다음 장
-    loadBibleContent(currentBook.value, currentChapter.value + 1)
+    const nextChapter = currentChapter.value + 1
+    router.push(`/reading?book=${currentBook.value}&chapter=${nextChapter}`)
+    loadBibleContent(currentBook.value, nextChapter)
   } else {
     // 다음 책의 첫 장으로
     const books = Object.keys(bookNames)
     const currentBookIndex = books.indexOf(currentBook.value)
     if (currentBookIndex < books.length - 1) {
       const nextBook = books[currentBookIndex + 1]
+      router.push(`/reading?book=${nextBook}&chapter=1`)
       loadBibleContent(nextBook, 1)
     }
   }
@@ -187,7 +245,9 @@ const goToNextChapter = () => {
 const goToPrevChapter = () => {
   if (currentChapter.value > 1) {
     // 같은 책의 이전 장
-    loadBibleContent(currentBook.value, currentChapter.value - 1)
+    const prevChapter = currentChapter.value - 1
+    router.push(`/reading?book=${currentBook.value}&chapter=${prevChapter}`)
+    loadBibleContent(currentBook.value, prevChapter)
   } else {
     // 이전 책의 마지막 장으로
     const books = Object.keys(bookNames)
@@ -195,6 +255,7 @@ const goToPrevChapter = () => {
     if (currentBookIndex > 0) {
       const prevBook = books[currentBookIndex - 1]
       const lastChapter = bookChapters[prevBook]
+      router.push(`/reading?book=${prevBook}&chapter=${lastChapter}`)
       loadBibleContent(prevBook, lastChapter)
     }
   }
@@ -229,48 +290,230 @@ watch(showModal, (newValue) => {
   toggleBodyScroll(newValue)
 })
 
-onMounted(() => {
-  loadBibleContent('gen', 1)  // 초기 로드
+// 페이지 로드 시 오늘의 읽기 정보를 가져오는 함수
+const initializeTodayReading = async () => {
+  if (!taskStore.todayReading) {
+    await taskStore.fetchTodayReading()
+  }
+}
+
+// 날짜 포맷팅 함수 수정
+const formatScheduleDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const days = ['일', '월', '화', '수', '목', '금', '토']
+  
+  // 모바일 체크
+  const isMobile = window.innerWidth <= 640
+  
+  if (isMobile) {
+    return `${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
+  }
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
+}
+
+// formattedDate computed 속성 수정
+const formattedDate = computed(() => {
+  console.log('Today Reading:', taskStore.todayReading) // 디버깅용
+  return formatScheduleDate(taskStore.todayReading?.date)
 })
+
+// URL 변경 감지
+watch(
+  () => route.query,
+  (newQuery) => {
+    const bookParam = String(newQuery.book || '')
+    const chapterParam = Number(newQuery.chapter || 1)
+    
+    if (bookParam && chapterParam && 
+        (bookParam !== currentBook.value || chapterParam !== currentChapter.value)) {
+      loadBibleContent(bookParam, chapterParam)
+    }
+  }
+)
+
+onMounted(async () => {
+  await initializeTodayReading()
+  
+  const bookParam = String(route.query.book || '')
+  const chapterParam = Number(route.query.chapter || 1)
+  
+  if (bookParam && chapterParam) {
+    selectedBook.value = bookParam
+    currentChapter.value = chapterParam
+    loadBibleContent(bookParam, chapterParam)
+  } else if (taskStore.todayReading) {
+    selectedBook.value = taskStore.todayReading.book
+    currentChapter.value = taskStore.todayReading.chapter
+    loadBibleContent(taskStore.todayReading.book, taskStore.todayReading.chapter)
+  } else {
+    loadBibleContent('gen', 1)
+  }
+
+  // 스크롤 이벤트 리스너 추가
+  window.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+// 컴포넌트가 언마운트될 때 이벤트 리스너 제거
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
+// 스크롤 핸들러 함수
+const handleScroll = () => {
+  const scrollPosition = window.scrollY
+  isHeaderFloating.value = scrollPosition > 10
+  isTodayReadingFloating.value = scrollPosition > 20
+}
+
+// 스케줄 모달 열기
+const openScheduleModal = async () => {
+  if (schedules.value.length === 0) {
+    const result = await taskStore.fetchBibleSchedules()
+    schedules.value = result
+  }
+  showScheduleModal.value = true
+  toggleBodyScroll(true)
+  selectedMonth.value = new Date().getMonth() + 1
+}
+
+// 스케줄 모달 닫기
+const closeScheduleModal = () => {
+  showScheduleModal.value = false
+  toggleBodyScroll(false)
+}
+
+// 특정 날짜의 성경 읽기로 이동
+const goToSchedule = (schedule) => {
+  // bibleBooks에서 한글 이름으로 코드 찾기
+  const findBookCode = (koreanName) => {
+    const allBooks = [...bibleBooks.old, ...bibleBooks.new]
+    const book = allBooks.find(b => b.name === koreanName)
+    return book?.id
+  }
+
+  // 한글 성경 이름을 코드로 변환
+  const bookCode = findBookCode(schedule.book)
+  if (!bookCode) {
+    console.error('Invalid book name:', schedule.book)
+    return
+  }
+
+  closeScheduleModal()
+  router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}`)
+  loadBibleContent(bookCode, schedule.start_chapter)
+}
+
+// watch 수정
+watch([showModal, showScheduleModal], ([newShowModal, newShowScheduleModal]) => {
+  toggleBodyScroll(newShowModal || newShowScheduleModal)
+})
+
+// 선택된 월의 스케줄만 필터링
+const filteredSchedules = computed(() => {
+  return schedules.value.filter(schedule => {
+    const scheduleDate = new Date(schedule.date)
+    return scheduleDate.getMonth() + 1 === selectedMonth.value
+  })
+})
+
+// 읽기 상태 확인 함수
+const getReadingStatus = (schedule) => {
+  const today = new Date()
+  const scheduleDate = new Date(schedule.date)
+  
+  if (scheduleDate > today) return 'upcoming'
+  if (scheduleDate < today) return 'completed'
+  return 'current'
+}
 </script>
 
 <template>
   <div class="container">
-    <div class="header fade-in" style="animation-delay: 0s">
-      <button class="back-button" @click="$router.back()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="header fade-in" :class="{ floating: isHeaderFloating }" style="animation-delay: 0s">
+      <button class="back-button" @click="$router.push('/')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1>성경읽기</h1>
+      <h1>성경일독</h1>
+    </div>
+
+    <div 
+      class="today-reading fade-in" 
+      :class="{ floating: isTodayReadingFloating }" 
+      style="animation-delay: 0.1s" 
+      v-if="taskStore.todayReading"
+    >
+      <div class="today-info clickable" @click="openScheduleModal">
+        <div class="reading-meta">
+          <span class="date-badge">{{ formattedDate }}</span>
+          <div class="divider"></div>
+          <span class="reading-badge">
+            {{ bookNames[taskStore.todayReading.book] }} 
+            {{ taskStore.todayReading.chapter }}-{{ taskStore.todayReading.end_chapter }}장
+          </span>
+        </div>
+      </div>
+      <div class="today-links">
+        <a 
+          v-if="taskStore.todayReading.audio_link" 
+          :href="taskStore.todayReading.audio_link" 
+          target="_blank" 
+          class="link-button audio"
+          title="오디오"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 6v12M8 9v6M16 9v6M4 12v0M20 12v0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </a>
+        <a 
+          v-if="taskStore.todayReading.guide_link" 
+          :href="taskStore.todayReading.guide_link" 
+          target="_blank" 
+          class="link-button guide"
+          title="가이드"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 19.5V4.5C4 4.22386 4.22386 4 4.5 4H19.5C19.7761 4 20 4.22386 20 4.5V19.5C20 19.7761 19.7761 20 19.5 20H4.5C4.22386 20 4 19.7761 4 19.5Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 8H16M8 12H16M8 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </a>
+      </div>
     </div>
 
     <div class="content-section fade-in" style="animation-delay: 0.2s">
-      <div class="reading-info" @click="showModal = true">
-        <h2>{{ chapterTitle }}</h2>
-      </div>
+      <button class="chapter-select-button" @click="showModal = true">
+        <div class="button-content">
+          <h2>{{ chapterTitle }}</h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </button>
 
       <div v-if="isLoading" class="loading">
         <div class="loading-spinner"></div>
-        <p>말씀을 불러오는 중입니다...</p>
+        <p>
+          {{ bookNames[selectedBook] }} {{ currentChapter }}장을 불러오는 중입니다...
+        </p>
       </div>
 
       <div v-else class="bible-content" v-html="bibleContent"></div>
     </div>
 
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
-      <button class="nav-button" @click="goToPrevChapter">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        이전
+      <button class="nav-button prev" @click="goToPrevChapter">
+        &lt; 이전
       </button>
-      <button class="complete-button">읽기 완료</button>
-      <button class="nav-button" @click="goToNextChapter">
-        다음
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <button class="complete-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
+        읽음으로 표시
+      </button>
+      <button class="nav-button next" @click="goToNextChapter">
+        다음 &gt;
       </button>
     </div>
 
@@ -321,7 +564,7 @@ onMounted(() => {
                 <button 
                   v-for="chapter in chaptersArray" 
                   :key="chapter"
-                  class="chapter-button"
+                  :class="['chapter-button', { active: chapter === currentChapter }]"
                   @click="selectChapter(chapter)"
                 >
                   {{ chapter }}
@@ -332,54 +575,271 @@ onMounted(() => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 스케줄 모달 추가 -->
+    <Teleport to="body">
+      <div v-if="showScheduleModal" class="modal-overlay" @click="closeScheduleModal">
+        <div class="modal-content schedule-modal" @click.stop>
+          <div class="modal-header">
+            <h3>성경 읽기 일정</h3>
+            <button class="close-button" @click="closeScheduleModal">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="month-selector">
+            <div class="month-header">
+              <button class="today-button" @click="selectedMonth = new Date().getMonth() + 1">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 2v3M16 2v3M3.5 8h17M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                오늘
+              </button>
+              <div class="divider"></div>
+              <div class="month-scroll"
+                ref="monthScroll"
+                @mousedown="onMouseDown"
+                @mouseleave="onMouseLeave"
+                @mouseup="onMouseUp"
+                @mousemove="onMouseMove"
+              >
+                <button
+                  v-for="month in months"
+                  :key="month"
+                  :class="['month-button', { active: month === selectedMonth }]"
+                  @click="selectedMonth = month"
+                >
+                  {{ month }}월
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-body schedule-body">
+            <div v-if="filteredSchedules.length === 0" class="no-schedules">
+              {{ selectedMonth }}월에 등록된 일정이 없습니다.
+            </div>
+            <div v-else class="schedule-list">
+              <div 
+                v-for="schedule in filteredSchedules"
+                :key="schedule.date" 
+                class="schedule-item"
+                :class="getReadingStatus(schedule)"
+                @click="goToSchedule(schedule)"
+              >
+                <div class="schedule-info">
+                  <div class="schedule-date">
+                    {{ formatScheduleDate(schedule.date) }}
+                  </div>
+                  <div class="schedule-reading">
+                    {{ schedule.book }} {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장
+                  </div>
+                </div>
+                <div class="schedule-status">
+                  <div v-if="getReadingStatus(schedule) === 'completed'" class="status-icon completed">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div v-else-if="getReadingStatus(schedule) === 'current'" class="status-icon current">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
-/* Google Fonts - 나눔명조 import */
-@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
+/* Google Fonts 대신 RIDI Batang 사용 */
+@font-face {
+  font-family: 'RIDIBatang';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
 
 .container {
   max-width: 768px;
   margin: 0 auto;
   background: #f5f5f5;
   min-height: 100vh;
-  padding-bottom: 1.5rem;
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
 }
 
 .header {
   display: flex;
   align-items: center;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   background: white;
   position: sticky;
   top: 0;
   z-index: 10;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  height: 48px;
+  transition: all 0.15s ease;
+  margin: 0;
+}
+
+.header.floating {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.12);
+  margin: 0 -0.25rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
 .back-button {
   background: none;
   border: none;
-  padding: 0.5rem;
-  margin: -0.5rem;
+  padding: 0.375rem;
+  margin: -0.375rem;
   margin-right: 0.5rem;
   color: var(--text-primary);
   cursor: pointer;
 }
 
 .header h1 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.back-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.today-reading {
+  background: white;
+  margin: 0.75rem 1rem 0;
+  padding: 0.875rem 1rem;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 56px;
+  z-index: 9;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.15s ease;
+}
+
+.today-reading.floating {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  margin: 0.375rem 0.75rem 0;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.today-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reading-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0;
+}
+
+.date-badge {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.divider {
+  width: 1px;
+  height: 12px;
+  background: #e5e5e5;
+}
+
+.reading-badge {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.today-links {
+  display: flex;
+  gap: 0.375rem;
+  margin-left: 0.75rem;
+}
+
+.link-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0.5rem;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.link-button.audio {
+  background: #FFF1F0;
+  color: #CF4033;
+}
+
+.link-button.guide {
+  background: #EFF8FF;
+  color: #2E90FA;
+}
+
+.link-button:hover {
+  opacity: 0.9;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .link-button {
+    padding: 0.375rem;
+  }
+
+  .header.floating {
+    margin: 0 -0.125rem;
+    padding-left: 1.125rem;
+    padding-right: 1.125rem;
+  }
+
+  .today-reading.floating {
+    margin: 0.375rem 0.875rem 0;
+    padding-left: 1.125rem;
+    padding-right: 1.125rem;
+  }
 }
 
 .content-section {
   background: white;
   margin: 1rem;
+  margin-top: 0.75rem;
   padding: 1rem;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .reading-info {
@@ -388,7 +848,7 @@ onMounted(() => {
 }
 
 .reading-info h2 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
@@ -406,6 +866,7 @@ onMounted(() => {
   justify-content: center;
   padding: 2rem;
   color: var(--text-secondary);
+  gap: 1rem;
 }
 
 .loading-spinner {
@@ -426,10 +887,10 @@ onMounted(() => {
 .bible-content {
   font-size: 1rem;
   line-height: 1.8;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.04em;
   color: var(--text-primary);
-  font-family: 'NotoSerifKR', serif;
-  font-weight: 300;
+  font-family: 'RIDIBatang', serif;
+  font-weight: normal;
 }
 
 .reading-info h2,
@@ -438,11 +899,12 @@ onMounted(() => {
 }
 
 :deep(.verse) {
-  font-family: 'NotoSerifKR', serif;
-  margin-bottom: 0.75rem;
+  font-family: 'RIDIBatang', serif;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: flex-start;
-  font-weight: 300;
+  font-weight: normal;
+  letter-spacing: -0.04em;
 }
 
 :deep(.verse-number) {
@@ -469,49 +931,90 @@ onMounted(() => {
 }
 
 .navigation-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  margin-top: 2rem;
+  padding: 0.5rem 1rem;
   gap: 1rem;
+  background: white;
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
+  max-width: 768px;
+  margin: 0 auto;
+  z-index: 20;
 }
 
 .nav-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0;
+  background: none;
   border: none;
-  background: white;
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 0.85rem;  /* 글자 크기 약간 줄임 */
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  font-weight: 400;
 }
 
 .complete-button {
-  flex: 1;
-  padding: 0.75rem 2rem;
-  border: none;
-  background: var(--primary-color);
-  color: white;
+  height: 28px;
+  width: 120px;
+  border: 1.5px solid rgba(46, 144, 250, 0.5);
+  background: rgba(46, 144, 250, 0.1);
+  color: #2E90FA;
   border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 0.8125rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
 }
 
-.nav-button:hover, .complete-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.complete-button:hover {
+  background: rgba(46, 144, 250, 0.15);
+  border-color: #2E90FA;  /* hover 시에는 진한 테두리 */
+  color: #1570D1;
 }
 
-.nav-button:active, .complete-button:active {
-  transform: translateY(0);
+.complete-button svg {
+  color: #2E90FA;  /* 아이콘 색상 */
+}
+
+.complete-button:hover svg {
+  color: #1570D1;  /* hover 시 아이콘 색상 진하게 */
+}
+
+.nav-button:hover {
+  color: var(--primary-color);
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .today-reading {
+    margin: 0.625rem 1rem 0;
+    padding: 0.75rem;
+  }
+
+  .navigation-controls {
+    padding: 0.5rem 1rem;
+  }
+
+  .complete-button {
+    height: 26px;
+  }
+}
+
+/* iOS 안전영역 대응 */
+@supports (-webkit-touch-callout: none) {
+  .navigation-controls {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
 }
 
 @keyframes fadeIn {
@@ -532,12 +1035,11 @@ onMounted(() => {
 
 @media (max-width: 640px) {
   .content-section {
-    margin: 0.75rem;
-    padding: 1rem;
+    margin-top: 0.625rem;
   }
 
   .navigation-controls {
-    padding: 0.75rem;
+    padding: 0.5rem 1rem;
   }
 
   .nav-button {
@@ -549,8 +1051,9 @@ onMounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 2rem 0 1rem;
+  color: #4170CD;
+  margin: 2rem 0 0.25rem;
+  text-align: center;
 }
 
 /* 첫 번째 섹션 제목의 상단 여백 제거 */
@@ -718,6 +1221,13 @@ onMounted(() => {
   justify-content: center;
 }
 
+.chapter-button.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  font-weight: 500;
+}
+
 .chapter-button:hover,
 .book-button:hover {
   background: var(--primary-light);
@@ -805,5 +1315,266 @@ button {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+}
+
+.chapter-select-button {
+  width: 100%;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chapter-select-button:hover {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+}
+
+.chapter-select-button:active {
+  transform: translateY(1px);
+}
+
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.button-content h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.button-content svg {
+  color: var(--text-secondary);
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .chapter-select-button {
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .button-content h2 {
+    font-size: 1rem;
+  }
+}
+
+.schedule-modal {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  background: #fff;
+}
+
+.month-selector {
+  border-bottom: 1px solid #eee;
+  padding: 0;
+}
+
+.month-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  gap: 1rem;
+}
+
+.today-button {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: #eee;
+  flex-shrink: 0;
+}
+
+.month-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  cursor: grab;
+  user-select: none;
+}
+
+.month-scroll::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+.month-button {
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.month-button.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.month-button:hover:not(.active) {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.schedule-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.schedule-item {
+  padding: 1rem;
+  background: white;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.schedule-item:hover {
+  background: #fafafa;
+}
+
+.schedule-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+  padding: 0 1rem;
+}
+
+.schedule-date {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  width: 140px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.schedule-reading {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  flex: 1;
+}
+
+.schedule-status {
+  display: flex;
+  align-items: center;
+  width: 48px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-icon.completed {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.status-icon.current {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.schedule-item.completed {
+  background: #FAFAFA;
+}
+
+.schedule-item.current {
+  background: #FFFBEB;
+  border-left: 4px solid #D97706;
+}
+
+.schedule-item.upcoming {
+  background: white;
+}
+
+@media (max-width: 640px) {
+  .month-header {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .schedule-item {
+    padding: 0.875rem 1rem;
+  }
+
+  .schedule-date {
+    width: 110px;
+    font-size: 0.8125rem;
+  }
+
+  .schedule-reading {
+    font-size: 0.875rem;
+  }
+
+  .schedule-info {
+    gap: 1rem;
+    padding: 0 0.75rem;
+  }
+}
+
+.clickable {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.clickable:hover {
+  opacity: 0.8;
+}
+
+.clickable:active {
+  opacity: 0.6;
 }
 </style> 
