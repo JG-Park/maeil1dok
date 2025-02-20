@@ -27,7 +27,11 @@ SECRET_KEY = 'django-insecure-=e_s$@088b-)%)-gm4j2)*s&*tuf403=%iwqz*=7-39@hqyq#u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '192.168.0.41',  # IP 주소 추가
+]
 
 
 # Application definition
@@ -88,15 +92,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DB_NAME', 'dailybible'),
-        'USER': os.environ.get('DB_USER', 'user'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'password'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST', 'db'),
         'PORT': os.environ.get('DB_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
     }
 }
 
@@ -144,6 +144,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://192.168.0.41:3000",  # IP 주소 추가
 ]
 
 CORS_ALLOW_CREDENTIALS = True
