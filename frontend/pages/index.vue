@@ -14,7 +14,9 @@
               </span>
               <span class="task-text" :class="{ 'completed': task.completed }">
                 <span class="task-title">{{ task.title }}</span>
-                <span class="task-subtitle">오늘의 말씀을 읽어보세요</span>
+                <span class="task-subtitle">
+                  {{ task.title === '하세나하시조' ? '함께 하시조!' : '오늘의 말씀을 읽어보세요' }}
+                </span>
               </span>
             </div>
             <span class="arrow">
@@ -36,7 +38,7 @@
               </span>
               <span class="task-text" :class="{ 'completed': task.completed }">
                 <span class="task-title">{{ task.title }}</span>
-                <span class="task-subtitle">개론 학습을 시작해보세요</span>
+                <span class="task-subtitle">개론 영상을 시청해보세요</span>
               </span>
             </div>
             <span class="arrow">
@@ -51,44 +53,70 @@
 
     <div class="section fade-in" style="animation-delay: 0.6s">
       <h2>이번 주 일독현황</h2>
-      <div class="calendar">
-        <div v-for="day in ['일', '월', '화', '수', '목', '금', '토']" 
-             :key="day" 
-             class="calendar-header">
-          {{ day }}
+      <div class="calendar-wrapper">
+        <div class="calendar" :class="{ 'blur-content': !isAuthenticated }">
+          <div v-for="day in ['일', '월', '화', '수', '목', '금', '토']" 
+               :key="day" 
+               class="calendar-header">
+            {{ day }}
+          </div>
+          <div v-for="date in [16, 17, 18, 19, 20, 21, 22]" 
+               :key="date"
+               :class="['calendar-date', date === 17 ? 'active' : '', date < 17 ? 'completed' : '']">
+            <span class="date-number">{{ date }}</span>
+            <span class="date-indicator" v-if="date <= 17"></span>
+          </div>
         </div>
-        <div v-for="date in [16, 17, 18, 19, 20, 21, 22]" 
-             :key="date"
-             :class="['calendar-date', date === 17 ? 'active' : '', date < 17 ? 'completed' : '']">
-          <span class="date-number">{{ date }}</span>
-          <span class="date-indicator" v-if="date <= 17"></span>
+        <div v-if="!isAuthenticated" class="login-required-message">
+          해당 기능을 사용하시려면 로그인해주세요 😁
         </div>
       </div>
     </div>
 
     <div class="section fade-in" style="animation-delay: 0.8s">
-      <h2>진도율</h2>
+      <h2>진행률</h2>
       <div class="progress-container">
         <div class="progress-item">
           <div class="progress-icon">
             <img src="@/assets/images/높은뜻 푸른교회 아이콘.png" alt="교회 아이콘" class="church-icon">
           </div>
           <div class="progress-bar">
-            <div class="progress" style="width: 10.3%"></div>
+            <div class="progress" :style="{ width: `${progressPercentage}%` }"></div>
           </div>
-          <div class="progress-text">10.3% / 100%</div>
+          <div class="progress-text">{{ progressPercentage }}% / 100%</div>
         </div>
         <div class="progress-item">
-          <div class="progress-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="progress-bar">
-            <div class="progress progress-green" style="width: 20.8%"></div>
-          </div>
-          <div class="progress-text">20.8% / 100%</div>
+          <template v-if="isAuthenticated">
+            <div class="progress-content">
+              <div class="progress-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="progress-bar">
+                <div class="progress progress-green" style="width: 20.8%"></div>
+              </div>
+              <div class="progress-text">20.8% / 100%</div>
+            </div>
+          </template>
+          <template v-else>
+            <div class="progress-content blur-content">
+              <div class="progress-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="progress-bar">
+                <div class="progress progress-green" style="width: 20.8%"></div>
+              </div>
+              <div class="progress-text">20.8% / 100%</div>
+            </div>
+            <div class="login-required-message">
+              개인 진행률을 기록하시려면 로그인해주세요 😁
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -96,12 +124,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { computed } from 'vue'
-import Header from '~/components/Header.vue'
-import DailyStatus from '~/components/DailyStatus.vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useTaskStore } from '~/stores/tasks'
+import Header from '~/components/Header.vue'
+import DailyStatus from '~/components/DailyStatus.vue'
 
 const auth = useAuthStore()
 const taskStore = useTaskStore()
@@ -109,10 +136,15 @@ const taskStore = useTaskStore()
 const todayTasks = computed(() => taskStore.todayTasks)
 const introTasks = computed(() => taskStore.introTasks)
 
-const toggleTask = (task) => {
+const toggleTask = async (task) => {
   if (!task.completed) {
-    if (task.title === '성경통독') {
-      navigateTo('/reading')
+    if (task.title === '성경일독') {
+      const todayReading = await taskStore.fetchTodayReading()
+      if (todayReading) {
+        navigateTo(`/reading?book=${todayReading.book}&chapter=${todayReading.chapter}`)
+      } else {
+        navigateTo('/reading')  // 실패 시 기본 페이지로
+      }
     } else if (task.title === '출애굽기 개론') {
       navigateTo('/intro')
     } else if (task.title === '하세나하시조') {
@@ -120,6 +152,32 @@ const toggleTask = (task) => {
     }
   }
 }
+
+// 진도율 계산 로직
+const startDate = new Date('2025-02-03')
+const endDate = new Date('2025-12-27')
+const totalWeeks = 45
+const readingsPerWeek = 6
+
+const progressPercentage = computed(() => {
+  const today = new Date()
+  
+  if (today < startDate) return 0
+  if (today > endDate) return 100
+  
+  const totalReadings = totalWeeks * readingsPerWeek
+  const timeElapsed = today - startDate
+  const weeksElapsed = Math.floor(timeElapsed / (7 * 24 * 60 * 60 * 1000))
+  const daysInCurrentWeek = Math.floor((timeElapsed % (7 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000))
+  
+  const completedReadings = (weeksElapsed * readingsPerWeek) + Math.min(daysInCurrentWeek, readingsPerWeek)
+  
+  const percentage = (completedReadings / totalReadings) * 100
+  return Number(percentage.toFixed(2))
+})
+
+// 로그인 상태를 computed로 관리
+const isAuthenticated = computed(() => auth.isAuthenticated)
 </script>
 
 <style scoped>
@@ -135,12 +193,13 @@ const toggleTask = (task) => {
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --background-color: #efece8;
 }
 
 .container {
   max-width: 768px;
   margin: 0 auto;
-  background: #f5f5f5;
+  background: var(--background-color);
   min-height: 100vh;
   padding-bottom: 1.5rem;
 }
@@ -462,19 +521,25 @@ h2 {
   margin: 0;
 }
 
-/* 모바일 대응을 위한 미디어 쿼리 */
+/* 모바일 대응을 위한 미디어 쿼리 수정 */
 @media (max-width: 640px) {
   .horizontal-sections {
     flex-direction: column;
     padding: 0;
+    gap: 0; /* 간격 제거 */
   }
   
   .flex-1 {
     margin: 0.875rem 1rem;
+    margin-bottom: 0; /* 하단 마진 제거 */
+  }
+
+  .flex-1 + .flex-1 {
+    margin-top: 0.875rem; /* 두 번째 카드부터 상단 마진 적용 */
   }
 
   .section {
-    margin: 0.675rem 1rem;
+    margin: 0.875rem 1rem;
   }
 
   .calendar {
@@ -498,5 +563,42 @@ h2 {
 
 .task.not-logged-in .task-subtitle {
   color: var(--primary-color);
+}
+
+.calendar-wrapper, .progress-wrapper {
+  position: relative;
+}
+
+.blur-content {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.login-required-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* 블러 처리된 요소의 자식 요소들도 같이 블러되도록 설정 */
+.blur-content > * {
+  filter: blur(4px);
 }
 </style> 
