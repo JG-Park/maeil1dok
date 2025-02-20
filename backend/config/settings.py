@@ -27,12 +27,7 @@ SECRET_KEY = 'django-insecure-=e_s$@088b-)%)-gm4j2)*s&*tuf403=%iwqz*=7-39@hqyq#u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '192.168.0.41',  # IP 주소 추가
-]
-
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -144,7 +139,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "http://192.168.0.41:3000",  # IP 주소 추가
+    "http://192.168.0.41:3000",
+    "https://dailybible.jgplabs.kr",
 ]
 
 CORS_ALLOW_CREDENTIALS = True

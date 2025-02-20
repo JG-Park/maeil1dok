@@ -9,7 +9,7 @@ export const useApi = () => {
     // 클라이언트 환경에서는 현재 호스트 기반 URL 사용
     const baseUrl = window.location.hostname === 'localhost'
       ? 'http://localhost:8000'
-      : `http://${window.location.hostname}:8000`
+      : `http://${window.location.hostname}`
     console.log("API Base URL:", baseUrl)  // 실제 사용되는 baseUrl 확인
     return baseUrl
   }
