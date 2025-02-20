@@ -22,7 +22,7 @@
           >
           <div class="upload-info">
             <p>엑셀 파일을 드래그하거나 클릭하여 업로드하세요</p>
-            <p class="upload-format">형식: 날짜, 성경, 시작장, 끝장, 오디오</p>
+            <p class="upload-format">형식: 날짜, 성경, 시작장, 끝장, 오디오, 가이드</p>
           </div>
         </div>
         <button 
@@ -84,23 +84,95 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label>가이드 링크</label>
+          <input 
+            type="url" 
+            v-model="formData.guide_link"
+            placeholder="https://..."
+          >
+        </div>
+
         <button type="submit" class="submit-button">일정 추가</button>
       </form>
 
       <div class="schedules-list">
         <h2>등록된 일정</h2>
-        <div v-for="schedule in schedules" :key="schedule.date" class="schedule-item">
-          <div class="schedule-info">
-            <div class="schedule-date">{{ formatDate(schedule.date) }}</div>
-            <div class="schedule-content">
-              {{ schedule.book }} {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장
-            </div>
-          </div>
-          <button class="delete-button" @click="deleteSchedule(schedule.id)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
+        
+        <div v-if="isLoading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>일정을 불러오는 중...</p>
+        </div>
+
+        <div v-else-if="schedules && schedules.length > 0" class="table-container">
+          <table class="schedules-table">
+            <thead>
+              <tr>
+                <th @click="sortBy('date')" class="sortable">
+                  날짜
+                  <span class="sort-icon" v-if="sortField === 'date'">
+                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                  </span>
+                </th>
+                <th @click="sortBy('book')" class="sortable">
+                  성경
+                  <span class="sort-icon" v-if="sortField === 'book'">
+                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                  </span>
+                </th>
+                <th>장</th>
+                <th>오디오</th>
+                <th>가이드</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="schedule in sortedSchedules" :key="schedule.id">
+                <td>{{ formatDate(schedule?.date) }}</td>
+                <td>{{ schedule?.book }}</td>
+                <td>{{ schedule?.start_chapter }}-{{ schedule?.end_chapter }}장</td>
+                <td>
+                  <a 
+                    v-if="schedule?.audio_link" 
+                    :href="schedule.audio_link" 
+                    target="_blank"
+                    class="audio-link"
+                    title="오디오 듣기"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 6v12M8 10v4M16 10v4M3 12h2M19 12h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </a>
+                  <span v-else class="no-link">-</span>
+                </td>
+                <td>
+                  <a 
+                    v-if="schedule?.guide_link" 
+                    :href="schedule.guide_link" 
+                    target="_blank"
+                    class="guide-link"
+                    title="가이드 보기"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 6.25V19.25M12 6.25L7 10.75M12 6.25L17 10.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </a>
+                  <span v-else class="no-link">-</span>
+                </td>
+                <td>
+                  <button class="delete-button" @click="deleteSchedule(schedule.id)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-else class="no-schedules">
+          등록된 일정이 없습니다.
         </div>
       </div>
     </div>
@@ -108,19 +180,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useApi } from '~/composables/useApi'
 
 const api = useApi()
+const isLoading = ref(true)
+const schedules = ref([])
+const fileInput = ref(null)
 
 const formData = ref({
   date: '',
   book: '',
   start_chapter: 1,
-  end_chapter: 1
+  end_chapter: 1,
+  audio_link: '',
+  guide_link: ''
 })
-
-const schedules = ref([])
 
 // 성경 책 목록
 const oldTestament = [
@@ -138,11 +213,15 @@ const newTestament = [
 const selectedFile = ref(null)
 const uploading = ref(false)
 
+// 정렬 관련 상태 추가
+const sortField = ref('date')
+const sortOrder = ref('asc')
+
 const handleSubmit = async () => {
   try {
-    const result = await api.post('/api/v1/bible-schedules/', formData.value)
+    const result = await api.post('/api/v1/todos/bible-schedules/', formData.value)
     await loadSchedules()
-    formData.value = { date: '', book: '', start_chapter: 1, end_chapter: 1 }
+    formData.value = { date: '', book: '', start_chapter: 1, end_chapter: 1, audio_link: '', guide_link: '' }
     alert('일정이 등록되었습니다.')
   } catch (error) {
     console.error('Failed to create schedule:', error)
@@ -154,7 +233,7 @@ const deleteSchedule = async (id) => {
   if (!confirm('정말 삭제하시겠습니까?')) return
   
   try {
-    await api.delete(`/api/v1/bible-schedules/${id}/`)
+    await api.delete(`/api/v1/todos/bible-schedules/${id}/`)
     await loadSchedules()
     alert('일정이 삭제되었습니다.')
   } catch (error) {
@@ -163,24 +242,41 @@ const deleteSchedule = async (id) => {
   }
 }
 
-const loadSchedules = async () => {
+const formatDate = (dateString) => {
+  if (!dateString) return ''
   try {
-    const data = await api.get('/api/v1/bible-schedules/')
-    schedules.value = data
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short'
+    })
   } catch (error) {
-    console.error('Failed to load schedules:', error)
-    alert(error.message || '일정 목록을 불러오는데 실패했습니다.')
+    console.error('Date formatting error:', error)
+    return ''
   }
 }
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'short'
-  })
+const loadSchedules = async () => {
+  isLoading.value = true
+  try {
+    const response = await api.get('/api/v1/todos/bible-schedules/')
+    console.log("API Response:", response)
+    
+    if (response?.data) {
+      console.log("Schedule Data:", response.data)
+      schedules.value = response.data
+    } else {
+      console.log("No data in response")
+      schedules.value = []
+    }
+  } catch (error) {
+    console.error('Failed to load schedules:', error)
+    schedules.value = []
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const handleFileUpload = (event) => {
@@ -195,8 +291,8 @@ const uploadExcel = async () => {
   formData.append('file', selectedFile.value)
 
   try {
-    const result = await api.upload('/api/v1/bible-schedules/upload/', formData)
-    console.log('Upload result:', result)  // 응답 확인을 위한 로그
+    const result = await api.upload('/api/v1/todos/bible-schedules/upload/', formData)
+    console.log('Upload result:', result)
     await loadSchedules()
     selectedFile.value = null
     if (fileInput.value) {
@@ -211,6 +307,30 @@ const uploadExcel = async () => {
   }
 }
 
+// 정렬 함수
+const sortBy = (field) => {
+  if (sortField.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortOrder.value = 'asc'
+  }
+}
+
+// 정렬된 스케줄 계산
+const sortedSchedules = computed(() => {
+  return [...schedules.value].sort((a, b) => {
+    let comparison = 0
+    if (sortField.value === 'date') {
+      comparison = new Date(a.date) - new Date(b.date)
+    } else if (sortField.value === 'book') {
+      comparison = a.book.localeCompare(b.book)
+    }
+    return sortOrder.value === 'asc' ? comparison : -comparison
+  })
+})
+
+// 클라이언트 사이드에서만 초기 데이터 로드
 onMounted(() => {
   loadSchedules()
 })
@@ -310,37 +430,63 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
-.schedule-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.table-container {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.schedules-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.schedules-table th,
+.schedules-table td {
   padding: 1rem;
-  background: #f8f8f8;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
 }
 
-.schedule-date {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.schedule-content {
-  font-weight: 500;
+.schedules-table th {
+  background: #f8f9fa;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
+.schedules-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.schedules-table th.sortable:hover {
+  background: #edf2f7;
+}
+
+.sort-icon {
+  margin-left: 0.5rem;
+  color: var(--primary-color);
+}
+
+.schedules-table tr:hover {
+  background: #f8f9fa;
+}
+
 .delete-button {
+  padding: 0.5rem;
   background: none;
   border: none;
-  padding: 0.5rem;
-  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  color: #666;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .delete-button:hover {
-  color: #dc2626;
+  color: #ff4444;
 }
 
 @keyframes fadeIn {
@@ -445,4 +591,63 @@ onMounted(() => {
 .divider::after {
   right: 0;
 }
+
+.no-schedules {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.audio-link,
+.guide-link {
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: color 0.2s;
+}
+
+.audio-link:hover,
+.guide-link:hover {
+  color: var(--primary-color-dark);
+}
+
+.no-link {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.schedules-table td:nth-child(1) { width: 25%; } /* 날짜 */
+.schedules-table td:nth-child(2) { width: 20%; } /* 성경 */
+.schedules-table td:nth-child(3) { width: 15%; } /* 장 */
+.schedules-table td:nth-child(4) { width: 10%; } /* 오디오 */
+.schedules-table td:nth-child(5) { width: 10%; } /* 가이드 */
+.schedules-table td:nth-child(6) { width: 10%; } /* 관리 */
 </style> 
