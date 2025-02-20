@@ -22,6 +22,7 @@ class DailyBibleSchedule(models.Model):
     start_chapter = models.IntegerField()  # 시작 장
     end_chapter = models.IntegerField()  # 끝 장
     audio_link = models.URLField(blank=True, null=True)  # 오디오 링크
+    guide_link = models.URLField(blank=True, null=True)  # 가이드 링크 추가
     
     class Meta:
         ordering = ['date']

@@ -4,4 +4,4 @@ from .models import DailyBibleSchedule
 class DailyBibleScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyBibleSchedule
-        fields = ['id', 'date', 'book', 'start_chapter', 'end_chapter', 'audio_link'] 
+        fields = ['id', 'date', 'book', 'start_chapter', 'end_chapter', 'audio_link', 'guide_link'] 
