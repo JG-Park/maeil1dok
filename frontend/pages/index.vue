@@ -39,15 +39,23 @@
                 </div>
               </div>
             </template>
+            <template v-else-if="task.title === '하세나하시조'">
+              <div class="task video-task" @click="toggleTask(task)">
+                <div class="task-content">
+                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="task-text">
+                    <span class="task-title">{{ task.title }}</span>
+                    <span class="task-subtitle">함께 하시조!</span>
+                  </span>
+                </div>
+              </div>
+            </template>
             <div v-else class="task" @click="toggleTask(task)">
               <div class="task-content">
                 <template v-if="task.completed">
                   <span class="check-mark">✓</span>
-                </template>
-                <template v-else-if="task.title === '하세나하시조'">
-                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
                 </template>
                 <span class="task-text" :class="{ 'completed': task.completed }">
                   <span class="task-title">{{ task.title }}</span>
@@ -173,7 +181,7 @@ const toggleTask = async (task) => {
       } else {
         navigateTo('/reading')  // 실패 시 기본 페이지로
       }
-    } else if (task.title === '출애굽기 개론') {
+    } else if (task.title === '레위기 개론') {
       navigateTo('/intro')
     } else if (task.title === '하세나하시조') {
       navigateTo('/video')
@@ -649,7 +657,7 @@ h2 {
 }
 
 .plan-task {
-  background: #f7f7f7;
+  background: var(--primary-light);
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   margin-bottom: 1rem;
@@ -657,8 +665,12 @@ h2 {
 }
 
 .plan-task:hover {
-  background: #f0f0f0 !important;
-  border-color: #4A5A5B !important;
+  background: #e5efeb !important;
+  border-color: var(--primary-color) !important;
+}
+
+.plan-task .check-icon {
+  color: var(--primary-color);
 }
 
 .reading-task .check-icon,
@@ -666,12 +678,31 @@ h2 {
   color: #366DAE;
 }
 
-.plan-task .check-icon {
-  color: #4A5A5B;
+.task:has(.task-title:contains('하세나하시조')) {
+  background: #f5f9ff;
 }
 
-.reading-task:hover .check-icon,
-.plan-task:hover .check-icon {
-  opacity: 1;
+.task:has(.task-title:contains('하세나하시조')):hover {
+  background: #edf4ff !important;
+  border-color: #366DAE !important;
 }
+
+.task:has(.task-title:contains('하세나하시조')) .check-icon,
+.task:has(.task-title:contains('하세나하시조')) .check-mark {
+  color: #366DAE;
+}
+/* 
+.video-task {
+  background: #f5f9ff;
+}
+
+.video-task:hover {
+  background: #edf4ff !important;
+  border-color: #366DAE !important;
+}
+
+.video-task .check-icon,
+.video-task .check-mark {
+  color: #366DAE;
+} */
 </style> 
