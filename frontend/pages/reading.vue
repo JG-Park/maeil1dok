@@ -581,18 +581,23 @@ const checkReadingStatus = async () => {
 }
 
 // 읽기 완료 처리
-const handleCompleteReading = async () => {
+const handleCompleteReading = () => {
   if (!authStore.isAuthenticated) {
     showLoginModal.value = true
     return
   }
 
   if (!taskStore.todayReading?.date) return
-  
+  showCompleteConfirmModal.value = true
+}
+
+// 실제 읽기 완료 처리 함수
+const confirmCompleteReading = async () => {
   try {
     isLoading.value = true
     await completeBibleReading(taskStore.todayReading.date)
     readingStatus.value = 'completed'
+    showCompleteConfirmModal.value = false
   } catch (error) {
     console.error('Failed to complete reading:', error)
   } finally {
@@ -834,6 +839,9 @@ const isChapterCompleted = (chapter) => {
     history.last_chapter_read >= chapter
   )
 }
+
+// 읽기 완료 확인 모달 상태
+const showCompleteConfirmModal = ref(false)
 </script>
 
 <template>
@@ -855,31 +863,50 @@ const isChapterCompleted = (chapter) => {
     >
       <div class="today-info">
         <div class="reading-meta">
-          <!-- 날짜 대신 성경통독표 버튼으로 변경 -->
           <button 
             class="schedule-button"
             @click="openScheduleModal"
           >
-            성경통독표
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>성경통독표</span>
           </button>
-          <template v-if="isLastChapterInSchedule">
-            <button 
-              v-if="readingStatus === 'completed'"
-              class="complete-button complete-cancel-button" 
-              @click="handleCancelReading"
-              :disabled="isLoading"
-            >
-              읽지 않음으로 표시
-            </button>
-            <button 
-              v-else
-              class="complete-button" 
-              @click="handleCompleteReading"
-              :disabled="isLoading"
-            >
-              읽음으로 표시
-            </button>
-          </template>
+          <button 
+            v-if="readingStatus === 'completed'"
+            class="complete-button complete-cancel-button" 
+            @click="handleCancelReading"
+            :disabled="isLoading"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 18L18 6M6 6l12 12" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>완료 취소</span>
+          </button>
+          <button 
+            v-else
+            class="complete-button" 
+            @click="handleCompleteReading"
+            :disabled="isLoading"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 6L9 17l-5-5" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>완료</span>
+          </button>
         </div>
       </div>
       <div class="today-links">
@@ -974,31 +1001,75 @@ const isChapterCompleted = (chapter) => {
       </button>
       <div class="center-content">
         <div class="current-page">
-          <!-- 날짜 표시 추가 -->
-          <div v-if="taskStore.todayReading" class="schedule-date">
+          <!-- 날짜 표시에 상태별 클래스 추가 -->
+          <div 
+            v-if="taskStore.todayReading" 
+            class="schedule-date"
+            :class="{
+              'completed': readingStatus === 'completed',
+              'not-completed': !isToday && readingStatus !== 'completed',
+              'current': isToday && readingStatus !== 'completed'
+            }"
+          >
+            <!-- 완료된 구간 아이콘 -->
+            <div v-if="readingStatus === 'completed'" class="status-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            
+            <!-- 읽지 않은 구간 아이콘 -->
+            <div v-else-if="!isToday" class="status-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            
+            <!-- 오늘 구간 로딩 아이콘 -->
+            <div v-else class="status-icon today">
+              오늘
+            </div>
+            
             {{ formatScheduleDate(taskStore.todayReading.date) }}
           </div>
           <div class="chapter-range">
             {{ bookNames[currentBook] }}
             <template v-if="taskStore.todayReading">
-              <template 
-                v-for="chapter in Array.from(
-                  { length: taskStore.todayReading.end_chapter - taskStore.todayReading.chapter + 1 },
-                  (_, i) => taskStore.todayReading.chapter + i
-                )"
-                :key="chapter"
+              <!-- 시작 장 -->
+              <span 
+                class="chapter-number"
+                :class="{ 
+                  'current': taskStore.todayReading.chapter === currentChapter,
+                  'completed': isChapterCompleted(taskStore.todayReading.chapter)
+                }"
               >
-                <span class="chapter-dot">·</span>
-                <span 
-                  class="chapter-number"
-                  :class="{ 
-                    'current': chapter === currentChapter,
-                    'completed': isChapterCompleted(chapter)
-                  }"
-                >
-                  {{ chapter }}
+                {{ taskStore.todayReading.chapter }}
+              </span>
+
+              <!-- 중간 구분선 -->
+              <span class="chapter-separator">-</span>
+
+              <!-- 현재 장이 시작/끝이 아닐 때만 표시 -->
+              <template v-if="currentChapter !== taskStore.todayReading.chapter && 
+                              currentChapter !== taskStore.todayReading.end_chapter">
+                <span class="chapter-number current">
+                  {{ currentChapter }}
                 </span>
+                <span class="chapter-separator">-</span>
               </template>
+
+              <!-- 마지막 장 -->
+              <span 
+                class="chapter-number"
+                :class="{ 
+                  'current': taskStore.todayReading.end_chapter === currentChapter,
+                  'completed': isChapterCompleted(taskStore.todayReading.end_chapter)
+                }"
+              >
+                {{ taskStore.todayReading.end_chapter }}
+              </span>
               <span>장</span>
             </template>
             <template v-else>
@@ -1249,6 +1320,43 @@ const isChapterCompleted = (chapter) => {
       message="저장되었습니다!"
       type="success"
     />
+
+    <!-- 읽기 완료 확인 모달 -->
+    <Teleport to="body">
+      <div v-if="showCompleteConfirmModal" class="modal-overlay" @click="showCompleteConfirmModal = false">
+        <div class="modal-content confirm-modal" @click.stop>
+          <div class="modal-body">
+            <button class="close-button absolute-close" @click="showCompleteConfirmModal = false">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="modal-content-wrapper">
+              <div class="modal-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="modal-text">
+                <h3>읽기 완료</h3>
+                <p>
+                  {{ bookNames[currentBook] }} {{ taskStore.todayReading?.chapter }}-{{ taskStore.todayReading?.end_chapter }}장까지<br>
+                  구간을 읽음으로 표시하겠어요?
+                </p>
+              </div>
+              <div class="modal-actions">
+                <button class="confirm-button" @click="confirmCompleteReading">
+                  네
+                </button>
+                <button class="cancel-button" @click="showCompleteConfirmModal = false">
+                  아니요
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1278,7 +1386,7 @@ const isChapterCompleted = (chapter) => {
   top: 0;
   z-index: 10;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  height: 48px;
+  height: 50px;
   transition: all 0.15s ease;
   margin: 0;
 }
@@ -1583,7 +1691,7 @@ const isChapterCompleted = (chapter) => {
 }
 
 .complete-button {
-  border: 1.5px solid rgba(46, 144, 250, 0.5);
+  border: 1px solid rgba(46, 144, 250, 0.5);
   background: rgba(46, 144, 250, 0.1);
   color: #2E90FA;
   border-radius: 8px;
@@ -1598,6 +1706,7 @@ const isChapterCompleted = (chapter) => {
   padding: 0.35rem 0.75rem;  /* 상단 버튼에 맞게 패딩 조정 */
   margin: 0 0 0.1rem 0;
   height: 32px;  /* 높이 고정 */
+  gap: 0.375rem;  /* 아이콘과 텍스트 사이 간격 */
 }
 
 .complete-button:hover {
@@ -1612,14 +1721,15 @@ const isChapterCompleted = (chapter) => {
 }
 
 .complete-cancel-button {
-  border: 1.2px solid rgba(220, 38, 38, 0.5);
-  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.25);  /* 테두리 더 연하게 */
+  background: rgba(220, 38, 38, 0.05);  /* 배경 더 연하게 */
   color: #DC2626;
 }
 
 .complete-cancel-button:hover {
-  background: rgba(220, 38, 38, 0.15);
-  border-color: #DC2626;
+  background: rgba(220, 38, 38, 0.1);  /* hover 배경 더 연하게 */
+  border-color: rgba(220, 38, 38, 0.4);  /* hover 테두리 더 연하게 */
+  color: #DC2626;  /* hover 시에도 빨간색 유지 */
 }
 
 .complete-button:disabled,
@@ -1643,6 +1753,7 @@ const isChapterCompleted = (chapter) => {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
     height: 28px;
+    gap: 0.25rem;
   }
 }
 
@@ -2122,13 +2233,12 @@ button {
 }
 
 .status-icon {
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  flex-shrink: 0;
 }
 
 .status-icon.completed {
@@ -2171,11 +2281,6 @@ button {
 
   .schedule-item {
     padding: 0.875rem 1rem;
-  }
-
-  .schedule-date {
-    width: 80px;  /* 모바일에서는 더 좁은 너비 */
-    font-size: 0.8125rem;
   }
 
   .schedule-reading {
@@ -2777,12 +2882,6 @@ button {
   gap: 1.5rem;
 }
 
-.schedule-date {
-  font-size: 0.875rem;
-  font-weight: 500;
-  min-width: 100px;
-}
-
 .schedule-reading {
   font-size: 0.9375rem;
   font-weight: 600;
@@ -2921,11 +3020,6 @@ button {
   gap: 1.5rem;
 }
 
-.schedule-date {
-  font-size: 0.875rem;
-  font-weight: 500;
-  min-width: 100px;
-}
 
 .schedule-reading {
   font-size: 0.9375rem;
@@ -3024,10 +3118,6 @@ button {
 
   .schedule-info {
     gap: 1rem;
-  }
-  
-  .schedule-date {
-    min-width: 80px;
   }
 }
 
@@ -3170,6 +3260,188 @@ button {
 .chapter-dot {
   color: #CBD5E1;
   margin: 0 0.1rem;
+  font-size: 0.75em;
+}
+
+/* 모바일에서 더 컴팩트하게 */
+@media (max-width: 640px) {
+  .chapter-range {
+    font-size: 0.8125rem;
+    gap: 0.1rem;
+  }
+  
+  .chapter-dot {
+    margin: 0 0.05rem;
+    font-size: 0.7em;
+  }
+}
+
+.schedule-date {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-align: center;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;  /* 간격 줄임 */
+}
+
+.status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+/* 로딩 애니메이션 */
+.loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.loading-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { 
+    transform: scale(0);
+  } 
+  40% { 
+    transform: scale(1);
+  }
+}
+/* 상태별 색상 */
+.schedule-date.completed {
+  color: var(--primary-color);
+}
+
+.schedule-date.not-completed {
+  color: #DC2626;
+}
+
+.schedule-date.current {
+  color: #2E90FA;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .schedule-date {
+    font-size: 0.75rem;
+    gap: 0.25rem;  /* 모바일에서 더 좁게 */
+  }
+  
+  .status-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+}
+
+.schedule-button {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid var(--primary-color);  /* 테두리 추가 */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;  /* 약간 투명도 추가 */
+  gap: 0.375rem;  /* 아이콘과 텍스트 사이 간격 */
+}
+
+.schedule-button:hover {
+  background: var(--primary-hover);
+  color: var(--primary-dark);
+  opacity: 1;  /* 호버 시 투명도 제거 */
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .schedule-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    height: 28px;
+    gap: 0.25rem;
+  }
+}
+
+.confirm-modal {
+  max-width: 320px;
+  max-height: 350px;
+  width: 90%;
+  text-align: center;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  margin: 1rem;
+  padding: 1rem;
+  animation: slideUp 0.3s ease-out;
+}
+
+.confirm-button {
+  width: 100%;
+  padding: 0.45rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.confirm-button:hover {
+  background: var(--primary-dark);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chapter-ellipsis {
+  color: #CBD5E1;
+  letter-spacing: 1px;
+  margin: 0 -0.1rem;
+  font-size: 0.75em;
+}
+
+/* 모바일에서 더 컴팩트하게 */
+@media (max-width: 640px) {
+  .chapter-ellipsis {
+    margin: 0 -0.2rem;
+    font-size: 0.7em;
+  }
+}
+
+.chapter-separator {
+  color: #CBD5E1;
+  margin: 0 0.25rem;
 }
 
 .chapter-number {
@@ -3182,62 +3454,25 @@ button {
 }
 
 .chapter-number.completed {
-  color: #22C55E;
-}
-
-/* 모바일 대응 */
-@media (max-width: 640px) {
-  .chapter-range {
-    font-size: 0.8125rem;
-    gap: 0.1rem;
-  }
-  
-  .chapter-dot {
-    margin: 0 0.05rem;
-  }
-}
-
-.schedule-date {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-/* 모바일 대응 */
-@media (max-width: 640px) {
-  .schedule-date {
-    font-size: 0.75rem;
-    margin-bottom: 0.2rem;
-  }
-}
-
-.schedule-button {
-  background: var(--primary-light);
   color: var(--primary-color);
-  padding: 0.25rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.schedule-button:hover {
-  background: var(--primary-hover);
-  color: var(--primary-dark);
-}
-
-/* 모바일 대응 */
+/* 모바일에서 더 컴팩트하게 */
 @media (max-width: 640px) {
-  .schedule-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    height: 28px;
+  .chapter-separator {
+    margin: 0 0.15rem;
   }
+}
+
+.status-icon.today {
+  background: #EFF6FF;
+  color: #2563EB;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.05rem 0.25rem;
+  border-radius: 4px;
+  width: auto;
+  height: auto;
+  border: 1px solid currentColor;
 }
 </style> 
