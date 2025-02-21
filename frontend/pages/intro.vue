@@ -11,8 +11,8 @@
 
     <div class="content-section fade-in" style="animation-delay: 0.2s">
       <div class="video-info">
-        <h2>출애굽기 개론</h2>
-        <p class="description">출애굽기의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
+        <h2>레위기 개론</h2>
+        <p class="description">레위기의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
       </div>
 
       <div class="video-wrapper">
@@ -20,7 +20,7 @@
           <iframe
             width="100%"
             height="100%"
-            src="https://www.youtube.com/embed/nuumvEm2D9M"
+            src="https://www.youtube.com/embed/4Ttqlz3qR8Q"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
@@ -28,7 +28,7 @@
         </div>
         
         <a 
-          href="https://youtu.be/nuumvEm2D9M" 
+          href="https://youtu.be/4Ttqlz3qR8Q" 
           target="_blank" 
           class="youtube-button"
         >
@@ -40,7 +40,7 @@
 
     <div class="bottom-controls fade-in" style="animation-delay: 0.3s">
       <button class="complete-button" @click="handleComplete">
-        학습 완료
+        완료
       </button>
     </div>
   </div>
@@ -54,7 +54,7 @@ const taskStore = useTaskStore()
 const router = useRouter()
 
 const handleComplete = () => {
-  taskStore.completeTask(3) // 출애굽기 개론 task의 ID
+  taskStore.completeTask(3) // 레위기 개론 task의 ID
   router.push('/')
 }
 </script>
