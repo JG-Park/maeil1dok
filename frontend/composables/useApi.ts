@@ -1,4 +1,5 @@
 import { useRuntimeConfig } from '#app'
+import { useNuxtApp } from '#app'
 
 export const useApi = () => {
   const getBaseUrl = () => {
@@ -53,5 +54,70 @@ export const useApi = () => {
       if (!response.ok) throw new Error('API request failed')
       return response.json()
     },
+  }
+}
+
+// 성경 읽기 진도 관련 API
+export const useBibleProgressApi = () => {
+  const { $api } = useNuxtApp()
+
+  // 읽기 진도 조회
+  const getBibleProgress = async (date: string) => {
+    try {
+      const response = await $api.get(`/todos/bible-progress/status/`, {
+        params: { date }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Failed to get bible progress:', error)
+      throw error
+    }
+  }
+
+  // 읽기 진도 업데이트
+  const updateBibleProgress = async (date: string, lastChapterRead: number) => {
+    try {
+      const response = await $api.post('/todos/bible-progress/', {
+        date,
+        last_chapter_read: lastChapterRead
+      })
+      return response.data
+    } catch (error) {
+      console.error('Failed to update bible progress:', error)
+      throw error
+    }
+  }
+
+  // 읽기 완료 처리
+  const completeBibleReading = async (date: string) => {
+    try {
+      const response = await $api.post('/todos/bible-progress/complete/', {
+        date
+      })
+      return response.data
+    } catch (error) {
+      console.error('Failed to complete bible reading:', error)
+      throw error
+    }
+  }
+
+  // 읽기 완료 취소
+  const cancelBibleReading = async (date: string) => {
+    try {
+      const response = await $api.post('/todos/bible-progress/cancel/', {
+        date
+      })
+      return response.data
+    } catch (error) {
+      console.error('Failed to cancel bible reading:', error)
+      throw error
+    }
+  }
+
+  return {
+    getBibleProgress,
+    updateBibleProgress,
+    completeBibleReading,
+    cancelBibleReading
   }
 } 
