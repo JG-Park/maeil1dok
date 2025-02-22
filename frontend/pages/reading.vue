@@ -426,6 +426,14 @@ const getReadingStatus = (schedule) => {
   if (scheduleDate < today) return 'completed'
   return 'current'
 }
+
+// 현재 장이 읽기 구간의 마지막 장인지 확인하는 computed 속성
+const isLastChapterInSchedule = computed(() => {
+  if (!taskStore.todayReading) return false
+  
+  return currentBook.value === taskStore.todayReading.book && 
+         currentChapter.value === taskStore.todayReading.end_chapter
+})
 </script>
 
 <template>
@@ -506,12 +514,20 @@ const getReadingStatus = (schedule) => {
       <button class="nav-button prev" @click="goToPrevChapter">
         &lt; 이전
       </button>
-      <button class="complete-button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        읽음으로 표시
-      </button>
+      <div class="center-content">
+        <button 
+          v-if="isLastChapterInSchedule" 
+          class="complete-button"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          오늘 일독 완료하기
+        </button>
+        <span v-else class="chapter-indicator">
+          {{ bookNames[currentBook] }} {{ currentChapter }}장
+        </span>
+      </div>
       <button class="nav-button next" @click="goToNextChapter">
         다음 &gt;
       </button>
@@ -958,9 +974,22 @@ const getReadingStatus = (schedule) => {
   font-weight: 400;
 }
 
+.center-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px; /* 버튼과 텍스트가 같은 공간을 차지하도록 */
+}
+
+.chapter-indicator {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .complete-button {
   height: 28px;
-  width: 120px;
+  min-width: 160px; /* 버튼 최소 너비 설정 */
   border: 1.5px solid rgba(46, 144, 250, 0.5);
   background: rgba(46, 144, 250, 0.1);
   color: #2E90FA;
