@@ -4,7 +4,7 @@ from rest_framework.response import Response
 import pandas as pd
 from datetime import datetime
 from .models import DailyBibleSchedule, UserBibleProgress
-from .serializers import DailyBibleScheduleSerializer, UserBibleProgressSerializer
+from .serializers import DailyBibleScheduleSerializer, UserBibleProgressSerializer, BibleProgressResponse
 import logging
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
@@ -331,20 +331,116 @@ def cancel_bible_reading(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_bible_progress(request):
-    """사용자의 성경 읽기 진도 조회"""
-    date = request.GET.get('date')
+    """성경 읽기 진도 조회 - 구간 정보 포함"""
+    book = request.GET.get('book')
+    chapter = request.GET.get('chapter')
     
-    if not date:
-        return Response({'error': '날짜가 필요합니다.'}, status=400)
+    if not all([book, chapter]):
+        return Response({'error': '필수 파라미터가 누락되었습니다.'}, status=400)
+    
+    try:
+        # book 코드를 한글 이름으로 변환
+        book_names = {v: k for k, v in book_to_code.items()}
+        korean_book_name = book_names.get(book)
+        
+        if not korean_book_name:
+            return Response({'error': '잘못된 성경 코드입니다.'}, status=400)
+            
+        # 1. 해당 장이 속한 구간 찾기
+        section = DailyBibleSchedule.objects.filter(
+            book=korean_book_name,
+            start_chapter__lte=int(chapter),
+            end_chapter__gte=int(chapter)
+        ).first()
+        
+        if not section:
+            return Response({
+                'status': 'not_started',
+                'section': None
+            })
+            
+        # 2. 해당 구간의 마지막 장을 읽었는지 확인 (날짜 무관)
+        is_completed = UserBibleProgress.objects.filter(
+            user=request.user,
+            book=korean_book_name,
+            last_chapter_read=section.end_chapter,  # 구간의 마지막 장
+            is_completed=True
+        ).exists()
+        
+        logger.info(f"[Bible Progress] User: {request.user}")
+        logger.info(f"[Bible Progress] Book: {korean_book_name}")
+        logger.info(f"[Bible Progress] Last Chapter Read: {section.end_chapter}")
+        logger.info(f"[Bible Progress] Is Completed: {is_completed}")
+        
+        response_data = {
+            'status': 'completed' if is_completed else 'not_started',
+            'section': section,
+            'is_completed': is_completed
+        }
+        
+        serializer = BibleProgressResponse(response_data)
+        return Response(serializer.data)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_reading_history(request):
+    """사용자의 성경 읽기 이력 조회"""
+    try:
+        # 사용자의 모든 완료된 읽기 기록 조회
+        completed_readings = UserBibleProgress.objects.filter(
+            user=request.user,
+            is_completed=True
+        ).values('book', 'last_chapter_read')
+        
+        return Response(completed_readings)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bulk_update_bible_progress(request):
+    """성경 읽기 진도 일괄 업데이트"""
+    schedules = request.data.get('schedules', [])
+    action = request.data.get('action')  # 'complete' or 'cancel'
+    
+    if not schedules or action not in ['complete', 'cancel']:
+        return Response({'error': '잘못된 요청입니다.'}, status=400)
         
     try:
-        progress = UserBibleProgress.objects.get(
-            user=request.user,
-            date=date
-        )
-        serializer = UserBibleProgressSerializer(progress)
-        return Response(serializer.data)
-    except UserBibleProgress.DoesNotExist:
-        return Response({'status': 'not_started'})
+        logger.info(f"[Bulk Update] Received data - schedules: {schedules}, action: {action}")
+        
+        for schedule in schedules:
+            # 기존 progress 찾기
+            progress = UserBibleProgress.objects.filter(
+                user=request.user,
+                book=schedule['book'],
+                last_chapter_read=schedule['end_chapter']
+            ).first()
+            
+            # progress가 없으면 새로 생성
+            if not progress:
+                progress = UserBibleProgress.objects.create(
+                    user=request.user,
+                    book=schedule['book'],
+                    last_chapter_read=schedule['end_chapter'],
+                    date=schedule['date']
+                )
+            
+            # 상태 업데이트
+            if action == 'complete':
+                if not progress.is_completed:
+                    progress.mark_as_completed()
+            else:
+                if progress.is_completed:
+                    progress.mark_as_incomplete()
+            
+            logger.info(f"[Bulk Update] Updated progress - book: {schedule['book']}, chapter: {schedule['end_chapter']}, action: {action}")
+                
+        return Response({'message': '성공적으로 업데이트되었습니다.'})
+        
     except Exception as e:
+        logger.error(f"[Bulk Update] Error occurred: {str(e)}", exc_info=True)
         return Response({'error': str(e)}, status=500) 
