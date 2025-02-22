@@ -169,7 +169,9 @@ const loadBibleContent = async (book, chapter) => {
     currentChapter.value = chapter
     
     // 해당 구절의 일정 정보 가져오기
+    console.log('Fetching schedule for:', { book, chapter })
     const scheduleData = await taskStore.fetchReadingSchedule(book, chapter)
+    console.log('Schedule data:', scheduleData)
     if (scheduleData) {
       taskStore.todayReading = scheduleData
     }
@@ -376,7 +378,13 @@ watch(
 )
 
 onMounted(async () => {
+  console.log('Before initializeTodayReading')
   await initializeTodayReading()
+  console.log('After initializeTodayReading:', {
+    todayReading: taskStore.todayReading,
+    currentBook: currentBook.value,
+    currentChapter: currentChapter.value
+  })
   
   const bookParam = String(route.query.book || '')
   const chapterParam = Number(route.query.chapter || 1)
@@ -810,6 +818,22 @@ const isScheduleSelected = (schedule) => {
     new Date(s.date).getTime() === new Date(schedule.date).getTime()
   )
 }
+
+// 특정 장이 읽음 상태인지 확인하는 함수
+const isChapterCompleted = (chapter) => {
+  if (!taskStore.todayReading) return false
+  
+  // 현재 장이 완료 상태인 경우
+  if (chapter === currentChapter.value && readingStatus.value === 'completed') {
+    return true
+  }
+  
+  // 읽기 이력에서 해당 장이 완료되었는지 확인
+  return readingHistory.value.some(history => 
+    history.book === currentBook.value && 
+    history.last_chapter_read >= chapter
+  )
+}
 </script>
 
 <template>
@@ -829,14 +853,33 @@ const isScheduleSelected = (schedule) => {
       style="animation-delay: 0.1s" 
       v-if="taskStore.todayReading"
     >
-      <div class="today-info clickable" @click="openScheduleModal">
+      <div class="today-info">
         <div class="reading-meta">
-          <span class="date-badge">{{ formattedDate }}</span>
-          <div class="divider"></div>
-          <span class="reading-badge">
-            {{ bookNames[taskStore.todayReading.book] }} 
-            {{ taskStore.todayReading.chapter }}-{{ taskStore.todayReading.end_chapter }}장
-          </span>
+          <!-- 날짜 대신 성경통독표 버튼으로 변경 -->
+          <button 
+            class="schedule-button"
+            @click="openScheduleModal"
+          >
+            성경통독표
+          </button>
+          <template v-if="isLastChapterInSchedule">
+            <button 
+              v-if="readingStatus === 'completed'"
+              class="complete-button complete-cancel-button" 
+              @click="handleCancelReading"
+              :disabled="isLoading"
+            >
+              읽지 않음으로 표시
+            </button>
+            <button 
+              v-else
+              class="complete-button" 
+              @click="handleCompleteReading"
+              :disabled="isLoading"
+            >
+              읽음으로 표시
+            </button>
+          </template>
         </div>
       </div>
       <div class="today-links">
@@ -884,7 +927,6 @@ const isScheduleSelected = (schedule) => {
               class="font-button" 
               @click="adjustFontSize(-1)"
               :disabled="fontSize <= 14"
-              @touchstart.prevent=""
             >
               <span class="font-icon small">가</span>
             </button>
@@ -892,7 +934,6 @@ const isScheduleSelected = (schedule) => {
               class="font-button" 
               @click="adjustFontSize(1)"
               :disabled="fontSize >= 24"
-              @touchstart.prevent=""
             >
               <span class="font-icon">가</span>
             </button>
@@ -901,7 +942,6 @@ const isScheduleSelected = (schedule) => {
               @click="resetFontSize"
               :disabled="fontSize === DEFAULT_FONT_SIZE"
               title="기본 크기로 초기화"
-              @touchstart.prevent=""
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M2 10C2 10 4.00498 7.26822 5.63384 5.63824C7.26269 4.00827 9.5136 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.89691 21 4.43511 18.2543 3.35177 14.5M2 10V4M2 10H8" 
@@ -933,44 +973,38 @@ const isScheduleSelected = (schedule) => {
         &lt; 이전
       </button>
       <div class="center-content">
-        <!-- 마지막 장이 아닐 때만 현재 장 표시 -->
-        <div class="current-page" v-if="!isLastChapterInSchedule">
-          <div class="current-chapter-info" :class="{ 'completed': isCurrentChapterCompleted }">
-            <template v-if="isCurrentChapterCompleted">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </template>
-            {{ bookNames[currentBook] }} {{ currentChapter }}장
+        <div class="current-page">
+          <!-- 날짜 표시 추가 -->
+          <div v-if="taskStore.todayReading" class="schedule-date">
+            {{ formatScheduleDate(taskStore.todayReading.date) }}
           </div>
-        </div>
-        <div class="reading-controls">
-          <template v-if="isLastChapterInSchedule">
-            <div class="current-chapter-info" :class="{ 'completed': readingStatus === 'completed' }">
-              <template v-if="readingStatus === 'completed'">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+          <div class="chapter-range">
+            {{ bookNames[currentBook] }}
+            <template v-if="taskStore.todayReading">
+              <template 
+                v-for="chapter in Array.from(
+                  { length: taskStore.todayReading.end_chapter - taskStore.todayReading.chapter + 1 },
+                  (_, i) => taskStore.todayReading.chapter + i
+                )"
+                :key="chapter"
+              >
+                <span class="chapter-dot">·</span>
+                <span 
+                  class="chapter-number"
+                  :class="{ 
+                    'current': chapter === currentChapter,
+                    'completed': isChapterCompleted(chapter)
+                  }"
+                >
+                  {{ chapter }}
+                </span>
               </template>
-              {{ bookNames[currentBook] }} {{ currentChapter }}장
-            </div>
-            <button 
-              v-if="readingStatus === 'completed'"
-              class="complete-button complete-cancel-button" 
-              @click="handleCancelReading"
-              :disabled="isLoading"
-            >
-              읽지 않음으로 표시
-            </button>
-            <button 
-              v-else
-              class="complete-button" 
-              @click="handleCompleteReading"
-              :disabled="isLoading"
-            >
-              읽음으로 표시
-            </button>
-          </template>
+              <span>장</span>
+            </template>
+            <template v-else>
+              {{ currentChapter }}장
+            </template>
+          </div>
         </div>
       </div>
       <button class="nav-button next" @click="goToNextChapter">
@@ -1306,7 +1340,7 @@ const isScheduleSelected = (schedule) => {
 .reading-meta {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.75rem;  /* 간격 약간 늘림 */
   margin-bottom: 0;
 }
 
@@ -1556,13 +1590,14 @@ const isScheduleSelected = (schedule) => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;  /* 글자 크기 약간 줄임 */
   letter-spacing: -0.02em;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.05rem 0.65rem;
+  padding: 0.35rem 0.75rem;  /* 상단 버튼에 맞게 패딩 조정 */
   margin: 0 0 0.1rem 0;
+  height: 32px;  /* 높이 고정 */
 }
 
 .complete-button:hover {
@@ -1605,7 +1640,9 @@ const isScheduleSelected = (schedule) => {
 
 
   .complete-button {
-    height: 26px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    height: 28px;
   }
 }
 
@@ -2439,13 +2476,18 @@ button {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
+  /* iOS에서 터치 관련 속성 제거 */
   -webkit-tap-highlight-color: transparent;
-  pointer-events: auto;
-  touch-action: none;  /* 모든 터치 액션 비활성화 */
+}
+
+/* iOS에서 버튼 터치 영역 최적화 */
+@supports (-webkit-touch-callout: none) {
+  .font-button {
+    /* iOS에서 터치 이벤트 관련 속성 수정 */
+    padding: 0;
+    margin: 0;
+    touch-action: manipulation;
+  }
 }
 
 .font-button:hover:not(:disabled) {
@@ -3113,5 +3155,89 @@ button {
 .slide-fade-leave-to {
   transform: translateY(-20px);
   opacity: 0;
+}
+
+.chapter-range {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chapter-dot {
+  color: #CBD5E1;
+  margin: 0 0.1rem;
+}
+
+.chapter-number {
+  font-weight: 400;
+}
+
+.chapter-number.current {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.chapter-number.completed {
+  color: #22C55E;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .chapter-range {
+    font-size: 0.8125rem;
+    gap: 0.1rem;
+  }
+  
+  .chapter-dot {
+    margin: 0 0.05rem;
+  }
+}
+
+.schedule-date {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .schedule-date {
+    font-size: 0.75rem;
+    margin-bottom: 0.2rem;
+  }
+}
+
+.schedule-button {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.schedule-button:hover {
+  background: var(--primary-hover);
+  color: var(--primary-dark);
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .schedule-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    height: 28px;
+  }
 }
 </style> 
