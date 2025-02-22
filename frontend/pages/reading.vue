@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useTaskStore } from '~/stores/tasks'
 import { useRoute, useRouter } from 'vue-router'
+import { useBibleProgressApi } from '~/composables/useApi'
 
 const taskStore = useTaskStore()
 const route = useRoute()
@@ -453,6 +454,68 @@ const isToday = computed(() => {
          today.getMonth() === scheduleDate.getMonth() &&
          today.getDate() === scheduleDate.getDate()
 })
+
+const { getBibleProgress, completeBibleReading, cancelBibleReading } = useBibleProgressApi()
+const readingStatus = ref('not_started')
+
+// 읽기 상태 조회
+const checkReadingStatus = async () => {
+  if (!taskStore.todayReading?.date) return
+  
+  try {
+    const response = await getBibleProgress(taskStore.todayReading.date)
+    readingStatus.value = response.status || 'not_started'
+  } catch (error) {
+    console.error('Failed to check reading status:', error)
+  }
+}
+
+// 읽기 완료 처리
+const handleCompleteReading = async () => {
+  if (!taskStore.todayReading?.date) return
+  
+  try {
+    isLoading.value = true
+    await completeBibleReading(taskStore.todayReading.date)
+    readingStatus.value = 'completed'
+    // 완료 후 필요한 처리 (예: 메시지 표시)
+  } catch (error) {
+    console.error('Failed to complete reading:', error)
+    // 에러 처리
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 읽기 완료 취소
+const handleCancelReading = async () => {
+  if (!taskStore.todayReading?.date) return
+  
+  try {
+    isLoading.value = true
+    await cancelBibleReading(taskStore.todayReading.date)
+    readingStatus.value = 'not_started'
+    // 취소 후 필요한 처리
+  } catch (error) {
+    console.error('Failed to cancel reading:', error)
+    // 에러 처리
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 컴포넌트 마운트 시 상태 체크
+onMounted(async () => {
+  await checkReadingStatus()
+})
+
+// 날짜/책/장이 변경될 때 상태 다시 체크
+watch(
+  () => taskStore.todayReading?.date,
+  async () => {
+    await checkReadingStatus()
+  }
+)
 </script>
 
 <template>
@@ -526,7 +589,7 @@ const isToday = computed(() => {
         </p>
       </div>
 
-      <div v-else class="bible-content" v-html="bibleContent"></div>
+      <div v-else class="bible-content text-adjustable" v-html="bibleContent"></div>
     </div>
 
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
@@ -535,17 +598,27 @@ const isToday = computed(() => {
       </button>
       <div class="center-content">
         <button 
-          v-if="isLastChapterInSchedule" 
+          v-if="readingStatus !== 'completed'"
           class="complete-button"
+          :disabled="isLoading"
+          @click="handleCompleteReading"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           {{ isToday ? '오늘 일독 완료하기' : `${formatButtonDate(taskStore.todayReading?.date)} 일독 완료하기` }}
         </button>
-        <span v-else class="chapter-indicator">
-          {{ bookNames[currentBook] }} {{ currentChapter }}장
-        </span>
+        <button 
+          v-else
+          class="cancel-button"
+          :disabled="isLoading"
+          @click="handleCancelReading"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          완료 취소하기
+        </button>
       </div>
       <button class="nav-button next" @click="goToNextChapter">
         다음 &gt;
@@ -1030,12 +1103,38 @@ const isToday = computed(() => {
   color: #1570D1;
 }
 
-.complete-button svg {
-  color: #2E90FA;  /* 아이콘 색상 */
+.complete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.complete-button:hover svg {
-  color: #1570D1;  /* hover 시 아이콘 색상 진하게 */
+.cancel-button {
+  height: 28px;
+  min-width: 160px;
+  border: 1.5px solid rgba(220, 38, 38, 0.5);
+  background: rgba(220, 38, 38, 0.1);
+  color: #DC2626;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8125rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.cancel-button:hover {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: #DC2626;
+}
+
+.complete-button:disabled,
+.cancel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .nav-button:hover {
@@ -1624,5 +1723,75 @@ button {
 
 .clickable:active {
   opacity: 0.6;
+}
+
+/* 글자 크기 조절이 가능한 본문 영역 */
+.text-adjustable {
+  /* iOS/Android의 동적 텍스트 크기 조절 허용 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* UI 요소들의 글자 크기는 고정 */
+.header,
+.nav-button,
+.complete-button,
+.cancel-button,
+.modal-header,
+.modal-content button {
+  /* 시스템 글자 크기 설정 무시 */
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  /* rem 대신 px 사용하여 고정 크기 설정 */
+  font-size: 14px !important;
+}
+
+/* 본문 스타일 추가 */
+:deep(.bible-content) {
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  
+  /* 기본 폰트 크기 설정 */
+  font-size: 16px;
+  
+  /* 최소/최대 폰트 크기 제한 */
+  min-height: 0vw; /* iOS에서 폰트 크기 제한 해제 */
+  
+  /* 모바일에서 더 나은 가독성을 위한 설정 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* 문단 간격 */
+  p {
+    margin: 1em 0;
+  }
+  
+  /* 장 번호 스타일 */
+  .chapter-num {
+    font-weight: bold;
+    color: #4170CD;
+    /* 장 번호는 고정 크기 유지 */
+    font-size: 1rem !important;
+  }
+  
+  /* 절 번호 스타일 */
+  .verse-num {
+    font-size: 0.85em;
+    color: #666;
+    vertical-align: top;
+    margin-right: 0.2em;
+  }
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  :deep(.bible-content) {
+    /* 모바일에서의 기본 폰트 크기 */
+    font-size: 18px;
+    
+    /* 좌우 여백 조정 */
+    padding: 0 1rem;
+  }
 }
 </style> 
