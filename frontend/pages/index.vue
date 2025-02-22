@@ -7,24 +7,57 @@
       <div class="section flex-1">
         <h2>오늘일독</h2>
         <div class="tasks">
-          <div class="task" v-for="(task, index) in todayTasks" :key="index" @click="toggleTask(task)">
-            <div class="task-content">
-              <span class="check" :class="{ 'check-active': task.completed }">
-                <span class="check-mark" v-if="task.completed">✓</span>
-              </span>
-              <span class="task-text" :class="{ 'completed': task.completed }">
-                <span class="task-title">{{ task.title }}</span>
-                <span class="task-subtitle">
-                  {{ task.title === '하세나하시조' ? '함께 하시조!' : '오늘의 말씀을 읽어보세요' }}
+          <template v-for="(task, index) in todayTasks" :key="index">
+            <template v-if="task.title === '성경일독'">
+              <div class="task split-task reading-task" @click="toggleTask(task)">
+                <div class="task-content">
+                  <template v-if="task.completed">
+                    <span class="check-mark">✓</span>
+                  </template>
+                  <template v-else>
+                    <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </template>
+                  <span class="task-text" :class="{ 'completed': task.completed }">
+                    <span class="task-title">오늘일독</span>
+                    <span class="task-subtitle">오늘의 말씀을 읽어보세요</span>
+                  </span>
+                </div>
+              </div>
+              
+              <div class="task split-task plan-task" @click="navigateToReadingPlan">
+                <div class="task-content">
+                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 5H7C6.46957 5 5.96086 5.21071 5.58579 5.58579C5.21071 5.96086 5 6.46957 5 7V19C5 19.5304 5.21071 20.0391 5.58579 20.4142C5.96086 20.7893 6.46957 21 7 21H17C17.5304 21 18.0391 20.7893 18.4142 20.4142C18.7893 20.0391 19 19.5304 19 19V7C19 6.46957 18.7893 5.96086 18.4142 5.58579C18.0391 5.21071 17.5304 5 17 5H15M9 5C9 5.53043 9.21071 6.03914 9.58579 6.41421C9.96086 6.78929 10.4696 7 11 7H13C13.5304 7 14.0391 6.78929 14.4142 6.41421C14.7893 6.03914 15 5.53043 15 5M9 5C9 4.46957 9.21071 3.96086 9.58579 3.58579C9.96086 3.21071 10.4696 3 11 3H13C13.5304 3 14.0391 3.21071 14.4142 3.58579C14.7893 3.96086 15 4.46957 15 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="task-text">
+                    <span class="task-title">성경통독표</span>
+                    <span class="task-subtitle">전체 통독 계획을 확인하세요</span>
+                  </span>
+                </div>
+              </div>
+            </template>
+            <div v-else class="task" @click="toggleTask(task)">
+              <div class="task-content">
+                <template v-if="task.completed">
+                  <span class="check-mark">✓</span>
+                </template>
+                <template v-else-if="task.title === '하세나하시조'">
+                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </template>
+                <span class="task-text" :class="{ 'completed': task.completed }">
+                  <span class="task-title">{{ task.title }}</span>
+                  <span class="task-subtitle">
+                    {{ task.title === '하세나하시조' ? '함께 하시조!' : '오늘의 말씀을 읽어보세요' }}
+                  </span>
                 </span>
-              </span>
+              </div>
             </div>
-            <span class="arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-          </div>
+          </template>
         </div>
       </div>
 
@@ -41,11 +74,6 @@
                 <span class="task-subtitle">개론 영상을 시청해보세요</span>
               </span>
             </div>
-            <span class="arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
           </div>
         </div>
       </div>
@@ -178,6 +206,11 @@ const progressPercentage = computed(() => {
 
 // 로그인 상태를 computed로 관리
 const isAuthenticated = computed(() => auth.isAuthenticated)
+
+// 성경통독표로 이동하는 함수 추가
+const navigateToReadingPlan = () => {
+  navigateTo('/reading-plan')
+}
 </script>
 
 <style scoped>
@@ -237,7 +270,6 @@ h2 {
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -272,34 +304,29 @@ h2 {
 }
 
 .check {
+  display: none;
+}
+
+.check-icon {
+  color: var(--text-secondary);
+  opacity: 0.8;
+  margin-right: 0.875rem;
+}
+
+.task:hover .check-icon {
   color: var(--primary-color);
+  opacity: 1;
+}
+
+.check-mark {
   width: 24px;
   height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.check-mark {
-  transform: scale(0) rotate(-45deg);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: center;
-}
-
-.check-active {
-  border-color: var(--primary-color);
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.check-active .check-mark {
-  transform: scale(1) rotate(0);
+  margin-right: 0.875rem;
+  color: var(--primary-color);
+  font-size: 1.2rem;
 }
 
 .task-text {
@@ -600,5 +627,51 @@ h2 {
 /* 블러 처리된 요소의 자식 요소들도 같이 블러되도록 설정 */
 .blur-content > * {
   filter: blur(4px);
+}
+
+.split-task {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.reading-task {
+  background: #f5f9ff;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border-radius: 12px 12px 0 0;
+}
+
+.reading-task:hover {
+  background: #edf4ff !important;
+  border-color: #366DAE !important;
+}
+.reading-task:hover .check-icon {
+  color: #366DAE !important;
+}
+
+.plan-task {
+  background: #f7f7f7;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  margin-bottom: 1rem;
+  border-radius: 0 0 12px 12px;
+}
+
+.plan-task:hover {
+  background: #f0f0f0 !important;
+  border-color: #4A5A5B !important;
+}
+
+.reading-task .check-icon,
+.reading-task .check-mark {
+  color: #366DAE;
+}
+
+.plan-task .check-icon {
+  color: #4A5A5B;
+}
+
+.reading-task:hover .check-icon,
+.plan-task:hover .check-icon {
+  opacity: 1;
 }
 </style> 
