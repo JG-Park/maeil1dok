@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
+import { useAuthStore } from '~/stores/auth'
 
 interface Task {
   id: number
@@ -19,6 +20,9 @@ interface TaskState {
   introTasks: Task[]
   todayReading: BibleReading | null
   bibleSchedules: BibleReading[]
+  completedReadings: string[]
+  completedSectionsCount: number
+  totalSections: number
 }
 
 export const useTaskStore = defineStore('tasks', {
@@ -31,8 +35,15 @@ export const useTaskStore = defineStore('tasks', {
       { id: 3, title: '레위기 개론', completed: false }
     ],
     todayReading: null as BibleReading | null,
-    bibleSchedules: [] as BibleReading[]
+    bibleSchedules: [] as BibleReading[],
+    completedReadings: [] as string[],
+    completedSectionsCount: 0,
+    totalSections: 0
   }),
+
+  getters: {
+    completedReadingsCount: (state) => state.completedSectionsCount
+  },
 
   actions: {
     completeTask(taskId: number) {
@@ -74,6 +85,37 @@ export const useTaskStore = defineStore('tasks', {
       } catch (error) {
         console.error('Error fetching bible schedules:', error)
         return []
+      }
+    },
+    async fetchCompletedReadings() {
+      try {
+        const response = await useApi().get('/readings/completed')
+        this.completedReadings = response.data
+      } catch (error) {
+        console.error('Failed to fetch completed readings:', error)
+        this.completedReadings = []
+      }
+    },
+    async fetchCompletedSections() {
+      try {
+        const api = useApi()
+        console.log('Auth state before API call:', {
+          isAuthenticated: useAuthStore().isAuthenticated,
+          token: useAuthStore().token
+        })
+        
+        const response = await api.get('/api/v1/todos/completed-sections/')
+        console.log('Completed sections API response:', response)
+
+        if (response) {
+          this.completedSectionsCount = response.completed_count ?? 0
+          console.log('Store updated with completed count:', this.completedSectionsCount)
+        }
+        return response
+      } catch (error) {
+        console.error('Failed to fetch completed sections:', error)
+        this.completedSectionsCount = 0
+        return null
       }
     }
   }
