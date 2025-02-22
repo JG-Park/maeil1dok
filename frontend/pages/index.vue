@@ -86,7 +86,7 @@
         </div>
       </div>
     </div>
-
+<!-- 
     <div class="section fade-in" style="animation-delay: 0.6s">
       <h2>이번 주 일독현황</h2>
       <div class="calendar-wrapper">
@@ -107,7 +107,7 @@
           해당 기능을 사용하시려면 로그인해주세요 😁
         </div>
       </div>
-    </div>
+    </div> -->
 
     <div class="section fade-in" style="animation-delay: 0.8s">
       <h2>진행률</h2>
@@ -131,9 +131,9 @@
                 </svg>
               </div>
               <div class="progress-bar">
-                <div class="progress progress-green" style="width: 20.8%"></div>
+                <div class="progress progress-green" :style="{ width: `${personalProgressPercentage}%` }"></div>
               </div>
-              <div class="progress-text">20.8% / 100%</div>
+              <div class="progress-text">{{ personalProgressPercentage }}% / 100%</div>
             </div>
           </template>
           <template v-else>
@@ -160,7 +160,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useTaskStore } from '~/stores/tasks'
 import Header from '~/components/Header.vue'
@@ -192,22 +192,33 @@ const toggleTask = async (task) => {
 // 진도율 계산 로직
 const startDate = new Date('2025-02-03')
 const endDate = new Date('2025-12-27')
-const totalWeeks = 45
-const readingsPerWeek = 6
+const totalReadings = 270  // 45주 * 6회 = 270회로 고정
 
+// 교회 전체 진행률 계산
 const progressPercentage = computed(() => {
   const today = new Date()
   
   if (today < startDate) return 0
   if (today > endDate) return 100
   
-  const totalReadings = totalWeeks * readingsPerWeek
-  const timeElapsed = today - startDate
-  const weeksElapsed = Math.floor(timeElapsed / (7 * 24 * 60 * 60 * 1000))
-  const daysInCurrentWeek = Math.floor((timeElapsed % (7 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000))
+  // 시작일부터 오늘까지의 일수 계산 (주말 제외, 당일 포함)
+  const timeDiff = today.getTime() - startDate.getTime()
+  const daysDiff = Math.floor(timeDiff / (24 * 60 * 60 * 1000)) + 1  // +1로 당일 포함
+  const weeksDiff = Math.floor(daysDiff / 7)
+  const remainingDays = daysDiff % 7
   
-  const completedReadings = (weeksElapsed * readingsPerWeek) + Math.min(daysInCurrentWeek, readingsPerWeek)
+  // 완료된 읽기 수 계산 (주말 제외)
+  const completedReadings = (weeksDiff * 6) + Math.min(remainingDays, 6)
   
+  const percentage = (completedReadings / totalReadings) * 100
+  return Number(Math.min(percentage, 100).toFixed(2))
+})
+
+// 개인 진행률 계산
+const personalProgressPercentage = computed(() => {
+  if (!auth.isAuthenticated) return 0
+  
+  const completedReadings = taskStore.completedReadingsCount || 0
   const percentage = (completedReadings / totalReadings) * 100
   return Number(percentage.toFixed(2))
 })
@@ -219,6 +230,31 @@ const isAuthenticated = computed(() => auth.isAuthenticated)
 const navigateToReadingPlan = () => {
   navigateTo('/reading-plan')
 }
+
+// 컴포넌트 마운트 시 데이터 로드
+onMounted(async () => {
+  console.log('Component mounted, full auth state:', {
+    isAuthenticated: auth.isAuthenticated,
+    token: auth.token,
+    user: auth.user
+  })
+  
+  if (auth.isAuthenticated) {
+    console.log('User is authenticated, fetching completed sections...')
+    try {
+      await taskStore.fetchCompletedSections()
+      console.log('Fetch completed, current progress:', {
+        completedReadings: taskStore.completedReadingsCount,
+        totalReadings,
+        percentage: personalProgressPercentage.value
+      })
+    } catch (error) {
+      console.error('Failed to fetch completed sections:', error)
+    }
+  } else {
+    console.log('User not authenticated, skipping fetch')
+  }
+})
 </script>
 
 <style scoped>
