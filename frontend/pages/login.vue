@@ -56,18 +56,22 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 
 const auth = useAuthStore()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
+const route = useRoute()
+const router = useRouter()
 
 const handleSubmit = async () => {
   loading.value = true
   try {
     const success = await auth.login(email.value, password.value)
     if (success) {
-      navigateTo('/')
+      const redirectPath = String(route.query.redirect || '')
+      navigateTo(redirectPath || '/')
     } else {
       alert('로그인에 실패했습니다.')
     }

@@ -97,9 +97,12 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 
 const auth = useAuthStore()
 const loading = ref(false)
+const route = useRoute()
+const router = useRouter()
 
 const formData = ref({
   email: '',
@@ -115,7 +118,11 @@ const handleSubmit = async () => {
     const success = await auth.register(formData.value)
     if (success) {
       alert('회원가입이 완료되었습니다.')
-      navigateTo('/login')
+      const redirectPath = route.query.redirect
+      navigateTo({
+        path: '/login',
+        query: redirectPath ? { redirect: redirectPath } : {}
+      })
     } else {
       alert('회원가입에 실패했습니다.')
     }

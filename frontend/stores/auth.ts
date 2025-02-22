@@ -23,9 +23,18 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async initialize() {
-      // 페이지 로드 시 토큰이 있으면 사용자 정보 가져오기
-      if (this.token) {
-        await this.fetchUser()
+      if (process.client) {
+        const token = localStorage.getItem('token')
+        if (token) {
+          this.token = token
+          this.isAuthenticated = true
+          try {
+            await this.fetchUser()
+          } catch (error) {
+            console.error('Failed to fetch user:', error)
+            this.logout()
+          }
+        }
       }
     },
 
@@ -46,6 +55,10 @@ export const useAuthStore = defineStore('auth', {
         const data = await response.json()
         this.token = data.access
         this.isAuthenticated = true
+        
+        if (process.client) {
+          localStorage.setItem('token', data.access)
+        }
         
         await this.fetchUser()
         return true
@@ -109,6 +122,9 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.token = null
       this.isAuthenticated = false
+      if (process.client) {
+        localStorage.removeItem('token')
+      }
     }
   },
 
