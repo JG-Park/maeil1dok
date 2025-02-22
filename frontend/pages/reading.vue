@@ -2823,32 +2823,6 @@ button {
   background-repeat: no-repeat;
 }
 
-/* 반응형 디자인 */
-@media (max-width: 640px) {
-  .schedule-modal {
-    width: 100%;
-    height: 100%;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-  
-  .modal-header {
-    padding: 1.25rem;
-  }
-  
-  .schedule-body {
-    padding: 1.25rem;
-  }
-  
-  .schedule-info {
-    gap: 1rem;
-  }
-  
-  .schedule-date {
-    min-width: 80px;
-  }
-}
-
 /* 관리 모드 컨트롤 */
 .manage-controls {
   position: relative;  /* sticky 대신 relative로 변경 */
@@ -3005,11 +2979,7 @@ button {
   .modal-header {
     padding: 1.25rem;
   }
-  
-  .schedule-body {
-    padding: 1.25rem;
-  }
-  
+
   .schedule-info {
     gap: 1rem;
   }
