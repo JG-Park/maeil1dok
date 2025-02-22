@@ -2,25 +2,37 @@
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useTaskStore } from '~/stores/tasks'
 import { useRoute, useRouter } from 'vue-router'
-import { useBibleProgressApi } from '~/composables/useApi'
+import { useBibleProgressApi, useApi } from '~/composables/useApi'
+import { useAuthStore } from '~/stores/auth'
+import Toast from '~/components/Toast.vue'
 
 const taskStore = useTaskStore()
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+const api = useApi()
+
+// Toast 컴포넌트 ref
+const toast = ref(null)
+
+// 상태 변수들을 상단으로 이동
+const showLoginModal = ref(false)
+const showModal = ref(false)
+const showScheduleModal = ref(false)
 const bibleContent = ref('')
 const isLoading = ref(true)
 const chapterTitle = ref('')
 const sectionTitle = ref('')
 const currentBook = ref('')
 const currentChapter = ref(1)
-const showModal = ref(false)
 const selectedBook = ref('gen')
 const isHeaderFloating = ref(false)
 const isTodayReadingFloating = ref(false)
-const showScheduleModal = ref(false)
 const schedules = ref([])
 const selectedMonth = ref(new Date().getMonth() + 1)
 const months = Array.from({ length: 12 }, (_, i) => i + 1)
+const readingStatus = ref('not_started')
+const currentSection = ref(null)
 
 // 월 선택기 드래그 스크롤 기능
 const monthScroll = ref(null)
@@ -276,20 +288,43 @@ const selectChapter = (chapter) => {
 // 모달 열릴 때 body 스크롤 제어
 const toggleBodyScroll = (isModalOpen) => {
   if (isModalOpen) {
+    const scrollY = window.scrollY
     document.body.style.overflow = 'hidden'
     document.body.style.position = 'fixed'
     document.body.style.width = '100%'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.touchAction = 'none'
   } else {
+    const scrollY = document.body.style.top
     document.body.style.overflow = ''
     document.body.style.position = ''
     document.body.style.width = ''
+    document.body.style.top = ''
+    document.body.style.touchAction = ''
+    window.scrollTo(0, parseInt(scrollY || '0', 10) * -1)
   }
 }
 
-// showModal watch 추가
-watch(showModal, (newValue) => {
-  toggleBodyScroll(newValue)
-})
+// 모든 모달 상태를 감시하는 watch
+watch(
+  [showLoginModal, showModal, showScheduleModal],
+  ([newLoginModal, newShowModal, newScheduleModal]) => {
+    toggleBodyScroll(newLoginModal || newShowModal || newScheduleModal)
+  }
+)
+
+// 로그인 페이지로 이동
+const goToLogin = () => {
+  const queryString = route.query ? new URLSearchParams(Object.entries(route.query)).toString() : ''
+  const currentPath = `${route.path}${queryString ? '?' + queryString : ''}`
+  navigateTo({
+    path: '/login',
+    query: {
+      redirect: currentPath
+    }
+  })
+  showLoginModal.value = false
+}
 
 // 페이지 로드 시 오늘의 읽기 정보를 가져오는 함수
 const initializeTodayReading = async () => {
@@ -360,6 +395,7 @@ onMounted(async () => {
 
   // 스크롤 이벤트 리스너 추가
   window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll() // 초기 상태 체크
 })
 
 // 컴포넌트가 언마운트될 때 이벤트 리스너 제거
@@ -367,11 +403,32 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
 
-// 스크롤 핸들러 함수
+// 스크롤 핸들러 함수 수정
 const handleScroll = () => {
-  const scrollPosition = window.scrollY
-  isHeaderFloating.value = scrollPosition > 10
-  isTodayReadingFloating.value = scrollPosition > 20
+  const scrollY = window.scrollY
+  const headerHeight = 48
+  const todayReadingElement = document.querySelector('.today-reading')
+  const contentSection = document.querySelector('.content-section')
+  const floatingSpacer = document.querySelector('.floating-spacer')
+  
+  if (!todayReadingElement || !contentSection) return
+  
+  const todayReadingHeight = todayReadingElement.offsetHeight
+  const todayReadingTop = todayReadingElement.offsetTop
+  const scrollProgress = Math.min(Math.max((scrollY - todayReadingTop + headerHeight) / todayReadingHeight, 0), 1)
+
+  isHeaderFloating.value = scrollY > 0
+  isTodayReadingFloating.value = scrollProgress > 0.5 // 50% 스크롤 되었을 때 floating 상태로 전환
+
+  // 플로팅 상태일 때 spacer 높이 설정
+  if (floatingSpacer) {
+    floatingSpacer.style.setProperty('--floating-height', `${todayReadingHeight}px`)
+    if (isTodayReadingFloating.value) {
+      floatingSpacer.classList.add('active')
+    } else {
+      floatingSpacer.classList.remove('active')
+    }
+  }
 }
 
 // 스케줄 모달 열기
@@ -380,14 +437,21 @@ const openScheduleModal = async () => {
     const result = await taskStore.fetchBibleSchedules()
     schedules.value = result
   }
+  
+  // 로그인한 사용자의 경우 읽기 이력 가져오기
+  if (authStore.isAuthenticated) {
+    await fetchReadingHistory()
+  }
+  
   showScheduleModal.value = true
-  toggleBodyScroll(true)
   selectedMonth.value = new Date().getMonth() + 1
 }
 
 // 스케줄 모달 닫기
 const closeScheduleModal = () => {
   showScheduleModal.value = false
+  isManageMode.value = false
+  selectedSchedules.value = []
   toggleBodyScroll(false)
 }
 
@@ -412,11 +476,6 @@ const goToSchedule = (schedule) => {
   loadBibleContent(bookCode, schedule.start_chapter)
 }
 
-// watch 수정
-watch([showModal, showScheduleModal], ([newShowModal, newShowScheduleModal]) => {
-  toggleBodyScroll(newShowModal || newShowScheduleModal)
-})
-
 // 선택된 월의 스케줄만 필터링
 const filteredSchedules = computed(() => {
   return schedules.value.filter(schedule => {
@@ -425,14 +484,36 @@ const filteredSchedules = computed(() => {
   })
 })
 
-// 읽기 상태 확인 함수
+// 읽기 상태 확인 함수 수정
 const getReadingStatus = (schedule) => {
   const today = new Date()
   const scheduleDate = new Date(schedule.date)
   
-  if (scheduleDate > today) return 'upcoming'
-  if (scheduleDate < today) return 'completed'
-  return 'current'
+  // 날짜 비교를 위해 시간 부분을 제거
+  today.setHours(0, 0, 0, 0)
+  scheduleDate.setHours(0, 0, 0, 0)
+  
+  // 1. 읽은 구간 확인 (날짜와 상관없이)
+  if (authStore.isAuthenticated) {
+    const isRead = readingHistory.value.some(history => 
+      history.book === schedule.book && 
+      history.last_chapter_read === schedule.end_chapter
+    )
+    if (isRead) return 'completed'
+  }
+  
+  // 2. 오늘 구간 확인
+  if (scheduleDate.getTime() === today.getTime()) {
+    return 'current'
+  }
+  
+  // 3. 과거 구간은 읽지 않음으로 표시
+  if (scheduleDate < today) {
+    return 'not_completed'
+  }
+  
+  // 4. 미래 구간
+  return 'upcoming'
 }
 
 // 현재 장이 읽기 구간의 마지막 장인지 확인하는 computed 속성
@@ -456,32 +537,56 @@ const isToday = computed(() => {
 })
 
 const { getBibleProgress, completeBibleReading, cancelBibleReading } = useBibleProgressApi()
-const readingStatus = ref('not_started')
 
 // 읽기 상태 조회
 const checkReadingStatus = async () => {
-  if (!taskStore.todayReading?.date) return
+  if (!currentBook.value || !currentChapter.value) {
+    console.log('[Reading Status] Missing book or chapter:', {
+      book: currentBook.value,
+      chapter: currentChapter.value
+    })
+    return
+  }
+  
+  console.log('[Reading Status] Checking status for:', {
+    book: currentBook.value,
+    chapter: currentChapter.value
+  })
   
   try {
-    const response = await getBibleProgress(taskStore.todayReading.date)
-    readingStatus.value = response.status || 'not_started'
+    const response = await getBibleProgress(currentBook.value, currentChapter.value)
+    console.log('[Reading Status] API Response:', response)
+    
+    readingStatus.value = response.status
+    currentSection.value = {
+      ...response.section,
+      is_completed: response.status === 'completed'
+    }
+    
+    console.log('[Reading Status] Updated state:', {
+      readingStatus: readingStatus.value,
+      currentSection: currentSection.value
+    })
   } catch (error) {
-    console.error('Failed to check reading status:', error)
+    console.error('[Reading Status] Failed to check status:', error)
   }
 }
 
 // 읽기 완료 처리
 const handleCompleteReading = async () => {
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true
+    return
+  }
+
   if (!taskStore.todayReading?.date) return
   
   try {
     isLoading.value = true
     await completeBibleReading(taskStore.todayReading.date)
     readingStatus.value = 'completed'
-    // 완료 후 필요한 처리 (예: 메시지 표시)
   } catch (error) {
     console.error('Failed to complete reading:', error)
-    // 에러 처리
   } finally {
     isLoading.value = false
   }
@@ -495,10 +600,8 @@ const handleCancelReading = async () => {
     isLoading.value = true
     await cancelBibleReading(taskStore.todayReading.date)
     readingStatus.value = 'not_started'
-    // 취소 후 필요한 처리
   } catch (error) {
     console.error('Failed to cancel reading:', error)
-    // 에러 처리
   } finally {
     isLoading.value = false
   }
@@ -511,16 +614,207 @@ onMounted(async () => {
 
 // 날짜/책/장이 변경될 때 상태 다시 체크
 watch(
-  () => taskStore.todayReading?.date,
-  async () => {
+  [
+    () => currentBook.value,
+    () => currentChapter.value,
+    () => taskStore.todayReading?.date
+  ],
+  async ([newBook, newChapter, newDate], [oldBook, oldChapter, oldDate]) => {
+    console.log('[Watch] Values changed:', {
+      book: { old: oldBook, new: newBook },
+      chapter: { old: oldChapter, new: newChapter },
+      date: { old: oldDate, new: newDate }
+    })
     await checkReadingStatus()
   }
 )
+
+// 글자 크기 상태 관리
+const fontSize = ref(16) // 기본 글자 크기
+const DEFAULT_FONT_SIZE = 16 // 기본 글자 크기 상수
+
+// 글자 크기 조절 함수
+const adjustFontSize = (delta) => {
+  const newSize = fontSize.value + delta
+  if (newSize >= 14 && newSize <= 24) { // 최소 14px, 최대 24px
+    fontSize.value = newSize
+  }
+}
+
+// 글자 크기 초기화 함수
+const resetFontSize = () => {
+  fontSize.value = DEFAULT_FONT_SIZE
+}
+
+// 상태 변수들을 상단으로 이동 섹션에 추가
+const readingHistory = ref([])
+
+// 읽기 이력 가져오기
+const fetchReadingHistory = async () => {
+  try {
+    const response = await api.get('/api/v1/todos/reading-history/')
+    console.log('[Reading History] Response:', response)  // 디버깅용
+    readingHistory.value = response
+  } catch (error) {
+    console.error('Failed to fetch reading history:', error)
+  }
+}
+
+// 현재 장이 속한 구간의 마지막 장이 읽음 상태인지 확인하는 computed 속성 추가
+const isCurrentSectionCompleted = computed(() => {
+  if (!taskStore.todayReading) return false
+  
+  // 현재 장이 속한 구간의 마지막 장이 읽음 상태인지 확인
+  const currentSection = schedules.value.find(schedule => {
+    return schedule.book === bookNames[currentBook.value] &&
+           schedule.start_chapter <= currentChapter.value &&
+           schedule.end_chapter >= currentChapter.value
+  })
+
+  if (!currentSection) return false
+
+  // 해당 구간의 마지막 장이 읽음 상태인지 확인
+  const isRead = readingHistory.value.some(history => 
+    new Date(history.date).toDateString() === new Date(currentSection.date).toDateString()
+  )
+
+  return isRead
+})
+
+// 현재 장이 읽음 상태인지 확인하는 computed 속성
+const isCurrentChapterCompleted = computed(() => {
+  if (!currentSection.value) return false
+  
+  // section과 status 모두 확인
+  return currentSection.value.is_completed || readingStatus.value === 'completed'
+})
+
+// 관리 모드 관련 상태
+const isManageMode = ref(false)
+const selectedSchedules = ref([])
+
+// 개별 일정 선택/해제
+const toggleSelect = (schedule) => {
+  const index = selectedSchedules.value.findIndex(s => 
+    s.date === schedule.date
+  )
+  
+  if (index === -1) {
+    selectedSchedules.value.push(schedule)
+  } else {
+    selectedSchedules.value.splice(index, 1)
+  }
+}
+
+// 과거 미완료 전체 선택
+const selectAllIncomplete = () => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const incompleteSchedules = filteredSchedules.value.filter(schedule => {
+    const scheduleDate = new Date(schedule.date)
+    scheduleDate.setHours(0, 0, 0, 0)
+    return scheduleDate < today && getReadingStatus(schedule) === 'not_completed'
+  })
+  
+  selectedSchedules.value = incompleteSchedules
+}
+
+// 선택된 일정 일괄 업데이트
+const bulkUpdateProgress = async (action) => {
+  try {
+    await api.post('/api/v1/todos/bible-progress/bulk-update/', {
+      schedules: selectedSchedules.value,
+      action: action
+    })
+    
+    // 상태 갱신
+    await fetchReadingHistory()
+    selectedSchedules.value = []
+    
+    // 토스트 메시지 표시
+    toast.value?.show()
+    
+  } catch (error) {
+    console.error('Failed to update schedules:', error)
+  }
+}
+
+// 오늘 날짜의 일정으로 스크롤하는 함수
+const scrollToToday = () => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const todaySchedule = filteredSchedules.value.find(schedule => {
+    const scheduleDate = new Date(schedule.date)
+    scheduleDate.setHours(0, 0, 0, 0)
+    return scheduleDate.getTime() === today.getTime()
+  })
+  
+  if (todaySchedule) {
+    const element = document.querySelector(`[data-date="${todaySchedule.date}"]`)
+    element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+}
+
+// 구간 선택 관련 상태
+const isRangeSelectMode = ref(false)
+const rangeStart = ref(null)
+
+// 구간 선택 모드 토글
+const toggleRangeSelect = () => {
+  isRangeSelectMode.value = !isRangeSelectMode.value
+  if (!isRangeSelectMode.value) {
+    rangeStart.value = null
+  }
+  selectedSchedules.value = []  // 선택 초기화
+}
+
+// 일정 선택 처리
+const handleScheduleSelect = (schedule) => {
+  if (!isRangeSelectMode.value) {
+    // 일반 선택 모드 - 단순 토글
+    toggleSelect(schedule)
+    return
+  }
+
+  // 구간 선택 모드
+  if (!rangeStart.value) {
+    // 첫 선택
+    rangeStart.value = schedule
+    selectedSchedules.value = [schedule]
+  } else {
+    // 두번째 선택 - 범위 선택
+    const startDate = new Date(rangeStart.value.date)
+    const endDate = new Date(schedule.date)
+    
+    // 시작과 끝 날짜 정렬
+    const [start, end] = startDate < endDate 
+      ? [startDate, endDate] 
+      : [endDate, startDate]
+    
+    // 범위 내의 모든 일정 선택
+    selectedSchedules.value = filteredSchedules.value.filter(s => {
+      const date = new Date(s.date)
+      return date >= start && date <= end
+    })
+    
+    // 선택 완료 후 초기화
+    rangeStart.value = null
+  }
+}
+
+// 일정이 선택되었는지 확인
+const isScheduleSelected = (schedule) => {
+  return selectedSchedules.value.some(s => 
+    new Date(s.date).getTime() === new Date(schedule.date).getTime()
+  )
+}
 </script>
 
 <template>
   <div class="container">
-    <div class="header fade-in" :class="{ floating: isHeaderFloating }" style="animation-delay: 0s">
+    <div class="header fade-in">
       <button class="back-button" @click="$router.push('/')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -554,8 +848,9 @@ watch(
           title="오디오"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 6v12M8 9v6M16 9v6M4 12v0M20 12v0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 4a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2z" fill="currentColor"/>
           </svg>
+          <span class="link-text">오디오</span>
         </a>
         <a 
           v-if="taskStore.todayReading.guide_link" 
@@ -565,31 +860,72 @@ watch(
           title="가이드"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 19.5V4.5C4 4.22386 4.22386 4 4.5 4H19.5C19.7761 4 20 4.22386 20 4.5V19.5C20 19.7761 19.7761 20 19.5 20H4.5C4.22386 20 4 19.7761 4 19.5Z" stroke="currentColor" stroke-width="2"/>
-            <path d="M8 8H16M8 12H16M8 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
+          <span class="link-text">해설</span>
         </a>
       </div>
     </div>
 
-    <div class="content-section fade-in" style="animation-delay: 0.2s">
-      <button class="chapter-select-button" @click="showModal = true">
-        <div class="button-content">
-          <h2>{{ chapterTitle }}</h2>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+    <div class="content-section-wrapper">
+      <div class="floating-spacer"></div>
+      <div class="content-section fade-in" style="animation-delay: 0.2s">
+        <div class="chapter-controls">
+          <button class="chapter-select-button" @click="showModal = true">
+            <div class="button-content">
+              <h2>{{ chapterTitle }}</h2>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </button>
+          <div class="font-size-controls">
+            <button 
+              class="font-button" 
+              @click="adjustFontSize(-1)"
+              :disabled="fontSize <= 14"
+              @touchstart.prevent=""
+            >
+              <span class="font-icon small">가</span>
+            </button>
+            <button 
+              class="font-button" 
+              @click="adjustFontSize(1)"
+              :disabled="fontSize >= 24"
+              @touchstart.prevent=""
+            >
+              <span class="font-icon">가</span>
+            </button>
+            <button 
+              class="font-button reset"
+              @click="resetFontSize"
+              :disabled="fontSize === DEFAULT_FONT_SIZE"
+              title="기본 크기로 초기화"
+              @touchstart.prevent=""
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M2 10C2 10 4.00498 7.26822 5.63384 5.63824C7.26269 4.00827 9.5136 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.89691 21 4.43511 18.2543 3.35177 14.5M2 10V4M2 10H8" 
+                  stroke="currentColor" 
+                  stroke-width="2" 
+                  stroke-linecap="round"
+                  stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
-      </button>
+        
+        <div v-if="isLoading" class="loading">
+          <div class="loading-spinner"></div>
+          <p>
+            {{ bookNames[selectedBook] }} {{ currentChapter }}장을 불러오는 중입니다...
+          </p>
+        </div>
 
-      <div v-if="isLoading" class="loading">
-        <div class="loading-spinner"></div>
-        <p>
-          {{ bookNames[selectedBook] }} {{ currentChapter }}장을 불러오는 중입니다...
-        </p>
+        <div v-else class="bible-content text-adjustable" 
+             :style="{ fontSize: `${fontSize}px` }" 
+             v-html="bibleContent">
+        </div>
       </div>
-
-      <div v-else class="bible-content text-adjustable" v-html="bibleContent"></div>
     </div>
 
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
@@ -597,28 +933,45 @@ watch(
         &lt; 이전
       </button>
       <div class="center-content">
-        <button 
-          v-if="readingStatus !== 'completed'"
-          class="complete-button"
-          :disabled="isLoading"
-          @click="handleCompleteReading"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          {{ isToday ? '오늘 일독 완료하기' : `${formatButtonDate(taskStore.todayReading?.date)} 일독 완료하기` }}
-        </button>
-        <button 
-          v-else
-          class="cancel-button"
-          :disabled="isLoading"
-          @click="handleCancelReading"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          완료 취소하기
-        </button>
+        <!-- 마지막 장이 아닐 때만 현재 장 표시 -->
+        <div class="current-page" v-if="!isLastChapterInSchedule">
+          <div class="current-chapter-info" :class="{ 'completed': isCurrentChapterCompleted }">
+            <template v-if="isCurrentChapterCompleted">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
+            {{ bookNames[currentBook] }} {{ currentChapter }}장
+          </div>
+        </div>
+        <div class="reading-controls">
+          <template v-if="isLastChapterInSchedule">
+            <div class="current-chapter-info" :class="{ 'completed': readingStatus === 'completed' }">
+              <template v-if="readingStatus === 'completed'">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </template>
+              {{ bookNames[currentBook] }} {{ currentChapter }}장
+            </div>
+            <button 
+              v-if="readingStatus === 'completed'"
+              class="complete-button complete-cancel-button" 
+              @click="handleCancelReading"
+              :disabled="isLoading"
+            >
+              읽지 않음으로 표시
+            </button>
+            <button 
+              v-else
+              class="complete-button" 
+              @click="handleCompleteReading"
+              :disabled="isLoading"
+            >
+              읽음으로 표시
+            </button>
+          </template>
+        </div>
       </div>
       <button class="nav-button next" @click="goToNextChapter">
         다음 &gt;
@@ -690,12 +1043,59 @@ watch(
         <div class="modal-content schedule-modal" @click.stop>
           <div class="modal-header">
             <h3>성경 읽기 일정</h3>
-            <button class="close-button" @click="closeScheduleModal">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </button>
+            <div class="header-controls">
+              <button 
+                class="manage-button"
+                @click="isManageMode = !isManageMode"
+              >
+                {{ isManageMode ? '완료' : '관리' }}
+              </button>
+              <button class="close-button" @click="closeScheduleModal">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
+          
+          <!-- 관리 모드 컨트롤 -->
+          <Transition name="slide-fade">
+            <div v-if="isManageMode" class="manage-controls">
+              <div class="bulk-actions">
+                <button 
+                  class="action-button range-select"
+                  @click="toggleRangeSelect"
+                  :class="{ 'active': isRangeSelectMode }"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 9h16M4 15h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  {{ isRangeSelectMode ? '구간 선택 중' : '구간 선택' }}
+                </button>
+                <button 
+                  v-if="selectedSchedules.length > 0"
+                  class="action-button complete"
+                  @click="bulkUpdateProgress('complete')"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  읽음
+                </button>
+                <button 
+                  v-if="selectedSchedules.length > 0"
+                  class="action-button cancel"
+                  @click="bulkUpdateProgress('cancel')"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  읽지 않음
+                </button>
+              </div>
+            </div>
+          </Transition>
+          
           <div class="month-selector">
             <div class="month-header">
               <button class="today-button" @click="selectedMonth = new Date().getMonth() + 1">
@@ -732,9 +1132,27 @@ watch(
                 v-for="schedule in filteredSchedules"
                 :key="schedule.date" 
                 class="schedule-item"
-                :class="getReadingStatus(schedule)"
-                @click="goToSchedule(schedule)"
+                :class="[
+                  getReadingStatus(schedule),
+                  { 
+                    'manage-mode': isManageMode,
+                    'range-select-mode': isRangeSelectMode,
+                    'range-start': rangeStart?.date === schedule.date
+                  }
+                ]"
+                @click="isManageMode ? handleScheduleSelect(schedule) : goToSchedule(schedule)"
               >
+                <!-- 관리 모드 체크박스 -->
+                <div v-if="isManageMode" class="checkbox">
+                  <input 
+                    type="checkbox"
+                    :checked="isScheduleSelected(schedule)"
+                    @click.stop
+                    @change="handleScheduleSelect(schedule)"
+                  >
+                </div>
+                
+                <!-- 기존 내용 -->
                 <div class="schedule-info">
                   <div class="schedule-date">
                     {{ formatScheduleDate(schedule.date) }}
@@ -749,14 +1167,6 @@ watch(
                       <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </div>
-                  <div v-else-if="getReadingStatus(schedule) === 'current'" class="status-icon current">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                  </div>
-                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
                 </div>
               </div>
             </div>
@@ -764,6 +1174,47 @@ watch(
         </div>
       </div>
     </Teleport>
+
+    <!-- 로그인 모달 -->
+    <Teleport to="body">
+      <div v-if="showLoginModal" class="modal-overlay" @click="showLoginModal = false">
+        <div class="modal-content login-modal" @click.stop>
+          <div class="modal-body">
+            <button class="close-button absolute-close" @click="showLoginModal = false">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="modal-content-wrapper">
+              <div class="modal-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 15V12M12 9h.01M5.07 19H19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h.07z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="modal-text">
+                <h3>로그인이 필요한 기능입니다</h3>
+                <p>회원만 사용이 가능한 기능입니다.<br>로그인/회원가입 하시겠어요?</p>
+              </div>
+              <div class="modal-actions">
+                <button class="login-button" @click="goToLogin">
+                  로그인하기
+                </button>
+                <button class="cancel-button" @click="showLoginModal = false">
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 토스트 컴포넌트 추가 -->
+    <Toast 
+      ref="toast"
+      message="저장되었습니다!"
+      type="success"
+    />
   </div>
 </template>
 
@@ -830,30 +1281,19 @@ watch(
 }
 
 .today-reading {
-  background: white;
-  margin: 0.75rem 1rem 0;
-  padding: 0.875rem 1rem;
-  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: white;
+  margin: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 56px;
-  z-index: 9;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: all 0.15s ease;
-}
-
-.today-reading.floating {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  margin: 0.375rem 0.75rem 0;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
+  position: relative;
+  top: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .today-info {
@@ -873,10 +1313,14 @@ watch(
 .date-badge {
   background: var(--primary-light);
   color: var(--primary-color);
-  padding: 0.375rem 0.75rem;
-  border-radius: 20px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .divider {
@@ -889,63 +1333,86 @@ watch(
   color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .today-links {
   display: flex;
-  gap: 0.375rem;
   margin-left: 0.75rem;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.link-button {
+.today-reading.floating {
+  position: fixed;
+  max-width: 768px;
+  width: 100%;
+  top: 48px;
+  margin: 0;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03)!important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  z-index: 9;
   display: flex;
-  align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0.5rem;
-  border-radius: 10px;
-  transition: all 0.2s ease;
 }
 
-.link-button.audio {
-  background: #FFF1F0;
-  color: #CF4033;
+.today-reading.floating::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  box-shadow: inherit;
+  border-bottom: inherit;
+  z-index: -1;
 }
 
-.link-button.guide {
-  background: #EFF8FF;
-  color: #2E90FA;
+.today-reading.floating > * {
+  max-width: 768px;
+  margin: 0 1rem;
 }
 
-.link-button:hover {
-  opacity: 0.9;
-}
-
-/* 모바일 대응 */
 @media (max-width: 640px) {
-  .link-button {
-    padding: 0.375rem;
-  }
-
-  .header.floating {
-    margin: 0 -0.125rem;
-    padding-left: 1.125rem;
-    padding-right: 1.125rem;
-  }
 
   .today-reading.floating {
-    margin: 0.375rem 0.875rem 0;
-    padding-left: 1.125rem;
-    padding-right: 1.125rem;
+    margin: 0;
+    padding: 0.5rem;
+  }
+  
+  .today-reading.floating > * {
+    margin: 0 0.5rem;
   }
 }
+
+.content-section-wrapper {
+  position: relative;
+}
+
+.floating-spacer {
+  height: 0;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-spacer.active {
+  height: var(--floating-height);
+}
+
 
 .content-section {
   background: white;
-  margin: 1rem;
+  margin: 0.5rem;
   margin-top: 0.75rem;
-  padding: 1rem;
+  padding: 0.85rem;
   border-radius: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
@@ -999,6 +1466,7 @@ watch(
   color: var(--text-primary);
   font-family: 'RIDIBatang', serif;
   font-weight: normal;
+  touch-action: pan-x pan-y;
 }
 
 .reading-info h2,
@@ -1046,11 +1514,12 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
   gap: 1rem;
   background: white;
   box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
   max-width: 768px;
+  min-height: 50px;
   margin: 0 auto;
   z-index: 20;
 }
@@ -1063,7 +1532,7 @@ watch(
   font-size: 0.85rem;  /* 글자 크기 약간 줄임 */
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .center-content {
@@ -1080,8 +1549,6 @@ watch(
 }
 
 .complete-button {
-  height: 28px;
-  min-width: 160px; /* 버튼 최소 너비 설정 */
   border: 1.5px solid rgba(46, 144, 250, 0.5);
   background: rgba(46, 144, 250, 0.1);
   color: #2E90FA;
@@ -1089,12 +1556,13 @@ watch(
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.8125rem;
+  font-size: 0.8rem;
   letter-spacing: -0.02em;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
+  padding: 0.05rem 0.65rem;
+  margin: 0 0 0.1rem 0;
 }
 
 .complete-button:hover {
@@ -1108,31 +1576,19 @@ watch(
   cursor: not-allowed;
 }
 
-.cancel-button {
-  height: 28px;
-  min-width: 160px;
-  border: 1.5px solid rgba(220, 38, 38, 0.5);
+.complete-cancel-button {
+  border: 1.2px solid rgba(220, 38, 38, 0.5);
   background: rgba(220, 38, 38, 0.1);
   color: #DC2626;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.8125rem;
-  letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
 }
 
-.cancel-button:hover {
+.complete-cancel-button:hover {
   background: rgba(220, 38, 38, 0.15);
   border-color: #DC2626;
 }
 
 .complete-button:disabled,
-.cancel-button:disabled {
+.complete-cancel-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -1144,13 +1600,9 @@ watch(
 /* 모바일 대응 */
 @media (max-width: 640px) {
   .today-reading {
-    margin: 0.625rem 1rem 0;
-    padding: 0.75rem;
+    padding: 0.5rem 0.65rem;
   }
 
-  .navigation-controls {
-    padding: 0.5rem 1rem;
-  }
 
   .complete-button {
     height: 26px;
@@ -1184,14 +1636,6 @@ watch(
   .content-section {
     margin-top: 0.625rem;
   }
-
-  .navigation-controls {
-    padding: 0.5rem 1rem;
-  }
-
-  .nav-button {
-    padding: 0.625rem 0.875rem;
-  }
 }
 
 :deep(.section-title) {
@@ -1214,24 +1658,27 @@ watch(
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .modal-content {
+  width: 90%;
+  height: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow: hidden;
   background: white;
   border-radius: 16px;
-  width: 90%;
-  max-width: 480px;
-  height: 80vh;
-  max-height: 600px;  /* 최대 높이 제한 */
-  overflow: hidden;
-  animation: modalEnter 0.3s ease-out;
-  position: relative;  /* Safari에서 z-index 문제 해결 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -1257,24 +1704,38 @@ watch(
 }
 
 .modal-body {
-  padding: 1rem;
   display: flex;
-  gap: 1rem;
-  height: calc(100% - 60px);
+  flex: 1;
   overflow: hidden;
   position: relative;
+  min-height: 400px; /* 최소 높이 설정 */
 }
 
 .books-section {
-  flex: 0.8;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-right: 1rem;
+  flex: 1;
   border-right: 1px solid #eee;
-  min-width: 0;
+  padding: 0 1rem 0.85rem 1rem;
+  overflow-y: auto;
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
+  position: absolute; /* 절대 위치로 변경 */
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 45%; /* 너비 설정 */
+}
+
+.chapters-section {
+  flex: 1.3;
+  padding: 0 1rem 0.85rem 1rem;
+  overflow-y: auto;
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
+  position: absolute; /* 절대 위치로 변경 */
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 55%; /* 너비 설정 */
 }
 
 .testament {
@@ -1299,17 +1760,6 @@ watch(
   flex-direction: column;
   gap: 0.25rem;
   overflow-y: auto;
-}
-
-.chapters-section {
-  flex: 1.2;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-left: 1rem;
-  min-width: 0;
 }
 
 .chapters-section h4 {
@@ -1394,17 +1844,12 @@ watch(
 @media (max-width: 480px) {
   .modal-content {
     width: 100%;
-    height: 100vh;
-    max-height: none;
-    border-radius: 0;
+    max-width: 95vw;
+    max-height: 85vh;
+    border-radius: 16px;
     margin: 0;
   }
 
-  .modal-body {
-    height: calc(100vh - 60px);
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
 
   .books-section {
     flex: 0.7;
@@ -1413,7 +1858,6 @@ watch(
 
   .chapters-section {
     flex: 1.3;
-    padding-left: 0.75rem;
   }
 
   .chapters-grid {
@@ -1437,11 +1881,11 @@ watch(
 /* iOS Safari 대응 */
 @supports (-webkit-touch-callout: none) {
   .modal-content {
-    height: -webkit-fill-available;
+    height: 85vh;
   }
 
   .modal-body {
-    height: calc(100vh - 60px - env(safe-area-inset-bottom));
+    height: calc(100% - 60px);
   }
 
   .books-section,
@@ -1469,10 +1913,15 @@ button {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 12px;
-  padding: 0.875rem 1rem;
-  margin-bottom: 1.5rem;
+  padding: 0.35rem 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  height: 36px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .chapter-select-button:hover {
@@ -1491,7 +1940,7 @@ button {
 }
 
 .button-content h2 {
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -1501,23 +1950,10 @@ button {
   color: var(--text-secondary);
 }
 
-/* 모바일 대응 */
-@media (max-width: 640px) {
-  .chapter-select-button {
-    padding: 0.75rem;
-    border-radius: 10px;
-  }
-
-  .button-content h2 {
-    font-size: 1rem;
-  }
-}
-
 .schedule-modal {
   width: 100%;
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
   background: #fff;
 }
 
@@ -1584,18 +2020,21 @@ button {
 }
 
 .month-button.active {
-  background: var(--primary-color);
-  color: white;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 .month-button:hover:not(.active) {
   background: var(--primary-light);
   color: var(--primary-color);
+  opacity: 0.8;
 }
 
 .schedule-body {
   flex: 1;
   overflow-y: auto;
+  margin: 1rem;
 }
 
 .schedule-list {
@@ -1606,20 +2045,17 @@ button {
 }
 
 .schedule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 1rem;
-  background: white;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  border-radius: 12px;
 }
 
 .schedule-item:hover {
-  background: #fafafa;
+  filter: brightness(0.95);
 }
 
 .schedule-info {
@@ -1633,18 +2069,11 @@ button {
 
 .schedule-date {
   font-size: 0.875rem;
-  color: var(--text-secondary);
-  font-weight: 400;
-  width: 140px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  opacity: 0.9;
 }
 
 .schedule-reading {
   font-weight: 500;
-  color: var(--text-primary);
-  font-size: 0.9375rem;
-  flex: 1;
 }
 
 .schedule-status {
@@ -1666,26 +2095,36 @@ button {
 }
 
 .status-icon.completed {
-  background: var(--primary-light);
-  color: var(--primary-color);
+  background: #DBEAFE;
+  color: #2563EB;
 }
 
 .status-icon.current {
-  background: #FEF3C7;
-  color: #D97706;
+  background: #FEFCE8;
+  color: #CA8A04;
 }
 
 .schedule-item.completed {
-  background: #FAFAFA;
+  background: #EFF6FF;
+  border-left: 4px solid #2563EB;
+  color: #1E40AF;
 }
 
-.schedule-item.current {
-  background: #FFFBEB;
-  border-left: 4px solid #D97706;
+.schedule-item.not_completed {
+  background: #FEF2F2;
+  border-left: 4px solid #DC2626;
+  color: #991B1B;
 }
 
 .schedule-item.upcoming {
   background: white;
+  border-left: 4px solid transparent;
+  color: var(--text-secondary);
+}
+
+.schedule-item.completed .status-icon.completed {
+  background: #DCF9E6;
+  color: #22C55E;
 }
 
 @media (max-width: 640px) {
@@ -1735,8 +2174,6 @@ button {
 /* UI 요소들의 글자 크기는 고정 */
 .header,
 .nav-button,
-.complete-button,
-.cancel-button,
 .modal-header,
 .modal-content button {
   /* 시스템 글자 크기 설정 무시 */
@@ -1751,47 +2188,960 @@ button {
   line-height: 1.8;
   word-break: keep-all;
   overflow-wrap: break-word;
-  
-  /* 기본 폰트 크기 설정 */
   font-size: 16px;
-  
-  /* 최소/최대 폰트 크기 제한 */
-  min-height: 0vw; /* iOS에서 폰트 크기 제한 해제 */
-  
-  /* 모바일에서 더 나은 가독성을 위한 설정 */
+  min-height: 0vw;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  
-  /* 문단 간격 */
-  p {
-    margin: 1em 0;
-  }
-  
-  /* 장 번호 스타일 */
-  .chapter-num {
-    font-weight: bold;
-    color: #4170CD;
-    /* 장 번호는 고정 크기 유지 */
-    font-size: 1rem !important;
-  }
-  
-  /* 절 번호 스타일 */
-  .verse-num {
-    font-size: 0.85em;
-    color: #666;
-    vertical-align: top;
-    margin-right: 0.2em;
-  }
+}
+
+:deep(.bible-content p) {
+  margin: 1em 0;
+}
+
+:deep(.bible-content .chapter-num) {
+  font-weight: bold;
+  color: #4170CD;
+  font-size: 1rem !important;
+}
+
+:deep(.bible-content .verse-num) {
+  font-size: 0.85em;
+  color: #666;
+  vertical-align: top;
+  margin-right: 0.2em;
 }
 
 /* 모바일 대응 */
 @media (max-width: 640px) {
   :deep(.bible-content) {
-    /* 모바일에서의 기본 폰트 크기 */
     font-size: 18px;
-    
-    /* 좌우 여백 조정 */
-    padding: 0 1rem;
   }
+}
+
+.login-modal {
+  max-width: 320px;
+  max-height: 350px;
+  width: 90%;
+  text-align: center;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  margin: 1rem;
+  padding: 1rem;
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-content-wrapper {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.modal-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-text {
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.modal-text h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  word-break: keep-all;
+}
+
+.modal-text p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 0.9375rem;
+  word-break: keep-all;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.login-button,
+.modal-actions .cancel-button {
+  width: 100%;
+  padding: 0.45rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.login-button:hover {
+  background: var(--primary-dark);
+}
+
+.modal-actions .cancel-button {
+  background: #f1f3f5;
+  color: var(--text-secondary);
+  border: none;
+}
+
+.modal-actions .cancel-button:hover {
+  background: #e9ecef;
+  color: var(--text-primary);
+}
+
+.absolute-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.absolute-close:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.current-page {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .current-page {
+    font-size: 0.875rem;
+  }
+}
+
+.link-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.link-button {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* 오디오 버튼 스타일 */
+.link-button[href*="audio"] {
+  background: var(--red-light);
+  color: var(--red-primary);
+}
+
+.link-button[href*="audio"]:hover {
+  background: var(--red-hover);
+}
+
+/* 해설 버튼 스타일 */
+.link-button[href*="guide"] {
+  background: var(--blue-light);
+  color: var(--blue-primary);
+}
+
+.link-button[href*="guide"]:hover {
+  background: var(--blue-hover);
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .link-button {
+    padding: 0.375rem;
+  }
+  
+  .link-text {
+    font-size: 0.6875rem;
+  }
+}
+
+/* 색상 변수 정의 */
+:root {
+  --red-primary: #DC2626;
+  --red-light: rgba(220, 38, 38, 0.1);
+  --red-hover: rgba(220, 38, 38, 0.15);
+  
+  --blue-primary: #2E90FA;
+  --blue-light: rgba(46, 144, 250, 0.1);
+  --blue-hover: rgba(46, 144, 250, 0.15);
+}
+
+.chapter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.font-size-controls {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.font-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+  touch-action: none;  /* 모든 터치 액션 비활성화 */
+}
+
+.font-button:hover:not(:disabled) {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+}
+
+.font-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.font-icon {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.font-icon.small {
+  font-size: 0.7rem;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .font-button {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* 초기화 버튼 스타일 */
+.font-button.reset {
+  color: var(--text-secondary);
+}
+
+.font-button.reset:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+/* iOS에서 버튼 터치 영역 최적화 */
+@supports (-webkit-touch-callout: none) {
+  .font-button {
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.current-chapter-info {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  justify-content: center;
+}
+
+.current-chapter-info.completed {
+  color: #4170CD;
+}
+
+.current-chapter-info svg {
+  color: #4170CD;
+}
+
+.reading-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 읽은 구간 - 초록색 계열 */
+.schedule-item.completed {
+  background: #F0FDF4;  /* 연한 초록색 배경 */
+  border-left: 4px solid #22C55E;  /* 진한 초록색 테두리 */
+  color: #166534;  /* 진한 초록색 텍스트 */
+}
+
+/* 오늘 구간 - 파란색 계열 */
+.schedule-item.current {
+  background: #EFF6FF;  /* 연한 파란색 배경 */
+  border-left: 4px solid #2563EB;  /* 진한 파란색 테두리 */
+  color: #1E40AF;  /* 진한 파란색 텍스트 */
+}
+
+/* 읽지 않은 과거 구간 - 빨간색 계열 (유지) */
+.schedule-item.not_completed {
+  background: #FEF2F2;
+  border-left: 4px solid #DC2626;
+  color: #991B1B;
+}
+
+/* 미래 구간 - 기본 스타일 (유지) */
+.schedule-item.upcoming {
+  background: white;
+  border-left: 4px solid transparent;
+  color: var(--text-secondary);
+}
+
+/* 완료 아이콘 색상도 초록색으로 변경 */
+.status-icon.completed {
+  background: #DCF9E6;  /* 연한 초록색 배경 */
+  color: #22C55E;  /* 진한 초록색 아이콘 */
+}
+
+.manage-button {
+  padding: 0.5rem 1rem;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.manage-controls {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.schedule-item.manage-mode {
+  padding-left: 0.5rem;
+}
+
+.checkbox {
+  padding: 0 0.5rem;
+}
+
+.select-all-button {
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* 모달 기본 스타일 */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+}
+
+.schedule-modal {
+  background: #FFFFFF;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-width: 560px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  animation: modalSlideUp 0.4s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 모달 헤더 */
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1E293B;
+  letter-spacing: -0.02em;
+}
+
+/* 관리 버튼 */
+.manage-button {
+  padding: 0.5rem 1rem;
+  background: #F8FAFC;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.manage-button:hover {
+  background: #F1F5F9;
+  color: #334155;
+}
+
+/* 월 선택기 */
+.month-selector {
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.month-scroll {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem;
+}
+
+.month-button {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748B;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.month-button.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.month-button:hover:not(.active) {
+  background: #F8FAFC;
+  color: #334155;
+}
+
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.schedule-item {
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+/* 읽은 구간 */
+.schedule-item.completed {
+  background: #F0FDF4;
+  border-color: #DCFCE7;
+  color: #166534;
+}
+
+/* 오늘 구간 */
+.schedule-item.current {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1E40AF;
+}
+
+/* 읽지 않은 과거 구간 */
+.schedule-item.not_completed {
+  background: #FEF2F2;
+  border-color: #FEE2E2;
+  color: #991B1B;
+}
+
+/* 미래 구간 */
+.schedule-item.upcoming {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  color: #64748B;
+}
+
+/* 일정 정보 */
+.schedule-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.schedule-date {
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.schedule-reading {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* 관리 모드 */
+.manage-controls {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.select-all-button {
+  padding: 0.75rem 1rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.select-all-button:hover {
+  background: #F1F5F9;
+  color: #334155;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.bulk-actions button {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.bulk-actions .complete-button {
+  background: #22C55E;
+  color: white;
+  border: none;
+}
+
+.bulk-actions .cancel-button {
+  background: #EF4444;
+  color: white;
+  border: none;
+}
+
+/* 체크박스 커스텀 스타일 */
+.checkbox {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+}
+
+.checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 2px solid #CBD5E1;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkbox input[type="checkbox"]:checked {
+  background: #2563EB;
+  border-color: #2563EB;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17L4 12'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 640px) {
+  .schedule-modal {
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  
+  .modal-header {
+    padding: 1.25rem;
+  }
+  
+  .schedule-body {
+    padding: 1.25rem;
+  }
+  
+  .schedule-info {
+    gap: 1rem;
+  }
+  
+  .schedule-date {
+    min-width: 80px;
+  }
+}
+
+/* 관리 모드 컨트롤 */
+.manage-controls {
+  position: relative;  /* sticky 대신 relative로 변경 */
+  background: white;
+  border-bottom: 1px solid #F1F5F9;
+  padding: 1rem;
+  z-index: 10;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.75rem;
+  height: 40px;
+  transform-origin: top;
+  animation: expandDown 0.3s ease-out;
+}
+
+@keyframes expandDown {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* 버튼들의 개별 애니메이션 */
+.action-button {
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+.action-button:nth-child(1) { animation-delay: 0.1s; }
+.action-button:nth-child(2) { animation-delay: 0.2s; }
+.action-button:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 일정 정보 */
+.schedule-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.schedule-date {
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.schedule-reading {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* 관리 모드 */
+.manage-controls {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.select-all-button {
+  padding: 0.75rem 1rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.select-all-button:hover {
+  background: #F1F5F9;
+  color: #334155;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.bulk-actions button {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.bulk-actions .complete-button {
+  background: #22C55E;
+  color: white;
+  border: none;
+}
+
+.bulk-actions .cancel-button {
+  background: #EF4444;
+  color: white;
+  border: none;
+}
+
+/* 체크박스 커스텀 스타일 */
+.checkbox {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+}
+
+.checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 2px solid #CBD5E1;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkbox input[type="checkbox"]:checked {
+  background: #2563EB;
+  border-color: #2563EB;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17L4 12'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 640px) {
+  .schedule-modal {
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  
+  .modal-header {
+    padding: 1.25rem;
+  }
+  
+  .schedule-body {
+    padding: 1.25rem;
+  }
+  
+  .schedule-info {
+    gap: 1rem;
+  }
+  
+  .schedule-date {
+    min-width: 80px;
+  }
+}
+
+/* 관리 모드 컨트롤 */
+.manage-controls {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  border-top: 1px solid #F1F5F9;
+  padding: 1rem;
+  z-index: 10;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.75rem;
+  height: 40px; /* 버튼 높이 고정 */
+}
+
+/* 기본 버튼 스타일 */
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  height: 100%;
+}
+
+/* 구간 선택 버튼 */
+.action-button.range-select {
+  flex: 0 0 120px; /* 너비 고정 */
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+}
+
+.action-button.range-select.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.action-button.range-select:hover:not(.active) {
+  background: #F1F5F9;
+  color: #334155;
+}
+
+/* 읽음/읽지 않음 버튼 공통 스타일 */
+.action-button.complete,
+.action-button.cancel {
+  flex: 1;
+  border: 1px solid transparent;
+}
+
+/* 읽음 버튼 */
+.action-button.complete {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.action-button.complete:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* 읽지 않음 버튼 */
+.action-button.cancel {
+  background: #FEF2F2;
+  border-color: #FEE2E2;
+  color: #991B1B;
+}
+
+.action-button.cancel:hover {
+  background: #991B1B;
+  color: white;
+}
+
+/* 아이콘 스타일 */
+.action-button svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .manage-controls {
+    padding: 0.75rem;
+  }
+  
+  .bulk-actions {
+    height: 36px; /* 모바일에서는 약간 작게 */
+  }
+  
+  .action-button {
+    font-size: 0.8125rem;
+  }
+  
+  .action-button.range-select {
+    flex: 0 0 100px; /* 모바일에서는 더 좁게 */
+  }
+}
+
+/* 관리 모드 트랜지션 효과 */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
 }
 </style> 
