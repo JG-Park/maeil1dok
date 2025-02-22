@@ -31,9 +31,51 @@ export const useApi = () => {
   }
 
   const getHeaders = () => {
-    return {
+    const headers = {
       'Content-Type': 'application/json',
-      ...(auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {})
+    }
+    
+    if (auth.token) {
+      console.log('Adding auth token to headers:', auth.token)
+      headers['Authorization'] = `Bearer ${auth.token}`
+    } else {
+      console.log('No auth token found')
+    }
+    
+    console.log('Request headers:', headers)
+    return headers
+  }
+
+  const get = async (url: string) => {
+    const fullUrl = `${getBaseUrl()}${url}`
+    console.log("Making GET request to:", fullUrl)
+    
+    try {
+      const headers = getHeaders()
+      const response = await fetch(fullUrl, {
+        headers,
+        credentials: 'include'
+      })
+      
+      console.log("Response status:", response.status)
+      console.log("Response headers:", response.headers)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("API Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        })
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log("API Response data:", data)
+      return data
+    } catch (error) {
+      console.error("API Request failed:", error)
+      throw error
     }
   }
 

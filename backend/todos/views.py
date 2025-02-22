@@ -443,4 +443,27 @@ def bulk_update_bible_progress(request):
         
     except Exception as e:
         logger.error(f"[Bulk Update] Error occurred: {str(e)}", exc_info=True)
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_completed_sections_count(request):
+    """완료된 성경 읽기 수를 반환"""
+    logger.info(f"Received request for completed sections from user: {request.user.username}")
+    
+    try:
+        # 사용자가 완료한 읽기 수만 계산
+        completed_count = UserBibleProgress.objects.filter(
+            user=request.user,
+            is_completed=True
+        ).count()
+        
+        logger.info(f"User {request.user.username} completed readings: {completed_count}")
+        
+        return Response({
+            'completed_count': completed_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_completed_sections_count: {str(e)}", exc_info=True)
         return Response({'error': str(e)}, status=500) 

@@ -14,4 +14,5 @@ urlpatterns = [
     path('bible-progress/status/', views.get_bible_progress, name='get_bible_progress'),
     path('bible-progress/bulk-update/', views.bulk_update_bible_progress, name='bulk_update_bible_progress'),
     path('reading-history/', views.get_reading_history, name='reading-history'),
+    path('completed-sections/', views.get_completed_sections_count, name='completed-sections'),
 ] 
