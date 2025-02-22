@@ -1,12 +1,14 @@
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 import pandas as pd
 from datetime import datetime
-from .models import DailyBibleSchedule
-from .serializers import DailyBibleScheduleSerializer
+from .models import DailyBibleSchedule, UserBibleProgress
+from .serializers import DailyBibleScheduleSerializer, UserBibleProgressSerializer
 import logging
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
 
@@ -224,5 +226,125 @@ def get_bible_schedules(request):
             schedule['book'] = schedule['book']
             schedule['start_chapter'] = schedule['start_chapter']
         return Response(response_data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_bible_progress(request):
+    """성경 읽기 진도 업데이트"""
+    date = request.data.get('date')
+    if not date:
+        return Response({'error': '날짜가 필요합니다.'}, status=400)
+    
+    try:
+        # 해당 날짜의 스케줄 확인
+        schedule = get_object_or_404(DailyBibleSchedule, date=date)
+        
+        # 입력된 chapter가 유효한지 확인
+        last_chapter_read = request.data.get('last_chapter_read', 0)
+        if not isinstance(last_chapter_read, int) or last_chapter_read < 0:
+            return Response({'error': '유효하지 않은 장 번호입니다.'}, status=400)
+        
+        if last_chapter_read > schedule.end_chapter:
+            return Response({'error': '해당 날짜의 읽기 범위를 초과했습니다.'}, status=400)
+        
+        # 기존 진도가 있으면 업데이트, 없으면 생성
+        progress, created = UserBibleProgress.objects.get_or_create(
+            user=request.user,
+            date=date,
+            defaults={
+                'book': schedule.book,
+                'last_chapter_read': last_chapter_read
+            }
+        )
+        
+        if not created:
+            progress.last_chapter_read = last_chapter_read
+            progress.save()
+        
+        serializer = UserBibleProgressSerializer(progress)
+        return Response(serializer.data)
+        
+    except DailyBibleSchedule.DoesNotExist:
+        return Response({'error': '해당 날짜의 읽기 일정이 없습니다.'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def complete_bible_reading(request):
+    """성경 읽기 완료 처리"""
+    date = request.data.get('date')
+    if not date:
+        return Response({'error': '날짜가 필요합니다.'}, status=400)
+    
+    try:
+        schedule = get_object_or_404(DailyBibleSchedule, date=date)
+        
+        # 이미 완료된 상태인지 확인
+        existing_progress = UserBibleProgress.objects.filter(
+            user=request.user,
+            date=date,
+            is_completed=True
+        ).exists()
+        
+        if existing_progress:
+            return Response({'error': '이미 완료된 읽기입니다.'}, status=400)
+        
+        progress, created = UserBibleProgress.objects.get_or_create(
+            user=request.user,
+            date=date,
+            defaults={
+                'book': schedule.book,
+                'last_chapter_read': schedule.end_chapter
+            }
+        )
+        
+        progress.mark_as_completed()
+        serializer = UserBibleProgressSerializer(progress)
+        return Response(serializer.data)
+        
+    except DailyBibleSchedule.DoesNotExist:
+        return Response({'error': '해당 날짜의 읽기 일정이 없습니다.'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_bible_reading(request):
+    """성경 읽기 완료 취소 처리"""
+    date = request.data.get('date')
+    if not date:
+        return Response({'error': '날짜가 필요합니다.'}, status=400)
+        
+    try:
+        progress = UserBibleProgress.objects.get(
+            user=request.user,
+            date=date
+        )
+        progress.mark_as_incomplete()
+        return Response({'message': '읽기 완료가 취소되었습니다.'})
+    except UserBibleProgress.DoesNotExist:
+        return Response({'error': '해당 날짜의 읽기 기록이 없습니다.'}, status=404)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_bible_progress(request):
+    """사용자의 성경 읽기 진도 조회"""
+    date = request.GET.get('date')
+    
+    if not date:
+        return Response({'error': '날짜가 필요합니다.'}, status=400)
+        
+    try:
+        progress = UserBibleProgress.objects.get(
+            user=request.user,
+            date=date
+        )
+        serializer = UserBibleProgressSerializer(progress)
+        return Response(serializer.data)
+    except UserBibleProgress.DoesNotExist:
+        return Response({'status': 'not_started'})
     except Exception as e:
         return Response({'error': str(e)}, status=500) 

@@ -35,8 +35,10 @@ class UserBibleProgress(models.Model):
     """사용자별 성경 읽기 진도"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     date = models.DateField()
-    book = models.CharField(max_length=50)  # 성경 책명
-    last_chapter_read = models.IntegerField()  # 마지막으로 읽은 장
+    book = models.CharField(max_length=50)
+    last_chapter_read = models.IntegerField()
+    is_completed = models.BooleanField(default=False)  # 완료 여부 명시적 표시
+    completed_at = models.DateTimeField(null=True, blank=True)  # 완료 시점
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -44,8 +46,15 @@ class UserBibleProgress(models.Model):
         unique_together = ['user', 'date']
         ordering = ['date']
 
-    def __str__(self):
-        return f"{self.user.username} - {self.date}: {self.book} {self.last_chapter_read}장까지"
+    def mark_as_completed(self):
+        self.is_completed = True
+        self.completed_at = timezone.now()
+        self.save()
+
+    def mark_as_incomplete(self):
+        self.is_completed = False
+        self.completed_at = None
+        self.save()
 
     @property
     def status(self):
@@ -53,10 +62,11 @@ class UserBibleProgress(models.Model):
         try:
             schedule = DailyBibleSchedule.objects.get(date=self.date)
             if self.last_chapter_read == 0:
-                return "미시작"
+                return "not_started"
+            elif self.is_completed:
+                return "completed"
             elif self.last_chapter_read < schedule.end_chapter:
-                return "진행중"
-            else:
-                return "완료"
+                return "in_progress"
+            return "completed"
         except DailyBibleSchedule.DoesNotExist:
-            return "일정 없음"
+            return "no_schedule"
