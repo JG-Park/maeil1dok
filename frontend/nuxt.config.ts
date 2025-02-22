@@ -9,7 +9,8 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss'
   ],
   css: [
-    '@/assets/css/main.css'
+    '@/assets/css/main.css',
+    '@/assets/css/global.css'
   ],
   serverMiddleware: [
     { path: '/bible-proxy', handler: '~/server/middleware/proxy.ts' }
@@ -31,7 +32,11 @@ export default defineNuxtConfig({
       ],
       meta: [
         { name: 'msapplication-TileColor', content: '#ffffff' },
-        { name: 'theme-color', content: '#ffffff' }
+        { name: 'theme-color', content: '#ffffff' },
+        { 
+          name: 'viewport', 
+          content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' 
+        }
       ]
     }
   }
