@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useBibleProgressApi, useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import Toast from '~/components/Toast.vue'
+import BibleScheduleContent from '~/components/BibleScheduleContent.vue'
 
 const taskStore = useTaskStore()
 const route = useRoute()
@@ -439,49 +440,31 @@ const handleScroll = () => {
   }
 }
 
-// 스케줄 모달 열기
-const openScheduleModal = async () => {
-  if (schedules.value.length === 0) {
-    const result = await taskStore.fetchBibleSchedules()
-    schedules.value = result
-  }
-  
-  // 로그인한 사용자의 경우 읽기 이력 가져오기
-  if (authStore.isAuthenticated) {
-    await fetchReadingHistory()
-  }
-  
+// 스케줄 모달 관련 함수들
+const openScheduleModal = () => {
   showScheduleModal.value = true
-  selectedMonth.value = new Date().getMonth() + 1
 }
 
-// 스케줄 모달 닫기
 const closeScheduleModal = () => {
   showScheduleModal.value = false
-  isManageMode.value = false
-  selectedSchedules.value = []
-  toggleBodyScroll(false)
 }
 
-// 특정 날짜의 성경 읽기로 이동
-const goToSchedule = (schedule) => {
-  // bibleBooks에서 한글 이름으로 코드 찾기
-  const findBookCode = (koreanName) => {
-    const allBooks = [...bibleBooks.old, ...bibleBooks.new]
-    const book = allBooks.find(b => b.name === koreanName)
-    return book?.id
-  }
+// 한글 성경 이름을 코드로 변환하는 함수
+const findBookCode = (koreanName) => {
+  const allBooks = [...bibleBooks.old, ...bibleBooks.new]
+  const book = allBooks.find(b => b.name === koreanName)
+  return book?.id
+}
 
-  // 한글 성경 이름을 코드로 변환
+// 일정 선택 처리
+const handleScheduleSelect = (schedule) => {
   const bookCode = findBookCode(schedule.book)
   if (!bookCode) {
     console.error('Invalid book name:', schedule.book)
     return
   }
-
-  closeScheduleModal()
   router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}`)
-  loadBibleContent(bookCode, schedule.start_chapter)
+  closeScheduleModal()
 }
 
 // 선택된 월의 스케줄만 필터링
@@ -781,40 +764,6 @@ const toggleRangeSelect = () => {
     rangeStart.value = null
   }
   selectedSchedules.value = []  // 선택 초기화
-}
-
-// 일정 선택 처리
-const handleScheduleSelect = (schedule) => {
-  if (!isRangeSelectMode.value) {
-    // 일반 선택 모드 - 단순 토글
-    toggleSelect(schedule)
-    return
-  }
-
-  // 구간 선택 모드
-  if (!rangeStart.value) {
-    // 첫 선택
-    rangeStart.value = schedule
-    selectedSchedules.value = [schedule]
-  } else {
-    // 두번째 선택 - 범위 선택
-    const startDate = new Date(rangeStart.value.date)
-    const endDate = new Date(schedule.date)
-    
-    // 시작과 끝 날짜 정렬
-    const [start, end] = startDate < endDate 
-      ? [startDate, endDate] 
-      : [endDate, startDate]
-    
-    // 범위 내의 모든 일정 선택
-    selectedSchedules.value = filteredSchedules.value.filter(s => {
-      const date = new Date(s.date)
-      return date >= start && date <= end
-    })
-    
-    // 선택 완료 후 초기화
-    rangeStart.value = null
-  }
 }
 
 // 일정이 선택되었는지 확인
@@ -1142,19 +1091,13 @@ const showCompleteConfirmModal = ref(false)
       </div>
     </Teleport>
 
-    <!-- 스케줄 모달 추가 -->
+    <!-- 스케줄 모달 수정 -->
     <Teleport to="body">
       <div v-if="showScheduleModal" class="modal-overlay" @click="closeScheduleModal">
         <div class="modal-content schedule-modal" @click.stop>
           <div class="modal-header">
-            <h3>성경 읽기 일정</h3>
+            <h3>성경통독표</h3>
             <div class="header-controls">
-              <button 
-                class="manage-button"
-                @click="isManageMode = !isManageMode"
-              >
-                {{ isManageMode ? '완료' : '관리' }}
-              </button>
               <button class="close-button" @click="closeScheduleModal">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1163,119 +1106,10 @@ const showCompleteConfirmModal = ref(false)
             </div>
           </div>
           
-          <!-- 관리 모드 컨트롤 -->
-          <Transition name="slide-fade">
-            <div v-if="isManageMode" class="manage-controls">
-              <div class="bulk-actions">
-                <button 
-                  class="action-button range-select"
-                  @click="toggleRangeSelect"
-                  :class="{ 'active': isRangeSelectMode }"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 9h16M4 15h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                  {{ isRangeSelectMode ? '구간 선택 중' : '구간 선택' }}
-                </button>
-                <button 
-                  v-if="selectedSchedules.length > 0"
-                  class="action-button complete"
-                  @click="bulkUpdateProgress('complete')"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                  읽음
-                </button>
-                <button 
-                  v-if="selectedSchedules.length > 0"
-                  class="action-button cancel"
-                  @click="bulkUpdateProgress('cancel')"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                  읽지 않음
-                </button>
-              </div>
-            </div>
-          </Transition>
-          
-          <div class="month-selector">
-            <div class="month-header">
-              <button class="today-button" @click="selectedMonth = new Date().getMonth() + 1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 2v3M16 2v3M3.5 8h17M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                오늘
-              </button>
-              <div class="divider"></div>
-              <div class="month-scroll"
-                ref="monthScroll"
-                @mousedown="onMouseDown"
-                @mouseleave="onMouseLeave"
-                @mouseup="onMouseUp"
-                @mousemove="onMouseMove"
-              >
-                <button
-                  v-for="month in months"
-                  :key="month"
-                  :class="['month-button', { active: month === selectedMonth }]"
-                  @click="selectedMonth = month"
-                >
-                  {{ month }}월
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="modal-body schedule-body">
-            <div v-if="filteredSchedules.length === 0" class="no-schedules">
-              {{ selectedMonth }}월에 등록된 일정이 없습니다.
-            </div>
-            <div v-else class="schedule-list">
-              <div 
-                v-for="schedule in filteredSchedules"
-                :key="schedule.date" 
-                class="schedule-item"
-                :class="[
-                  getReadingStatus(schedule),
-                  { 
-                    'manage-mode': isManageMode,
-                    'range-select-mode': isRangeSelectMode,
-                    'range-start': rangeStart?.date === schedule.date
-                  }
-                ]"
-                @click="isManageMode ? handleScheduleSelect(schedule) : goToSchedule(schedule)"
-              >
-                <!-- 관리 모드 체크박스 -->
-                <div v-if="isManageMode" class="checkbox">
-                  <input 
-                    type="checkbox"
-                    :checked="isScheduleSelected(schedule)"
-                    @click.stop
-                    @change="handleScheduleSelect(schedule)"
-                  >
-                </div>
-                
-                <!-- 기존 내용 -->
-                <div class="schedule-info">
-                  <div class="schedule-date">
-                    {{ formatScheduleDate(schedule.date) }}
-                  </div>
-                  <div class="schedule-reading">
-                    {{ schedule.book }} {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장
-                  </div>
-                </div>
-                <div class="schedule-status">
-                  <div v-if="getReadingStatus(schedule) === 'completed'" class="status-icon completed">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <BibleScheduleContent 
+            :is-modal="true"
+            @schedule-select="handleScheduleSelect"
+          />
         </div>
       </div>
     </Teleport>
