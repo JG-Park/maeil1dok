@@ -312,6 +312,13 @@ const formatScheduleDate = (dateString) => {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
 }
 
+// formatButtonDate 함수 추가
+const formatButtonDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return `${date.getMonth() + 1}/${date.getDate()}`
+}
+
 // formattedDate computed 속성 수정
 const formattedDate = computed(() => {
   console.log('Today Reading:', taskStore.todayReading) // 디버깅용
@@ -434,6 +441,18 @@ const isLastChapterInSchedule = computed(() => {
   return currentBook.value === taskStore.todayReading.book && 
          currentChapter.value === taskStore.todayReading.end_chapter
 })
+
+// isToday computed 속성 추가
+const isToday = computed(() => {
+  if (!taskStore.todayReading?.date) return false
+  
+  const today = new Date()
+  const scheduleDate = new Date(taskStore.todayReading.date)
+  
+  return today.getFullYear() === scheduleDate.getFullYear() &&
+         today.getMonth() === scheduleDate.getMonth() &&
+         today.getDate() === scheduleDate.getDate()
+})
 </script>
 
 <template>
@@ -522,7 +541,7 @@ const isLastChapterInSchedule = computed(() => {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          오늘 일독 완료하기
+          {{ isToday ? '오늘 일독 완료하기' : `${formatButtonDate(taskStore.todayReading?.date)} 일독 완료하기` }}
         </button>
         <span v-else class="chapter-indicator">
           {{ bookNames[currentBook] }} {{ currentChapter }}장
