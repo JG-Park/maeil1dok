@@ -140,9 +140,43 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split()
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '[]')
+try:
+    import json
+    CORS_ALLOWED_ORIGINS = json.loads(CORS_ALLOWED_ORIGINS)
+except json.JSONDecodeError:
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:3019',
+        'http://127.0.0.1:3019',
+    ]
+
+# 추가 CORS 설정
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# 개발 환경에서만 활성화
+if DEBUG:
+    CORS_ORIGIN_ALLOW_ALL = True
 
 # JWT 설정 추가
 REST_FRAMEWORK = {
