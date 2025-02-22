@@ -60,7 +60,8 @@
       <div v-else class="schedule-list">
         <div 
           v-for="schedule in filteredSchedules"
-          :key="schedule.date" 
+          :key="schedule.date"
+          :data-date="schedule.date"
           class="schedule-item"
           :class="[
             getReadingStatus(schedule),
@@ -150,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useTaskStore } from '~/stores/tasks'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
@@ -335,11 +336,36 @@ const fetchReadingHistory = async () => {
 // 로딩 상태 추가
 const isLoading = ref(true)
 
+// 첫 번째 미완료 항목으로 스크롤하는 함수 추가
+const scrollToFirstIncomplete = () => {
+  // 약간의 지연을 추가하여 DOM이 완전히 렌더링될 때까지 기다립니다
+  setTimeout(() => {
+    const firstIncomplete = filteredSchedules.value?.find(schedule => 
+      getReadingStatus(schedule) === 'not_completed'
+    )
+    
+    if (firstIncomplete) {
+      const element = document.querySelector(`[data-date="${firstIncomplete.date}"]`)
+      if (element) {
+        // 스크롤 컨테이너를 찾아서 스크롤 위치를 계산합니다
+        const container = document.querySelector('.schedule-body')
+        const elementTop = element.offsetTop
+        const containerTop = container.offsetTop
+        const offset = elementTop - containerTop - (container.clientHeight / 2) + (element.clientHeight / 2)
+        
+        container.scrollTo({
+          top: offset,
+          behavior: 'smooth'
+        })
+      }
+    }
+  }, 100) // 100ms 지연
+}
+
 // 컴포넌트 마운트 시 초기화 - 수정
 onMounted(async () => {
   try {
     isLoading.value = true
-    // 스케줄 데이터 가져오기
     const result = await taskStore.fetchBibleSchedules()
     if (result && Array.isArray(result)) {
       schedules.value = result
@@ -347,7 +373,6 @@ onMounted(async () => {
       console.error('Invalid schedules data:', result)
     }
     
-    // 로그인된 경우 읽기 이력도 가져오기
     if (authStore.isAuthenticated) {
       await fetchReadingHistory()
     }
@@ -355,7 +380,9 @@ onMounted(async () => {
     console.error('Failed to initialize reading plan:', error)
   } finally {
     isLoading.value = false
-    isInitialized.value = true  // 초기화 완료 표시
+    isInitialized.value = true
+    // 데이터 로딩이 완료된 후 약간의 지연을 두고 스크롤 실행
+    setTimeout(scrollToFirstIncomplete, 200)
   }
 })
 
@@ -498,8 +525,11 @@ const isBulkEditMode = ref(false)
 }
 
 .schedule-body {
-  background: #FFFFFF;;
+  background: #FFFFFF;
   padding: 1rem;
+  height: calc(100vh - 150px); /* 헤더와 월 선택기를 제외한 높이 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .schedule-list {
