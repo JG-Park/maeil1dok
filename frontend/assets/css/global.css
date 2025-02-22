@@ -1,1 +1,22 @@
- 
+/* 더블탭 확대 방지 */
+* {
+  touch-action: manipulation;
+}
+
+/* 본문 영역만 확대 가능하도록 설정 */
+.text-adjustable {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 기본 폰트 크기 설정 */
+html {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+/* iOS에서 탭 하이라이트 제거 */
+* {
+  -webkit-tap-highlight-color: transparent;
+} 
