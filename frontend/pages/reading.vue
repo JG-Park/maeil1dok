@@ -307,7 +307,7 @@ const formatScheduleDate = (dateString) => {
   const isMobile = window.innerWidth <= 640
   
   if (isMobile) {
-    return `${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
+    return `${date.getMonth() + 1}/${date.getDate()}(${days[date.getDay()]})`
   }
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
 }
@@ -1580,7 +1580,7 @@ button {
   }
 
   .schedule-date {
-    width: 110px;
+    width: 80px;  /* 모바일에서는 더 좁은 너비 */
     font-size: 0.8125rem;
   }
 
