@@ -13,44 +13,47 @@ interface AuthState {
   user: User | null
   token: string | null
   refreshToken: string | null
-  isAuthenticated: boolean
 }
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
     token: null,
-    refreshToken: null,
-    isAuthenticated: false
+    refreshToken: null
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token,
+    isAuthenticated: (state) => !!state.token && !!state.user,
   },
 
   actions: {
-    setTokens(access, refresh) {
+    setTokens(access: string, refresh: string) {
       this.token = access
       this.refreshToken = refresh
-      localStorage.setItem('access_token', access)
-      localStorage.setItem('refresh_token', refresh)
+      if (process.client) {
+        localStorage.setItem('access_token', access)
+        localStorage.setItem('refresh_token', refresh)
+      }
     },
 
-    setUser(user) {
+    setUser(user: User) {
       this.user = user
     },
 
     async initializeAuth() {
-      const access = localStorage.getItem('access_token')
-      const refresh = localStorage.getItem('refresh_token')
-      
-      if (access && refresh) {
-        this.token = access
-        this.refreshToken = refresh
-        try {
-          await this.fetchUser()
-        } catch (error) {
-          this.logout()
+      if (process.client) {
+        const access = localStorage.getItem('access_token')
+        const refresh = localStorage.getItem('refresh_token')
+        
+        if (access && refresh) {
+          this.token = access
+          this.refreshToken = refresh
+          try {
+            await this.fetchUser()
+          } catch (error) {
+            console.error('Failed to initialize auth:', error)
+            this.logout()
+          }
         }
       }
     },
@@ -99,10 +102,9 @@ export const useAuthStore = defineStore('auth', {
       try {
         const userData = await api.get('/api/v1/auth/user/')
         this.setUser(userData)
-        this.isAuthenticated = true
       } catch (error) {
         console.error('Error fetching user:', error)
-        this.logout()
+        throw error
       }
     },
 
@@ -110,9 +112,10 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.token = null
       this.refreshToken = null
-      this.isAuthenticated = false
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+      if (process.client) {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+      }
     },
 
     async refreshAccessToken() {
@@ -127,9 +130,9 @@ export const useAuthStore = defineStore('auth', {
         }
 
         this.setTokens(response.access, response.refresh)
-        await this.fetchUser()
         return true
       } catch (error) {
+        console.error('Token refresh failed:', error)
         this.logout()
         return false
       }
@@ -138,6 +141,6 @@ export const useAuthStore = defineStore('auth', {
 
   persist: {
     key: 'auth',
-    paths: ['token', 'refreshToken', 'isAuthenticated']
+    paths: ['token', 'refreshToken']
   }
 }) 

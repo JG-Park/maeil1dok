@@ -82,27 +82,7 @@ export const useApi = () => {
   }
 
   return {
-    async get(url: string) {
-      const fullUrl = `${getBaseUrl()}${url}`
-      console.log("Making GET request to:", fullUrl)  // 실제 요청 URL 확인
-      
-      try {
-        const response = await fetch(fullUrl, {
-          headers: getHeaders()
-        })
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error("API Error:", errorData)  // 에러 응답 확인
-          throw new Error(errorData.message || 'API request failed')
-        }
-        const data = await response.json()
-        console.log("API Response data:", data)  // 응답 데이터 확인
-        return data
-      } catch (error) {
-        console.error("API Request failed:", error)
-        throw error
-      }
-    },
+    get,
     async post(url: string, data: any) {
       try {
         const response = await fetch(`${getBaseUrl()}${url}`, {
