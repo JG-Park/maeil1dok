@@ -283,10 +283,89 @@ const confirmGoToSchedule = () => {
   navigateTo(`/reading?book=${bookCode}&chapter=${selectedSchedule.value.start_chapter}`)
 }
 
+// bibleBooks 객체를 완성된 버전으로 수정합니다
+const bibleBooks = {
+  old: [
+    { id: 'gen', name: '창세기', chapters: 50 },
+    { id: 'exo', name: '출애굽기', chapters: 40 },
+    { id: 'lev', name: '레위기', chapters: 27 },
+    { id: 'num', name: '민수기', chapters: 36 },
+    { id: 'deu', name: '신명기', chapters: 34 },
+    { id: 'jos', name: '여호수아', chapters: 24 },
+    { id: 'jdg', name: '사사기', chapters: 21 },
+    { id: 'rut', name: '룻기', chapters: 4 },
+    { id: '1sa', name: '사무엘상', chapters: 31 },
+    { id: '2sa', name: '사무엘하', chapters: 24 },
+    { id: '1ki', name: '열왕기상', chapters: 22 },
+    { id: '2ki', name: '열왕기하', chapters: 25 },
+    { id: '1ch', name: '역대상', chapters: 29 },
+    { id: '2ch', name: '역대하', chapters: 36 },
+    { id: 'ezr', name: '에스라', chapters: 10 },
+    { id: 'neh', name: '느헤미야', chapters: 13 },
+    { id: 'est', name: '에스더', chapters: 10 },
+    { id: 'job', name: '욥기', chapters: 42 },
+    { id: 'psa', name: '시편', chapters: 150 },
+    { id: 'pro', name: '잠언', chapters: 31 },
+    { id: 'ecc', name: '전도서', chapters: 12 },
+    { id: 'sng', name: '아가', chapters: 8 },
+    { id: 'isa', name: '이사야', chapters: 66 },
+    { id: 'jer', name: '예레미야', chapters: 52 },
+    { id: 'lam', name: '예레미야애가', chapters: 5 },
+    { id: 'ezk', name: '에스겔', chapters: 48 },
+    { id: 'dan', name: '다니엘', chapters: 12 },
+    { id: 'hos', name: '호세아', chapters: 14 },
+    { id: 'jol', name: '요엘', chapters: 3 },
+    { id: 'amo', name: '아모스', chapters: 9 },
+    { id: 'oba', name: '오바댜', chapters: 1 },
+    { id: 'jon', name: '요나', chapters: 4 },
+    { id: 'mic', name: '미가', chapters: 7 },
+    { id: 'nam', name: '나훔', chapters: 3 },
+    { id: 'hab', name: '하박국', chapters: 3 },
+    { id: 'zep', name: '스바냐', chapters: 3 },
+    { id: 'hag', name: '학개', chapters: 2 },
+    { id: 'zec', name: '스가랴', chapters: 14 },
+    { id: 'mal', name: '말라기', chapters: 4 }
+  ],
+  new: [
+    { id: 'mat', name: '마태복음', chapters: 28 },
+    { id: 'mrk', name: '마가복음', chapters: 16 },
+    { id: 'luk', name: '누가복음', chapters: 24 },
+    { id: 'jhn', name: '요한복음', chapters: 21 },
+    { id: 'act', name: '사도행전', chapters: 28 },
+    { id: 'rom', name: '로마서', chapters: 16 },
+    { id: '1co', name: '고린도전서', chapters: 16 },
+    { id: '2co', name: '고린도후서', chapters: 13 },
+    { id: 'gal', name: '갈라디아서', chapters: 6 },
+    { id: 'eph', name: '에베소서', chapters: 6 },
+    { id: 'php', name: '빌립보서', chapters: 4 },
+    { id: 'col', name: '골로새서', chapters: 4 },
+    { id: '1th', name: '데살로니가전서', chapters: 5 },
+    { id: '2th', name: '데살로니가후서', chapters: 3 },
+    { id: '1ti', name: '디모데전서', chapters: 6 },
+    { id: '2ti', name: '디모데후서', chapters: 4 },
+    { id: 'tit', name: '디도서', chapters: 3 },
+    { id: 'phm', name: '빌레몬서', chapters: 1 },
+    { id: 'heb', name: '히브리서', chapters: 13 },
+    { id: 'jas', name: '야고보서', chapters: 5 },
+    { id: '1pe', name: '베드로전서', chapters: 5 },
+    { id: '2pe', name: '베드로후서', chapters: 3 },
+    { id: '1jn', name: '요한일서', chapters: 5 },
+    { id: '2jn', name: '요한이서', chapters: 1 },
+    { id: '3jn', name: '요한삼서', chapters: 1 },
+    { id: 'jud', name: '유다서', chapters: 1 },
+    { id: 'rev', name: '요한계시록', chapters: 22 }
+  ]
+}
+
+// findBookCode 함수를 수정합니다
 const findBookCode = (koreanName) => {
   const allBooks = [...bibleBooks.old, ...bibleBooks.new]
   const book = allBooks.find(b => b.name === koreanName)
-  return book?.id
+  if (!book) {
+    console.error('Invalid book name:', koreanName)
+    return null
+  }
+  return book.id
 }
 
 // Toast 관련 상태 추가
@@ -385,18 +464,6 @@ onMounted(async () => {
     setTimeout(scrollToFirstIncomplete, 200)
   }
 })
-
-// 성경 책 목록 (reading.vue에서 가져옴)
-const bibleBooks = {
-  old: [
-    { id: 'gen', name: '창세기', chapters: 50 },
-    // ... 나머지 구약 책들
-  ],
-  new: [
-    { id: 'mat', name: '마태복음', chapters: 28 },
-    // ... 나머지 신약 책들
-  ]
-}
 
 // 오늘 날짜인지 확인하는 함수 추가
 const isToday = (dateString) => {
