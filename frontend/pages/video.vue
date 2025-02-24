@@ -24,7 +24,8 @@
         </div>
         
         <a 
-          href="https://youtu.be/PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL" 
+          v-if="isMobile"
+          :href="youtubeAppUrl" 
           target="_blank" 
           class="youtube-button"
         >
@@ -49,6 +50,14 @@
 
 <script setup>
 const videoUrl = "https://www.youtube.com/embed/videoseries?list=PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL"
+const youtubeAppUrl = "vnd.youtube://www.youtube.com/playlist?list=PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL"
+
+const isMobile = ref(false)
+
+onMounted(() => {
+  // Check if user is on mobile device
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+})
 
 const handleComplete = () => {
   // TODO: 완료 처리 로직 구현
