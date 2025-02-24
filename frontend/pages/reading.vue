@@ -1542,6 +1542,12 @@ const handleBackNavigation = () => {
   margin: 0 auto;
   z-index: 20;
 }
+/* iOS 안전영역 대응 */
+@supports (-webkit-touch-callout: none) {
+  .navigation-controls {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
 
 .nav-button {
   padding: 0;
