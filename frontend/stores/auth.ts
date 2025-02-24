@@ -3,16 +3,24 @@ import { useApi } from '~/composables/useApi'
 
 interface User {
   id: number
-  email: string
   username: string
-  gender: string
-  birth_date: string | null
+  nickname: string
 }
 
 interface AuthState {
   user: User | null
   token: string | null
   refreshToken: string | null
+}
+
+interface KakaoLoginResponse {
+  needsSignup?: boolean
+  kakao_id?: string
+  suggested_nickname?: string
+  profile_image?: string
+  access?: string
+  refresh?: string
+  user?: User
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -58,11 +66,11 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async login(email: string, password: string) {
+    async login(username: string, password: string) {
       const api = useApi()
       try {
         const response = await api.post('/api/v1/auth/token/', {
-          email,
+          username,
           password
         })
 
@@ -135,6 +143,24 @@ export const useAuthStore = defineStore('auth', {
         console.error('Token refresh failed:', error)
         this.logout()
         return false
+      }
+    },
+
+    async socialLogin(provider: string, code: string): Promise<KakaoLoginResponse> {
+      const api = useApi()
+      try {
+        const response = await api.post('/api/v1/auth/social-login/', {
+          provider,
+          code
+        })
+        if (response.access) {
+          this.setTokens(response.access, response.refresh)
+          this.setUser(response.user)
+        }
+        return response
+      } catch (error) {
+        console.error('Social login failed:', error)
+        throw error
       }
     }
   },
