@@ -463,8 +463,9 @@ const handleScheduleSelect = (schedule) => {
     console.error('Invalid book name:', schedule.book)
     return
   }
-  router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}`)
-  closeScheduleModal()
+  
+  router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}&from=reading-plan`)
+  showScheduleModal.value = false
 }
 
 // 선택된 월의 스케줄만 필터링
@@ -515,7 +516,7 @@ const isLastChapterInSchedule = computed(() => {
          currentChapter.value === taskStore.todayReading.end_chapter
 })
 
-// isToday computed 속성 추가
+// isToday computed 속성 수정
 const isToday = computed(() => {
   if (!taskStore.todayReading?.date) return false
   
@@ -525,6 +526,30 @@ const isToday = computed(() => {
   return today.getFullYear() === scheduleDate.getFullYear() &&
          today.getMonth() === scheduleDate.getMonth() &&
          today.getDate() === scheduleDate.getDate()
+})
+
+// isPastDate computed 속성 추가
+const isPastDate = computed(() => {
+  if (!taskStore.todayReading?.date) return false
+  
+  const today = new Date()
+  const scheduleDate = new Date(taskStore.todayReading.date)
+  today.setHours(0, 0, 0, 0)
+  scheduleDate.setHours(0, 0, 0, 0)
+  
+  return scheduleDate < today
+})
+
+// isFutureDate computed 속성 추가
+const isFutureDate = computed(() => {
+  if (!taskStore.todayReading?.date) return false
+  
+  const today = new Date()
+  const scheduleDate = new Date(taskStore.todayReading.date)
+  today.setHours(0, 0, 0, 0)
+  scheduleDate.setHours(0, 0, 0, 0)
+  
+  return scheduleDate > today
 })
 
 const { getBibleProgress, completeBibleReading, cancelBibleReading } = useBibleProgressApi()
@@ -791,12 +816,26 @@ const isChapterCompleted = (chapter) => {
 
 // 읽기 완료 확인 모달 상태
 const showCompleteConfirmModal = ref(false)
+
+// 뒤로가기 처리 함수 추가
+const handleBackNavigation = () => {
+  const { from, month } = route.query
+  
+  if (from === 'reading-plan' && month) {
+    // reading-plan 페이지로 돌아가되, month 파라미터 유지
+    router.push(`/reading-plan?month=${month}`)
+  } else {
+    // 기본적으로는 홈으로
+    router.push('/')
+  }
+}
+
 </script>
 
 <template>
   <div class="container">
     <div class="header fade-in">
-      <button class="back-button" @click="$router.push('/')">
+      <button class="back-button" @click="handleBackNavigation">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -831,7 +870,7 @@ const showCompleteConfirmModal = ref(false)
             @click="handleCancelReading"
             :disabled="isLoading"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M6 18L18 6M6 6l12 12" 
                 stroke="currentColor" 
                 stroke-width="2" 
@@ -846,7 +885,7 @@ const showCompleteConfirmModal = ref(false)
             @click="handleCompleteReading"
             :disabled="isLoading"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M20 6L9 17l-5-5" 
                 stroke="currentColor" 
                 stroke-width="2" 
@@ -854,7 +893,7 @@ const showCompleteConfirmModal = ref(false)
                 stroke-linejoin="round"
               />
             </svg>
-            <span>완료</span>
+            <span>{{ authStore.isAuthenticated ? '완료' : '완료로 기록' }}</span>
           </button>
         </div>
       </div>
@@ -955,29 +994,30 @@ const showCompleteConfirmModal = ref(false)
             v-if="taskStore.todayReading" 
             class="schedule-date"
             :class="{
-              'completed': readingStatus === 'completed',
-              'not-completed': !isToday && readingStatus !== 'completed',
-              'current': isToday && readingStatus !== 'completed'
+              'completed': authStore.isAuthenticated ? readingStatus === 'completed' : isPastDate,
+              'not-completed': authStore.isAuthenticated ? (!isToday && readingStatus !== 'completed') : false,
+              'current': isToday,
+              'upcoming': !authStore.isAuthenticated && isFutureDate
             }"
           >
-            <!-- 완료된 구간 아이콘 -->
-            <div v-if="readingStatus === 'completed'" class="status-icon">
+            <!-- 상태 아이콘 수정 -->
+            <div v-if="authStore.isAuthenticated ? readingStatus === 'completed' : isPastDate" class="status-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
               </svg>
             </div>
             
-            <!-- 읽지 않은 구간 아이콘 -->
-            <div v-else-if="!isToday" class="status-icon">
+            <!-- 읽지 않은 구간 아이콘 (로그인 사용자만) -->
+            <div v-else-if="authStore.isAuthenticated && !isToday" class="status-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
               </svg>
             </div>
             
-            <!-- 오늘 구간 로딩 아이콘 -->
-            <div v-else class="status-icon today">
+            <!-- 오늘 구간 표시 -->
+            <div v-else-if="isToday" class="status-icon today">
               오늘
             </div>
             
@@ -1107,7 +1147,10 @@ const showCompleteConfirmModal = ref(false)
           </div>
           
           <BibleScheduleContent 
+            v-if="showScheduleModal"
             :is-modal="true"
+            :current-book="currentBook"
+            :current-chapter="currentChapter"
             @schedule-select="handleScheduleSelect"
           />
         </div>
@@ -1208,7 +1251,7 @@ const showCompleteConfirmModal = ref(false)
   margin: 0 auto;
   background: #f5f5f5;
   min-height: 100vh;
-  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
 }
 
 .header {
@@ -1591,13 +1634,6 @@ const showCompleteConfirmModal = ref(false)
   }
 }
 
-/* iOS 안전영역 대응 */
-@supports (-webkit-touch-callout: none) {
-  .navigation-controls {
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-  }
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1663,26 +1699,54 @@ const showCompleteConfirmModal = ref(false)
   flex-direction: column;
 }
 
+/* 모달 헤더 */
 .modal-header {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #F1F5F9;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  background: white;
 }
 
 .modal-header h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .close-button {
+  padding: 0.5rem;
+  margin: -0.5rem;
+  color: var(--text-secondary);
   background: none;
   border: none;
-  padding: 0.5rem;
   cursor: pointer;
-  color: var(--text-secondary);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background: var(--primary-light);
+  color: var(--text-primary);
+}
+
+/* 모바일에서 모달 헤더 조정 */
+@media (max-width: 640px) {
+  .modal-header {
+    padding: 0.8rem 1rem;
+  }
+
+  .modal-header h3 {
+    font-size: 1rem;
+  }
 }
 
 .modal-body {
@@ -1951,21 +2015,6 @@ button {
   gap: 1rem;
 }
 
-.today-button {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
 .divider {
   width: 1px;
   height: 24px;
@@ -1973,172 +2022,6 @@ button {
   flex-shrink: 0;
 }
 
-.month-scroll {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  flex: 1;
-  cursor: grab;
-  user-select: none;
-}
-
-.month-scroll::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari, Opera */
-}
-
-.month-button {
-  padding: 0.625rem 1rem;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  white-space: nowrap;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.month-button.active {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
-.month-button:hover:not(.active) {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  opacity: 0.8;
-}
-
-.schedule-body {
-  flex: 1;
-  overflow-y: auto;
-  margin: 1rem;
-}
-
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  gap: 0.5rem;
-}
-
-.schedule-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.schedule-item:hover {
-  filter: brightness(0.95);
-}
-
-.schedule-info {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 1.5rem;
-  flex: 1;
-  padding: 0 1rem;
-}
-
-.schedule-date {
-  font-size: 0.875rem;
-  opacity: 0.9;
-}
-
-.schedule-reading {
-  font-weight: 500;
-}
-
-.schedule-status {
-  display: flex;
-  align-items: center;
-  width: 48px;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.status-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-}
-
-.status-icon.completed {
-  background: #DBEAFE;
-  color: #2563EB;
-}
-
-.status-icon.current {
-  background: #FEFCE8;
-  color: #CA8A04;
-}
-
-.schedule-item.completed {
-  background: #EFF6FF;
-  border-left: 4px solid #2563EB;
-  color: #1E40AF;
-}
-
-.schedule-item.not_completed {
-  background: #FEF2F2;
-  border-left: 4px solid #DC2626;
-  color: #991B1B;
-}
-
-.schedule-item.upcoming {
-  background: white;
-  border-left: 4px solid transparent;
-  color: var(--text-secondary);
-}
-
-.schedule-item.completed .status-icon.completed {
-  background: #DCF9E6;
-  color: #22C55E;
-}
-
-@media (max-width: 640px) {
-  .month-header {
-    padding: 0.625rem 0.75rem;
-  }
-
-  .schedule-item {
-    padding: 0.875rem 1rem;
-  }
-
-  .schedule-reading {
-    font-size: 0.875rem;
-  }
-
-  .schedule-info {
-    gap: 1rem;
-    padding: 0 0.75rem;
-  }
-}
-
-.clickable {
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.clickable:hover {
-  opacity: 0.8;
-}
-
-.clickable:active {
-  opacity: 0.6;
-}
 
 /* 글자 크기 조절이 가능한 본문 영역 */
 .text-adjustable {
@@ -2288,8 +2171,8 @@ button {
 
 .absolute-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.75rem;
+  right: 0.75rem;
   background: none;
   border: none;
   padding: 0.5rem;
@@ -2532,25 +2415,6 @@ button {
   color: #22C55E;  /* 진한 초록색 아이콘 */
 }
 
-.manage-button {
-  padding: 0.5rem 1rem;
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-right: 0.5rem;
-}
-
-.manage-controls {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .bulk-actions {
   display: flex;
   gap: 0.5rem;
@@ -2558,19 +2422,6 @@ button {
 
 .schedule-item.manage-mode {
   padding-left: 0.5rem;
-}
-
-.checkbox {
-  padding: 0 0.5rem;
-}
-
-.select-all-button {
-  padding: 0.5rem;
-  background: #f3f4f6;
-  border: none;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
 }
 
 /* 모달 기본 스타일 */
@@ -2584,8 +2435,8 @@ button {
   background: #FFFFFF;
   border-radius: 24px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  max-width: 560px;
-  width: 90%;
+  max-width: 95vw;
+  width: 100%;
   max-height: 85vh;
   overflow: hidden;
   animation: modalSlideUp 0.4s ease-out;
@@ -2600,39 +2451,6 @@ button {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* 모달 헤더 */
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #F1F5F9;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-header h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1E293B;
-  letter-spacing: -0.02em;
-}
-
-/* 관리 버튼 */
-.manage-button {
-  padding: 0.5rem 1rem;
-  background: #F8FAFC;
-  color: #475569;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.manage-button:hover {
-  background: #F1F5F9;
-  color: #334155;
 }
 
 /* 월 선택기 */
@@ -2709,41 +2527,9 @@ button {
   color: #64748B;
 }
 
-/* 일정 정보 */
-.schedule-info {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
 .schedule-reading {
   font-size: 0.9375rem;
   font-weight: 600;
-}
-
-/* 관리 모드 */
-.manage-controls {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #F1F5F9;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.select-all-button {
-  padding: 0.75rem 1rem;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  color: #475569;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.select-all-button:hover {
-  background: #F1F5F9;
-  color: #334155;
 }
 
 .bulk-actions {
@@ -2770,41 +2556,6 @@ button {
   background: #EF4444;
   color: white;
   border: none;
-}
-
-/* 체크박스 커스텀 스타일 */
-.checkbox {
-  display: flex;
-  align-items: center;
-  padding: 0 0.75rem;
-}
-
-.checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  border: 2px solid #CBD5E1;
-  appearance: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.checkbox input[type="checkbox"]:checked {
-  background: #2563EB;
-  border-color: #2563EB;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17L4 12'/%3E%3C/svg%3E");
-  background-size: 12px;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-/* 관리 모드 컨트롤 */
-.manage-controls {
-  position: relative;  /* sticky 대신 relative로 변경 */
-  background: white;
-  border-bottom: 1px solid #F1F5F9;
-  padding: 1rem;
-  z-index: 10;
 }
 
 .bulk-actions {
@@ -2847,26 +2598,9 @@ button {
   }
 }
 
-/* 일정 정보 */
-.schedule-info {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-
 .schedule-reading {
   font-size: 0.9375rem;
   font-weight: 600;
-}
-
-/* 관리 모드 */
-.manage-controls {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #F1F5F9;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .select-all-button {
@@ -2935,34 +2669,6 @@ button {
   background-size: 12px;
   background-position: center;
   background-repeat: no-repeat;
-}
-
-/* 반응형 디자인 */
-@media (max-width: 640px) {
-  .schedule-modal {
-    width: 100%;
-    height: 100%;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-  
-  .modal-header {
-    padding: 1.25rem;
-  }
-
-  .schedule-info {
-    gap: 1rem;
-  }
-}
-
-/* 관리 모드 컨트롤 */
-.manage-controls {
-  position: sticky;
-  bottom: 0;
-  background: white;
-  border-top: 1px solid #F1F5F9;
-  padding: 1rem;
-  z-index: 10;
 }
 
 .bulk-actions {
@@ -3045,10 +2751,6 @@ button {
 
 /* 모바일 대응 */
 @media (max-width: 640px) {
-  .manage-controls {
-    padding: 0.75rem;
-  }
-  
   .bulk-actions {
     height: 36px; /* 모바일에서는 약간 작게 */
   }
@@ -3129,32 +2831,7 @@ button {
   height: 20px;
 }
 
-/* 로딩 애니메이션 */
-.loading-dots {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
 
-.loading-dots span {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: bounce 1.4s infinite ease-in-out both;
-}
-
-.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes bounce {
-  0%, 80%, 100% { 
-    transform: scale(0);
-  } 
-  40% { 
-    transform: scale(1);
-  }
-}
 /* 상태별 색상 */
 .schedule-date.completed {
   color: var(--primary-color);
@@ -3166,6 +2843,10 @@ button {
 
 .schedule-date.current {
   color: #2E90FA;
+}
+
+.schedule-date.upcoming {
+  color: #94A3B8;  /* 미래 날짜는 회색으로 표시 */
 }
 
 /* 모바일 대응 */
@@ -3309,4 +2990,5 @@ button {
   height: auto;
   border: 1px solid currentColor;
 }
+
 </style> 
