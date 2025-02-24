@@ -197,3 +197,21 @@ SIMPLE_JWT = {
 
 # 커스텀 유저 모델 설정
 AUTH_USER_MODEL = 'accounts.User'
+
+# 소셜 로그인 설정
+KAKAO_CLIENT_ID = os.environ.get('KAKAO_CLIENT_ID')
+KAKAO_REDIRECT_URI = os.environ.get('KAKAO_REDIRECT_URI')
+
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET') 
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')
+
+# 필수 환경변수 검증
+required_env_vars = [
+    'KAKAO_CLIENT_ID',
+    'KAKAO_REDIRECT_URI',
+]
+
+for var in required_env_vars:
+    if not os.environ.get(var):
+        raise ValueError(f"환경변수 {var}가 설정되지 않았습니다.")
