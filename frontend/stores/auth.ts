@@ -12,6 +12,7 @@ interface User {
 interface AuthState {
   user: User | null
   token: string | null
+  refreshToken: string | null
   isAuthenticated: boolean
 }
 
@@ -19,22 +20,37 @@ export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
     token: null,
+    refreshToken: null,
     isAuthenticated: false
   }),
 
+  getters: {
+    isAuthenticated: (state) => !!state.token,
+  },
+
   actions: {
-    async initialize() {
-      if (process.client) {
-        const token = localStorage.getItem('token')
-        if (token) {
-          this.token = token
-          this.isAuthenticated = true
-          try {
-            await this.fetchUser()
-          } catch (error) {
-            console.error('Failed to fetch user:', error)
-            this.logout()
-          }
+    setTokens(access, refresh) {
+      this.token = access
+      this.refreshToken = refresh
+      localStorage.setItem('access_token', access)
+      localStorage.setItem('refresh_token', refresh)
+    },
+
+    setUser(user) {
+      this.user = user
+    },
+
+    async initializeAuth() {
+      const access = localStorage.getItem('access_token')
+      const refresh = localStorage.getItem('refresh_token')
+      
+      if (access && refresh) {
+        this.token = access
+        this.refreshToken = refresh
+        try {
+          await this.fetchUser()
+        } catch (error) {
+          this.logout()
         }
       }
     },
@@ -51,13 +67,7 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Login failed')
         }
 
-        this.token = response.access
-        this.isAuthenticated = true
-        
-        if (process.client) {
-          localStorage.setItem('token', response.access)
-        }
-        
+        this.setTokens(response.access, response.refresh)
         await this.fetchUser()
         return true
       } catch (error) {
@@ -88,7 +98,7 @@ export const useAuthStore = defineStore('auth', {
       const api = useApi()
       try {
         const userData = await api.get('/api/v1/auth/user/')
-        this.user = userData
+        this.setUser(userData)
         this.isAuthenticated = true
       } catch (error) {
         console.error('Error fetching user:', error)
@@ -99,15 +109,35 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.user = null
       this.token = null
+      this.refreshToken = null
       this.isAuthenticated = false
-      if (process.client) {
-        localStorage.removeItem('token')
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+    },
+
+    async refreshAccessToken() {
+      const api = useApi()
+      try {
+        const response = await api.post('/api/v1/auth/token/refresh/', {
+          refresh: this.refreshToken
+        })
+
+        if (!response) {
+          throw new Error('Token refresh failed')
+        }
+
+        this.setTokens(response.access, response.refresh)
+        await this.fetchUser()
+        return true
+      } catch (error) {
+        this.logout()
+        return false
       }
     }
   },
 
   persist: {
     key: 'auth',
-    paths: ['token', 'isAuthenticated']
+    paths: ['token', 'refreshToken', 'isAuthenticated']
   }
 }) 

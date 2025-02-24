@@ -51,30 +51,30 @@ export const useApi = () => {
 
   const get = async (url: string) => {
     const fullUrl = `${getBaseUrl()}${url}`
-    console.log("Making GET request to:", fullUrl)
     
     try {
-      const headers = getHeaders()
-      const response = await fetch(fullUrl, {
-        headers
+      let response = await fetch(fullUrl, {
+        headers: getHeaders()
       })
-      
-      console.log("Response status:", response.status)
-      console.log("Response headers:", response.headers)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error("API Error Response:", {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        })
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+
+      // 401 에러시 토큰 갱신 시도
+      if (response.status === 401) {
+        const refreshSuccess = await auth.refreshAccessToken()
+        if (refreshSuccess) {
+          // 새 토큰으로 재시도
+          response = await fetch(fullUrl, {
+            headers: getHeaders()
+          })
+        } else {
+          throw new Error('Authentication failed')
+        }
       }
-      
-      const data = await response.json()
-      console.log("API Response data:", data)
-      return data
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
+      }
+
+      return await response.json()
     } catch (error) {
       console.error("API Request failed:", error)
       throw error
