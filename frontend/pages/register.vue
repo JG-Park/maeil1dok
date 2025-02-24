@@ -1,87 +1,71 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
+      <!-- Back Button -->
+      <button @click="$router.back()"
+        class="mb-8 flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      </button>
+
       <div>
-        <img class="mx-auto h-12 w-auto" src="@/assets/images/로고_투명.png" alt="매일통독">
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          회원가입
-        </h2>
+        <img class="mx-auto h-8 w-auto object-contain" src="@/assets/images/로고_투명.png" alt="매일일독">
       </div>
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="rounded-md shadow-sm space-y-4">
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-700">이름</label>
-            <input
-              id="username"
-              v-model="formData.username"
-              type="text"
-              required
-              autocomplete="name"
-              name="username"
-              class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-            >
+            <label for="username" class="block text-sm font-medium text-gray-700">아이디</label>
+            <div class="relative">
+              <input id="username" v-model="formData.username" type="text" required @blur="checkUsername"
+                class="flex-1 mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                :class="{ 'border-red-500': usernameError, 'border-green-500': isUsernameChecked}">
+              <span v-if="usernameError" class="text-red-500 text-xs mt-1">{{ usernameError }}</span>
+              <span v-if="isUsernameChecked && !usernameError" class="text-green-500 text-xs mt-1">사용 가능한 아이디입니다.</span>
+            </div>
           </div>
 
-          <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">이메일</label>
-            <input
-              id="email"
-              v-model="formData.email"
-              type="email"
-              required
-              autocomplete="email"
-              name="email"
-              class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-            >
-          </div>
-          
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700">비밀번호</label>
-            <input
-              id="password"
-              v-model="formData.password"
-              type="password"
-              required
-              autocomplete="new-password"
-              name="password"
-              class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-            >
-          </div>
-
-          <div>
-            <label for="gender" class="block text-sm font-medium text-gray-700">성별</label>
-            <select
-              id="gender"
-              v-model="formData.gender"
-              required
-              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-            >
-              <option value="M">남성</option>
-              <option value="F">여성</option>
-              <option value="O">기타</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="birth_date" class="block text-sm font-medium text-gray-700">생년월일</label>
-            <input
-              id="birth_date"
-              v-model="formData.birth_date"
-              type="date"
-              required
-              class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-            >
+            <input id="password" v-model="formData.password" type="password" required
+              class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
           </div>
         </div>
 
         <div>
-          <button
-            type="submit"
-            class="submit-button"
-            :disabled="loading"
-          >
+          <label for="nickname" class="block text-sm font-medium text-gray-700">닉네임</label>
+          <div class="relative">
+            <input id="nickname" v-model="formData.nickname" type="text" required @blur="checkNickname"
+              class="flex-1 mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+              :class="{'border-red-500': nicknameError, 'border-green-500': isNicknameChecked}">
+            <span v-if="nicknameError" class="text-red-500 text-xs mt-1">{{ nicknameError }}</span>
+            <span v-if="isNicknameChecked && !nicknameError" class="text-green-500 text-xs mt-1">사용 가능한 닉네임입니다.</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <button type="submit" class="submit-button" :disabled="loading || !isUsernameChecked || !isNicknameChecked">
             {{ loading ? '가입 중...' : '가입하기' }}
           </button>
+
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-gray-50 text-gray-500">간편 로그인</span>
+            </div>
+          </div>
+
+          <div class="flex gap-4 justify-center">
+            <button type="button" @click="handleKakaoLogin" class="social-button kakao-button">
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <path fill="#000000"
+                  d="M9 0C4.03 0 0 3.19 0 7.13c0 2.52 1.68 4.73 4.21 5.97.31.13.47.39.71.71l-.27 1.01c-.04.16.12.31.27.23l1.15-.67c.17-.1.35-.15.54-.15.31 0 .63.04.94.08C8.87 14.44 9 14.5 9 14.5s.13-.06 1.73-.19c.31-.04.63-.08.94-.08.19 0 .37.05.54.15l1.15.67c.15.08.31-.07.27-.23l-.27-1.01c-.04-.32.12-.58.43-.71 2.53-1.24 4.21-3.45 4.21-5.97C18 3.19 13.97 0 9 0" />
+              </svg>
+              카카오로 시작하기
+            </button>
+          </div>
         </div>
 
         <div class="text-sm text-center">
@@ -95,41 +79,107 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRoute, useRouter } from 'vue-router'
+import { useApi } from '~/composables/useApi'
+import { useRuntimeConfig } from 'nuxt/app'
+
+const config = useRuntimeConfig()
 
 const auth = useAuthStore()
+const api = useApi()
 const loading = ref(false)
-const route = useRoute()
-const router = useRouter()
+const isUsernameChecked = ref(false)
+const isNicknameChecked = ref(false)
+const usernameError = ref('')
+const nicknameError = ref('')
 
 const formData = ref({
-  email: '',
   username: '',
-  password: '',
-  gender: 'M',
-  birth_date: ''
+  nickname: '',
+  password: ''
 })
 
+const checkUsername = async () => {
+  if (!formData.value.username) return
+
+  try {
+    const response = await api.post('/api/v1/auth/check-username/', {
+      username: formData.value.username
+    })
+
+    if (response.available) {
+      isUsernameChecked.value = true
+      usernameError.value = ''
+    } else {
+      isUsernameChecked.value = false
+      usernameError.value = '이미 사용중인 아이디입니다.'
+    }
+  } catch (error) {
+    isUsernameChecked.value = false
+    usernameError.value = '중복 확인 중 오류가 발생했습니다.'
+  }
+}
+
+const checkNickname = async () => {
+  if (!formData.value.nickname) return
+  
+  try {
+    const response = await api.post('/api/v1/auth/check-nickname/', {
+      nickname: formData.value.nickname
+    })
+    
+    if (response.available) {
+      isNicknameChecked.value = true
+      nicknameError.value = ''
+    } else {
+      isNicknameChecked.value = false
+      nicknameError.value = '이미 사용중인 닉네임입니다.'
+    }
+  } catch (error) {
+    isNicknameChecked.value = false
+    nicknameError.value = '중복 확인 중 오류가 발생했습니다.'
+  }
+}
+
 const handleSubmit = async () => {
+  if (!isUsernameChecked.value || !isNicknameChecked.value) {
+    alert('아이디와 닉네임 중복 확인이 필요합니다.')
+    return
+  }
+  
   loading.value = true
   try {
     const success = await auth.register(formData.value)
     if (success) {
       alert('회원가입이 완료되었습니다.')
-      const redirectPath = route.query.redirect
-      navigateTo({
-        path: '/login',
-        query: redirectPath ? { redirect: redirectPath } : {}
-      })
-    } else {
-      alert('회원가입에 실패했습니다.')
+      navigateTo('/login')
     }
   } finally {
     loading.value = false
   }
 }
+
+const handleKakaoLogin = () => {
+  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${config.public.KAKAO_REDIRECT_URI}&response_type=code`
+  window.location.href = kakaoAuthUrl
+}
+
+const handleGoogleLogin = () => {
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${config.public.GOOGLE_CLIENT_ID}&redirect_uri=${config.public.GOOGLE_REDIRECT_URI}&response_type=code&scope=profile`
+  window.location.href = googleAuthUrl
+}
+
+// 입력값이 변경되면 중복확인 상태 초기화
+watch(() => formData.value.username, () => {
+  isUsernameChecked.value = false
+  usernameError.value = ''
+})
+
+watch(() => formData.value.nickname, () => {
+  isNicknameChecked.value = false
+  nicknameError.value = ''
+})
 </script>
 
 <style scoped>
@@ -178,5 +228,32 @@ const handleSubmit = async () => {
 .login-link:hover {
   background-color: var(--primary-light);
   color: var(--primary-dark);
+}
+.social-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.kakao-button {
+  background-color: #FEE500;
+  color: #000000;
+  border: none;
+}
+
+.kakao-button:hover {
+  background-color: #FDD835;
+  transform: translateY(-1px);
+}
+
+.kakao-button:active {
+  transform: translateY(0);
 }
 </style> 
