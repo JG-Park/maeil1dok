@@ -1545,7 +1545,7 @@ const handleBackNavigation = () => {
 /* iOS 안전영역 대응 */
 @supports (-webkit-touch-callout: none) {
   .navigation-controls {
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    padding: 0 1rem calc(env(safe-area-inset-bottom)) 1rem;
   }
 }
 
