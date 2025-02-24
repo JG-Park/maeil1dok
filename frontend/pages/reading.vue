@@ -1318,12 +1318,6 @@ const handleBackNavigation = () => {
   -webkit-user-select: none;
 }
 
-.divider {
-  width: 1px;
-  height: 12px;
-  background: #e5e5e5;
-}
-
 .reading-badge {
   color: var(--text-secondary);
   font-size: 0.875rem;
@@ -1666,6 +1660,9 @@ const handleBackNavigation = () => {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   animation: fadeIn 0.2s ease-out;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
 }
 
 .modal-content {
@@ -1737,6 +1734,15 @@ const handleBackNavigation = () => {
   overflow: hidden;
   position: relative;
   min-height: 400px; /* 최소 높이 설정 */
+}
+
+.modal-content-wrapper {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
 }
 
 .books-section {
@@ -1869,6 +1875,22 @@ const handleBackNavigation = () => {
   }
 }
 
+
+.schedule-modal {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow: hidden;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  animation: modalSlideUp 0.3s ease-out;
+}
+
 @media (max-width: 480px) {
   .modal-content {
     width: 100%;
@@ -1877,7 +1899,6 @@ const handleBackNavigation = () => {
     border-radius: 16px;
     margin: 0;
   }
-
 
   .books-section {
     flex: 0.7;
@@ -1904,6 +1925,10 @@ const handleBackNavigation = () => {
     padding: 0.75rem;
     font-size: 0.9rem;
   }
+
+  .schedule-modal {
+    max-width: 95vw;
+  }
 }
 
 /* iOS Safari 대응 */
@@ -1921,6 +1946,10 @@ const handleBackNavigation = () => {
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
   }
+
+  .schedule-modal {
+    height: 85vh;
+  }
 }
 
 /* 모바일 터치 관련 전역 스타일 */
@@ -1928,136 +1957,6 @@ const handleBackNavigation = () => {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 버튼 기본 스타일 재설정 */
-button {
-  color: inherit;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-
-.chapter-select-button {
-  width: 100%;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 36px;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.chapter-select-button:hover {
-  background: #f1f3f5;
-  border-color: #dee2e6;
-}
-
-.chapter-select-button:active {
-  transform: translateY(1px);
-}
-
-.button-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.button-content h2 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.button-content svg {
-  color: var(--text-secondary);
-}
-
-.schedule-modal {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-}
-
-.month-selector {
-  border-bottom: 1px solid #eee;
-  padding: 0;
-}
-
-.month-header {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  gap: 1rem;
-}
-
-.divider {
-  width: 1px;
-  height: 24px;
-  background: #eee;
-  flex-shrink: 0;
-}
-
-
-/* 글자 크기 조절이 가능한 본문 영역 */
-.text-adjustable {
-  /* iOS/Android의 동적 텍스트 크기 조절 허용 */
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-/* UI 요소들의 글자 크기는 고정 */
-.header,
-.nav-button,
-.modal-header,
-.modal-content button {
-  /* 시스템 글자 크기 설정 무시 */
-  -webkit-text-size-adjust: none;
-  text-size-adjust: none;
-  /* rem 대신 px 사용하여 고정 크기 설정 */
-  font-size: 14px !important;
-}
-
-/* 본문 스타일 추가 */
-:deep(.bible-content) {
-  line-height: 1.8;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-  font-size: 16px;
-  min-height: 0vw;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-:deep(.bible-content p) {
-  margin: 1em 0;
-}
-
-:deep(.bible-content .chapter-num) {
-  font-weight: bold;
-  color: #4170CD;
-  font-size: 1rem !important;
-}
-
-:deep(.bible-content .verse-num) {
-  font-size: 0.85em;
-  color: #666;
-  vertical-align: top;
-  margin-right: 0.2em;
-}
-
-/* 모바일 대응 */
-@media (max-width: 640px) {
-  :deep(.bible-content) {
-    font-size: 18px;
-  }
-}
 
 .login-modal {
   max-width: 320px;
@@ -2073,14 +1972,6 @@ button {
   animation: slideUp 0.3s ease-out;
 }
 
-.modal-content-wrapper {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding-top: 1rem;
-}
 
 .modal-icon {
   width: 48px;
@@ -2175,6 +2066,102 @@ button {
   background: rgba(0, 0, 0, 0.05);
 }
 
+.chapter-select-button {
+  width: 100%;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chapter-select-button:hover {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+}
+
+.chapter-select-button:active {
+  transform: translateY(1px);
+}
+
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.button-content h2 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.button-content svg {
+  color: var(--text-secondary);
+}
+
+/* 글자 크기 조절이 가능한 본문 영역 */
+.text-adjustable {
+  /* iOS/Android의 동적 텍스트 크기 조절 허용 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* UI 요소들의 글자 크기는 고정 */
+.header,
+.nav-button,
+.modal-header,
+.modal-content button {
+  /* 시스템 글자 크기 설정 무시 */
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  /* rem 대신 px 사용하여 고정 크기 설정 */
+  font-size: 14px !important;
+}
+
+/* 본문 스타일 추가 */
+:deep(.bible-content) {
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  font-size: 16px;
+  min-height: 0vw;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:deep(.bible-content p) {
+  margin: 1em 0;
+}
+
+:deep(.bible-content .chapter-num) {
+  font-weight: bold;
+  color: #4170CD;
+  font-size: 1rem !important;
+}
+
+:deep(.bible-content .verse-num) {
+  font-size: 0.85em;
+  color: #666;
+  vertical-align: top;
+  margin-right: 0.2em;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  :deep(.bible-content) {
+    font-size: 18px;
+  }
+}
+
 .current-page {
   font-size: 0.9375rem;
   font-weight: 500;
@@ -2239,17 +2226,6 @@ button {
   .link-text {
     font-size: 0.6875rem;
   }
-}
-
-/* 색상 변수 정의 */
-:root {
-  --red-primary: #DC2626;
-  --red-light: rgba(220, 38, 38, 0.1);
-  --red-hover: rgba(220, 38, 38, 0.15);
-  
-  --blue-primary: #2E90FA;
-  --blue-light: rgba(46, 144, 250, 0.1);
-  --blue-hover: rgba(46, 144, 250, 0.15);
 }
 
 .chapter-controls {
@@ -2336,433 +2312,6 @@ button {
     padding: 0;
     margin: 0;
   }
-}
-
-.current-chapter-info {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-align: center;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  justify-content: center;
-}
-
-.current-chapter-info.completed {
-  color: #4170CD;
-}
-
-.current-chapter-info svg {
-  color: #4170CD;
-}
-
-.reading-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* 읽은 구간 - 초록색 계열 */
-.schedule-item.completed {
-  background: #F0FDF4;  /* 연한 초록색 배경 */
-  border-left: 4px solid #22C55E;  /* 진한 초록색 테두리 */
-  color: #166534;  /* 진한 초록색 텍스트 */
-}
-
-/* 오늘 구간 - 파란색 계열 */
-.schedule-item.current {
-  background: #EFF6FF;  /* 연한 파란색 배경 */
-  border-left: 4px solid #2563EB;  /* 진한 파란색 테두리 */
-  color: #1E40AF;  /* 진한 파란색 텍스트 */
-}
-
-/* 읽지 않은 과거 구간 - 빨간색 계열 (유지) */
-.schedule-item.not_completed {
-  background: #FEF2F2;
-  border-left: 4px solid #DC2626;
-  color: #991B1B;
-}
-
-/* 미래 구간 - 기본 스타일 (유지) */
-.schedule-item.upcoming {
-  background: white;
-  border-left: 4px solid transparent;
-  color: var(--text-secondary);
-}
-
-/* 완료 아이콘 색상도 초록색으로 변경 */
-.status-icon.completed {
-  background: #DCF9E6;  /* 연한 초록색 배경 */
-  color: #22C55E;  /* 진한 초록색 아이콘 */
-}
-
-.bulk-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.schedule-item.manage-mode {
-  padding-left: 0.5rem;
-}
-
-/* 모달 기본 스타일 */
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
-}
-
-.schedule-modal {
-  background: #FFFFFF;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  max-width: 95vw;
-  width: 100%;
-  max-height: 85vh;
-  overflow: hidden;
-  animation: modalSlideUp 0.4s ease-out;
-}
-
-@keyframes modalSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 월 선택기 */
-.month-selector {
-  border-bottom: 1px solid #F1F5F9;
-}
-
-.month-scroll {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.25rem;
-}
-
-.month-button {
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #64748B;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-}
-
-.month-button.active {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
-.month-button:hover:not(.active) {
-  background: #F8FAFC;
-  color: #334155;
-}
-
-
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.schedule-item {
-  padding: 1rem 1.25rem;
-  border-radius: 16px;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-}
-
-/* 읽은 구간 */
-.schedule-item.completed {
-  background: #F0FDF4;
-  border-color: #DCFCE7;
-  color: #166534;
-}
-
-/* 오늘 구간 */
-.schedule-item.current {
-  background: #EFF6FF;
-  border-color: #BFDBFE;
-  color: #1E40AF;
-}
-
-/* 읽지 않은 과거 구간 */
-.schedule-item.not_completed {
-  background: #FEF2F2;
-  border-color: #FEE2E2;
-  color: #991B1B;
-}
-
-/* 미래 구간 */
-.schedule-item.upcoming {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
-  color: #64748B;
-}
-
-.schedule-reading {
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.bulk-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.bulk-actions button {
-  flex: 1;
-  padding: 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.bulk-actions .complete-button {
-  background: #22C55E;
-  color: white;
-  border: none;
-}
-
-.bulk-actions .cancel-button {
-  background: #EF4444;
-  color: white;
-  border: none;
-}
-
-.bulk-actions {
-  display: flex;
-  gap: 0.75rem;
-  height: 40px;
-  transform-origin: top;
-  animation: expandDown 0.3s ease-out;
-}
-
-@keyframes expandDown {
-  from {
-    transform: scaleY(0);
-    opacity: 0;
-  }
-  to {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
-/* 버튼들의 개별 애니메이션 */
-.action-button {
-  animation: fadeIn 0.3s ease-out forwards;
-  opacity: 0;
-}
-
-.action-button:nth-child(1) { animation-delay: 0.1s; }
-.action-button:nth-child(2) { animation-delay: 0.2s; }
-.action-button:nth-child(3) { animation-delay: 0.3s; }
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.schedule-reading {
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.select-all-button {
-  padding: 0.75rem 1rem;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  color: #475569;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.select-all-button:hover {
-  background: #F1F5F9;
-  color: #334155;
-}
-
-.bulk-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.bulk-actions button {
-  flex: 1;
-  padding: 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.bulk-actions .complete-button {
-  background: #22C55E;
-  color: white;
-  border: none;
-}
-
-.bulk-actions .cancel-button {
-  background: #EF4444;
-  color: white;
-  border: none;
-}
-
-/* 체크박스 커스텀 스타일 */
-.checkbox {
-  display: flex;
-  align-items: center;
-  padding: 0 0.75rem;
-}
-
-.checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  border: 2px solid #CBD5E1;
-  appearance: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.checkbox input[type="checkbox"]:checked {
-  background: #2563EB;
-  border-color: #2563EB;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17L4 12'/%3E%3C/svg%3E");
-  background-size: 12px;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.bulk-actions {
-  display: flex;
-  gap: 0.75rem;
-  height: 40px; /* 버튼 높이 고정 */
-}
-
-/* 기본 버튼 스타일 */
-.action-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  height: 100%;
-}
-
-/* 구간 선택 버튼 */
-.action-button.range-select {
-  flex: 0 0 120px; /* 너비 고정 */
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  color: #475569;
-}
-
-.action-button.range-select.active {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-}
-
-.action-button.range-select:hover:not(.active) {
-  background: #F1F5F9;
-  color: #334155;
-}
-
-/* 읽음/읽지 않음 버튼 공통 스타일 */
-.action-button.complete,
-.action-button.cancel {
-  flex: 1;
-  border: 1px solid transparent;
-}
-
-/* 읽음 버튼 */
-.action-button.complete {
-  background: var(--primary-light);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-.action-button.complete:hover {
-  background: var(--primary-color);
-  color: white;
-}
-
-/* 읽지 않음 버튼 */
-.action-button.cancel {
-  background: #FEF2F2;
-  border-color: #FEE2E2;
-  color: #991B1B;
-}
-
-.action-button.cancel:hover {
-  background: #991B1B;
-  color: white;
-}
-
-/* 아이콘 스타일 */
-.action-button svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-/* 모바일 대응 */
-@media (max-width: 640px) {
-  .bulk-actions {
-    height: 36px; /* 모바일에서는 약간 작게 */
-  }
-  
-  .action-button {
-    font-size: 0.8125rem;
-  }
-  
-  .action-button.range-select {
-    flex: 0 0 100px; /* 모바일에서는 더 좁게 */
-  }
-}
-
-/* 관리 모드 트랜지션 효과 */
-.slide-fade-enter-active {
-  transition: all 0.3s ease-out;
-}
-
-.slide-fade-leave-active {
-  transition: all 0.2s ease-in;
-}
-
-.slide-fade-enter-from {
-  transform: translateY(-20px);
-  opacity: 0;
-}
-
-.slide-fade-leave-to {
-  transform: translateY(-20px);
-  opacity: 0;
 }
 
 .chapter-range {
