@@ -160,6 +160,48 @@
           </div>
         </div>
       </div>
+
+      <!-- 새로운 Coming Soon 섹션 추가 -->
+      <div class="section fade-in coming-soon" style="animation-delay: 1s">
+        <h2>Coming Soon 🎉</h2>
+        <div class="coming-soon-features">
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="feature-content">
+              <h3>오늘의 참여자 카운터</h3>
+              <p>오늘 몇 명이 성경을 읽었는지 볼 수 있게 될 예정이예요</p>
+            </div>
+          </div>
+          
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 7V17M8 7L4 8.5V18.5L8 17M8 7L12 8.5M8 17L12 18.5M12 8.5V18.5M12 8.5L16 7M12 18.5L16 17M16 7V17M16 7L20 8.5V18.5L16 17" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="feature-content">
+              <h3>스코어보드</h3>
+              <p>진행 현황을 공유하도록 설정하면, 스코어보드에 나타나서 매일일독에 참여 중인 사람들이 함께 볼 수 있게 될 예정이예요</p>
+            </div>
+          </div>
+          
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M13 14L14.586 12.414C14.9611 12.0391 15.4697 11.8284 16 11.8284C16.5303 11.8284 17.0389 12.0391 17.414 12.414L20 15M14 8C14 8.53043 13.7893 9.03914 13.4142 9.41421C13.0391 9.78929 12.5304 10 12 10C11.4696 10 10.9609 9.78929 10.5858 9.41421C10.2107 9.03914 10 8.53043 10 8C10 7.46957 10.2107 6.96086 10.5858 6.58579C10.9609 6.21071 11.4696 6 12 6C12.5304 6 13.0391 6.21071 13.4142 6.58579C13.7893 6.96086 14 7.46957 14 8ZM3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="feature-content">
+              <h3>SNS 공유하기</h3>
+              <p>오늘 일독을 스토리로 공유하여 인증할 수 있는 기능을 준비중이예요</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -746,4 +788,63 @@ h2 {
 .video-task .check-mark {
   color: #366DAE;
 } */
+
+.coming-soon {
+  background: linear-gradient(to bottom right, #ffffff, #f8f9fa);
+}
+
+.coming-soon-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.feature:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--primary-light);
+  border-radius: 10px;
+}
+
+.feature-content {
+  flex: 1;
+}
+
+.feature-content h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.feature-content p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .coming-soon {
+    margin: 0.875rem 1rem;
+  }
+}
 </style> 
