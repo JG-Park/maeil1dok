@@ -648,7 +648,7 @@ h2 {
 
 .login-required-message {
   position: absolute;
-  top: 50%;
+  top: 80%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(255, 255, 255, 0.9);
