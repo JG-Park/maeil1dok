@@ -2,9 +2,9 @@
   <div class="header-wrapper">
     <header class="header">
       <Toast ref="toast" />
-      <h1 class="title">
+      <NuxtLink to="/" class="logo-link">
         <img src="~/assets/images/로고_투명.png" alt="매일일독" class="logo">
-      </h1>
+      </NuxtLink>
       <div class="header-controls">
         <div class="auth-buttons">
           <template v-if="!isAuthPage">
@@ -89,10 +89,10 @@ const handleLogout = () => {
   height: 56px;
 }
 
-.title {
-  display: flex;
-  align-items: center;
-  margin-left: 0.5rem; /* 로고 왼쪽 여백 추가 */
+.logo-link {
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .logo {

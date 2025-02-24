@@ -1,158 +1,163 @@
 <template>
   <div class="container">
-    <Header class="fade-in" style="animation-delay: 0s"/>
-    <DailyStatus class="fade-in" style="animation-delay: 0.2s"/>
-    
-    <div class="horizontal-sections fade-in" style="animation-delay: 0.3s">
-      <div class="section flex-1">
-        <h2>오늘일독</h2>
-        <div class="tasks">
-          <template v-for="(task, index) in todayTasks" :key="index">
-            <template v-if="task.title === '성경일독'">
-              <div class="task split-task reading-task" @click="toggleTask(task)">
+    <div class="header-wrapper">
+      <Header class="fade-in" style="animation-delay: 0s"/>
+    </div>
+    <div class="content-wrapper">
+      <DailyStatus class="fade-in" style="animation-delay: 0.2s"/>
+      
+      <div class="horizontal-sections fade-in" style="animation-delay: 0.3s">
+        <div class="section flex-1">
+          <h2>오늘일독</h2>
+          <div class="tasks">
+            <template v-for="(task, index) in todayTasks" :key="index">
+              <template v-if="task.title === '성경일독'">
+                <div class="task split-task reading-task" @click="toggleTask(task)">
+                  <div class="task-content">
+                    <template v-if="task.completed">
+                      <span class="check-mark">✓</span>
+                    </template>
+                    <template v-else>
+                      <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </template>
+                    <span class="task-text" :class="{ 'completed': task.completed }">
+                      <span class="task-title">오늘일독</span>
+                      <span class="task-subtitle">오늘의 말씀을 읽어보세요</span>
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="task split-task plan-task" @click="navigateToReadingPlan">
+                  <div class="task-content">
+                    <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 5H7C6.46957 5 5.96086 5.21071 5.58579 5.58579C5.21071 5.96086 5 6.46957 5 7V19C5 19.5304 5.21071 20.0391 5.58579 20.4142C5.96086 20.7893 6.46957 21 7 21H17C17.5304 21 18.0391 20.7893 18.4142 20.4142C18.7893 20.0391 19 19.5304 19 19V7C19 6.46957 18.7893 5.96086 18.4142 5.58579C18.0391 5.21071 17.5304 5 17 5H15M9 5C9 5.53043 9.21071 6.03914 9.58579 6.41421C9.96086 6.78929 10.4696 7 11 7H13C13.5304 7 14.0391 6.78929 14.4142 6.41421C14.7893 6.03914 15 5.53043 15 5M9 5C9 4.46957 9.21071 3.96086 9.58579 3.58579C9.96086 3.21071 10.4696 3 11 3H13C13.5304 3 14.0391 3.21071 14.4142 3.58579C14.7893 3.96086 15 4.46957 15 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="task-text">
+                      <span class="task-title">성경통독표</span>
+                      <span class="task-subtitle">전체 통독 계획을 확인하세요</span>
+                    </span>
+                  </div>
+                </div>
+              </template>
+              <template v-else-if="task.title === '하세나하시조'">
+                <div class="task video-task" @click="toggleTask(task)">
+                  <div class="task-content">
+                    <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="task-text">
+                      <span class="task-title">{{ task.title }}</span>
+                      <span class="task-subtitle">함께 하시조!</span>
+                    </span>
+                  </div>
+                </div>
+              </template>
+              <div v-else class="task" @click="toggleTask(task)">
                 <div class="task-content">
                   <template v-if="task.completed">
                     <span class="check-mark">✓</span>
                   </template>
-                  <template v-else>
-                    <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </template>
                   <span class="task-text" :class="{ 'completed': task.completed }">
-                    <span class="task-title">오늘일독</span>
-                    <span class="task-subtitle">오늘의 말씀을 읽어보세요</span>
-                  </span>
-                </div>
-              </div>
-              
-              <div class="task split-task plan-task" @click="navigateToReadingPlan">
-                <div class="task-content">
-                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 5H7C6.46957 5 5.96086 5.21071 5.58579 5.58579C5.21071 5.96086 5 6.46957 5 7V19C5 19.5304 5.21071 20.0391 5.58579 20.4142C5.96086 20.7893 6.46957 21 7 21H17C17.5304 21 18.0391 20.7893 18.4142 20.4142C18.7893 20.0391 19 19.5304 19 19V7C19 6.46957 18.7893 5.96086 18.4142 5.58579C18.0391 5.21071 17.5304 5 17 5H15M9 5C9 5.53043 9.21071 6.03914 9.58579 6.41421C9.96086 6.78929 10.4696 7 11 7H13C13.5304 7 14.0391 6.78929 14.4142 6.41421C14.7893 6.03914 15 5.53043 15 5M9 5C9 4.46957 9.21071 3.96086 9.58579 3.58579C9.96086 3.21071 10.4696 3 11 3H13C13.5304 3 14.0391 3.21071 14.4142 3.58579C14.7893 3.96086 15 4.46957 15 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <span class="task-text">
-                    <span class="task-title">성경통독표</span>
-                    <span class="task-subtitle">전체 통독 계획을 확인하세요</span>
-                  </span>
-                </div>
-              </div>
-            </template>
-            <template v-else-if="task.title === '하세나하시조'">
-              <div class="task video-task" @click="toggleTask(task)">
-                <div class="task-content">
-                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <span class="task-text">
                     <span class="task-title">{{ task.title }}</span>
-                    <span class="task-subtitle">함께 하시조!</span>
+                    <span class="task-subtitle">
+                      {{ task.title === '하세나하시조' ? '함께 하시조!' : '오늘의 말씀을 읽어보세요' }}
+                    </span>
                   </span>
                 </div>
               </div>
             </template>
-            <div v-else class="task" @click="toggleTask(task)">
+          </div>
+        </div>
+
+        <div class="section flex-1">
+          <h2>개론</h2>
+          <div class="tasks">
+            <div class="task" v-for="(task, index) in introTasks" :key="index" @click="toggleTask(task)">
               <div class="task-content">
-                <template v-if="task.completed">
-                  <span class="check-mark">✓</span>
-                </template>
+                <span class="check" :class="{ 'check-active': task.completed }">
+                  <span class="check-mark" v-if="task.completed">✓</span>
+                </span>
                 <span class="task-text" :class="{ 'completed': task.completed }">
                   <span class="task-title">{{ task.title }}</span>
-                  <span class="task-subtitle">
-                    {{ task.title === '하세나하시조' ? '함께 하시조!' : '오늘의 말씀을 읽어보세요' }}
-                  </span>
+                  <span class="task-subtitle">개론 영상을 시청해보세요</span>
                 </span>
               </div>
             </div>
-          </template>
+          </div>
         </div>
       </div>
 
-      <div class="section flex-1">
-        <h2>개론</h2>
-        <div class="tasks">
-          <div class="task" v-for="(task, index) in introTasks" :key="index" @click="toggleTask(task)">
-            <div class="task-content">
-              <span class="check" :class="{ 'check-active': task.completed }">
-                <span class="check-mark" v-if="task.completed">✓</span>
-              </span>
-              <span class="task-text" :class="{ 'completed': task.completed }">
-                <span class="task-title">{{ task.title }}</span>
-                <span class="task-subtitle">개론 영상을 시청해보세요</span>
-              </span>
+      <!-- 
+      <div class="section fade-in" style="animation-delay: 0.6s">
+        <h2>이번 주 일독현황</h2>
+        <div class="calendar-wrapper">
+          <div class="calendar" :class="{ 'blur-content': !isAuthenticated }">
+            <div v-for="day in ['일', '월', '화', '수', '목', '금', '토']" 
+                 :key="day" 
+                 class="calendar-header">
+              {{ day }}
+            </div>
+            <div v-for="date in [16, 17, 18, 19, 20, 21, 22]" 
+                 :key="date"
+                 :class="['calendar-date', date === 17 ? 'active' : '', date < 17 ? 'completed' : '']">
+              <span class="date-number">{{ date }}</span>
+              <span class="date-indicator" v-if="date <= 17"></span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-<!-- 
-    <div class="section fade-in" style="animation-delay: 0.6s">
-      <h2>이번 주 일독현황</h2>
-      <div class="calendar-wrapper">
-        <div class="calendar" :class="{ 'blur-content': !isAuthenticated }">
-          <div v-for="day in ['일', '월', '화', '수', '목', '금', '토']" 
-               :key="day" 
-               class="calendar-header">
-            {{ day }}
-          </div>
-          <div v-for="date in [16, 17, 18, 19, 20, 21, 22]" 
-               :key="date"
-               :class="['calendar-date', date === 17 ? 'active' : '', date < 17 ? 'completed' : '']">
-            <span class="date-number">{{ date }}</span>
-            <span class="date-indicator" v-if="date <= 17"></span>
+          <div v-if="!isAuthenticated" class="login-required-message">
+            해당 기능을 사용하시려면 로그인해주세요 😁
           </div>
         </div>
-        <div v-if="!isAuthenticated" class="login-required-message">
-          해당 기능을 사용하시려면 로그인해주세요 😁
-        </div>
-      </div>
-    </div> -->
+      </div> -->
 
-    <div class="section fade-in" style="animation-delay: 0.8s">
-      <h2>진행률</h2>
-      <div class="progress-container">
-        <div class="progress-item">
-          <div class="progress-icon">
-            <img src="@/assets/images/높은뜻 푸른교회 아이콘.png" alt="교회 아이콘" class="church-icon">
+      <div class="section fade-in" style="animation-delay: 0.8s">
+        <h2>진행률</h2>
+        <div class="progress-container">
+          <div class="progress-item">
+            <div class="progress-icon">
+              <img src="@/assets/images/높은뜻 푸른교회 아이콘.png" alt="교회 아이콘" class="church-icon">
+            </div>
+            <div class="progress-bar">
+              <div class="progress" :style="{ width: `${progressPercentage}%` }"></div>
+            </div>
+            <div class="progress-text">{{ progressPercentage }}% / 100%</div>
           </div>
-          <div class="progress-bar">
-            <div class="progress" :style="{ width: `${progressPercentage}%` }"></div>
+          <div class="progress-item">
+            <template v-if="isAuthenticated">
+              <div class="progress-content">
+                <div class="progress-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress progress-green" :style="{ width: `${personalProgressPercentage}%` }"></div>
+                </div>
+                <div class="progress-text">{{ personalProgressPercentage }}% / 100%</div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="progress-content blur-content">
+                <div class="progress-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress progress-green" style="width: 20.8%"></div>
+                </div>
+                <div class="progress-text">20.8% / 100%</div>
+              </div>
+              <div class="login-required-message">
+                개인 진행률을 기록하시려면 로그인해주세요 😁
+              </div>
+            </template>
           </div>
-          <div class="progress-text">{{ progressPercentage }}% / 100%</div>
-        </div>
-        <div class="progress-item">
-          <template v-if="isAuthenticated">
-            <div class="progress-content">
-              <div class="progress-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="progress-bar">
-                <div class="progress progress-green" :style="{ width: `${personalProgressPercentage}%` }"></div>
-              </div>
-              <div class="progress-text">{{ personalProgressPercentage }}% / 100%</div>
-            </div>
-          </template>
-          <template v-else>
-            <div class="progress-content blur-content">
-              <div class="progress-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="progress-bar">
-                <div class="progress progress-green" style="width: 20.8%"></div>
-              </div>
-              <div class="progress-text">20.8% / 100%</div>
-            </div>
-            <div class="login-required-message">
-              개인 진행률을 기록하시려면 로그인해주세요 😁
-            </div>
-          </template>
         </div>
       </div>
     </div>
@@ -273,12 +278,26 @@ onMounted(async () => {
   --background-color: #efece8;
 }
 
+.header-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--background-color);
+}
+
+.content-wrapper {
+  padding-top: 60px; /* Header의 높이만큼 상단 패딩 추가 */
+}
+
 .container {
   max-width: 768px;
   margin: 0 auto;
   background: var(--background-color);
   min-height: 100vh;
   padding-bottom: 1.5rem;
+  position: relative; /* 추가 */
 }
 
 .section {
