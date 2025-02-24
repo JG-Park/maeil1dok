@@ -17,7 +17,7 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      apiBase: 'https://api.maeil1dok.app'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.maeil1dok.app'
     }
   },
   app: {

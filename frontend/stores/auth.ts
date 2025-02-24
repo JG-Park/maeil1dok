@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useApi } from '~/composables/useApi'
 
 interface User {
   id: number
@@ -39,25 +40,22 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async login(email: string, password: string) {
+      const api = useApi()
       try {
-        const response = await fetch('https://api.maeil1dok.app/api/v1/auth/token/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
+        const response = await api.post('/api/v1/auth/token/', {
+          email,
+          password
         })
 
-        if (!response.ok) {
+        if (!response) {
           throw new Error('Login failed')
         }
 
-        const data = await response.json()
-        this.token = data.access
+        this.token = response.access
         this.isAuthenticated = true
         
         if (process.client) {
-          localStorage.setItem('token', data.access)
+          localStorage.setItem('token', response.access)
         }
         
         await this.fetchUser()
@@ -76,20 +74,9 @@ export const useAuthStore = defineStore('auth', {
       gender: string
       birth_date: string
     }) {
+      const api = useApi()
       try {
-        const response = await fetch('https://api.maeil1dok.app/api/v1/auth/register/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(userData),
-        })
-
-        if (!response.ok) {
-          throw new Error('Registration failed')
-        }
-
-        const data = await response.json()
+        const response = await api.post('/api/v1/auth/register/', userData)
         return true
       } catch (error) {
         console.error('Registration error:', error)
@@ -98,18 +85,9 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async fetchUser() {
+      const api = useApi()
       try {
-        const response = await fetch('https://api.maeil1dok.app/api/v1/auth/user/', {
-          headers: {
-            'Authorization': `Bearer ${this.token}`
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch user')
-        }
-
-        const userData = await response.json()
+        const userData = await api.get('/api/v1/auth/user/')
         this.user = userData
         this.isAuthenticated = true
       } catch (error) {

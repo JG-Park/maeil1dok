@@ -20,13 +20,16 @@ export const useApi = () => {
   const auth = useAuthStore()
 
   const getBaseUrl = () => {
+    const config = useRuntimeConfig()
+    
     // SSR 환경에서는 서버 URL을 사용
     if (process.server) {
       return 'http://localhost:8000'
     }
-    // 클라이언트 환경에서는 현재 호스트 기반 URL 사용
-    const baseUrl = 'https://api.maeil1dok.app'
-    console.log("API Base URL:", baseUrl)  // 실제 사용되는 baseUrl 확인
+    
+    // 클라이언트 환경에서는 런타임 설정의 apiBase 사용
+    const baseUrl = config.public.apiBase
+    console.log("API Base URL:", baseUrl)
     return baseUrl
   }
 
@@ -53,8 +56,7 @@ export const useApi = () => {
     try {
       const headers = getHeaders()
       const response = await fetch(fullUrl, {
-        headers,
-        credentials: 'include'
+        headers
       })
       
       console.log("Response status:", response.status)
