@@ -170,9 +170,7 @@ const loadBibleContent = async (book, chapter) => {
     currentChapter.value = chapter
     
     // 해당 구절의 일정 정보 가져오기
-    console.log('Fetching schedule for:', { book, chapter })
     const scheduleData = await taskStore.fetchReadingSchedule(book, chapter)
-    console.log('Schedule data:', scheduleData)
     if (scheduleData) {
       taskStore.todayReading = scheduleData
     }
@@ -366,7 +364,6 @@ const formatButtonDate = (dateString) => {
 
 // formattedDate computed 속성 수정
 const formattedDate = computed(() => {
-  console.log('Today Reading:', taskStore.todayReading) // 디버깅용
   return formatScheduleDate(taskStore.todayReading?.date)
 })
 
@@ -385,13 +382,7 @@ watch(
 )
 
 onMounted(async () => {
-  console.log('Before initializeTodayReading')
   await initializeTodayReading()
-  console.log('After initializeTodayReading:', {
-    todayReading: taskStore.todayReading,
-    currentBook: currentBook.value,
-    currentChapter: currentChapter.value
-  })
   
   const bookParam = String(route.query.book || '')
   const chapterParam = Number(route.query.chapter || 1)
@@ -563,32 +554,17 @@ const { getBibleProgress, completeBibleReading, cancelBibleReading } = useBibleP
 // 읽기 상태 조회
 const checkReadingStatus = async () => {
   if (!currentBook.value || !currentChapter.value) {
-    console.log('[Reading Status] Missing book or chapter:', {
-      book: currentBook.value,
-      chapter: currentChapter.value
-    })
     return
   }
   
-  console.log('[Reading Status] Checking status for:', {
-    book: currentBook.value,
-    chapter: currentChapter.value
-  })
-  
   try {
     const response = await getBibleProgress(currentBook.value, currentChapter.value)
-    console.log('[Reading Status] API Response:', response)
     
     readingStatus.value = response.status
     currentSection.value = {
       ...response.section,
       is_completed: response.status === 'completed'
     }
-    
-    console.log('[Reading Status] Updated state:', {
-      readingStatus: readingStatus.value,
-      currentSection: currentSection.value
-    })
   } catch (error) {
     console.error('[Reading Status] Failed to check status:', error)
   }
@@ -646,12 +622,7 @@ watch(
     () => currentChapter.value,
     () => taskStore.todayReading?.date
   ],
-  async ([newBook, newChapter, newDate], [oldBook, oldChapter, oldDate]) => {
-    console.log('[Watch] Values changed:', {
-      book: { old: oldBook, new: newBook },
-      chapter: { old: oldChapter, new: newChapter },
-      date: { old: oldDate, new: newDate }
-    })
+  async () => {
     await checkReadingStatus()
   }
 )
@@ -680,7 +651,6 @@ const readingHistory = ref([])
 const fetchReadingHistory = async () => {
   try {
     const response = await api.get('/api/v1/todos/reading-history/')
-    console.log('[Reading History] Response:', response)  // 디버깅용
     readingHistory.value = response
   } catch (error) {
     console.error('Failed to fetch reading history:', error)

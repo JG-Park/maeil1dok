@@ -262,13 +262,9 @@ const loadSchedules = async () => {
   isLoading.value = true
   try {
     const response = await api.get('/api/v1/todos/bible-schedules/')
-    console.log("API Response:", response)
-    
     if (response?.data) {
-      console.log("Schedule Data:", response.data)
       schedules.value = response.data
     } else {
-      console.log("No data in response")
       schedules.value = []
     }
   } catch (error) {

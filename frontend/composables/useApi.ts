@@ -22,15 +22,11 @@ export const useApi = () => {
   const getBaseUrl = () => {
     const config = useRuntimeConfig()
     
-    // SSR 환경에서는 서버 URL을 사용
     if (process.server) {
       return 'http://localhost:8000'
     }
     
-    // 클라이언트 환경에서는 런타임 설정의 apiBase 사용
-    const baseUrl = config.public.apiBase
-    console.log("API Base URL:", baseUrl)
-    return baseUrl
+    return config.public.apiBase
   }
 
   const getHeaders = () => {
@@ -39,13 +35,9 @@ export const useApi = () => {
     }
     
     if (auth.token) {
-      console.log('Adding auth token to headers:', auth.token)
       headers['Authorization'] = `Bearer ${auth.token}`
-    } else {
-      console.log('No auth token found')
     }
     
-    console.log('Request headers:', headers)
     return headers
   }
 
@@ -135,11 +127,8 @@ export const useBibleProgressApi = () => {
 
   // 읽기 진도 조회
   const getBibleProgress = async (book: string, chapter: number) => {
-    console.log('[Bible Progress API] Requesting progress for:', { book, chapter })
-    
     try {
       const response = await api.get(`/api/v1/todos/bible-progress/status/?book=${book}&chapter=${chapter}`)
-      console.log('[Bible Progress API] Response:', response)
       return response
     } catch (error) {
       console.error('[Bible Progress API] Failed to get bible progress:', error)

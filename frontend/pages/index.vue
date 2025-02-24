@@ -238,26 +238,12 @@ const navigateToReadingPlan = () => {
 
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
-  console.log('Component mounted, full auth state:', {
-    isAuthenticated: auth.isAuthenticated,
-    token: auth.token,
-    user: auth.user
-  })
-  
   if (auth.isAuthenticated) {
-    console.log('User is authenticated, fetching completed sections...')
     try {
       await taskStore.fetchCompletedSections()
-      console.log('Fetch completed, current progress:', {
-        completedReadings: taskStore.completedReadingsCount,
-        totalReadings,
-        percentage: personalProgressPercentage.value
-      })
     } catch (error) {
       console.error('Failed to fetch completed sections:', error)
     }
-  } else {
-    console.log('User not authenticated, skipping fetch')
   }
 })
 </script>
