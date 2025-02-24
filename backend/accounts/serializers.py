@@ -1,14 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User
 
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'gender', 'birth_date')
+        fields = ('id', 'username', 'nickname', 'profile_image')
         read_only_fields = ('id',)
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -16,29 +15,34 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('email', 'password', 'username', 'gender', 'birth_date')
+        fields = ('username', 'password', 'nickname')
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("이미 사용중인 아이디입니다.")
+        return value
+
+    def validate_nickname(self, value):
+        if User.objects.filter(nickname=value).exists():
+            raise serializers.ValidationError("이미 사용중인 닉네임입니다.")
+        return value
 
     def create(self, validated_data):
         user = User.objects.create_user(
-            email=validated_data['email'],
             username=validated_data['username'],
             password=validated_data['password'],
-            gender=validated_data.get('gender', ''),
-            birth_date=validated_data.get('birth_date')
+            nickname=validated_data['nickname']
         )
         return user
 
+class SocialLoginSerializer(serializers.Serializer):
+    provider = serializers.CharField()  # 'kakao' or 'google'
+    code = serializers.CharField()  # OAuth 인증 코드
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = 'email'
-
-    def validate(self, attrs):
-        # email을 username 필드로 사용
-        attrs[self.username_field] = attrs.get('email')
-        return super().validate(attrs)
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['email'] = user.email
-        token['username'] = user.username
+        token['nickname'] = user.nickname
+        token['is_social'] = user.is_social
         return token 
