@@ -46,7 +46,8 @@ export const useApi = () => {
     
     try {
       let response = await fetch(fullUrl, {
-        headers: getHeaders()
+        headers: getHeaders(),
+        credentials: 'include'
       })
 
       // 401 에러시 토큰 갱신 시도
@@ -55,9 +56,11 @@ export const useApi = () => {
         if (refreshSuccess) {
           // 새 토큰으로 재시도
           response = await fetch(fullUrl, {
-            headers: getHeaders()
+            headers: getHeaders(),
+            credentials: 'include'
           })
         } else {
+          auth.logout()
           throw new Error('Authentication failed')
         }
       }
@@ -73,22 +76,41 @@ export const useApi = () => {
     }
   }
 
+  const post = async (url: string, data?: any) => {
+    const fullUrl = `${getBaseUrl()}${url}`
+    
+    try {
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+        credentials: 'include'  // 쿠키를 포함하기 위해 추가
+      })
+
+      // 응답 로깅 추가
+      console.log('API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+
+      const responseData = await response.text()
+      console.log('Response Data:', responseData)
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${responseData}`)
+      }
+
+      return responseData ? JSON.parse(responseData) : null
+    } catch (error) {
+      console.error("API Post failed:", error)
+      throw error
+    }
+  }
+
   return {
     get,
-    async post(url: string, data: any) {
-      try {
-        const response = await fetch(`${getBaseUrl()}${url}`, {
-          method: 'POST',
-          headers: getHeaders(),
-          body: JSON.stringify(data),
-        })
-        if (!response.ok) throw new Error('API request failed')
-        return response.json()
-      } catch (error) {
-        console.error("API Post failed:", error)
-        throw error
-      }
-    },
+    post,
     async delete(url: string) {
       try {
         const response = await fetch(`${getBaseUrl()}${url}`, {

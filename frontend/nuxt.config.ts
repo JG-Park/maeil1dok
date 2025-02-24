@@ -12,12 +12,13 @@ export default defineNuxtConfig({
     '@/assets/css/main.css',
     '@/assets/css/global.css'
   ],
-  serverMiddleware: [
-    { path: '/bible-proxy', handler: '~/server/middleware/proxy.ts' }
-  ],
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.maeil1dok.app'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.maeil1dok.app',
+      KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID,
+      KAKAO_REDIRECT_URI: process.env.KAKAO_REDIRECT_URI,
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
     }
   },
   app: {
@@ -39,5 +40,36 @@ export default defineNuxtConfig({
         }
       ]
     }
+  },
+  // Auth 설정
+  auth: {
+    strategies: {
+      local: {
+        token: {
+          property: 'access',
+          global: true,
+          required: true,
+          type: 'Bearer'
+        },
+        user: {
+          property: 'user'
+        },
+        endpoints: {
+          login: { url: '/api/v1/auth/token/', method: 'post' },
+          refresh: { url: '/api/v1/auth/token/refresh/', method: 'post' },
+          user: { url: '/api/v1/auth/user/', method: 'get' },
+          logout: false
+        }
+      }
+    },
+    redirect: {
+      login: '/login',
+      logout: '/login',
+      home: '/'
+    }
+  },
+  // 페이지 미들웨어 설정
+  router: {
+    middleware: ['auth']
   }
 })
