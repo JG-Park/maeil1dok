@@ -29,7 +29,11 @@
     </div>
 
     <!-- 일정 목록 -->
-    <div class="schedule-body fade-in" style="animation-delay: 0.2s">
+    <div 
+      class="schedule-body fade-in" 
+      style="animation-delay: 0.2s"
+      :data-is-modal="props.isModal"
+    >
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
         <span>일정을 불러오는 중...</span>
@@ -49,16 +53,16 @@
           class="schedule-item"
           :class="[
             getReadingStatus(schedule),
-            { 'bulk-edit-mode': isBulkEditMode }
+            { 'bulk-edit-mode': props.isBulkEditMode },
+            { 'current-location': isCurrentLocation(schedule) }
           ]"
           @click="handleScheduleClick(schedule)"
         >
           <div class="checkbox" @click.stop>
             <input 
               type="checkbox"
-              :checked="getReadingStatus(schedule) === 'completed'"
-              @click.stop
-              @change="toggleReadingStatus(schedule)"
+              :checked="authStore.isAuthenticated && getReadingStatus(schedule) === 'completed'"
+              @click.stop="handleCheckboxClick(schedule, $event)"
             >
           </div>
           
@@ -68,7 +72,8 @@
               {{ formatScheduleDate(schedule.date) }}
             </div>
             <div class="schedule-reading">
-              {{ schedule.book }} {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장
+              <span v-if="isCurrentLocation(schedule)" class="current-location-badge">현재 위치</span>
+              <span class="bible-text">{{ schedule.book }} {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장</span>
             </div>
           </div>
 
@@ -106,28 +111,87 @@
       type="success"
       :duration="2000"
     />
+
+    <!-- 본문 이동 모달 -->
+    <Transition name="fade">
+      <div v-if="showModal" class="modal-overlay" @click="closeModal">
+        <div class="modal-wrapper" @click.stop>
+          <div class="modal">
+            <div class="modal-content">
+              <h3>본문 페이지로 이동하시겠어요?</h3>
+              <p class="reading-info">
+                <span class="date">{{ formatScheduleDate(selectedSchedule?.date) }}</span>
+                <span class="content">{{ selectedSchedule?.book }} {{ selectedSchedule?.start_chapter }}-{{ selectedSchedule?.end_chapter }}장</span>
+              </p>
+              <p class="guide-text">
+                <span class="sub-text">혹시 읽음 상태를 변경하려고 하셨나요?<br>왼쪽 체크박스를 직접 클릭하거나,<br>우측 상단 일괄수정 버튼을 누른 후 변경할 수 있어요.</span>
+              </p>
+              <div class="modal-buttons">
+                <button class="cancel-button" @click="closeModal">취소</button>
+                <button class="confirm-button" @click="confirmGoToSchedule">이동</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 로그인 안내 모달 추가 -->
+    <Transition name="fade">
+      <div v-if="showLoginModal" class="modal-overlay" @click="closeLoginModal">
+        <div class="modal-wrapper" @click.stop>
+          <div class="modal">
+            <div class="modal-content">
+              <h3>로그인이 필요해요</h3>
+              <p class="reading-info">
+                <span class="content">읽음 표시를 기록하시려면<br>로그인이 필요해요.</span>
+              </p>
+              <div class="modal-buttons">
+                <button class="cancel-button" @click="closeLoginModal">취소</button>
+                <button class="confirm-button" @click="goToLogin">로그인</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useTaskStore } from '~/stores/tasks'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 import Toast from '~/components/Toast.vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const taskStore = useTaskStore()
 const authStore = useAuthStore()
 const api = useApi()
+const router = useRouter()
+const route = useRoute()
 
 const props = defineProps({
   isModal: {
     type: Boolean,
     default: false
+  },
+  isBulkEditMode: {
+    type: Boolean,
+    default: false
+  },
+  currentBook: {
+    type: String,
+    default: ''
+  },
+  currentChapter: {
+    type: Number,
+    default: 0
   }
 })
 
-const emit = defineEmits(['schedule-select'])
+const emit = defineEmits(['schedule-select', 'update:is-bulk-edit-mode'])
 
 // 상태 변수들
 const selectedMonth = ref(new Date().getMonth() + 1)
@@ -136,9 +200,15 @@ const schedules = ref([])
 const readingHistory = ref([])
 const isLoading = ref(true)
 const isInitialized = ref(false)
-const isBulkEditMode = ref(false)
 const toastMessage = ref('')
 const toast = ref(null)
+
+// 모달 관련 상태와 함수들
+const showModal = ref(false)
+const selectedSchedule = ref(null)
+
+// 로그인 모달 관련 상태와 함수들
+const showLoginModal = ref(false)
 
 // 선택된 월의 스케줄만 필터링
 const filteredSchedules = computed(() => {
@@ -173,22 +243,30 @@ const getReadingStatus = (schedule) => {
   today.setHours(0, 0, 0, 0)
   scheduleDate.setHours(0, 0, 0, 0)
   
+  // 로그인한 사용자는 실제 읽기 상태 표시
   if (authStore.isAuthenticated) {
     const isRead = readingHistory.value.some(history => 
       history.book === schedule.book && 
       history.last_chapter_read === schedule.end_chapter
     )
     if (isRead) return 'completed'
+    
+    if (scheduleDate < today) {
+      return 'not_completed'
+    }
+  } else {
+    // 비로그인 사용자는 과거 일정을 모두 읽음으로 표시
+    if (scheduleDate < today) {
+      return 'completed'
+    }
   }
   
+  // 오늘 날짜는 current로 표시
   if (scheduleDate.getTime() === today.getTime()) {
     return 'current'
   }
   
-  if (scheduleDate < today) {
-    return 'not_completed'
-  }
-  
+  // 미래 날짜는 upcoming으로 표시
   return 'upcoming'
 }
 
@@ -218,8 +296,8 @@ const getStatusText = (schedule) => {
 // 읽기 상태 토글
 const toggleReadingStatus = async (schedule) => {
   if (!authStore.isAuthenticated) {
-    toastMessage.value = '로그인이 필요합니다'
-    toast.value?.show()
+    showLoginModal.value = true
+    document.body.style.overflow = 'hidden'
     return
   }
 
@@ -255,7 +333,7 @@ const fetchReadingHistory = async () => {
 
 // 스케줄 클릭 핸들러
 const handleScheduleClick = (schedule) => {
-  if (isBulkEditMode.value) {
+  if (props.isBulkEditMode) {
     toggleReadingStatus(schedule)
   } else if (props.isModal) {
     emit('schedule-select', schedule)
@@ -267,14 +345,34 @@ const handleScheduleClick = (schedule) => {
 // 첫 번째 미완료 항목으로 스크롤
 const scrollToFirstIncomplete = () => {
   nextTick(() => {
-    const firstIncomplete = filteredSchedules.value?.find(schedule => 
-      getReadingStatus(schedule) === 'not_completed'
-    )
-    
-    if (firstIncomplete) {
-      const element = document.querySelector(`[data-date="${firstIncomplete.date}"]`)
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // 로그인한 경우 첫 번째 미완료 항목으로 스크롤
+    if (authStore.isAuthenticated) {
+      const firstIncomplete = filteredSchedules.value?.find(schedule => 
+        getReadingStatus(schedule) === 'not_completed'
+      )
+      
+      if (firstIncomplete) {
+        const element = document.querySelector(`[data-date="${firstIncomplete.date}"]`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }
+    } 
+    // 비로그인의 경우 오늘 날짜로 스크롤
+    else {
+      const today = new Date()
+      const todaySchedule = filteredSchedules.value?.find(schedule => {
+        const scheduleDate = new Date(schedule.date)
+        return scheduleDate.getDate() === today.getDate() &&
+               scheduleDate.getMonth() === today.getMonth() &&
+               scheduleDate.getFullYear() === today.getFullYear()
+      })
+      
+      if (todaySchedule) {
+        const element = document.querySelector(`[data-date="${todaySchedule.date}"]`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
       }
     }
   })
@@ -300,6 +398,189 @@ onMounted(async () => {
     scrollToFirstIncomplete()
   }
 })
+
+const closeModal = () => {
+  showModal.value = false
+  document.body.style.overflow = ''
+}
+
+const goToSchedule = (schedule) => {
+  // 비로그인 사용자는 바로 본문으로 이동
+  if (!authStore.isAuthenticated) {
+    const bookCode = findBookCode(schedule.book)
+    if (!bookCode) {
+      console.error('Invalid book name:', schedule.book)
+      return
+    }
+    router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}&from=reading-plan&month=${selectedMonth.value}`)
+    return
+  }
+
+  // 로그인 사용자는 모달 표시
+  selectedSchedule.value = schedule
+  showModal.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+const confirmGoToSchedule = () => {
+  const bookCode = findBookCode(selectedSchedule.value.book)
+  if (!bookCode) {
+    console.error('Invalid book name:', selectedSchedule.value.book)
+    return
+  }
+
+  // 라우팅 전에 overflow 스타일 제거
+  document.body.style.overflow = ''
+  
+  router.push(`/reading?book=${bookCode}&chapter=${selectedSchedule.value.start_chapter}&from=reading-plan&month=${selectedMonth.value}`)
+}
+
+// 한글 성경 이름을 코드로 변환하는 함수
+const findBookCode = (koreanName) => {
+  const bibleBooks = {
+    old: [
+      { id: 'gen', name: '창세기' },
+      { id: 'exo', name: '출애굽기' },
+      { id: 'lev', name: '레위기' },
+      { id: 'num', name: '민수기' },
+      { id: 'deu', name: '신명기' },
+      { id: 'jos', name: '여호수아' },
+      { id: 'jdg', name: '사사기' },
+      { id: 'rut', name: '룻기' },
+      { id: '1sa', name: '사무엘상' },
+      { id: '2sa', name: '사무엘하' },
+      { id: '1ki', name: '열왕기상' },
+      { id: '2ki', name: '열왕기하' },
+      { id: '1ch', name: '역대상' },
+      { id: '2ch', name: '역대하' },
+      { id: 'ezr', name: '에스라' },
+      { id: 'neh', name: '느헤미야' },
+      { id: 'est', name: '에스더' },
+      { id: 'job', name: '욥기' },
+      { id: 'psa', name: '시편' },
+      { id: 'pro', name: '잠언' },
+      { id: 'ecc', name: '전도서' },
+      { id: 'sng', name: '아가' },
+      { id: 'isa', name: '이사야' },
+      { id: 'jer', name: '예레미야' },
+      { id: 'lam', name: '예레미야애가' },
+      { id: 'ezk', name: '에스겔' },
+      { id: 'dan', name: '다니엘' },
+      { id: 'hos', name: '호세아' },
+      { id: 'jol', name: '요엘' },
+      { id: 'amo', name: '아모스' },
+      { id: 'oba', name: '오바댜' },
+      { id: 'jon', name: '요나' },
+      { id: 'mic', name: '미가' },
+      { id: 'nam', name: '나훔' },
+      { id: 'hab', name: '하박국' },
+      { id: 'zep', name: '스바냐' },
+      { id: 'hag', name: '학개' },
+      { id: 'zec', name: '스가랴' },
+      { id: 'mal', name: '말라기' }
+    ],
+    new: [
+      { id: 'mat', name: '마태복음' },
+      { id: 'mrk', name: '마가복음' },
+      { id: 'luk', name: '누가복음' },
+      { id: 'jhn', name: '요한복음' },
+      { id: 'act', name: '사도행전' },
+      { id: 'rom', name: '로마서' },
+      { id: '1co', name: '고린도전서' },
+      { id: '2co', name: '고린도후서' },
+      { id: 'gal', name: '갈라디아서' },
+      { id: 'eph', name: '에베소서' },
+      { id: 'php', name: '빌립보서' },
+      { id: 'col', name: '골로새서' },
+      { id: '1th', name: '데살로니가전서' },
+      { id: '2th', name: '데살로니가후서' },
+      { id: '1ti', name: '디모데전서' },
+      { id: '2ti', name: '디모데후서' },
+      { id: 'tit', name: '디도서' },
+      { id: 'phm', name: '빌레몬서' },
+      { id: 'heb', name: '히브리서' },
+      { id: 'jas', name: '야고보서' },
+      { id: '1pe', name: '베드로전서' },
+      { id: '2pe', name: '베드로후서' },
+      { id: '1jn', name: '요한일서' },
+      { id: '2jn', name: '요한이서' },
+      { id: '3jn', name: '요한삼서' },
+      { id: 'jud', name: '유다서' },
+      { id: 'rev', name: '요한계시록' }
+    ]
+  }
+  
+  const allBooks = [...bibleBooks.old, ...bibleBooks.new]
+  const book = allBooks.find(b => b.name === koreanName)
+  return book?.id
+}
+
+const closeLoginModal = () => {
+  showLoginModal.value = false
+  document.body.style.overflow = ''
+}
+
+const goToLogin = () => {
+  const queryString = route.query ? new URLSearchParams(Object.entries(route.query)).toString() : ''
+  const currentPath = `${route.path}${queryString ? '?' + queryString : ''}`
+  navigateTo({
+    path: '/login',
+    query: {
+      redirect: currentPath
+    }
+  })
+  showLoginModal.value = false
+}
+
+// 체크박스 클릭 핸들러 추가
+const handleCheckboxClick = (schedule, event) => {
+  event.preventDefault() // 기본 체크박스 동작 방지
+  toggleReadingStatus(schedule)
+}
+
+// 현재 위치 확인 함수
+const isCurrentLocation = (schedule) => {
+  if (!props.isModal || !props.currentBook || !props.currentChapter) return false
+  
+  const bookCode = findBookCode(schedule.book)
+  return bookCode === props.currentBook && 
+         props.currentChapter >= schedule.start_chapter && 
+         props.currentChapter <= schedule.end_chapter
+}
+
+// 현재 위치로 스크롤하는 함수
+const scrollToCurrentLocation = () => {
+  if (!props.isModal || !props.currentBook || !props.currentChapter) return
+
+  nextTick(() => {
+    const currentSchedule = filteredSchedules.value?.find(schedule => {
+      const bookCode = findBookCode(schedule.book)
+      return bookCode === props.currentBook && 
+             props.currentChapter >= schedule.start_chapter && 
+             props.currentChapter <= schedule.end_chapter
+    })
+
+    if (currentSchedule) {
+      const element = document.querySelector(`[data-date="${currentSchedule.date}"]`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  })
+}
+
+// 컴포넌트가 마운트되거나 currentBook/currentChapter가 변경될 때 스크롤
+onMounted(() => {
+  if (props.isModal) {
+    scrollToCurrentLocation()
+  }
+})
+
+watch([() => props.currentBook, () => props.currentChapter], () => {
+  if (props.isModal) {
+    scrollToCurrentLocation()
+  }
+})
 </script>
 
 <style scoped>
@@ -320,7 +601,7 @@ onMounted(async () => {
 }
 
 .month-button {
-  padding: 0.5rem 0.75rem;
+  padding: 0.2rem 0.75rem;
   border: 1px solid #E2E8F0;
   border-radius: 8px;
   background: white;
@@ -340,9 +621,14 @@ onMounted(async () => {
 .schedule-body {
   background: #FFFFFF;
   padding: 1rem;
-  max-height: 60vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  max-height: 82vh;
+}
+
+/* isModal prop이 true일 때만 max-height 적용 */
+.schedule-body[data-is-modal="true"] {
+  max-height: 65vh;
 }
 
 .schedule-list {
@@ -377,33 +663,72 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
+/* 오늘 배지 기본 스타일 */
 .today-badge {
-  background: #2563EB;
+  background: #405e9f;
   color: white;
-  padding: 0.125rem 0.375rem;
+  padding: 0.05rem 0.25rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  transition: all 0.2s ease;
 }
 
+/* 읽음 상태일 때 오늘 배지 스타일 */
 .schedule-item.completed .today-badge {
   background: var(--primary-color);
+  color: white;
+}
+
+/* 현재 위치이면서 읽음 상태일 때 오늘 배지 스타일 */
+.schedule-item.current-location.completed .today-badge {
+  background: var(--primary-color);
+  color: white;
 }
 
 .schedule-reading {
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* 상태별 스타일 */
 .schedule-item.completed {
   background: #F0FDF4;
-  border-color: #DCFCE7;
+  border-color: #c3e0cd;
 }
 
-.schedule-item.completed .schedule-reading {
+/* 일반적인 읽음 상태 스타일 */
+.schedule-item.completed .schedule-reading .bible-text {
+  color: #166534;
+  text-decoration: line-through;
+  text-decoration-color: rgba(22, 101, 52, 0.4);
+  text-decoration-thickness: 2px;
+}
+
+/* 현재 위치이면서 읽음 상태일 때 */
+.schedule-item.current-location.completed {
+  background: #F0FDF4;
+  border-color: #c3e0cd;
+}
+
+.schedule-item.current-location.completed .schedule-reading .bible-text {
+  color: #166534;
+  text-decoration: line-through;
+  text-decoration-color: rgba(22, 101, 52, 0.4);
+  text-decoration-thickness: 2px;
+}
+
+.schedule-item.current-location.completed .current-location-badge {
+  color: #997b1b;
+  text-decoration: none;
+  border: 1px solid #e5d87b;
+  background: #FEF9C3;
+}
+
+.schedule-item.current-location.completed .status-text {
   color: #166534;
 }
 
@@ -413,12 +738,12 @@ onMounted(async () => {
 }
 
 .schedule-item.current .schedule-reading {
-  color: #1E40AF;
+  color: #546395;
 }
 
 .schedule-item.not_completed {
   background: #FEF2F2;
-  border-color: #FEE2E2;
+  border-color: #dabbbb;
 }
 
 .schedule-item.not_completed .schedule-reading,
@@ -506,12 +831,12 @@ onMounted(async () => {
 
 .indicator-color.completed {
   background: #F0FDF4;
-  border: 1px solid #DCFCE7;
+  border: 1px solid #c3e0cd;
 }
 
 .indicator-color.not-completed {
   background: #FEF2F2;
-  border: 1px solid #FEE2E2;
+  border: 1px solid #dabbbb;
 }
 
 .indicator-color.current {
@@ -580,7 +905,8 @@ onMounted(async () => {
     min-height: 44px;
   }
 
-  .today-badge {
+
+  .current-location-badge {
     padding: 0.0625rem 0.25rem;
     font-size: 0.6875rem;
   }
@@ -594,5 +920,218 @@ onMounted(async () => {
   --text-primary: #2C3E50;
   --text-secondary: #666666;
   --background-color: #efece8;
+}
+
+.progress-card {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.login-message {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 12px;
+  z-index: 1;
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* 모달 스타일 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-wrapper {
+  width: 90%;
+  max-width: 400px;
+  margin: auto;
+  animation: scaleIn 0.2s ease-out;
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  padding: 2rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.modal-content {
+  text-align: center;
+}
+
+.modal h3 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.reading-info {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.75rem;
+  color: var(--primary-color);
+}
+
+.reading-info .date {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.reading-info .content {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-align: center;
+  margin: 0.2rem 0;
+}
+
+.guide-text {
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
+}
+
+.sub-text {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  word-break: keep-all;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.modal-buttons button {
+  flex: 1;
+  padding: 0.875rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  letter-spacing: -0.025em;
+}
+
+.cancel-button {
+  background: #F1F5F9;
+  border: none;
+  color: var(--text-secondary);
+}
+
+.confirm-button {
+  background: var(--primary-color);
+  border: none;
+  color: white;
+}
+
+.cancel-button:hover {
+  background: #E2E8F0;
+}
+
+.confirm-button:hover {
+  background: var(--primary-dark);
+}
+
+/* 모달 트랜지션 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.current-location-badge {
+  background: #FEF9C3;
+  color: #997b1b;
+  padding: 0.125rem 0.375rem;
+  padding: 0.05rem 0.25rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border: 1px solid #e5d87b;
+}
+
+.schedule-item.current-location {
+  background: #FEFCE8;
+  border-color: #FEF08A;
+}
+
+.schedule-item.current-location .schedule-reading {
+  color: #997b1b;
+}
+
+.schedule-item.current-location .status-text {
+  color: #997b1b;
+}
+
+/* 현재 위치이면서 오늘이고 안읽음 상태일 때 */
+.schedule-item.current-location.current {
+  background: #FEFCE8;
+  border-color: #e5d87b;
+}
+
+.schedule-item.current-location.current .schedule-reading {
+  color: #997b1b;
+}
+
+.schedule-item.current-location.current .status-text {
+  color: #997b1b;
+}
+
+.schedule-item.current-location.current .today-badge {
+  background: #FEF9C3;
+  color: #997b1b;
+  border: 1px solid #e5d87b;
+}
+
+/* 현재 위치 배지도 같은 스타일로 통일 */
+.schedule-item.current-location.current .current-location-badge {
+  background: #FEF9C3;
+  color: #997b1b;
+  border: 1px solid #e5d87b;
 }
 </style> 
