@@ -806,6 +806,42 @@ const handleBackNavigation = () => {
   }
 }
 
+// 오디오 링크 처리 함수 추가
+const handleAudioLink = (audioLink) => {
+  // 유튜브 URL에서 비디오 ID 추출
+  const videoId = audioLink.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1]
+  
+  if (!videoId) {
+    // 유튜브 링크가 아니거나 ID를 추출할 수 없는 경우 기본 링크로 열기
+    window.open(audioLink, '_blank')
+    return
+  }
+
+  // 모바일 기기 체크
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+  if (isMobile) {
+    // 모바일에서는 앱 스키마 사용
+    const youtubeAppUrl = `vnd.youtube://${videoId}`
+    const webUrl = `https://www.youtube.com/watch?v=${videoId}`
+    
+    // 앱으로 열기 시도
+    window.location.href = youtubeAppUrl
+    
+    // 앱이 없는 경우를 위한 타임아웃
+    const timeout = setTimeout(() => {
+      window.location.href = webUrl
+    }, 2500)
+    
+    // 페이지를 떠날 때 타임아웃 제거
+    window.onblur = () => {
+      clearTimeout(timeout)
+    }
+  } else {
+    // PC에서는 새 탭으로 열기
+    window.open(audioLink, '_blank')
+  }
+}
 </script>
 
 <template>
@@ -876,8 +912,8 @@ const handleBackNavigation = () => {
       <div class="today-links">
         <a 
           v-if="taskStore.todayReading.audio_link" 
-          :href="taskStore.todayReading.audio_link" 
-          target="_blank" 
+          @click.prevent="handleAudioLink(taskStore.todayReading.audio_link)"
+          href="#"
           class="link-button audio"
           title="오디오"
         >
