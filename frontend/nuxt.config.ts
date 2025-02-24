@@ -17,7 +17,7 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      apiBase: 'https://dailybible-api.jgplabs.kr'
+      apiBase: 'https://api.maeil1dok.app'
     }
   },
   app: {
