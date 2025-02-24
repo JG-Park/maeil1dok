@@ -229,6 +229,12 @@ const loadBibleContent = async (book, chapter) => {
       }
 
       bibleContent.value = verses.join('')
+      
+      // 본문 로드 완료 후 스크롤 위치를 최상단으로 이동
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant' // 즉시 이동
+      })
     }
   } catch (error) {
     console.error('Failed to load bible content:', error)
