@@ -1,30 +1,32 @@
 <template>
-  <div>
+  <div class="bible-schedule-wrapper">
     <!-- 월 선택기 -->
-    <div class="month-scroll fade-in" style="animation-delay: 0.1s">
-      <button
-        v-for="month in months"
-        :key="month"
-        :class="['month-button', { active: month === selectedMonth }]"
-        @click="selectedMonth = month"
-      >
-        {{ month }}월
-      </button>
-    </div>
+    <div class="fixed-controls">
+      <div class="month-scroll fade-in" style="animation-delay: 0.1s">
+        <button
+          v-for="month in months"
+          :key="month"
+          :class="['month-button', { active: month === selectedMonth }]"
+          @click="selectedMonth = month"
+        >
+          {{ month }}월
+        </button>
+      </div>
 
-    <!-- 상태 표시기 -->
-    <div class="status-indicators fade-in" style="animation-delay: 0.15s">
-      <div class="indicator">
-        <div class="indicator-color completed"></div>
-        <span class="indicator-text">읽음</span>
-      </div>
-      <div class="indicator">
-        <div class="indicator-color not-completed"></div>
-        <span class="indicator-text">안읽음</span>
-      </div>
-      <div class="indicator">
-        <div class="indicator-color current"></div>
-        <span class="indicator-text">오늘</span>
+      <!-- 상태 표시기 -->
+      <div class="status-indicators fade-in" style="animation-delay: 0.15s">
+        <div class="indicator">
+          <div class="indicator-color completed"></div>
+          <span class="indicator-text">읽음</span>
+        </div>
+        <div class="indicator">
+          <div class="indicator-color not-completed"></div>
+          <span class="indicator-text">안읽음</span>
+        </div>
+        <div class="indicator">
+          <div class="indicator-color current"></div>
+          <span class="indicator-text">오늘</span>
+        </div>
       </div>
     </div>
 
@@ -618,6 +620,21 @@ watch([() => props.currentBook, () => props.currentChapter], () => {
 </script>
 
 <style scoped>
+.bible-schedule-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.fixed-controls {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: white;
+}
+
 .month-scroll {
   display: flex;
   gap: 0.5rem;
@@ -628,6 +645,45 @@ watch([() => props.currentBook, () => props.currentChapter], () => {
   scrollbar-width: none;
   -ms-overflow-style: none;
   border-bottom: 1px solid #F1F5F9;
+}
+
+.status-indicators {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.schedule-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #FFFFFF;
+  padding: 1rem;
+}
+
+/* isModal prop이 true일 때만 max-height 적용 */
+.schedule-body[data-is-modal="true"] {
+  max-height: 65vh;
+}
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 2rem;
+}
+
+/* iOS 안전영역 대응 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .schedule-body {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  }
+
+  .schedule-list {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
 }
 
 .month-scroll::-webkit-scrollbar {
@@ -650,25 +706,6 @@ watch([() => props.currentBook, () => props.currentChapter], () => {
   background: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
-}
-
-.schedule-body {
-  background: #FFFFFF;
-  padding: 1rem;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  max-height: 82vh;
-}
-
-/* isModal prop이 true일 때만 max-height 적용 */
-.schedule-body[data-is-modal="true"] {
-  max-height: 65vh;
-}
-
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .schedule-item {
@@ -836,14 +873,6 @@ watch([() => props.currentBook, () => props.currentChapter], () => {
 
 .status-icon {
   flex-shrink: 0;
-}
-
-.status-indicators {
-  display: flex;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  background: white;
-  border-bottom: 1px solid #F1F5F9;
 }
 
 .indicator {

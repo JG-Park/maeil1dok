@@ -1,27 +1,33 @@
 <template>
   <div class="container">
-    <!-- 헤더 -->
-    <div class="header fade-in">
-      <button class="back-button" @click="$router.push('/')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1>성경통독표</h1>
-      <button 
-        v-if="authStore.isAuthenticated"
-        class="edit-mode-button"
-        @click="toggleBulkEditMode"
-      >
-        {{ isBulkEditMode ? '완료' : '일괄수정' }}
-      </button>
-      <div v-else style="width: 64px"></div>
+    <!-- 고정 영역 -->
+    <div class="fixed-area">
+      <!-- 헤더 -->
+      <div class="header fade-in">
+        <button class="back-button" @click="$router.push('/')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <h1>성경통독표</h1>
+        <button 
+          v-if="authStore.isAuthenticated"
+          class="edit-mode-button"
+          @click="toggleBulkEditMode"
+        >
+          {{ isBulkEditMode ? '완료' : '일괄수정' }}
+        </button>
+        <div v-else style="width: 64px"></div>
+      </div>
     </div>
 
-    <BibleScheduleContent 
-      :is-bulk-edit-mode="isBulkEditMode"
-      @update:is-bulk-edit-mode="isBulkEditMode = $event"
-    />
+    <!-- 스크롤 영역 -->
+    <div class="scroll-area">
+      <BibleScheduleContent 
+        :is-bulk-edit-mode="isBulkEditMode"
+        @update:is-bulk-edit-mode="isBulkEditMode = $event"
+      />
+    </div>
   </div>
 </template>
 
@@ -42,10 +48,21 @@ const toggleBulkEditMode = () => {
 .container {
   max-width: 768px;
   margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
+  height: 100vh; /* 뷰포트 높이 사용 */
+  height: 100dvh; /* 동적 뷰포트 높이 사용 */
+  display: flex;
+  flex-direction: column;
   background: var(--background-color);
+  position: relative; /* fixed에서 relative로 변경 */
+  width: 100%;
+}
+
+.fixed-area {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
 }
 
 .header {
@@ -54,12 +71,22 @@ const toggleBulkEditMode = () => {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: white;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: relative;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   height: 50px;
+}
+
+.scroll-area {
+  flex: 1;
+  min-height: 0; /* 중요: flex 자식 요소의 스크롤을 위해 필요 */
+  overflow: hidden; /* BibleScheduleContent에서 스크롤 처리 */
+}
+
+/* iOS 안전영역 대응 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .scroll-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 .back-button {
@@ -112,7 +139,6 @@ const toggleBulkEditMode = () => {
   --text-secondary: #666666;
   --background-color: #efece8;
 }
-
 
 @media (max-width: 640px) {
   .header {
