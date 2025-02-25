@@ -8,9 +8,11 @@ from .serializers import DailyBibleScheduleSerializer, UserBibleProgressSerializ
 import logging
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 # 최상단에 book_to_code 딕셔너리 정의
 book_to_code = {
@@ -466,4 +468,25 @@ def get_completed_sections_count(request):
         
     except Exception as e:
         logger.error(f"Error in get_completed_sections_count: {str(e)}", exc_info=True)
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_stats(request):
+    try:
+        # 전체 활성 회원 수 계산
+        total_members = User.objects.filter(is_active=True).count()
+        
+        # 오늘 일독 완료자 수 계산 (UserBibleProgress 모델 활용)
+        today = timezone.now().date()
+        today_readers = UserBibleProgress.objects.filter(
+            date=today,
+            is_completed=True
+        ).values('user').distinct().count()
+        
+        return Response({
+            'totalMembers': total_members,
+            'todayReaders': today_readers
+        })
+    except Exception as e:
         return Response({'error': str(e)}, status=500) 

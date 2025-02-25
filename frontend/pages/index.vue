@@ -113,6 +113,35 @@
         </div>
       </div> -->
 
+      <div class="section fade-in" style="animation-delay: 0.7s">
+        <h2>참여 현황</h2>
+        <div class="stats-container">
+          <div class="stat-item">
+            <div class="stat-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ totalMembers }}명</div>
+              <div class="stat-label">전체 참여자</div>
+            </div>
+          </div>
+
+          <div class="stat-item">
+            <div class="stat-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ todayReaders }}명</div>
+              <div class="stat-label">오늘 일독 완료</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="section fade-in" style="animation-delay: 0.8s">
         <h2>진행률</h2>
         <div class="progress-container">
@@ -168,18 +197,6 @@
           <div class="feature">
             <div class="feature-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="feature-content">
-              <h3>오늘의 참여자 카운터</h3>
-              <p>오늘 몇 명이 성경을 읽었는지 볼 수 있게 될 예정이예요</p>
-            </div>
-          </div>
-          
-          <div class="feature">
-            <div class="feature-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 7V17M8 7L4 8.5V18.5L8 17M8 7L12 8.5M8 17L12 18.5M12 8.5V18.5M12 8.5L16 7M12 18.5L16 17M16 7V17M16 7L20 8.5V18.5L16 17" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
@@ -210,11 +227,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useTaskStore } from '~/stores/tasks'
+import { useApi } from '~/composables/useApi'
 import Header from '~/components/Header.vue'
 import DailyStatus from '~/components/DailyStatus.vue'
 
 const auth = useAuthStore()
 const taskStore = useTaskStore()
+const api = useApi()
 
 const todayTasks = computed(() => taskStore.todayTasks)
 const introTasks = computed(() => taskStore.introTasks)
@@ -278,14 +297,36 @@ const navigateToReadingPlan = () => {
   navigateTo('/reading-plan')
 }
 
+// 통계 데이터를 위한 ref 추가
+const totalMembers = ref(0)
+const todayReaders = ref(0)
+
+// 통계 데이터를 가져오는 함수 수정
+const fetchStats = async () => {
+  try {
+    const response = await api.get('/api/v1/todos/stats/')
+    totalMembers.value = response.totalMembers
+    todayReaders.value = response.todayReaders
+  } catch (error) {
+    console.error('Failed to fetch stats:', error)
+    totalMembers.value = 0
+    todayReaders.value = 0
+  }
+}
+
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
   if (auth.isAuthenticated) {
     try {
-      await taskStore.fetchCompletedSections()
+      await Promise.all([
+        taskStore.fetchCompletedSections(),
+        fetchStats()
+      ])
     } catch (error) {
-      console.error('Failed to fetch completed sections:', error)
+      console.error('Failed to fetch data:', error)
     }
+  } else {
+    await fetchStats()
   }
 })
 </script>
@@ -845,6 +886,61 @@ h2 {
 @media (max-width: 640px) {
   .coming-soon {
     margin: 0.875rem 1rem;
+  }
+}
+
+.stats-container {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #FAFAFA;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--primary-light);
+  border-radius: 10px;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .stats-container {
+    flex-direction: column;
   }
 }
 </style> 
