@@ -345,16 +345,34 @@ const handleScheduleClick = (schedule) => {
 // 첫 번째 미완료 항목으로 스크롤
 const scrollToFirstIncomplete = () => {
   nextTick(() => {
-    // 로그인한 경우 첫 번째 미완료 항목으로 스크롤
+    // 로그인한 경우
     if (authStore.isAuthenticated) {
+      // 현재 월의 첫 번째 미완료 항목 찾기
       const firstIncomplete = filteredSchedules.value?.find(schedule => 
         getReadingStatus(schedule) === 'not_completed'
       )
       
       if (firstIncomplete) {
+        // 미완료 항목이 있으면 해당 위치로 스크롤
         const element = document.querySelector(`[data-date="${firstIncomplete.date}"]`)
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      } else {
+        // 모두 읽은 상태면 다음 읽을 항목(미래 날짜 중 가장 빠른 날짜) 찾기
+        const nextToRead = filteredSchedules.value?.find(schedule => {
+          const scheduleDate = new Date(schedule.date)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          scheduleDate.setHours(0, 0, 0, 0)
+          return scheduleDate > today
+        })
+
+        if (nextToRead) {
+          const element = document.querySelector(`[data-date="${nextToRead.date}"]`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
         }
       }
     } 
@@ -372,6 +390,22 @@ const scrollToFirstIncomplete = () => {
         const element = document.querySelector(`[data-date="${todaySchedule.date}"]`)
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      } else {
+        // 오늘 일정이 없으면 다음 읽을 항목으로 스크롤
+        const nextSchedule = filteredSchedules.value?.find(schedule => {
+          const scheduleDate = new Date(schedule.date)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          scheduleDate.setHours(0, 0, 0, 0)
+          return scheduleDate > today
+        })
+
+        if (nextSchedule) {
+          const element = document.querySelector(`[data-date="${nextSchedule.date}"]`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
         }
       }
     }
