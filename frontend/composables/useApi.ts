@@ -87,21 +87,11 @@ export const useApi = () => {
         credentials: 'include'  // 쿠키를 포함하기 위해 추가
       })
 
-      // 응답 로깅 추가
-      console.log('API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      })
-
-      const responseData = await response.text()
-      console.log('Response Data:', responseData)
-
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${responseData}`)
+        throw new Error(`API request failed: ${response.status}`)
       }
 
-      return responseData ? JSON.parse(responseData) : null
+      return response.json()
     } catch (error) {
       console.error("API Post failed:", error)
       throw error
