@@ -63,7 +63,7 @@
           <div class="checkbox" @click.stop>
             <input 
               type="checkbox"
-              :checked="authStore.isAuthenticated && getReadingStatus(schedule) === 'completed'"
+              :checked="getReadingStatus(schedule) === 'completed'"
               @click.stop="handleCheckboxClick(schedule, $event)"
             >
           </div>
