@@ -1325,20 +1325,26 @@ const handleAudioLink = (audioLink) => {
   position: relative;
   top: 0;
   -webkit-tap-highlight-color: transparent;
+  min-height: 52px; /* 최소 높이 추가 */
 }
 
 .today-info {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  margin-bottom: 0;
+  flex-wrap: nowrap; /* 줄바꿈 방지 */
+  min-width: 0; /* 플렉스 아이템 축소 허용 */
 }
 
 .reading-meta {
   display: flex;
   align-items: center;
-  gap: 0.75rem;  /* 간격 약간 늘림 */
+  gap: 0.75rem;
   margin-bottom: 0;
+  flex-wrap: nowrap; /* 줄바꿈 방지 */
+  min-width: 0; /* 플렉스 아이템 축소 허용 */
 }
 
 .date-badge {
@@ -1547,6 +1553,7 @@ const handleAudioLink = (audioLink) => {
   min-height: 50px;
   margin: 0 auto;
   z-index: 20;
+  flex-wrap: nowrap; /* 줄바꿈 방지 */
 }
 /* iOS 안전영역 대응 */
 @supports (-webkit-touch-callout: none) {
@@ -1564,6 +1571,9 @@ const handleAudioLink = (audioLink) => {
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 600;
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  min-width: 48px; /* 최소 너비 설정 */
+  flex-shrink: 0; /* 크기 축소 방지 */
 }
 
 .center-content {
@@ -1571,6 +1581,9 @@ const handleAudioLink = (audioLink) => {
   align-items: center;
   justify-content: center;
   min-width: 160px; /* 버튼과 텍스트가 같은 공간을 차지하도록 */
+  flex: 1; /* 남은 공간 모두 차지 */
+  min-width: 0; /* 플렉스 아이템 축소 허용 */
+  padding: 0 0.5rem; /* 좌우 여백 추가 */
 }
 
 .chapter-indicator {
@@ -1596,6 +1609,11 @@ const handleAudioLink = (audioLink) => {
   margin: 0 0 0.1rem 0;
   height: 32px;  /* 높이 고정 */
   gap: 0.375rem;  /* 아이콘과 텍스트 사이 간격 */
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  flex-shrink: 1; /* 필요한 경우 크기 축소 허용 */
+  min-width: 0; /* 플렉스 아이템 축소 허용 */
+  overflow: hidden; /* 내용이 넘칠 경우 숨김 */
+  text-overflow: ellipsis; /* 넘치는 텍스트 ... 처리 */
 }
 
 .complete-button:hover {
@@ -1635,14 +1653,44 @@ const handleAudioLink = (audioLink) => {
 @media (max-width: 640px) {
   .today-reading {
     padding: 0.5rem 0.65rem;
+    gap: 0.5rem; /* 간격 조정 */
   }
 
+  .reading-meta {
+    gap: 0.5rem; /* 모바일에서 간격 줄임 */
+  }
+
+  .schedule-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    height: 28px;
+    gap: 0.25rem;
+    min-width: 80px; /* 최소 너비 설정 */
+  }
 
   .complete-button {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
     height: 28px;
     gap: 0.25rem;
+    min-width: 64px; /* 최소 너비 설정 */
+  }
+
+  /* iOS 확대 모드 대응 */
+  @supports (-webkit-touch-callout: none) {
+    .today-reading {
+      padding: 0.5rem 0.5rem; /* 패딩 더 줄임 */
+    }
+
+    .reading-meta {
+      gap: 0.35rem; /* 간격 더 줄임 */
+    }
+
+    .schedule-button,
+    .complete-button {
+      padding: 0.25rem 0.35rem; /* 패딩 더 줄임 */
+      font-size: 0.7rem; /* 폰트 크기 더 줄임 */
+    }
   }
 }
 
@@ -2446,6 +2494,8 @@ const handleAudioLink = (audioLink) => {
   justify-content: center;
   opacity: 0.9;  /* 약간 투명도 추가 */
   gap: 0.375rem;  /* 아이콘과 텍스트 사이 간격 */
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  flex-shrink: 0; /* 버튼 크기 축소 방지 */
 }
 
 .schedule-button:hover {
