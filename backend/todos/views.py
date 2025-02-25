@@ -62,64 +62,142 @@ def upload_schedule(request):
         # 결과 카운터 초기화
         created_count = 0
         updated_count = 0
+        skipped_count = 0
+        skipped_items = []  # 건너뛴 항목 추적
         
         # 데이터 처리 및 저장
-        for _, row in df.iterrows():
+        for idx, row in df.iterrows():
             date = row['날짜'].date() if hasattr(row['날짜'], 'date') else row['날짜']
-            book = row['성경']
+            book_value = row['성경']
             
-            # 기존 레코드 찾기
-            schedule, created = DailyBibleSchedule.objects.get_or_create(
-                date=date,
-                book=book,
-                defaults={
-                    'start_chapter': int(row['시작장']),
-                    'end_chapter': int(row['끝장']),
-                    'audio_link': row['오디오'] if '오디오' in df.columns and not pd.isna(row['오디오']) else None,
-                    'guide_link': row['가이드'] if '가이드' in df.columns and not pd.isna(row['가이드']) else None
-                }
-            )
+            # 콤마로 구분된 여러 성경책 처리
+            books = [book.strip() for book in book_value.split(',')]
             
-            if created:
-                created_count += 1
-            else:
-                # 변경사항 확인
-                updated = False
-                if schedule.start_chapter != int(row['시작장']):
-                    schedule.start_chapter = int(row['시작장'])
-                    updated = True
-                if schedule.end_chapter != int(row['끝장']):
-                    schedule.end_chapter = int(row['끝장'])
-                    updated = True
+            for i, book in enumerate(books):
+                # 첫 번째 책과 마지막 책은 특별 처리, 중간 책들은 전체 장 포함
+                if len(books) == 1:
+                    # 단일 책인 경우 그대로 진행
+                    start_chapter = int(row['시작장'])
+                    end_chapter = int(row['끝장'])
+                elif i == 0:
+                    # 첫 번째 책: 시작 장부터 해당 책의 마지막 장까지
+                    start_chapter = int(row['시작장'])
+                    end_chapter = get_last_chapter(book)
+                elif i == len(books) - 1:
+                    # 마지막 책: 1장부터 지정된 끝 장까지
+                    start_chapter = 1
+                    end_chapter = int(row['끝장'])
+                else:
+                    # 중간 책: 전체 장 포함
+                    start_chapter = 1
+                    end_chapter = get_last_chapter(book)
                 
-                # 오디오 링크 업데이트
-                if '오디오' in df.columns:
-                    new_audio = row['오디오'] if not pd.isna(row['오디오']) else None
-                    if schedule.audio_link != new_audio:
-                        schedule.audio_link = new_audio
+                # 기존 레코드 찾기 (date와 book이 일치하는 항목)
+                existing = DailyBibleSchedule.objects.filter(date=date, book=book).first()
+                
+                if existing:
+                    # 기존 항목 업데이트
+                    updated = False
+                    if existing.start_chapter != start_chapter:
+                        existing.start_chapter = start_chapter
                         updated = True
-                
-                # 가이드 링크 업데이트
-                if '가이드' in df.columns:
-                    new_guide = row['가이드'] if not pd.isna(row['가이드']) else None
-                    if schedule.guide_link != new_guide:
-                        schedule.guide_link = new_guide
+                    if existing.end_chapter != end_chapter:
+                        existing.end_chapter = end_chapter
                         updated = True
-                
-                if updated:
-                    schedule.save()
-                    updated_count += 1
+                    
+                    # 오디오/가이드 링크는 첫 번째 책에만 적용
+                    if i == 0:
+                        # 오디오 링크 업데이트
+                        if '오디오' in df.columns:
+                            new_audio = row['오디오'] if not pd.isna(row['오디오']) else None
+                            if existing.audio_link != new_audio:
+                                existing.audio_link = new_audio
+                                updated = True
+                        
+                        # 가이드 링크 업데이트
+                        if '가이드' in df.columns:
+                            new_guide = row['가이드'] if not pd.isna(row['가이드']) else None
+                            if existing.guide_link != new_guide:
+                                existing.guide_link = new_guide
+                                updated = True
+                    
+                    if updated:
+                        existing.save()
+                        updated_count += 1
+                    else:
+                        # 여기서만 디버그 메시지 추가
+                        print(f"SKIPPED: Row {idx} - Date: {date}, Book: {book}, Chapters: {start_chapter}-{end_chapter}")
+                        skipped_items.append(f"{date} / {book} / {start_chapter}-{end_chapter}")
+                        skipped_count += 1
+                else:
+                    # 새 항목 생성
+                    new_schedule = DailyBibleSchedule(
+                        date=date,
+                        book=book,
+                        start_chapter=start_chapter,
+                        end_chapter=end_chapter
+                    )
+                    
+                    # 오디오/가이드 링크는 첫 번째 책에만 적용
+                    if i == 0:
+                        if '오디오' in df.columns and not pd.isna(row['오디오']):
+                            new_schedule.audio_link = row['오디오']
+                        if '가이드' in df.columns and not pd.isna(row['가이드']):
+                            new_schedule.guide_link = row['가이드']
+                    
+                    new_schedule.save()
+                    created_count += 1
         
+        if skipped_count > 0:
+            print(f"총 {skipped_count}개 항목이 건너뛰어졌습니다:")
+            for item in skipped_items:
+                print(f"  - {item}")
+                
         return Response({
-            'message': f'일정이 업데이트되었습니다. (신규: {created_count}개, 수정: {updated_count}개)',
+            'message': f'일정이 업데이트되었습니다. (신규: {created_count}개, 수정: {updated_count}개, 건너뜀: {skipped_count}개)',
             'created_count': created_count,
-            'updated_count': updated_count
+            'updated_count': updated_count,
+            'skipped_count': skipped_count
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response({
             'error': f'파일 처리 중 오류 발생: {str(e)}'
         }, status=400)
+
+# 성경별 총 장 수를 반환하는 함수 필요
+def get_last_chapter(book_name):
+    print(f"Debug: Looking up last chapter for book: '{book_name}'")
+    book_chapters = {
+        '창세기': 50, '출애굽기': 40, '레위기': 27,
+        '민수기': 36, '신명기': 34, '여호수아': 24,
+        '사사기': 21, '룻기': 4, '사무엘상': 31,
+        '사무엘하': 24, '열왕기상': 22, '열왕기하': 25,
+        '역대상': 29, '역대하': 36, '에스라': 10,
+        '느헤미야': 13, '에스더': 10, '욥기': 42,
+        '시편': 150, '잠언': 31, '전도서': 12,
+        '아가': 8, '이사야': 66, '예레미야': 52,
+        '예레미야애가': 5, '에스겔': 48, '다니엘': 12,
+        '호세아': 14, '요엘': 3, '아모스': 9,
+        '오바댜': 1, '요나': 4, '미가': 7,
+        '나훔': 3, '하박국': 3, '스바냐': 3,
+        '학개': 2, '스가랴': 14, '말라기': 4,
+        '마태복음': 28, '마가복음': 16, '누가복음': 24,
+        '요한복음': 21, '사도행전': 28, '로마서': 16,
+        '고린도전서': 16, '고린도후서': 13, '갈라디아서': 6,
+        '에베소서': 6, '빌립보서': 4, '골로새서': 4,
+        '데살로니가전서': 5, '데살로니가후서': 3,
+        '디모데전서': 6, '디모데후서': 4, '디도서': 3,
+        '빌레몬서': 1, '히브리서': 13, '야고보서': 5,
+        '베드로전서': 5, '베드로후서': 3, '요한일서': 5,
+        '요한이서': 1, '요한삼서': 1, '유다서': 1,
+        '요한계시록': 22
+    }
+    result = book_chapters.get(book_name, 1)  # 기본값 1
+    print(f"Debug: Last chapter for '{book_name}' is {result}")
+    return result
 
 @api_view(['GET', 'POST'])
 def bible_schedule_list(request):

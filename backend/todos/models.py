@@ -26,7 +26,6 @@ class DailyBibleSchedule(models.Model):
     
     class Meta:
         ordering = ['date']
-        unique_together = ['date', 'book']
 
     def __str__(self):
         return f"{self.date}: {self.book} {self.start_chapter}-{self.end_chapter}장"

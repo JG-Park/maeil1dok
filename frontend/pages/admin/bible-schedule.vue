@@ -127,14 +127,22 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="schedule in sortedSchedules" :key="schedule.id">
-                <td>{{ formatDate(schedule?.date) }}</td>
-                <td>{{ schedule?.book }}</td>
-                <td>{{ schedule?.start_chapter }}-{{ schedule?.end_chapter }}장</td>
+              <tr v-for="(groupedSchedules, date) in groupedByDate" :key="date">
+                <td>{{ formatDate(date) }}</td>
+                <td>
+                  <div v-for="schedule in groupedSchedules" :key="schedule.id" class="book-item">
+                    {{ schedule.book }}
+                  </div>
+                </td>
+                <td>
+                  <div v-for="schedule in groupedSchedules" :key="schedule.id" class="chapter-item">
+                    {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장
+                  </div>
+                </td>
                 <td>
                   <a 
-                    v-if="schedule?.audio_link" 
-                    :href="schedule.audio_link" 
+                    v-if="groupedSchedules[0]?.audio_link" 
+                    :href="groupedSchedules[0].audio_link" 
                     target="_blank"
                     class="audio-link"
                     title="오디오 듣기"
@@ -147,8 +155,8 @@
                 </td>
                 <td>
                   <a 
-                    v-if="schedule?.guide_link" 
-                    :href="schedule.guide_link" 
+                    v-if="groupedSchedules[0]?.guide_link" 
+                    :href="groupedSchedules[0].guide_link" 
                     target="_blank"
                     class="guide-link"
                     title="가이드 보기"
@@ -160,7 +168,7 @@
                   <span v-else class="no-link">-</span>
                 </td>
                 <td>
-                  <button class="delete-button" @click="deleteSchedule(schedule.id)">
+                  <button class="delete-button" @click="deleteScheduleGroup(date)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
@@ -313,18 +321,54 @@ const sortBy = (field) => {
   }
 }
 
-// 정렬된 스케줄 계산
-const sortedSchedules = computed(() => {
-  return [...schedules.value].sort((a, b) => {
-    let comparison = 0
-    if (sortField.value === 'date') {
-      comparison = new Date(a.date) - new Date(b.date)
-    } else if (sortField.value === 'book') {
-      comparison = a.book.localeCompare(b.book)
+// 날짜별로 그룹화된 일정
+const groupedByDate = computed(() => {
+  const groups = {};
+  
+  if (schedules.value) {
+    for (const schedule of schedules.value) {
+      const date = schedule.date;
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(schedule);
     }
-    return sortOrder.value === 'asc' ? comparison : -comparison
-  })
-})
+  }
+  
+  // 정렬 적용
+  const sortedGroups = {};
+  const sortedDates = Object.keys(groups).sort((a, b) => {
+    if (sortField.value === 'date') {
+      return sortOrder.value === 'asc' 
+        ? new Date(a) - new Date(b) 
+        : new Date(b) - new Date(a);
+    }
+    return 0;
+  });
+  
+  for (const date of sortedDates) {
+    sortedGroups[date] = groups[date];
+  }
+  
+  return sortedGroups;
+});
+
+// 날짜 그룹 전체 삭제
+const deleteScheduleGroup = async (date) => {
+  if (!confirm('이 날짜의 모든 일정을 삭제하시겠습니까?')) return;
+  
+  try {
+    const groupSchedules = groupedByDate.value[date];
+    for (const schedule of groupSchedules) {
+      await api.delete(`/api/v1/todos/bible-schedules/${schedule.id}/`);
+    }
+    await loadSchedules();
+    alert('일정이 삭제되었습니다.');
+  } catch (error) {
+    console.error('Failed to delete schedules:', error);
+    alert(error.message || '일정 삭제에 실패했습니다.');
+  }
+};
 
 // 클라이언트 사이드에서만 초기 데이터 로드
 onMounted(() => {
@@ -646,4 +690,13 @@ onMounted(() => {
 .schedules-table td:nth-child(4) { width: 10%; } /* 오디오 */
 .schedules-table td:nth-child(5) { width: 10%; } /* 가이드 */
 .schedules-table td:nth-child(6) { width: 10%; } /* 관리 */
+
+.book-item, .chapter-item {
+  padding: 2px 0;
+}
+
+.book-item:not(:last-child), 
+.chapter-item:not(:last-child) {
+  border-bottom: 1px dashed #eee;
+}
 </style> 
