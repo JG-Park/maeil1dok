@@ -184,39 +184,90 @@ const loadBibleContent = async (book, chapter) => {
       const elementsToRemove = bibleElement.querySelectorAll('input, select, form, .fontcontrol, a, [style*="display:none"], [style*="display: none"]')
       elementsToRemove.forEach(el => el.remove())
 
-      // 장 제목 설정 (책 이름 + 장 번호)
+      // 장 제목 설정 (책 이름 + 장 번호) - 시편은 "편"으로 표시
       const chapNum = bibleElement.querySelector('.chapNum')
       if (chapNum) {
-        const chapter = chapNum.textContent.replace('제', '').replace('장', '').trim()
-        chapterTitle.value = `${bookNames[book] || ''} ${chapter}장`
+        // 원본 텍스트를 가져옴 (예: "제 1 편" 또는 "제 1 장")
+        let chapterText = chapNum.textContent
+        
+        // '제'와 책 타입(장/편)을 모두 제거하고 숫자만 추출
+        let chapterNumber = chapterText
+          .replace('제', '')
+          .replace('장', '')
+          .replace('편', '')
+          .trim()
+        
+        // 시편인 경우 "편"으로 표시, 나머지는 "장"으로 표시
+        const suffix = book === 'psa' ? '편' : '장'
+        chapterTitle.value = `${bookNames[book] || ''} ${chapterNumber}${suffix}`
+      } else {
+        // .chapNum 요소가 없는 경우 (특히 1장짜리 책)
+        const suffix = book === 'psa' ? '편' : '장'
+        chapterTitle.value = `${bookNames[book] || ''} ${currentChapter.value}${suffix}`
       }
 
       // 모든 내용을 순서대로 처리
       const verses = []
       let currentSection = ''
       
-      // 모든 자식 노드를 순회하면서 처리
-      Array.from(bibleElement.childNodes).forEach(node => {
-        // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트
-        if (node.classList?.contains('smallTitle')) {
-          currentSection = node.textContent.trim()
-            .replace(/\(\s*\)/g, '')  // 빈 괄호 제거
-            .replace(/\s+/g, ' ')     // 연속된 공백 하나로 통일
-            .trim()                   // 앞뒤 공백 제거
-          
-          if (currentSection) {  // 내용이 있는 경우에만 추가
-            verses.push(`<h3 class="section-title">${currentSection}</h3>`)
+      // 시편 1편 특별 처리 - f 태그 내부의 모든 span 요소 검색
+      if (book === 'psa' && chapter === 1) {
+        const fTag = bibleElement.querySelector('f') // 시편 1편 특유의 f 태그 찾기
+        
+        if (fTag) {
+          // f 태그 내의 모든 span 요소 처리
+          const spans = fTag.querySelectorAll('span')
+          spans.forEach(span => {
+            const numberSpan = span.querySelector('.number')
+            if (numberSpan) {
+              const number = numberSpan.textContent.trim().replace(/\s+/g, '')
+              let text = span.textContent.replace(numberSpan.textContent, '').trim()
+              
+              verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
+            }
+          })
+        }
+      } else {
+        // 기존 파싱 로직 (다른 모든 성경)
+        Array.from(bibleElement.childNodes).forEach(node => {
+          // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트
+          if (node.classList?.contains('smallTitle')) {
+            currentSection = node.textContent.trim()
+              .replace(/\(\s*\)/g, '')  // 빈 괄호 제거
+              .replace(/\s+/g, ' ')     // 연속된 공백 하나로 통일
+              .trim()                   // 앞뒤 공백 제거
+            
+            if (currentSection) {  // 내용이 있는 경우에만 추가
+              verses.push(`<h3 class="section-title">${currentSection}</h3>`)
+            }
           }
-        }
-        // span 요소이고 number 클래스를 가진 자식이 있으면 구절로 처리
-        else if (node.tagName === 'SPAN' && node.querySelector('.number')) {
+          // span 요소이고 number 클래스를 가진 자식이 있으면 구절로 처리
+          else if (node.tagName === 'SPAN' && node.querySelector('.number')) {
+            const numberSpan = node.querySelector('.number')
+            const number = numberSpan.textContent.trim().replace(/\s+/g, '')
+            let text = node.textContent.replace(numberSpan.textContent, '').trim()
+            
+            verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
+          }
+        })
+      }
+
+      // 내용이 없으면 텍스트 상자로 직접 추출 시도 (백업 방법)
+      if (verses.length === 0) {
+        // 모든 텍스트 노드를 찾아 내용 추출
+        const textNodes = Array.from(bibleElement.querySelectorAll('span'))
+          .filter(span => span.querySelector('.number'))
+        
+        textNodes.forEach(node => {
           const numberSpan = node.querySelector('.number')
-          const number = numberSpan.textContent.trim().replace(/\s+/g, '')
-          let text = node.textContent.replace(numberSpan.textContent, '').trim()
-          
-          verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
-        }
-      })
+          if (numberSpan) {
+            const number = numberSpan.textContent.trim().replace(/\s+/g, '')
+            let text = node.textContent.replace(numberSpan.textContent, '').trim()
+            
+            verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
+          }
+        })
+      }
 
       // 첫 번째 섹션 제목 설정 (있는 경우에만)
       const firstTitle = bibleElement.querySelector('.smallTitle')
@@ -236,6 +287,12 @@ const loadBibleContent = async (book, chapter) => {
     }
   } catch (error) {
     console.error('Failed to load bible content:', error)
+    
+    // 에러 발생 시에도 chapterTitle 업데이트
+    if (!chapterTitle.value) {
+      const suffix = book === 'psa' ? '편' : '장'
+      chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
+    }
   } finally {
     isLoading.value = false
   }
@@ -288,9 +345,39 @@ const selectBook = (bookId) => {
 
 // 장 선택 시 처리
 const selectChapter = (chapter) => {
+  // URL을 명시적으로 업데이트
+  router.push(`/reading?book=${selectedBook.value}&chapter=${chapter}`)
   loadBibleContent(selectedBook.value, chapter)
   showModal.value = false
 }
+
+// 성경책 스크롤 위치 조정을 위한 ref 추가
+const booksSection = ref(null)
+
+// 선택된 책으로 스크롤
+const scrollToSelectedBook = () => {
+  if (!booksSection.value) return
+  
+  // 약간의 지연 후 실행 (DOM이 렌더링 된 후)
+  setTimeout(() => {
+    const activeBook = booksSection.value.querySelector('.book-button.active')
+    if (activeBook) {
+      // 선택된 책이 스크롤 영역의 중앙에 오도록 조정
+      const container = booksSection.value
+      const bookTop = activeBook.offsetTop
+      const containerHeight = container.clientHeight
+      
+      container.scrollTop = bookTop - containerHeight / 2 + activeBook.clientHeight / 2
+    }
+  }, 100)
+}
+
+// 모달이 열릴 때 스크롤 조정
+watch(showModal, (newValue) => {
+  if (newValue) {
+    scrollToSelectedBook()
+  }
+})
 
 // 모달 열릴 때 body 스크롤 제어
 const toggleBodyScroll = (isModalOpen) => {
@@ -1097,7 +1184,7 @@ const handleAudioLink = (audioLink) => {
             </button>
           </div>
           <div class="modal-body">
-            <div class="books-section">
+            <div class="books-section" ref="booksSection">
               <div class="testament">
                 <h4>구약</h4>
                 <div class="books-list">
@@ -1606,7 +1693,7 @@ const handleAudioLink = (audioLink) => {
   align-items: center;
   justify-content: center;
   padding: 0.35rem 0.75rem;  /* 상단 버튼에 맞게 패딩 조정 */
-  margin: 0 0 0.1rem 0;
+  margin: 0 0.1rem 0.1rem 0;
   height: 32px;  /* 높이 고정 */
   gap: 0.375rem;  /* 아이콘과 텍스트 사이 간격 */
   white-space: nowrap; /* 텍스트 줄바꿈 방지 */
