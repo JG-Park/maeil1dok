@@ -190,8 +190,36 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useApi } from '~/composables/useApi'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const api = useApi()
+
+// 인증 로직 페이지 내에 직접 구현
+const user = ref(null)
+const isAuthenticated = computed(() => !!user.value)
+const isAdmin = computed(() => user.value?.is_admin === true)
+
+const checkAuth = async () => {
+  try {
+    const response = await api.get('/api/v1/users/me/')
+    user.value = response.data
+    
+    // 인증되지 않았거나 어드민이 아니면 홈으로 리다이렉트
+    if (!isAuthenticated.value || !isAdmin.value) {
+      alert('관리자만 접근할 수 있는 페이지입니다.')
+      router.push('/')
+      return false
+    }
+    return true
+  } catch (error) {
+    console.error('Authentication check failed:', error)
+    alert('관리자만 접근할 수 있는 페이지입니다.')
+    router.push('/')
+    return false
+  }
+}
+
 const isLoading = ref(true)
 const schedules = ref([])
 const fileInput = ref(null)
@@ -370,9 +398,11 @@ const deleteScheduleGroup = async (date) => {
   }
 };
 
-// 클라이언트 사이드에서만 초기 데이터 로드
-onMounted(() => {
-  loadSchedules()
+onMounted(async () => {
+  const isAuthorized = await checkAuth()
+  if (isAuthorized) {
+    await loadSchedules()
+  }
 })
 </script>
 
