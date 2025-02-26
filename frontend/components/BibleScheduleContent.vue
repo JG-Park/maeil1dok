@@ -484,78 +484,20 @@ const handleScheduleClick = (schedule) => {
     return
   }
   
-  selectedSchedule.value = schedule
-  showModal.value = true
-}
-
-// 첫 번째 미완료 항목으로 스크롤
-const scrollToFirstIncomplete = () => {
-  nextTick(() => {
-    // 로그인한 경우
-    if (authStore.isAuthenticated) {
-      // 현재 월의 첫 번째 미완료 항목 찾기
-      const firstIncomplete = filteredGroupedSchedules.value?.find(schedule => 
-        getReadingStatusForGroup(schedule) === 'not_completed'
-      )
-      
-      if (firstIncomplete) {
-        // 미완료 항목이 있으면 해당 위치로 스크롤
-        const element = document.querySelector(`[data-date="${firstIncomplete.date}"]`)
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
-      } else {
-        // 모두 읽은 상태면 다음 읽을 항목(미래 날짜 중 가장 빠른 날짜) 찾기
-        const nextToRead = filteredGroupedSchedules.value?.find(schedule => {
-          const scheduleDate = new Date(schedule.date)
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          scheduleDate.setHours(0, 0, 0, 0)
-          return scheduleDate > today
-        })
-
-        if (nextToRead) {
-          const element = document.querySelector(`[data-date="${nextToRead.date}"]`)
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        }
-      }
-    } 
-    // 비로그인의 경우 오늘 날짜로 스크롤
-    else {
-      const today = new Date()
-      const todaySchedule = filteredGroupedSchedules.value?.find(schedule => {
-        const scheduleDate = new Date(schedule.date)
-        return scheduleDate.getDate() === today.getDate() &&
-               scheduleDate.getMonth() === today.getMonth() &&
-               scheduleDate.getFullYear() === today.getFullYear()
-      })
-      
-      if (todaySchedule) {
-        const element = document.querySelector(`[data-date="${todaySchedule.date}"]`)
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
-      } else {
-        // 오늘 일정이 없으면 다음 읽을 항목으로 스크롤
-        const nextSchedule = filteredGroupedSchedules.value?.find(schedule => {
-          const scheduleDate = new Date(schedule.date)
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          scheduleDate.setHours(0, 0, 0, 0)
-          return scheduleDate > today
-        })
-
-        if (nextSchedule) {
-          const element = document.querySelector(`[data-date="${nextSchedule.date}"]`)
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        }
-      }
-    }
-  })
+  // 모달 표시 대신 바로 이동
+  const bookCode = findBookCode(schedule.book)
+  if (!bookCode) {
+    console.error('Invalid book name:', schedule.book)
+    return
+  }
+  
+  // 이벤트 발생 (부모 컴포넌트에서 처리)
+  emit('schedule-select', schedule)
+  
+  // 모달이 열려있는 경우 (isModal이 true인 경우) 바로 이동
+  if (props.isModal) {
+    router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}&from=reading-plan&month=${selectedMonth.value}`)
+  }
 }
 
 // 컴포넌트 마운트 시 초기화
@@ -567,9 +509,7 @@ onMounted(async () => {
       schedules.value = result
     }
     
-    if (authStore.isAuthenticated) {
-      await fetchReadingHistory()
-    }
+    await fetchReadingHistory()
   } catch (error) {
     console.error('Failed to initialize reading plan:', error)
   } finally {
@@ -732,37 +672,130 @@ const isCurrentLocation = (schedule) => {
 
 // 현재 위치로 스크롤하는 함수
 const scrollToCurrentLocation = () => {
-  if (!props.isModal || !props.currentBook || !props.currentChapter) return
+  if (!props.isModal || !props.currentBook || !props.currentChapter || 
+      !filteredGroupedSchedules.value || Object.keys(filteredGroupedSchedules.value).length === 0) {
+    return;
+  }
 
   nextTick(() => {
-    const currentSchedule = filteredGroupedSchedules.value?.find(schedule => {
-      const bookCode = findBookCode(schedule.book)
-      return bookCode === props.currentBook && 
-             props.currentChapter >= schedule.start_chapter && 
-             props.currentChapter <= schedule.end_chapter
-    })
+    const dateEntries = Object.entries(filteredGroupedSchedules.value);
+    const currentScheduleEntry = dateEntries.find(([_, scheduleGroup]) => {
+      return scheduleGroup.some(schedule => {
+        const bookCode = findBookCode(schedule.book);
+        return bookCode === props.currentBook && 
+               props.currentChapter >= schedule.start_chapter && 
+               props.currentChapter <= schedule.end_chapter;
+      });
+    });
 
-    if (currentSchedule) {
-      const element = document.querySelector(`[data-date="${currentSchedule.date}"]`)
+    if (currentScheduleEntry) {
+      const [date] = currentScheduleEntry;
+      const element = document.querySelector(`[data-date="${date}"]`);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-  })
-}
+  });
+};
 
-// 컴포넌트가 마운트되거나 currentBook/currentChapter가 변경될 때 스크롤
-onMounted(() => {
-  if (props.isModal) {
-    scrollToCurrentLocation()
+// 읽기 이력 로드 함수 추가
+const loadReadingHistory = async () => {
+  if (authStore.isAuthenticated) {
+    try {
+      const response = await api.get('/api/v1/todos/reading-history/');
+      readingHistory.value = response;
+    } catch (error) {
+      console.error('Failed to load reading history:', error);
+    }
   }
-})
+};
 
-watch([() => props.currentBook, () => props.currentChapter], () => {
-  if (props.isModal) {
-    scrollToCurrentLocation()
+// 첫 번째 미완료 항목으로 스크롤
+const scrollToFirstIncomplete = () => {
+  nextTick(() => {
+    if (!filteredGroupedSchedules.value || Object.keys(filteredGroupedSchedules.value).length === 0) {
+      return;
+    }
+    
+    // 로그인한 경우
+    if (authStore.isAuthenticated) {
+      // 현재 월의 첫 번째 미완료 항목 찾기
+      const dateEntries = Object.entries(filteredGroupedSchedules.value);
+      const firstIncompleteEntry = dateEntries.find(([date, scheduleGroup]) => 
+        getReadingStatusForGroup(scheduleGroup) === 'not_completed'
+      );
+      
+      if (firstIncompleteEntry) {
+        // 미완료 항목이 있으면 해당 위치로 스크롤
+        const [date] = firstIncompleteEntry;
+        const element = document.querySelector(`[data-date="${date}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        // 모두 읽은 상태면 다음 읽을 항목(미래 날짜 중 가장 빠른 날짜) 찾기
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const nextToReadEntry = dateEntries.find(([date]) => {
+          const scheduleDate = new Date(date);
+          scheduleDate.setHours(0, 0, 0, 0);
+          return scheduleDate > today;
+        });
+
+        if (nextToReadEntry) {
+          const [date] = nextToReadEntry;
+          const element = document.querySelector(`[data-date="${date}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }
+    } 
+    // 비로그인의 경우 오늘 날짜로 스크롤
+    else {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      
+      // 오늘 날짜의 스케줄이 있는지 확인
+      if (filteredGroupedSchedules.value[todayStr]) {
+        const element = document.querySelector(`[data-date="${todayStr}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        // 오늘 일정이 없으면 다음 읽을 항목으로 스크롤
+        const dateEntries = Object.entries(filteredGroupedSchedules.value);
+        const nextScheduleEntry = dateEntries.find(([date]) => {
+          const scheduleDate = new Date(date);
+          scheduleDate.setHours(0, 0, 0, 0);
+          return scheduleDate > today;
+        });
+
+        if (nextScheduleEntry) {
+          const [date] = nextScheduleEntry;
+          const element = document.querySelector(`[data-date="${date}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }
+    }
+  });
+};
+
+// 읽기 상태가 변경될 때마다 스크롤 위치 업데이트
+watch(readingHistory, () => {
+  if (isInitialized.value && !isLoading.value) {
+    nextTick(() => {
+      if (props.isModal) {
+        scrollToCurrentLocation();
+      } else {
+        scrollToFirstIncomplete();
+      }
+    });
   }
-})
+}, { deep: true });
 </script>
 
 <style scoped>
