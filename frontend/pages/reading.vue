@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useTaskStore } from '~/stores/tasks'
 import { useRoute, useRouter } from 'vue-router'
 import { useBibleProgressApi, useApi } from '~/composables/useApi'
@@ -338,9 +338,17 @@ const goToPrevChapter = () => {
   }
 }
 
-// 책 선택 시 처리
+// 책 선택 시 처리 - 오른쪽 장 영역도 자동 스크롤되도록 개선
 const selectBook = (bookId) => {
   selectedBook.value = bookId
+  
+  // 책이 선택되면 장 영역도 스크롤
+  nextTick(() => {
+    // 약간 지연 후 장 영역 스크롤 (책 선택 후 장 목록이 렌더링될 시간 필요)
+    setTimeout(() => {
+      scrollToSelectedChapter()
+    }, 50)
+  })
 }
 
 // 장 선택 시 처리
@@ -354,28 +362,69 @@ const selectChapter = (chapter) => {
 // 성경책 스크롤 위치 조정을 위한 ref 추가
 const booksSection = ref(null)
 
-// 선택된 책으로 스크롤
+// 선택된 책으로 스크롤 - 부드러운 스크롤 복원
 const scrollToSelectedBook = () => {
   if (!booksSection.value) return
   
-  // 약간의 지연 후 실행 (DOM이 렌더링 된 후)
-  setTimeout(() => {
-    const activeBook = booksSection.value.querySelector('.book-button.active')
+  nextTick(() => {
+    const activeBook = booksSection.value.querySelector(`.book-button.active, .book-button[data-id="${currentBook.value}"]`)
+    
     if (activeBook) {
-      // 선택된 책이 스크롤 영역의 중앙에 오도록 조정
       const container = booksSection.value
       const bookTop = activeBook.offsetTop
       const containerHeight = container.clientHeight
       
-      container.scrollTop = bookTop - containerHeight / 2 + activeBook.clientHeight / 2
+      // 부드러운 스크롤 복원
+      container.scrollTo({
+        top: bookTop - containerHeight / 2 + activeBook.clientHeight / 2,
+        behavior: 'smooth'
+      })
     }
-  }, 100)
+  })
 }
 
-// 모달이 열릴 때 스크롤 조정
+// 장 영역을 위한 ref 추가
+const chaptersSection = ref(null)
+
+// 선택된 장으로 스크롤 - 부드러운 스크롤 적용
+const scrollToSelectedChapter = () => {
+  if (!chaptersSection.value) return
+  
+  nextTick(() => {
+    const activeChapter = chaptersSection.value.querySelector(`.chapter-button.active, .chapter-button[data-chapter="${currentChapter.value}"]`)
+    
+    if (activeChapter) {
+      const container = chaptersSection.value
+      const chapterTop = activeChapter.offsetTop
+      const chapterLeft = activeChapter.offsetLeft
+      const containerHeight = container.clientHeight
+      const containerWidth = container.clientWidth
+      
+      // 부드러운 스크롤 적용
+      container.scrollTo({
+        top: chapterTop - containerHeight / 2 + activeChapter.clientHeight / 2,
+        left: chapterLeft - containerWidth / 2 + activeChapter.clientWidth / 2,
+        behavior: 'smooth'
+      })
+    }
+  })
+}
+
+// 모달이 열릴 때 처리 - 시간차 스크롤 적용
 watch(showModal, (newValue) => {
   if (newValue) {
-    scrollToSelectedBook()
+    // 모달이 열릴 때 selectedBook을 현재 책으로 설정
+    selectedBook.value = currentBook.value
+    
+    // 왼쪽 먼저 스크롤 후 오른쪽 스크롤
+    setTimeout(() => {
+      scrollToSelectedBook()
+      
+      // 왼쪽 스크롤 후 약간 지연 후 오른쪽 스크롤
+      setTimeout(() => {
+        scrollToSelectedChapter()
+      }, 150)
+    }, 100)
   }
 })
 
@@ -1191,6 +1240,7 @@ const handleAudioLink = (audioLink) => {
                   <button 
                     v-for="book in bibleBooks.old" 
                     :key="book.id"
+                    :data-id="book.id"
                     :class="['book-button', { active: selectedBook === book.id }]"
                     @click="selectBook(book.id)"
                   >
@@ -1204,6 +1254,7 @@ const handleAudioLink = (audioLink) => {
                   <button 
                     v-for="book in bibleBooks.new" 
                     :key="book.id"
+                    :data-id="book.id"
                     :class="['book-button', { active: selectedBook === book.id }]"
                     @click="selectBook(book.id)"
                   >
@@ -1212,12 +1263,13 @@ const handleAudioLink = (audioLink) => {
                 </div>
               </div>
             </div>
-            <div class="chapters-section">
+            <div class="chapters-section" ref="chaptersSection">
               <h4>장</h4>
               <div class="chapters-grid">
                 <button 
                   v-for="chapter in chaptersArray" 
                   :key="chapter"
+                  :data-chapter="chapter"
                   :class="['chapter-button', { active: chapter === currentChapter }]"
                   @click="selectChapter(chapter)"
                 >
