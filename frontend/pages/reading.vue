@@ -163,7 +163,14 @@ const loadBibleContent = async (book, chapter) => {
   isLoading.value = true
   try {
     // 성경 본문 로드
-    const response = await fetch(`/bible-proxy/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃 설정
+    
+    const response = await fetch(`/bible-proxy/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`, {
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId);
+    
     const text = await response.text()
     
     currentBook.value = book
@@ -293,6 +300,20 @@ const loadBibleContent = async (book, chapter) => {
       const suffix = book === 'psa' ? '편' : '장'
       chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
     }
+    
+    // 타임아웃이나 네트워크 오류 발생 시 안내 메시지 표시
+    bibleContent.value = `
+      <div class="error-message">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
+        <p>공회 서버 상태가 좋거나 매일일독과의 통신이 원활하지 않아요. 아래 버튼으로 직접 접속해보세요.</p>
+        <a href="https://www.bskorea.or.kr/bible/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}" target="_blank" class="external-link">
+          대한성서공회에서 보기
+        </a>
+      </div>
+    `
   } finally {
     isLoading.value = false
   }
@@ -1133,11 +1154,14 @@ const handleAudioLink = (audioLink) => {
 
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
       <button class="nav-button prev" @click="goToPrevChapter">
-        &lt; 이전
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>이전</span>
       </button>
+      
       <div class="center-content">
         <div class="current-page">
-          <!-- 날짜 표시에 상태별 클래스 추가 -->
           <div 
             v-if="taskStore.todayReading" 
             class="schedule-date"
@@ -1148,7 +1172,6 @@ const handleAudioLink = (audioLink) => {
               'upcoming': !authStore.isAuthenticated && isFutureDate
             }"
           >
-            <!-- 상태 아이콘 수정 -->
             <div v-if="authStore.isAuthenticated ? readingStatus === 'completed' : isPastDate" class="status-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1156,7 +1179,6 @@ const handleAudioLink = (audioLink) => {
               </svg>
             </div>
             
-            <!-- 읽지 않은 구간 아이콘 (로그인 사용자만) -->
             <div v-else-if="authStore.isAuthenticated && !isToday" class="status-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1164,17 +1186,16 @@ const handleAudioLink = (audioLink) => {
               </svg>
             </div>
             
-            <!-- 오늘 구간 표시 -->
             <div v-else-if="isToday" class="status-icon today">
               오늘
             </div>
             
             {{ formatScheduleDate(taskStore.todayReading.date) }}
           </div>
+          
           <div class="chapter-range">
             {{ bookNames[currentBook] }}
             <template v-if="taskStore.todayReading">
-              <!-- 시작 장 -->
               <span 
                 class="chapter-number"
                 :class="{ 
@@ -1185,10 +1206,8 @@ const handleAudioLink = (audioLink) => {
                 {{ taskStore.todayReading.chapter }}
               </span>
 
-              <!-- 중간 구분선 -->
               <span class="chapter-separator">-</span>
 
-              <!-- 현재 장이 시작/끝이 아닐 때만 표시 -->
               <template v-if="currentChapter !== taskStore.todayReading.chapter && 
                               currentChapter !== taskStore.todayReading.end_chapter">
                 <span class="chapter-number current">
@@ -1197,7 +1216,6 @@ const handleAudioLink = (audioLink) => {
                 <span class="chapter-separator">-</span>
               </template>
 
-              <!-- 마지막 장 -->
               <span 
                 class="chapter-number"
                 :class="{ 
@@ -1207,20 +1225,23 @@ const handleAudioLink = (audioLink) => {
               >
                 {{ taskStore.todayReading.end_chapter }}
               </span>
-              <span>장</span>
+              <span>{{ currentBook === 'psa' ? '편' : '장' }}</span>
             </template>
             <template v-else>
-              {{ currentChapter }}장
+              {{ currentChapter }}{{ currentBook === 'psa' ? '편' : '장' }}
             </template>
           </div>
         </div>
       </div>
+      
       <button class="nav-button next" @click="goToNextChapter">
-        다음 &gt;
+        <span>다음</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </button>
     </div>
 
-    <!-- 책/장 선택 모달 -->
     <Teleport to="body">
       <div v-if="showModal" class="modal-overlay" @click="showModal = false">
         <div class="modal-content" @click.stop>
@@ -1282,7 +1303,6 @@ const handleAudioLink = (audioLink) => {
       </div>
     </Teleport>
 
-    <!-- 스케줄 모달 수정 -->
     <Teleport to="body">
       <div v-if="showScheduleModal" class="modal-overlay" @click="closeScheduleModal">
         <div class="modal-content schedule-modal" @click.stop>
@@ -1308,7 +1328,6 @@ const handleAudioLink = (audioLink) => {
       </div>
     </Teleport>
 
-    <!-- 로그인 모달 -->
     <Teleport to="body">
       <div v-if="showLoginModal" class="modal-overlay" @click="showLoginModal = false">
         <div class="modal-content login-modal" @click.stop>
@@ -1342,14 +1361,12 @@ const handleAudioLink = (audioLink) => {
       </div>
     </Teleport>
 
-    <!-- 토스트 컴포넌트 추가 -->
     <Toast 
       ref="toast"
       message="저장되었습니다!"
       type="success"
     />
 
-    <!-- 읽기 완료 확인 모달 -->
     <Teleport to="body">
       <div v-if="showCompleteConfirmModal" class="modal-overlay" @click="showCompleteConfirmModal = false">
         <div class="modal-content confirm-modal" @click.stop>
@@ -1389,7 +1406,6 @@ const handleAudioLink = (audioLink) => {
 </template>
 
 <style scoped>
-/* Google Fonts 대신 RIDI Batang 사용 */
 @font-face {
   font-family: 'RIDIBatang';
   src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
@@ -1669,7 +1685,6 @@ const handleAudioLink = (audioLink) => {
   flex: 1;
 }
 
-/* 불필요한 스타일 제거 */
 :deep(table),
 :deep(td),
 :deep(.num) {
@@ -1694,7 +1709,6 @@ const handleAudioLink = (audioLink) => {
   z-index: 20;
   flex-wrap: nowrap; /* 줄바꿈 방지 */
 }
-/* iOS 안전영역 대응 */
 @supports (-webkit-touch-callout: none) {
   .navigation-controls {
     padding: 0.5rem 2rem calc(env(safe-area-inset-bottom) - 8px) 2rem;
@@ -1702,17 +1716,48 @@ const handleAudioLink = (audioLink) => {
 }
 
 .nav-button {
-  padding: 0;
-  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
   border: none;
-  color: var(--text-secondary);
-  font-size: 0.85rem;  /* 글자 크기 약간 줄임 */
+  border-radius: 8px;
+  background-color: #f5f7fa;
+  color: #4b5563;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 600;
-  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-  min-width: 48px; /* 최소 너비 설정 */
-  flex-shrink: 0; /* 크기 축소 방지 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.nav-button:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.nav-button:active {
+  transform: translateY(1px);
+}
+
+.nav-button.prev {
+  padding-left: 0.75rem;
+}
+
+.nav-button.next {
+  padding-right: 0.75rem;
+}
+
+.nav-button svg {
+  transition: transform 0.2s ease;
+}
+
+.nav-button.prev:hover svg {
+  transform: translateX(-2px);
+}
+
+.nav-button.next:hover svg {
+  transform: translateX(2px);
 }
 
 .center-content {
@@ -1788,7 +1833,6 @@ const handleAudioLink = (audioLink) => {
   color: var(--primary-color);
 }
 
-/* 모바일 대응 */
 @media (max-width: 640px) {
   .today-reading {
     padding: 0.5rem 0.65rem;
@@ -1815,7 +1859,6 @@ const handleAudioLink = (audioLink) => {
     min-width: 64px; /* 최소 너비 설정 */
   }
 
-  /* iOS 확대 모드 대응 */
   @supports (-webkit-touch-callout: none) {
     .today-reading {
       padding: 0.5rem 0.5rem; /* 패딩 더 줄임 */
@@ -1864,7 +1907,6 @@ const handleAudioLink = (audioLink) => {
   text-align: center;
 }
 
-/* 첫 번째 섹션 제목의 상단 여백 제거 */
 :deep(.section-title:first-child) {
   margin-top: 0;
 }
@@ -1901,7 +1943,6 @@ const handleAudioLink = (audioLink) => {
   flex-direction: column;
 }
 
-/* 모달 헤더 */
 .modal-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid #F1F5F9;
@@ -1940,7 +1981,6 @@ const handleAudioLink = (audioLink) => {
   color: var(--text-primary);
 }
 
-/* 모바일에서 모달 헤더 조정 */
 @media (max-width: 640px) {
   .modal-header {
     padding: 0.8rem 1rem;
@@ -2154,7 +2194,6 @@ const handleAudioLink = (audioLink) => {
   }
 }
 
-/* iOS Safari 대응 */
 @supports (-webkit-touch-callout: none) {
   .modal-content {
     height: 85vh;
@@ -2175,7 +2214,6 @@ const handleAudioLink = (audioLink) => {
   }
 }
 
-/* 모바일 터치 관련 전역 스타일 */
 .modal-content * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -2331,26 +2369,20 @@ const handleAudioLink = (audioLink) => {
   color: var(--text-secondary);
 }
 
-/* 글자 크기 조절이 가능한 본문 영역 */
 .text-adjustable {
-  /* iOS/Android의 동적 텍스트 크기 조절 허용 */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-/* UI 요소들의 글자 크기는 고정 */
 .header,
 .nav-button,
 .modal-header,
 .modal-content button {
-  /* 시스템 글자 크기 설정 무시 */
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
-  /* rem 대신 px 사용하여 고정 크기 설정 */
   font-size: 14px !important;
 }
 
-/* 본문 스타일 추가 */
 :deep(.bible-content) {
   line-height: 1.8;
   word-break: keep-all;
@@ -2378,7 +2410,6 @@ const handleAudioLink = (audioLink) => {
   margin-right: 0.2em;
 }
 
-/* 모바일 대응 */
 @media (max-width: 640px) {
   :deep(.bible-content) {
     font-size: 18px;
@@ -2392,7 +2423,6 @@ const handleAudioLink = (audioLink) => {
   text-align: center;
 }
 
-/* 모바일 대응 */
 @media (max-width: 640px) {
   .current-page {
     font-size: 0.875rem;
@@ -2420,7 +2450,6 @@ const handleAudioLink = (audioLink) => {
   white-space: nowrap;
 }
 
-/* 오디오 버튼 스타일 */
 .link-button[href*="audio"] {
   background: var(--red-light);
   color: var(--red-primary);
@@ -2430,7 +2459,6 @@ const handleAudioLink = (audioLink) => {
   background: var(--red-hover);
 }
 
-/* 해설 버튼 스타일 */
 .link-button[href*="guide"] {
   background: var(--blue-light);
   color: var(--blue-primary);
@@ -2440,7 +2468,6 @@ const handleAudioLink = (audioLink) => {
   background: var(--blue-hover);
 }
 
-/* 모바일 대응 */
 @media (max-width: 640px) {
   .link-button {
     padding: 0.375rem;
@@ -2479,14 +2506,11 @@ const handleAudioLink = (audioLink) => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  /* iOS에서 터치 관련 속성 제거 */
   -webkit-tap-highlight-color: transparent;
 }
 
-/* iOS에서 버튼 터치 영역 최적화 */
 @supports (-webkit-touch-callout: none) {
   .font-button {
-    /* iOS에서 터치 이벤트 관련 속성 수정 */
     padding: 0;
     margin: 0;
     touch-action: manipulation;
@@ -2512,7 +2536,6 @@ const handleAudioLink = (audioLink) => {
   font-size: 0.7rem;
 }
 
-/* 모바일 대응 */
 @media (max-width: 640px) {
   .font-button {
     width: 32px;
@@ -2520,7 +2543,6 @@ const handleAudioLink = (audioLink) => {
   }
 }
 
-/* 초기화 버튼 스타일 */
 .font-button.reset {
   color: var(--text-secondary);
 }
@@ -2529,7 +2551,6 @@ const handleAudioLink = (audioLink) => {
   color: var(--text-primary);
 }
 
-/* iOS에서 버튼 터치 영역 최적화 */
 @supports (-webkit-touch-callout: none) {
   .font-button {
     padding: 0;
@@ -2553,7 +2574,6 @@ const handleAudioLink = (audioLink) => {
   font-size: 0.75em;
 }
 
-/* 모바일에서 더 컴팩트하게 */
 @media (max-width: 640px) {
   .chapter-range {
     font-size: 0.8125rem;
@@ -2585,8 +2605,6 @@ const handleAudioLink = (audioLink) => {
   height: 20px;
 }
 
-
-/* 상태별 색상 */
 .schedule-date.completed {
   color: var(--primary-color);
 }
@@ -2603,7 +2621,6 @@ const handleAudioLink = (audioLink) => {
   color: #94A3B8;  /* 미래 날짜는 회색으로 표시 */
 }
 
-/* 모바일 대응 */
 @media (max-width: 640px) {
   .schedule-date {
     font-size: 0.75rem;
@@ -2643,7 +2660,6 @@ const handleAudioLink = (audioLink) => {
   opacity: 1;  /* 호버 시 투명도 제거 */
 }
 
-/* 모바일 대응 */
 @media (max-width: 640px) {
   .schedule-button {
     padding: 0.25rem 0.5rem;
@@ -2702,7 +2718,6 @@ const handleAudioLink = (audioLink) => {
   font-size: 0.75em;
 }
 
-/* 모바일에서 더 컴팩트하게 */
 @media (max-width: 640px) {
   .chapter-ellipsis {
     margin: 0 -0.2rem;
@@ -2728,7 +2743,6 @@ const handleAudioLink = (audioLink) => {
   color: var(--primary-color);
 }
 
-/* 모바일에서 더 컴팩트하게 */
 @media (max-width: 640px) {
   .chapter-separator {
     margin: 0 0.15rem;
@@ -2747,4 +2761,74 @@ const handleAudioLink = (audioLink) => {
   border: 1px solid currentColor;
 }
 
+/* 에러 메시지 스타일 */
+:deep(.error-message) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #64748B;
+  gap: 1rem;
+}
+
+:deep(.error-message svg) {
+  color: #DC2626;
+}
+
+:deep(.error-message h3) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+  line-height: 1.5;
+}
+
+:deep(.error-message p) {
+  font-size: 0.9375rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+:deep(.external-link) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.85rem;
+  background: #EFF6FF;
+  color: #2563EB;
+  border-radius: 8px;
+  font-weight: 500;
+  text-decoration: none;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+}
+
+:deep(.external-link:hover) {
+  background: #DBEAFE;
+}
+
+/* 폰트 설정 */
+:root {
+  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 전체 페이지에 폰트 적용 */
+.page-container {
+  font-family: var(--font-family);
+}
+
+/* 성경 본문에도 폰트 적용 */
+:deep(.bible-content) {
+  font-family: var(--font-family);
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  font-size: 16px;
+  min-height: 0vw;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 </style> 
