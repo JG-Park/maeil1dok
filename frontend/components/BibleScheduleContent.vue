@@ -44,43 +44,43 @@
         <div class="loading-spinner"></div>
         <span>초기화 중...</span>
       </div>
-      <div v-else-if="filteredSchedules && filteredSchedules.length === 0" class="no-schedules">
+      <div v-else-if="filteredGroupedSchedules && Object.keys(filteredGroupedSchedules).length === 0" class="no-schedules">
         {{ selectedMonth }}월에 등록된 일정이 없습니다.
       </div>
       <div v-else class="schedule-list">
         <div 
-          v-for="schedule in filteredSchedules"
-          :key="schedule.date" 
-          :data-date="schedule.date"
+          v-for="(scheduleGroup, date) in filteredGroupedSchedules"
+          :key="date" 
+          :data-date="date"
           class="schedule-item"
           :class="[
-            getReadingStatus(schedule),
+            getReadingStatusForGroup(scheduleGroup),
             { 'bulk-edit-mode': props.isBulkEditMode },
-            { 'current-location': isCurrentLocation(schedule) }
+            { 'current-location': isCurrentLocationInGroup(scheduleGroup) }
           ]"
-          @click="handleScheduleClick(schedule)"
+          @click="handleScheduleClick(scheduleGroup[0])"
         >
           <div class="checkbox" @click.stop>
             <input 
               type="checkbox"
-              :checked="getReadingStatus(schedule) === 'completed'"
-              @click.stop="handleCheckboxClick(schedule, $event)"
+              :checked="getReadingStatusForGroup(scheduleGroup) === 'completed'"
+              @click.stop="handleCheckboxClickForGroup(scheduleGroup, $event)"
             >
           </div>
           
           <div class="schedule-info">
             <div class="schedule-date">
-              <span v-if="isToday(schedule.date)" class="today-badge">오늘</span>
-              {{ formatScheduleDate(schedule.date) }}
+              <span v-if="isToday(date)" class="today-badge">오늘</span>
+              {{ formatScheduleDate(date) }}
             </div>
             <div class="schedule-reading">
-              <span v-if="isCurrentLocation(schedule)" class="current-location-badge">현재 위치</span>
-              <span class="bible-text">{{ schedule.book }} {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장</span>
+              <span v-if="isCurrentLocationInGroup(scheduleGroup)" class="current-location-badge">현재 위치</span>
+              <span class="bible-text">{{ formatScheduleGroup(scheduleGroup) }}</span>
             </div>
           </div>
 
           <div class="status-text">
-            <svg v-if="getReadingStatus(schedule) === 'completed'" 
+            <svg v-if="getReadingStatusForGroup(scheduleGroup) === 'completed'" 
                  class="status-icon" 
                  width="16" height="16" 
                  viewBox="0 0 24 24" 
@@ -101,7 +101,7 @@
                     stroke-width="2" 
                     stroke-linecap="round"/>
             </svg>
-            {{ getStatusText(schedule) }}
+            {{ getStatusTextForGroup(scheduleGroup) }}
           </div>
         </div>
       </div>
@@ -212,16 +212,156 @@ const selectedSchedule = ref(null)
 // 로그인 모달 관련 상태와 함수들
 const showLoginModal = ref(false)
 
-// 선택된 월의 스케줄만 필터링
-const filteredSchedules = computed(() => {
-  if (!isInitialized.value) return null
-  if (!schedules.value) return []
+// 스케줄을 날짜별로 그룹화하는 함수
+const groupSchedulesByDate = (scheduleList) => {
+  if (!scheduleList) return {}
   
-  return schedules.value.filter(schedule => {
+  const grouped = {}
+  scheduleList.forEach(schedule => {
+    if (!grouped[schedule.date]) {
+      grouped[schedule.date] = []
+    }
+    grouped[schedule.date].push(schedule)
+  })
+  
+  return grouped
+}
+
+// 그룹화된 필터링된 스케줄
+const filteredGroupedSchedules = computed(() => {
+  if (!isInitialized.value) return null
+  if (!schedules.value) return {}
+  
+  // 월별 필터링
+  const monthlySchedules = schedules.value.filter(schedule => {
     const scheduleDate = new Date(schedule.date)
     return scheduleDate.getMonth() + 1 === selectedMonth.value
   })
+  
+  // 날짜별 그룹화
+  return groupSchedulesByDate(monthlySchedules)
 })
+
+// 성경책 그룹을 자연스럽게 표시하는 함수
+const formatScheduleGroup = (scheduleGroup) => {
+  if (!scheduleGroup || scheduleGroup.length === 0) return ''
+  
+  if (scheduleGroup.length === 1) {
+    // 단일 성경책인 경우
+    const schedule = scheduleGroup[0]
+    return `${schedule.book} ${schedule.start_chapter}-${schedule.end_chapter}장`
+  } else {
+    // 여러 성경책인 경우 (첫 번째 책의 시작장부터 마지막 책의 끝장까지)
+    const firstBook = scheduleGroup[0]
+    const lastBook = scheduleGroup[scheduleGroup.length - 1]
+    
+    // 같은 책이 여러 개일 수 있으므로 중복 제거
+    const uniqueBooks = [...new Set(scheduleGroup.map(s => s.book))].join(', ')
+    
+    return `${firstBook.book} ${firstBook.start_chapter}장-${lastBook.book} ${lastBook.end_chapter}장`
+  }
+}
+
+// 그룹에 대한 읽기 상태 확인
+const getReadingStatusForGroup = (scheduleGroup) => {
+  if (!scheduleGroup || scheduleGroup.length === 0) return 'upcoming'
+  
+  const date = scheduleGroup[0].date
+  const today = new Date()
+  const scheduleDate = new Date(date)
+  
+  today.setHours(0, 0, 0, 0)
+  scheduleDate.setHours(0, 0, 0, 0)
+  
+  // 로그인한 사용자는 실제 읽기 상태 표시
+  if (authStore.isAuthenticated) {
+    // 모든 책이 읽음 상태인지 확인
+    const allCompleted = scheduleGroup.every(schedule => 
+      readingHistory.value.some(history => 
+        history.book === schedule.book && 
+        history.last_chapter_read === schedule.end_chapter
+      )
+    )
+    
+    if (allCompleted) return 'completed'
+    
+    if (scheduleDate < today) {
+      return 'not_completed'
+    }
+  } else {
+    // 비로그인 사용자는 과거 일정을 모두 읽음으로 표시
+    if (scheduleDate < today) {
+      return 'completed'
+    }
+  }
+  
+  // 오늘 날짜는 current로 표시
+  if (scheduleDate.getTime() === today.getTime()) {
+    return 'current'
+  }
+  
+  // 미래 날짜는 upcoming으로 표시
+  return 'upcoming'
+}
+
+// 그룹에 대한 상태 텍스트
+const getStatusTextForGroup = (scheduleGroup) => {
+  const status = getReadingStatusForGroup(scheduleGroup)
+  
+  switch (status) {
+    case 'completed':
+      return '읽음'
+    case 'not_completed':
+      return '미완료'
+    case 'current':
+      return '오늘'
+    case 'upcoming':
+      return '예정'
+    default:
+      return ''
+  }
+}
+
+// 현재 위치가 그룹 내에 있는지 확인
+const isCurrentLocationInGroup = (scheduleGroup) => {
+  if (!props.currentBook || !props.currentChapter || !scheduleGroup) return false
+  
+  return scheduleGroup.some(schedule => 
+    isCurrentLocation(schedule)
+  )
+}
+
+// 그룹에 대한 체크박스 클릭 처리
+const handleCheckboxClickForGroup = async (scheduleGroup, event) => {
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true
+    return
+  }
+
+  const checked = event.target.checked
+  const action = checked ? 'complete' : 'cancel'
+  
+  try {
+    // 일괄 업데이트 API 호출
+    await api.post('/api/v1/todos/bible-progress/bulk-update/', {
+      schedules: scheduleGroup.map(schedule => ({
+        date: schedule.date,
+        book: schedule.book,
+        end_chapter: schedule.end_chapter
+      })),
+      action: action
+    })
+    
+    // 상태 갱신
+    await loadReadingHistory()
+    
+    // 토스트 메시지 표시
+    toastMessage.value = checked ? '읽음 완료' : '읽음 취소'
+    toast.value.show()
+  } catch (error) {
+    console.error('읽기 상태 업데이트 실패:', error)
+  }
+}
 
 // 날짜 포맷팅 함수
 const formatScheduleDate = (dateString) => {
@@ -336,12 +476,16 @@ const fetchReadingHistory = async () => {
 // 스케줄 클릭 핸들러
 const handleScheduleClick = (schedule) => {
   if (props.isBulkEditMode) {
-    toggleReadingStatus(schedule)
-  } else if (props.isModal) {
-    emit('schedule-select', schedule)
-  } else {
-    goToSchedule(schedule)
+    // 체크박스 토글
+    const date = schedule.date
+    const group = filteredGroupedSchedules.value[date] || [schedule]
+    const fakeEvent = { target: { checked: getReadingStatusForGroup(group) !== 'completed' } }
+    handleCheckboxClickForGroup(group, fakeEvent)
+    return
   }
+  
+  selectedSchedule.value = schedule
+  showModal.value = true
 }
 
 // 첫 번째 미완료 항목으로 스크롤
@@ -350,8 +494,8 @@ const scrollToFirstIncomplete = () => {
     // 로그인한 경우
     if (authStore.isAuthenticated) {
       // 현재 월의 첫 번째 미완료 항목 찾기
-      const firstIncomplete = filteredSchedules.value?.find(schedule => 
-        getReadingStatus(schedule) === 'not_completed'
+      const firstIncomplete = filteredGroupedSchedules.value?.find(schedule => 
+        getReadingStatusForGroup(schedule) === 'not_completed'
       )
       
       if (firstIncomplete) {
@@ -362,7 +506,7 @@ const scrollToFirstIncomplete = () => {
         }
       } else {
         // 모두 읽은 상태면 다음 읽을 항목(미래 날짜 중 가장 빠른 날짜) 찾기
-        const nextToRead = filteredSchedules.value?.find(schedule => {
+        const nextToRead = filteredGroupedSchedules.value?.find(schedule => {
           const scheduleDate = new Date(schedule.date)
           const today = new Date()
           today.setHours(0, 0, 0, 0)
@@ -381,7 +525,7 @@ const scrollToFirstIncomplete = () => {
     // 비로그인의 경우 오늘 날짜로 스크롤
     else {
       const today = new Date()
-      const todaySchedule = filteredSchedules.value?.find(schedule => {
+      const todaySchedule = filteredGroupedSchedules.value?.find(schedule => {
         const scheduleDate = new Date(schedule.date)
         return scheduleDate.getDate() === today.getDate() &&
                scheduleDate.getMonth() === today.getMonth() &&
@@ -395,7 +539,7 @@ const scrollToFirstIncomplete = () => {
         }
       } else {
         // 오늘 일정이 없으면 다음 읽을 항목으로 스크롤
-        const nextSchedule = filteredSchedules.value?.find(schedule => {
+        const nextSchedule = filteredGroupedSchedules.value?.find(schedule => {
           const scheduleDate = new Date(schedule.date)
           const today = new Date()
           today.setHours(0, 0, 0, 0)
@@ -569,9 +713,11 @@ const goToLogin = () => {
 }
 
 // 체크박스 클릭 핸들러 추가
-const handleCheckboxClick = (schedule, event) => {
-  event.preventDefault() // 기본 체크박스 동작 방지
-  toggleReadingStatus(schedule)
+const handleCheckboxClick = async (schedule, event) => {
+  // 그룹 내의 모든 스케줄에 대해 일괄 처리
+  const date = schedule.date
+  const group = filteredGroupedSchedules.value[date] || [schedule]
+  handleCheckboxClickForGroup(group, event)
 }
 
 // 현재 위치 확인 함수
@@ -589,7 +735,7 @@ const scrollToCurrentLocation = () => {
   if (!props.isModal || !props.currentBook || !props.currentChapter) return
 
   nextTick(() => {
-    const currentSchedule = filteredSchedules.value?.find(schedule => {
+    const currentSchedule = filteredGroupedSchedules.value?.find(schedule => {
       const bookCode = findBookCode(schedule.book)
       return bookCode === props.currentBook && 
              props.currentChapter >= schedule.start_chapter && 
