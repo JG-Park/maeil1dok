@@ -319,8 +319,12 @@ const loadBibleContent = async (book, chapter) => {
   }
 }
 
-// 다음 장으로 이동
-const goToNextChapter = () => {
+// 다음 장으로 이동 - 터치 상태 초기화 추가
+const goToNextChapter = (event) => {
+  if (event && event.currentTarget) {
+    event.currentTarget.blur(); // 포커스 제거
+  }
+  
   const maxChapter = bookChapters[currentBook.value]
   if (currentChapter.value < maxChapter) {
     // 같은 책의 다음 장
@@ -339,8 +343,12 @@ const goToNextChapter = () => {
   }
 }
 
-// 이전 장으로 이동
-const goToPrevChapter = () => {
+// 이전 장으로 이동 - 터치 상태 초기화 추가
+const goToPrevChapter = (event) => {
+  if (event && event.currentTarget) {
+    event.currentTarget.blur(); // 포커스 제거
+  }
+  
   if (currentChapter.value > 1) {
     // 같은 책의 이전 장
     const prevChapter = currentChapter.value - 1
@@ -538,7 +546,32 @@ watch(
   }
 )
 
-onMounted(async () => {
+// 터치 디바이스 감지 함수 추가
+const detectTouchDevice = () => {
+  if (!process.client) return false; // SSR 체크
+
+  const hasTouchClass = document.documentElement.classList.contains('touch-device');
+  if (hasTouchClass) return true; // 이미 검사했으면 바로 반환
+
+  const isTouchDevice = (
+    'ontouchstart' in window || 
+    navigator.maxTouchPoints > 0 ||
+    navigator.msMaxTouchPoints > 0
+  );
+
+  if (isTouchDevice) {
+    document.documentElement.classList.add('touch-device');
+  } else {
+    document.documentElement.classList.add('no-touch-device');
+  }
+  
+  return isTouchDevice;
+};
+
+// 페이지 마운트 시 터치 디바이스 감지 실행
+onMounted(async () => {  // async 키워드 추가
+  detectTouchDevice();
+  
   await initializeTodayReading()
   
   const bookParam = String(route.query.book || '')
@@ -1153,7 +1186,7 @@ const handleAudioLink = (audioLink) => {
     </div>
 
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
-      <button class="nav-button prev" @click="goToPrevChapter">
+      <button class="nav-button prev" @click="goToPrevChapter($event)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -1234,7 +1267,7 @@ const handleAudioLink = (audioLink) => {
         </div>
       </div>
       
-      <button class="nav-button next" @click="goToNextChapter">
+      <button class="nav-button next" @click="goToNextChapter($event)">
         <span>다음</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1699,7 +1732,7 @@ const handleAudioLink = (audioLink) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 1rem;
+  padding: 0 0.75rem;
   gap: 1rem;
   background: white;
   box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
@@ -1711,7 +1744,7 @@ const handleAudioLink = (audioLink) => {
 }
 @supports (-webkit-touch-callout: none) {
   .navigation-controls {
-    padding: 0.5rem 2rem calc(env(safe-area-inset-bottom) - 8px) 2rem;
+    padding: 0.5rem 1.75rem calc(env(safe-area-inset-bottom) - 8px) 1.75rem;
   }
 }
 
@@ -1723,14 +1756,27 @@ const handleAudioLink = (audioLink) => {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 8px;
-  background-color: #f5f7fa;
   color: #4b5563;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  -webkit-tap-highlight-color: transparent; /* 추가: 터치 하이라이트 제거 */
+  outline: none; /* 추가: 포커스 아웃라인 제거 */
 }
 
+/* 추가: 터치 디바이스에서 호버 상태 제거 */
+@media (hover: none) {
+  .nav-button:hover {
+    background-color: transparent;
+    color: #4b5563;
+  }
+  
+  .nav-button:hover svg {
+    transform: none;
+  }
+}
+
+/* 기존 코드 유지 */
 .nav-button:hover {
   background-color: #e5e7eb;
   color: #1f2937;
@@ -2830,5 +2876,43 @@ const handleAudioLink = (audioLink) => {
   min-height: 0vw;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 터치 디바이스에서 hover 관련 스타일 제거 */
+html.touch-device .nav-button:hover {
+  background-color: transparent;
+  color: #4b5563;
+}
+
+html.touch-device .nav-button:hover svg {
+  transform: none !important;
+}
+
+html.touch-device .nav-button.prev:hover svg,
+html.touch-device .nav-button.next:hover svg {
+  transform: none !important;
+}
+
+/* hover 가능한 디바이스에서만 hover 효과 적용 */
+@media (hover: hover) {
+  html.no-touch-device .nav-button:hover {
+    background-color: #e5e7eb;
+    color: #1f2937;
+  }
+
+  html.no-touch-device .nav-button.prev:hover svg {
+    transform: translateX(-2px);
+  }
+
+  html.no-touch-device .nav-button.next:hover svg {
+    transform: translateX(2px);
+  }
+}
+
+/* 버튼 active 상태 (터치) 스타일 */
+.nav-button:active {
+  transform: translateY(1px);
+  background-color: #e5e7eb;
+  color: #1f2937;
 }
 </style> 
