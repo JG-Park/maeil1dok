@@ -66,7 +66,7 @@ const router = useRouter()
 .content-section {
   background: white;
   margin: 1rem;
-  padding: 1.5rem;
+  padding: 0.75rem;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }

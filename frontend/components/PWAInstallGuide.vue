@@ -135,7 +135,6 @@ export default {
 
 <style scoped>
 .pwa-install-guide {
-  max-width: 600px;
   margin: 0 auto;
   background-color: white;
   border-radius: 12px;
