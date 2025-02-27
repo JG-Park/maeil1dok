@@ -6,6 +6,30 @@
     <div class="content-wrapper">
       <DailyStatus class="fade-in" style="animation-delay: 0.2s"/>
       
+      <!-- 공지사항 섹션 추가 -->
+      <div class="section notice-section fade-in" style="animation-delay: 0.25s" @click="navigateToInstall">
+        <div class="notice-header">
+          <div class="notice-title-wrapper">
+            <h2>공지사항</h2>
+            <span class="new-badge">NEW</span>
+          </div>
+        </div>
+        <div class="notice-content">
+          <div class="notice-icon app-icon">
+            APP
+          </div>
+          <div class="notice-text">
+            <div class="notice-title">매일일독 앱 설치 방법</div>
+            <div class="notice-description">매일일독을 앱으로 사용해보세요</div>
+          </div>
+          <div class="notice-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      
       <div class="horizontal-sections fade-in" style="animation-delay: 0.3s">
         <div class="section flex-1">
           <h2>오늘일독</h2>
@@ -295,6 +319,11 @@ const isAuthenticated = computed(() => auth.isAuthenticated)
 // 성경통독표로 이동하는 함수 추가
 const navigateToReadingPlan = () => {
   navigateTo('/reading-plan')
+}
+
+// 설치 안내 페이지로 이동하는 함수 추가
+const navigateToInstall = () => {
+  navigateTo('/install')
 }
 
 // 통계 데이터를 위한 ref 추가
@@ -942,5 +971,103 @@ h2 {
   .stats-container {
     flex-direction: column;
   }
+}
+
+/* 공지사항 섹션 스타일 */
+.notice-section {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notice-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.04),
+    0 3px 6px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+
+.notice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.notice-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notice-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.new-badge {
+  background: #EF4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notice-content {
+  display: flex;
+  align-items: center;
+  background: #FAFAFA;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.notice-icon.app-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #EBF5FF;
+  border-radius: 10px;
+  color: #3B82F6;
+  margin-right: 1rem;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.notice-text {
+  flex: 1;
+}
+
+.notice-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.notice-description {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.notice-arrow {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  margin-left: 0.5rem;
+}
+
+.notice-section:hover .notice-arrow {
+  color: var(--primary-color);
+  opacity: 1;
+  transform: translateX(2px);
 }
 </style> 
