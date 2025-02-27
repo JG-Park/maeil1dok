@@ -82,7 +82,7 @@
                 <p class="tip">💡 설치 버튼이 나타나면 '설치'를 탭하고 3단계로 진행하세요.</p>
                 <p class="tip">💡 설치 버튼이 없으면 주소창 오른쪽의 메뉴(⋮)를 탭하세요.</p>
               </div>
-              <img src="/android1.png" alt="Chrome 브라우저" class="step-image" />
+              <img src="/Android1.png" alt="Chrome 브라우저" class="step-image" />
             </div>
           </div>
           
@@ -91,7 +91,7 @@
             <div class="step-details">
               <h3 class="step-title">홈 화면에 추가 선택하기</h3>
               <p class="step-desc">메뉴 목록에서 '홈 화면에 추가'를 선택하세요.</p>
-              <img src="/android2.png" alt="홈 화면에 추가 옵션" class="step-image" />
+              <img src="/Android2.png" alt="홈 화면에 추가 옵션" class="step-image" />
             </div>
           </div>
           
@@ -100,7 +100,7 @@
             <div class="step-details">
               <h3 class="step-title">설치 확인하기</h3>
               <p class="step-desc">'설치'를 선택하세요.</p>
-              <img src="/android3.png" alt="설치 버튼" class="step-image" />
+              <img src="/Android3.png" alt="설치 버튼" class="step-image" />
             </div>
           </div>
           
@@ -109,7 +109,7 @@
             <div class="step-details">
               <h3 class="step-title">앱 실행하기</h3>
               <p class="step-desc">매일일독이 앱으로 설치되고 홈 화면에서 실행할 수 있습니다.</p>
-              <img src="/android4.png" alt="설치 완료" class="step-image" />
+              <img src="/Android4.png" alt="설치 완료" class="step-image" />
             </div>
           </div>
         </div>
