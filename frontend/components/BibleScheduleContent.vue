@@ -899,6 +899,12 @@ watch(readingHistory, () => {
   cursor: pointer;
 }
 
+/* 일정 항목 호버 효과 추가 */
+.schedule-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
 .schedule-info {
   display: flex;
   flex-direction: column;
@@ -1020,6 +1026,14 @@ watch(readingHistory, () => {
   min-width: 32px;
   min-height: 32px;
   margin: -8px 8px -8px -8px;
+  cursor: pointer; /* 체크박스 영역에 포인터 커서 추가 */
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+/* 체크박스 호버 효과 추가 */
+.checkbox:hover {
+  background: rgba(97, 116, 117, 0.08);
 }
 
 .checkbox input[type="checkbox"] {
@@ -1030,6 +1044,11 @@ watch(readingHistory, () => {
   appearance: none;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+/* 체크박스 인풋 호버 효과 강화 */
+.checkbox input[type="checkbox"]:hover {
+  border-color: var(--primary-color);
 }
 
 .checkbox input[type="checkbox"]:checked {
@@ -1376,5 +1395,27 @@ watch(readingHistory, () => {
   background: #FEF9C3;
   color: #997b1b;
   border: 1px solid #e5d87b;
+}
+
+/* 상태별 스케줄 항목의 호버 효과 개선 */
+.schedule-item.completed:hover {
+  background: #E7F9ED;
+}
+
+.schedule-item.not_completed:hover {
+  background: #FEEAEA;
+}
+
+.schedule-item.current:hover {
+  background: #E5F0FF;
+}
+
+.schedule-item.upcoming:hover {
+  background: #F3F6FB;
+}
+
+.schedule-item.current-location:hover {
+  background: #FDF7D7;
+  border-color: #F9E79F;
 }
 </style> 
