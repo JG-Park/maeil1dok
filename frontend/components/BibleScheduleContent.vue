@@ -484,19 +484,20 @@ const handleScheduleClick = (schedule) => {
     return
   }
   
-  // 모달 표시 대신 바로 이동
-  const bookCode = findBookCode(schedule.book)
-  if (!bookCode) {
-    console.error('Invalid book name:', schedule.book)
-    return
-  }
-  
   // 이벤트 발생 (부모 컴포넌트에서 처리)
   emit('schedule-select', schedule)
   
-  // 모달이 열려있는 경우 (isModal이 true인 경우) 바로 이동
+  // 모달이 사용되는 경우 (isModal이 true인 경우) 바로 이동
   if (props.isModal) {
+    const bookCode = findBookCode(schedule.book)
+    if (!bookCode) {
+      console.error('Invalid book name:', schedule.book)
+      return
+    }
     router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}&from=reading-plan&month=${selectedMonth.value}`)
+  } else {
+    // 모달이 아닌 경우(reading-plan 페이지)에서는 모달 표시
+    goToSchedule(schedule)
   }
 }
 
