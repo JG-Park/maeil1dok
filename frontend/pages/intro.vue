@@ -11,8 +11,8 @@
 
     <div class="content-section fade-in" style="animation-delay: 0.2s">
       <div class="video-info">
-        <h2>레위기 개론</h2>
-        <p class="description">레위기의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
+        <h2>민수기 개론</h2>
+        <p class="description">민수기의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
       </div>
 
       <div class="video-wrapper">
@@ -20,7 +20,7 @@
           <iframe
             width="100%"
             height="100%"
-            src="https://www.youtube.com/embed/4Ttqlz3qR8Q"
+            src="https://www.youtube.com/embed/ODkCppuCsAA"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
@@ -54,7 +54,7 @@ const taskStore = useTaskStore()
 const router = useRouter()
 
 const handleComplete = () => {
-  taskStore.completeTask(3) // 레위기 개론 task의 ID
+  taskStore.completeTask(3) // 민수기 개론 task의 ID
   router.push('/')
 }
 </script>

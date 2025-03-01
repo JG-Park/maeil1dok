@@ -281,7 +281,7 @@ const toggleTask = async (task) => {
       } else {
         navigateTo('/reading')  // 실패 시 기본 페이지로
       }
-    } else if (task.title === '레위기 개론') {
+    } else if (task.title === '민수기 개론') {
       navigateTo('/intro')
     } else if (task.title === '하세나하시조') {
       navigateTo('/video')

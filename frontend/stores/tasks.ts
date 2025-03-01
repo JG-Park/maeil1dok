@@ -32,7 +32,7 @@ export const useTaskStore = defineStore('tasks', {
       { id: 2, title: '하세나하시조', completed: false }
     ],
     introTasks: [
-      { id: 3, title: '레위기 개론', completed: false }
+      { id: 3, title: '민수기 개론', completed: false }
     ],
     todayReading: null as BibleReading | null,
     bibleSchedules: [] as BibleReading[],
