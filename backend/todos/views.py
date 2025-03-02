@@ -567,4 +567,33 @@ def get_stats(request):
             'todayReaders': today_readers
         })
     except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_reading_for_date(request, date):
+    """특정 날짜의 성경 읽기 일정을 반환"""
+    try:
+        # 날짜 문자열을 datetime 객체로 변환
+        reading_date = datetime.strptime(date, '%Y-%m-%d').date()
+        
+        # 해당 날짜의 일정 조회
+        schedule = DailyBibleSchedule.objects.filter(date=reading_date).first()
+        
+        if schedule:
+            response_data = {
+                'book': book_to_code.get(schedule.book, 'gen'),
+                'chapter': schedule.start_chapter,
+                'end_chapter': schedule.end_chapter,
+                'date': schedule.date.isoformat(),
+                'audio_link': schedule.audio_link,
+                'guide_link': schedule.guide_link
+            }
+            return Response(response_data)
+        else:
+            return Response({'error': 'No reading scheduled for this date'}, status=404)
+            
+    except ValueError:
+        return Response({'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+    except Exception as e:
+        logger.error(f"Error in get_reading_for_date: {str(e)}", exc_info=True)
         return Response({'error': str(e)}, status=500) 

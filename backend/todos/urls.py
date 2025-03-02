@@ -16,4 +16,5 @@ urlpatterns = [
     path('reading-history/', views.get_reading_history, name='reading-history'),
     path('completed-sections/', views.get_completed_sections_count, name='completed-sections'),
     path('stats/', views.get_stats, name='get_stats'),
+    path('reading/<str:date>/', views.get_reading_for_date, name='get-reading-for-date'),
 ] 
