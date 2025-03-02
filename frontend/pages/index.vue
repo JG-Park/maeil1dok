@@ -254,6 +254,34 @@
         GitHub
       </a>
     </div>
+
+    <!-- 일요일 알림 모달 추가 -->
+    <div v-if="showSundayModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>오늘은 일독이 없는 날이에요 🙏</h3>
+        </div>
+        <div class="modal-body">
+          <div class="modal-buttons">
+            <button @click="navigateToIntro" class="modal-button intro-button">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              이번 주 개론 시청
+            </button>
+            <button @click="navigateToReading" class="modal-button reading-button">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              내일 본문부터 읽기
+            </button>
+          </div>
+        </div>
+        <button @click="closeSundayModal" class="modal-close">
+          닫기
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -272,14 +300,32 @@ const api = useApi()
 const todayTasks = computed(() => taskStore.todayTasks)
 const introTasks = computed(() => taskStore.introTasks)
 
+// 일요일 모달 상태 관리
+const showSundayModal = ref(false)
+
+// 일요일 체크 함수
+const isSunday = () => {
+  return new Date().getDay() === 0
+}
+
+// 모달 닫기
+const closeSundayModal = () => {
+  showSundayModal.value = false
+}
+
+// 기존 toggleTask 함수 수정
 const toggleTask = async (task) => {
   if (!task.completed) {
     if (task.title === '성경일독') {
+      if (isSunday()) {
+        showSundayModal.value = true
+        return
+      }
       const todayReading = await taskStore.fetchTodayReading()
       if (todayReading) {
         navigateTo(`/reading?book=${todayReading.book}&chapter=${todayReading.chapter}`)
       } else {
-        navigateTo('/reading')  // 실패 시 기본 페이지로
+        navigateTo('/reading')
       }
     } else if (task.title === '민수기 개론') {
       navigateTo('/intro')
@@ -287,6 +333,39 @@ const toggleTask = async (task) => {
       navigateTo('/video')
     }
   }
+}
+
+// 다음 월요일의 날짜를 구하는 함수 추가
+const getNextMonday = () => {
+  const today = new Date()
+  const day = today.getDay() // 0 = 일요일, 1 = 월요일, ...
+  const daysUntilMonday = day === 0 ? 1 : (8 - day) // 일요일이면 1일 후, 아니면 다음 월요일까지 남은 일수
+  const nextMonday = new Date(today)
+  nextMonday.setDate(today.getDate() + daysUntilMonday)
+  return nextMonday
+}
+
+// 모달 버튼용 네비게이션 함수 수정
+const navigateToReading = async () => {
+  closeSundayModal()
+  try {
+    // 다음 월요일 날짜로 읽을 본문 가져오기
+    const nextMonday = getNextMonday()
+    const nextReading = await taskStore.fetchReadingForDate(nextMonday)
+    if (nextReading) {
+      navigateTo(`/reading?book=${nextReading.book}&chapter=${nextReading.chapter}`)
+    } else {
+      navigateTo('/reading')
+    }
+  } catch (error) {
+    console.error('Failed to fetch next reading:', error)
+    navigateTo('/reading')
+  }
+}
+
+const navigateToIntro = () => {
+  closeSundayModal()
+  navigateTo('/intro')
 }
 
 // 진도율 계산 로직
@@ -1112,5 +1191,120 @@ h2 {
 
 .github-link:hover .github-icon {
   opacity: 1;
+}
+
+/* 모달 스타일 추가 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: modalFadeIn 0.3s ease;
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.modal-body {
+  text-align: center;
+}
+
+.modal-body p {
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.modal-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.reading-button {
+  background: #f5f9ff;
+  color: #366DAE;
+}
+
+.reading-button:hover {
+  background: #edf4ff;
+  transform: translateY(-1px);
+}
+
+.intro-button {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.intro-button:hover {
+  background: #e5efeb;
+  transform: translateY(-1px);
+}
+
+.modal-close {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #f5f5f5;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style> 
