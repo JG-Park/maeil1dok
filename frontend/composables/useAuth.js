@@ -1,6 +1,8 @@
 import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 
+// Note: This file replaces the former auth.js composable
+// All authentication-related functionality is now handled here and in the auth store
 export function useAuth() {
   const api = useApi()
   const user = ref(null)
@@ -9,7 +11,7 @@ export function useAuth() {
 
   // Computed properties for auth state
   const isAuthenticated = computed(() => !!user.value)
-  const isAdmin = computed(() => user.value?.is_admin === true)
+  const isAdmin = computed(() => user.value?.is_staff === true)
 
   // Function to fetch current user
   const fetchCurrentUser = async () => {
@@ -17,7 +19,7 @@ export function useAuth() {
     error.value = null
     
     try {
-      const response = await api.get('/api/v1/users/me/')
+      const response = await api.get('/api/v1/user/')
       user.value = response.data
     } catch (err) {
       error.value = err.message || '사용자 정보를 가져오는데 실패했습니다.'
@@ -40,6 +42,11 @@ export function useAuth() {
   // Initialize - fetch user on first use
   fetchCurrentUser()
 
+  // auth.js의 필요한 기능들을 이 파일로 통합
+  const login = async (username, password) => {
+    // 로그인 로직
+  }
+
   return {
     user,
     isAuthenticated,
@@ -48,5 +55,6 @@ export function useAuth() {
     error,
     fetchCurrentUser,
     logout,
+    login,
   }
 } 

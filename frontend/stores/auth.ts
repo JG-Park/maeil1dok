@@ -59,7 +59,6 @@ export const useAuthStore = defineStore('auth', {
           try {
             await this.fetchUser()
           } catch (error) {
-            console.error('Failed to initialize auth:', error)
             this.logout()
           }
         }
@@ -82,7 +81,6 @@ export const useAuthStore = defineStore('auth', {
         await this.fetchUser()
         return true
       } catch (error) {
-        console.error('Login error:', error)
         this.logout()
         return false
       }
