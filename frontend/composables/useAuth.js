@@ -19,7 +19,7 @@ export function useAuth() {
     error.value = null
     
     try {
-      const response = await api.get('/api/v1/user/')
+      const response = await api.get('/api/v1/auth/user/')
       user.value = response.data
     } catch (err) {
       error.value = err.message || '사용자 정보를 가져오는데 실패했습니다.'
