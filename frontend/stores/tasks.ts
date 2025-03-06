@@ -109,6 +109,16 @@ export const useTaskStore = defineStore('tasks', {
         this.completedSectionsCount = 0
         return null
       }
-    }
+    },
+    async fetchReadingForDate(date: Date) {
+      try {
+        const formattedDate = date.toISOString().split('T')[0] // YYYY-MM-DD 형식
+        const response = await useApi().get(`/api/v1/todos/reading/${formattedDate}/`)
+        return response
+      } catch (error) {
+        console.error('Error fetching reading for date:', error)
+        return null
+      }
+    },
   }
 }) 
