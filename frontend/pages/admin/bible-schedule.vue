@@ -191,33 +191,25 @@
 import { ref, onMounted, computed } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
 
 const router = useRouter()
 const api = useApi()
+const auth = useAuthStore()
 
-// 인증 로직 페이지 내에 직접 구현
-const user = ref(null)
-const isAuthenticated = computed(() => !!user.value)
-const isAdmin = computed(() => user.value?.is_admin === true)
+const isAuthenticated = computed(() => auth.isAuthenticated)
+const isAdmin = computed(() => auth.user?.is_staff === true)
 
 const checkAuth = async () => {
-  try {
-    const response = await api.get('/api/v1/users/me/')
-    user.value = response.data
-    
-    // 인증되지 않았거나 어드민이 아니면 홈으로 리다이렉트
-    if (!isAuthenticated.value || !isAdmin.value) {
-      alert('관리자만 접근할 수 있는 페이지입니다.')
-      router.push('/')
-      return false
-    }
-    return true
-  } catch (error) {
-    console.error('Authentication check failed:', error)
+  await new Promise(resolve => setTimeout(resolve, 100))
+
+  if (!isAuthenticated.value || !isAdmin.value) {
     alert('관리자만 접근할 수 있는 페이지입니다.')
     router.push('/')
     return false
   }
+
+  return true
 }
 
 const isLoading = ref(true)
@@ -398,11 +390,13 @@ const deleteScheduleGroup = async (date) => {
   }
 };
 
+// 페이지 마운트 시 인증 체크
 onMounted(async () => {
-  const isAuthorized = await checkAuth()
-  if (isAuthorized) {
+  isLoading.value = true
+  if (await checkAuth()) {
     await loadSchedules()
   }
+  isLoading.value = false
 })
 </script>
 
