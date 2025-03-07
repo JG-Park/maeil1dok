@@ -671,30 +671,79 @@ const isCurrentLocation = (schedule) => {
          props.currentChapter <= schedule.end_chapter
 }
 
-// 현재 위치로 스크롤하는 함수
-const scrollToCurrentLocation = () => {
-  if (!props.isModal || !props.currentBook || !props.currentChapter || 
-      !filteredGroupedSchedules.value || Object.keys(filteredGroupedSchedules.value).length === 0) {
-    return;
-  }
+// 현재 위치로 스크롤하는 함수 수정
+const scrollToCurrentPosition = (currentPosition, currentMonthValue) => {
+  if (!currentPosition || !currentPosition.book || !currentPosition.chapter) return;
 
   nextTick(() => {
-    const dateEntries = Object.entries(filteredGroupedSchedules.value);
-    const currentScheduleEntry = dateEntries.find(([_, scheduleGroup]) => {
-      return scheduleGroup.some(schedule => {
-        const bookCode = findBookCode(schedule.book);
-        return bookCode === props.currentBook && 
-               props.currentChapter >= schedule.start_chapter && 
-               props.currentChapter <= schedule.end_chapter;
-      });
+    // 1. 현재 위치가 있는 달인지 확인
+    const isCurrentMonthHasPosition = schedules.value.some(schedule => {
+      const scheduleDate = new Date(schedule.date);
+      const scheduleMonth = scheduleDate.getMonth() + 1;
+      const bookCode = findBookCode(schedule.book);
+      
+      return scheduleMonth === currentMonthValue &&
+             bookCode === currentPosition.book &&
+             currentPosition.chapter >= schedule.start_chapter &&
+             currentPosition.chapter <= schedule.end_chapter;
     });
 
-    if (currentScheduleEntry) {
-      const [date] = currentScheduleEntry;
-      const element = document.querySelector(`[data-date="${date}"]`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    // 2. 현재 위치가 있는 달이면 해당 위치로 스크롤
+    if (isCurrentMonthHasPosition) {
+      selectedMonth.value = currentMonthValue;
+      
+      // 약간의 지연 후 스크롤 실행 (렌더링 완료 대기)
+      setTimeout(() => {
+        const dateEntries = Object.entries(filteredGroupedSchedules.value);
+        const currentScheduleEntry = dateEntries.find(([_, scheduleGroup]) => {
+          return scheduleGroup.some(schedule => {
+            const bookCode = findBookCode(schedule.book);
+            return bookCode === currentPosition.book && 
+                   currentPosition.chapter >= schedule.start_chapter && 
+                   currentPosition.chapter <= schedule.end_chapter;
+          });
+        });
+
+        if (currentScheduleEntry) {
+          const [date] = currentScheduleEntry;
+          const element = document.querySelector(`[data-date="${date}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 100);
+    } else {
+      // 3. 현재 위치가 없는 달이면 오늘 날짜가 있는 달로 이동
+      const today = new Date();
+      const todayMonth = today.getMonth() + 1;
+      
+      selectedMonth.value = todayMonth;
+      
+      // 약간의 지연 후 스크롤 실행
+      setTimeout(() => {
+        if (authStore.isAuthenticated) {
+          // 로그인한 경우: 첫 번째 미완료 항목으로 스크롤
+          const dateEntries = Object.entries(filteredGroupedSchedules.value);
+          const firstIncompleteEntry = dateEntries.find(([_, scheduleGroup]) => 
+            getReadingStatusForGroup(scheduleGroup) === 'not_completed'
+          );
+          
+          if (firstIncompleteEntry) {
+            const [date] = firstIncompleteEntry;
+            const element = document.querySelector(`[data-date="${date}"]`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        } else {
+          // 비로그인: 오늘 날짜로 스크롤
+          const todayStr = today.toISOString().split('T')[0];
+          const element = document.querySelector(`[data-date="${todayStr}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 100);
     }
   });
 };
@@ -790,13 +839,18 @@ watch(readingHistory, () => {
   if (isInitialized.value && !isLoading.value) {
     nextTick(() => {
       if (props.isModal) {
-        scrollToCurrentLocation();
+        scrollToCurrentPosition(props.currentPosition, selectedMonth.value);
       } else {
         scrollToFirstIncomplete();
       }
     });
   }
 }, { deep: true });
+
+// 컴포넌트에 메서드 노출
+defineExpose({
+  scrollToCurrentPosition
+});
 </script>
 
 <style scoped>
