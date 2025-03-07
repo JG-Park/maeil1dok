@@ -1,78 +1,47 @@
 <template>
-  <Transition name="toast">
-    <div v-if="isVisible" class="toast" :class="type">
-      <div class="toast-content">
-        <svg v-if="type === 'success'" width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        {{ message }}
+  <div class="fixed top-4 right-4 z-50">
+    <TransitionGroup name="toast">
+      <div
+        v-for="toast in toasts"
+        :key="toast.id"
+        :class="[
+          'mb-2 p-4 rounded-lg shadow-lg max-w-sm',
+          'transform transition-all duration-300',
+          toastTypeClasses[toast.type]
+        ]"
+      >
+        {{ toast.message }}
       </div>
-    </div>
-  </Transition>
+    </TransitionGroup>
+  </div>
 </template>
 
-<script setup>
-import { ref, watch } from 'vue'
+<script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 
-const props = defineProps({
-  message: String,
-  type: {
-    type: String,
-    default: 'success'
-  },
-  duration: {
-    type: Number,
-    default: 2000
-  }
-})
+const { toasts } = useToast()
 
-const isVisible = ref(false)
-
-// 외부에서 show 메서드를 호출할 수 있도록
-const show = () => {
-  isVisible.value = true
-  setTimeout(() => {
-    isVisible.value = false
-  }, props.duration)
+const toastTypeClasses = {
+  success: 'bg-green-500 text-white',
+  error: 'bg-red-500 text-white',
+  info: 'bg-blue-500 text-white',
+  warning: 'bg-yellow-500 text-white'
 }
-
-defineExpose({ show })
 </script>
 
 <style scoped>
-.toast {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  background: #1E293B;
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 500;
-  z-index: 1000;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.toast-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.toast.success {
-  background: #065F46;
-}
-
 .toast-enter-active,
 .toast-leave-active {
   transition: all 0.3s ease;
 }
 
-.toast-enter-from,
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
 .toast-leave-to {
   opacity: 0;
-  transform: translate(-50%, 20px);
+  transform: translateX(30px);
 }
 </style> 
