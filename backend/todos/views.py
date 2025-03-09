@@ -208,7 +208,6 @@ def bible_schedule_list(request):
             'data': serializer.data,
             'message': 'Successfully retrieved schedules'
         }
-        print("Backend response:", response_data)  # 디버깅용 로그 추가
         return Response(response_data)
     
     elif request.method == 'POST':
