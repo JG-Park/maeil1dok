@@ -373,12 +373,14 @@ import { useRouter } from 'vue-router'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import { useSubscriptionStore } from '~/stores/subscription'
+import { useSelectedPlanStore } from '~/stores/selectedPlan'
 import Header from '~/components/Header.vue'
 import DailyStatus from '~/components/DailyStatus.vue'
 
 const auth = useAuthStore()
 const api = useApi()
 const subscriptionStore = useSubscriptionStore()
+const selectedPlanStore = useSelectedPlanStore()
 const isAuthenticated = computed(() => auth.isAuthenticated)
 
 const router = useRouter()
@@ -426,7 +428,10 @@ const closeSundayModal = () => {
 }
 
 // 플랜 관련 상태 추가
-const selectedPlanId = ref(null)
+const selectedPlanId = computed({
+  get: () => selectedPlanStore.selectedPlanId,
+  set: (value) => selectedPlanStore.setSelectedPlanId(value)
+})
 const showPlanDropdown = ref(false)
 // 새로운 드롭다운 상태 추가
 const showStatsPlanDropdown = ref(false)
@@ -517,7 +522,7 @@ const fetchStats = async () => {
 
 // 플랜 선택 핸들러 수정
 const selectPlan = async (subscription) => {
-  selectedPlanId.value = subscription.plan_id
+  selectedPlanStore.setSelectedPlanId(subscription.plan_id)
   showPlanDropdown.value = false
   showStatsPlanDropdown.value = false
   showProgressPlanDropdown.value = false
@@ -564,17 +569,25 @@ onMounted(() => {
         // 구독 정보를 먼저 로드
         await subscriptionStore.fetchSubscriptions()
 
-        // 다른 데이터 로드
-        if (subscriptionStore.subscriptions.length > 0) {
-          selectedPlanId.value = subscriptionStore.subscriptions[0].plan_id
-          await fetchStats()
+        // 저장된 플랜 ID 복원
+        selectedPlanStore.initializeFromStorage()
+
+        // 저장된 플랜 ID가 없거나 유효하지 않은 경우 첫 번째 구독의 플랜 ID 사용
+        if (!selectedPlanId.value || !subscriptionStore.subscriptions.find(sub => sub.plan_id === selectedPlanId.value)) {
+          if (subscriptionStore.subscriptions.length > 0) {
+            selectedPlanStore.setSelectedPlanId(subscriptionStore.subscriptions[0].plan_id)
+          }
         }
+
+        // 통계 데이터 로드
+        await fetchStats()
 
       } catch (error) {
         console.error('데이터를 가져오는데 실패했습니다:', error)
       }
     } else {
       // 미로그인 사용자를 위한 기본 통계
+      selectedPlanStore.setSelectedPlanId(1) // 기본 플랜 ID
       await fetchStats()
     }
   }
@@ -588,7 +601,6 @@ onMounted(() => {
   initTodayTasks()
 
   // 방문자 수 증가 및 통계 가져오기
-  // 페이지 로드 시 한 번만 실행
   if (!sessionStorage.getItem('visited')) {
     incrementVisitorCount()
     sessionStorage.setItem('visited', 'true')
@@ -608,16 +620,20 @@ watch(() => selectedPlanId.value, async (newValue) => {
   }
 })
 
-// auth 상태 변경 감시 추가 (복원)
+// auth 상태 변경 감시 수정
 watch(() => auth.isAuthenticated, async (newValue) => {
   if (newValue) {
     await subscriptionStore.fetchSubscriptions()
     if (subscriptionStore.subscriptions.length > 0) {
-      selectedPlanId.value = subscriptionStore.subscriptions[0].plan_id
+      // 저장된 플랜 ID가 있고 유효한 경우 그대로 사용, 아니면 첫 번째 구독의 플랜 ID 사용
+      const storedPlanId = selectedPlanId.value
+      if (!storedPlanId || !subscriptionStore.subscriptions.find(sub => sub.plan_id === storedPlanId)) {
+        selectedPlanStore.setSelectedPlanId(subscriptionStore.subscriptions[0].plan_id)
+      }
     }
   } else {
-    // 로그아웃 시 초기화
-    selectedPlanId.value = null
+    // 로그아웃 시 기본 플랜으로 초기화
+    selectedPlanStore.setSelectedPlanId(1)
   }
 })
 
