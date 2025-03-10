@@ -27,12 +27,18 @@ export function useToast() {
     }
   }
 
+  // showToastMessage 함수 추가
+  const showToastMessage = (message: string, type: ToastMessage['type'] = 'success') => {
+    addToast(message, type)
+  }
+
   return {
     toasts,
     success: (message: string) => addToast(message, 'success'),
     error: (message: string) => addToast(message, 'error'),
     info: (message: string) => addToast(message, 'info'),
     warning: (message: string) => addToast(message, 'warning'),
-    remove: removeToast
+    remove: removeToast,
+    showToastMessage // 새로 추가한 함수 export
   }
 } 
