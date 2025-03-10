@@ -66,7 +66,7 @@
                   </div>
                 </div>
               </template>
-              <template v-else-if="task.title === '하세나하시조'">
+          <template v-else-if="task.title === '하세나하시조'">
                 <div class="task video-task" @click="toggleTask(task)">
                   <div class="task-content">
                     <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -327,7 +327,7 @@ const toggleTask = async (task) => {
       } else {
         navigateTo('/reading')
       }
-    } else if (task.title === '민수기 개론') {
+    } else if (task.title === '신명기  개론') {
       navigateTo('/intro')
     } else if (task.title === '하세나하시조') {
       navigateTo('/video')

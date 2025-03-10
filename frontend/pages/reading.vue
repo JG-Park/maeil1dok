@@ -72,7 +72,7 @@ const bibleBooks = {
     { id: 'gen', name: '창세기', chapters: 50 },
     { id: 'exo', name: '출애굽기', chapters: 40 },
     { id: 'lev', name: '레위기', chapters: 27 },
-    { id: 'num', name: '민수기', chapters: 36 },
+    { id: 'num', name: '신명기 ', chapters: 36 },
     { id: 'deu', name: '신명기', chapters: 34 },
     { id: 'jos', name: '여호수아', chapters: 24 },
     { id: 'jdg', name: '사사기', chapters: 21 },
