@@ -237,15 +237,6 @@
                 </svg>
                 새 일정 추가
               </button>
-
-              <!-- 테스트 버튼 추가 -->
-              <div v-if="isStaff" class="test-controls">
-                <button @click="generateTestSchedules(5)" 
-                        class="btn btn-secondary btn-sm" 
-                        :disabled="loadingSchedules">
-                  테스트 데이터 생성 (5개)
-                </button>
-              </div>
             </div>
             
             <!-- 로딩 상태 -->
@@ -889,7 +880,7 @@ const fetchSchedules = async (planId) => {
       // 다른 형태의 객체인 경우 (results 필드에 배열이 있을 수 있음)
       schedules.value = response.results || []
       console.log('response.results에서 데이터 추출:', schedules.value.length)
-  } else {
+    } else {
       // 기타 경우
       schedules.value = []
       console.log('일치하는 데이터 구조 없음')
@@ -943,9 +934,10 @@ const uploadScheduleExcel = async () => {
     const formData = new FormData()
     formData.append('file', scheduleFile.value)
     formData.append('plan_id', selectedPlan.value.id.toString())
-    formData.append('update_mode', uploadMode.value)
+    formData.append('update_mode', uploadMode.value === 'replace' ? 'replace' : 'update')
     
-    const response = await api.post('/api/v1/todos/schedules/upload_excel/', formData)
+    // URL 경로 수정 (하이픈으로 변경)
+    const response = await api.post('/api/v1/todos/schedules/upload-excel/', formData)
     
     // 성공 메시지 표시
     showToastMessage(response.detail || '일정이 성공적으로 업로드되었습니다.')
@@ -961,8 +953,8 @@ const uploadScheduleExcel = async () => {
     
     // 폼 초기화
     scheduleFile.value = null
-    if (document.getElementById('scheduleFileInput')) {
-      document.getElementById('scheduleFileInput').value = null
+    if (this.$refs.scheduleFileInput) {
+      this.$refs.scheduleFileInput.value = null
     }
   } catch (error) {
     console.error('엑셀 업로드 오류:', error)
