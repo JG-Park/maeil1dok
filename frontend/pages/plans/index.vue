@@ -49,9 +49,7 @@
                     </p>
                   </div>
                   <div class="flex flex-col gap-2">
-                    <button @click="goToReadingPlan(sub)" class="action-button today-reading">
-                      성경통독 일정
-                    </button>
+                    <button @click="goToReadingPlan(sub)" class="action-button today-reading">성경통독표</button>
                     <button v-if="!sub.is_default" @click="confirmUnsubscribe(sub)" :class="[
                       'action-button',
                       sub.is_active ? 'cancel' : 'resume'
@@ -707,6 +705,4 @@ onMounted(async () => {
 .modal-button.primary:hover {
   background-color: var(--primary-dark);
 }
-
-
 </style>
