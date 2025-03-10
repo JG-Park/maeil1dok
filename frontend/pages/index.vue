@@ -8,16 +8,33 @@
     <div class="content-wrapper">
       <DailyStatus class="fade-in" style="animation-delay: 0.2s" />
 
-      <!-- 공지사항 섹션 추가 -->
-      <div class="section notice-section fade-in" style="animation-delay: 0.25s" @click="navigateTo('/install')">
+      <!-- 공지사항 섹션 수정 -->
+      <div class="section notice-section fade-in" style="animation-delay: 0.25s">
         <div class="notice-header">
           <div class="notice-title-wrapper">
             <h2>공지사항</h2>
-            <span class="new-badge">NEW</span>
           </div>
         </div>
-        <div class="notice-content">
+        
+        <!-- 플랜 업데이트 공지 추가 -->
+        <div class="notice-content" @click="navigateTo('/notice/plan-update')">
           <div class="notice-icon app-icon">
+            새기능
+          </div>
+          <div class="notice-text">
+            <div class="notice-title">푸른통독 관리 기능 추가<span class="new-badge">NEW</span></div>
+            <div class="notice-description">이제 청년부 푸른통독도 함께 진행할 수 있어요</div>
+          </div>
+          <div class="notice-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 앱 설치 방법 공지 -->
+        <div class="notice-content" style="margin-top: 0.5rem" @click="navigateTo('/install')">
+          <div class="notice-icon app-icon disabled">
             APP
           </div>
           <div class="notice-text">
@@ -26,8 +43,7 @@
           </div>
           <div class="notice-arrow">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -1499,7 +1515,7 @@ h2 {
 .new-badge {
   background: var(--error);
   color: white;
-  font-size: 0.65rem;
+  font-size: 0.5rem;
   font-weight: 600;
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
@@ -1529,7 +1545,12 @@ h2 {
   margin-right: 1rem;
   flex-shrink: 0;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+}
+
+.notice-icon.app-icon.disabled {
+  background: var(--gray-100);
+  color: var(--gray-500);
 }
 
 .notice-text {
@@ -1537,6 +1558,9 @@ h2 {
 }
 
 .notice-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 600;
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -1824,5 +1848,34 @@ h2 {
   border-radius: 8px;
   background: #f5f5f5;
   font-size: 0.85rem;
+}
+
+/* notice-section 스타일 내부에 추가 */
+.notice-icon.plan-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--primary-light);
+  border-radius: 10px;
+  color: var(--primary-dark);
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.notice-content {
+  margin-bottom: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notice-content:hover {
+  transform: translateY(-1px);
+  background: #f8f9fa;
+}
+
+.notice-content + .notice-content {
+  margin-top: 0.75rem;
 }
 </style>
