@@ -3,48 +3,36 @@
     <div class="header fade-in" style="animation-delay: 0s">
       <button class="back-button" @click="$router.back()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
       </button>
       <h1>하세나하시조</h1>
     </div>
 
     <div class="content-section fade-in" style="animation-delay: 0.2s">
-      <div class="video-wrapper">
-        <div class="video-container">
-          <iframe
-            width="100%"
-            height="100%"
-            :src="videoUrl"
-            title="YouTube video player"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-          ></iframe>
-        </div>
-        
-        <a 
-          v-if="isMobile"
-          :href="youtubeAppUrl" 
-          target="_blank" 
-          class="youtube-button"
-        >
-          <img src="/youtube-icon.svg" alt="YouTube" class="youtube-icon">
-          YouTube 앱으로 보기
-        </a>
-      </div>
-
       <div class="video-info">
         <h2>{{ videoTitle }}</h2>
         <p class="description">{{ videoDescription }}</p>
       </div>
+      
+      <div class="video-wrapper">
+        <div class="video-container">
+          <iframe width="100%" height="100%" :src="videoUrl" title="YouTube video player" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+        </div>
+
+        <a v-if="isMobile" :href="youtubeAppUrl" target="_blank" class="youtube-button">
+          <img src="/youtube-icon.svg" alt="YouTube" class="youtube-icon">
+          YouTube 앱으로 보기
+        </a>
+      </div>
     </div>
 
     <div class="bottom-controls fade-in" style="animation-delay: 0.3s">
-      <button class="complete-button" 
-             :class="{ 'completed': isCompleted }"
-             :disabled="isLoading"
-             @click="handleComplete">
+      <button class="complete-button" :class="{ 'completed': isCompleted }" :disabled="isLoading"
+        @click="handleComplete">
         <span v-if="isLoading">처리 중...</span>
         <span v-else>{{ isCompleted ? '하세나 취소' : '오늘의 하세나 완료' }}</span>
       </button>
@@ -81,12 +69,12 @@ const fetchTodayRecord = async () => {
     const today = formatDate(new Date())
     const currentYear = new Date().getFullYear()
     const currentMonth = new Date().getMonth() + 1
-    
+
     // useApi를 사용하여 API 호출
     const { data } = await api.get('/api/v1/todos/hasena/', {
       params: { year: currentYear, month: currentMonth }
     })
-    
+
     if (data && Array.isArray(data)) {
       // 오늘 날짜 기록 찾기
       const todayData = data.find(record => record.date === today)
@@ -106,24 +94,24 @@ const fetchTodayRecord = async () => {
 // 하세나 완료/취소 처리
 const handleComplete = async () => {
   if (isLoading.value) return
-  
+
   try {
     isLoading.value = true
     const today = formatDate(new Date())
-    
+
     // 완료 상태 토글
     const newStatus = !isCompleted.value
-    
+
     // useApi를 사용하여 API 호출
     const data = await api.post('/api/v1/todos/hasena/', {
       date: today,
       is_completed: newStatus
     })
-    
+
     if (data) {
       todayRecord.value = data
       isCompleted.value = data.is_completed
-      
+
       // 성공 메시지 표시 (alert 대신 toast 사용)
       if (isCompleted.value) {
         toast.success('하세나가 완료되었습니다!')
@@ -142,7 +130,7 @@ const handleComplete = async () => {
 onMounted(async () => {
   // 모바일 기기 확인
   isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  
+
   // 오늘 하세나 기록 조회
   await fetchTodayRecord()
 })
@@ -207,7 +195,8 @@ onMounted(async () => {
 
 .video-container {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 비율 */
+  padding-bottom: 56.25%;
+  /* 16:9 비율 */
   height: 0;
   overflow: hidden;
   border-radius: 12px;
@@ -223,7 +212,8 @@ onMounted(async () => {
 }
 
 .video-info {
-  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+  text-align: left;
 }
 
 .video-info h2 {
@@ -244,6 +234,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -340,4 +331,4 @@ onMounted(async () => {
     border-radius: 10px;
   }
 }
-</style> 
+</style>
