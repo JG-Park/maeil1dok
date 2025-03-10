@@ -85,21 +85,13 @@ class UserBibleProgress(models.Model):
         PlanSubscription,
         on_delete=models.CASCADE,
         related_name='progress',
-        null=True,
-        blank=True
     )
     schedule = models.ForeignKey(
         DailyBibleSchedule,
         on_delete=models.CASCADE,
         related_name='progress_records',
-        null=True,
-        blank=True
     )
     """사용자별 성경 읽기 진도"""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    date = models.DateField()
-    book = models.CharField(max_length=50)
-    last_chapter_read = models.IntegerField()
     is_completed = models.BooleanField(default=False)  # 완료 여부 명시적 표시
     completed_at = models.DateTimeField(null=True, blank=True)  # 완료 시점
     created_at = models.DateTimeField(auto_now_add=True)
