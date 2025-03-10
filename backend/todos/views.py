@@ -3,7 +3,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 import pandas as pd
 from datetime import datetime
-from .models import DailyBibleSchedule, UserBibleProgress, BibleReadingPlan, PlanSubscription, VideoBibleIntro, HasenaRecord, UserVideoIntroProgress
+from .models import DailyBibleSchedule, UserBibleProgress, BibleReadingPlan, PlanSubscription, VideoBibleIntro, HasenaRecord, UserVideoIntroProgress, VisitorCount
 from .serializers import DailyBibleScheduleSerializer, UserBibleProgressSerializer, BibleProgressResponse, BibleReadingPlanSerializer, PlanSubscriptionSerializer, VideoBibleIntroSerializer
 import logging
 from django.utils import timezone
@@ -2002,6 +2002,43 @@ def get_progress_stats(request):
         
     except Exception as e:
         logger.error(f"Error in get_progress_stats: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def increment_visitor_count(request):
+    """방문자 수 증가"""
+    try:
+        visitor_count = VisitorCount.increment_daily_count()
+        return Response({
+            'success': True,
+            'daily_count': visitor_count.daily_count
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_visitor_stats(request):
+    """방문자 통계 조회"""
+    try:
+        today = timezone.now().date()
+        today_count = VisitorCount.objects.filter(date=today).first()
+        daily_visitors = today_count.daily_count if today_count else 0
+        total_visitors = VisitorCount.get_total_visitors()
+
+        return Response({
+            'success': True,
+            'daily_visitors': daily_visitors,
+            'total_visitors': total_visitors
+        })
+    except Exception as e:
         return Response({
             'success': False,
             'error': str(e)

@@ -46,4 +46,6 @@ urlpatterns = [
     path('stats/users/', views.get_total_users, name='total-users'),
     path('stats/plan/', views.get_plan_stats, name='plan-stats'),
     path('stats/progress/', views.get_progress_stats, name='progress-stats'),
+    path('stats/visitors/', views.get_visitor_stats, name='visitor-stats'),
+    path('stats/visitors/increment/', views.increment_visitor_count, name='increment-visitor-count'),
 ] 
