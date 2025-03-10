@@ -199,3 +199,34 @@ class HasenaRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username}의 하세나 기록 - {self.date}"
+
+class VisitorCount(models.Model):
+    """일일 방문자 수 카운터"""
+    date = models.DateField(unique=True)
+    daily_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.date}: {self.daily_count} visitors"
+
+    @classmethod
+    def increment_daily_count(cls):
+        """오늘의 방문자 수 증가"""
+        today = timezone.now().date()
+        visitor_count, created = cls.objects.get_or_create(
+            date=today,
+            defaults={'daily_count': 1}
+        )
+        if not created:
+            visitor_count.daily_count = models.F('daily_count') + 1
+            visitor_count.save()
+        return visitor_count
+
+    @classmethod
+    def get_total_visitors(cls):
+        """전체 누적 방문자 수 조회"""
+        return cls.objects.aggregate(total=models.Sum('daily_count'))['total'] or 0
