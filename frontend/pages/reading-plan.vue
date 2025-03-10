@@ -6,18 +6,17 @@
       <div class="header fade-in">
         <button class="back-button" @click="$router.push('/')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
           </svg>
         </button>
         <h1>성경통독표</h1>
-        <button 
-          v-if="authStore.isAuthenticated"
-          class="edit-mode-button"
-          @click="toggleBulkEditMode"
-        >
+        <button v-if="authStore.isAuthenticated" class="edit-mode-button" @click="toggleBulkEditMode">
           {{ isBulkEditMode ? '완료' : '일괄수정' }}
         </button>
-        <div v-else style="width: 64px"></div>
+        <button v-else class="edit-mode-button" @click="goToLogin">
+          로그인
+        </button>
       </div>
     </div>
 
@@ -25,22 +24,60 @@
     <div class="scroll-area">
       <BibleScheduleContent 
         :is-bulk-edit-mode="isBulkEditMode"
-        @update:is-bulk-edit-mode="isBulkEditMode = $event"
+        :use-default-plan="false"
+        @range-select="handleRangeSelect"
       />
     </div>
+    <Toast />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { useRouter, useRoute } from 'vue-router'
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue'
+import { useApi } from '~/composables/useApi'
+import { useToast } from '~/composables/useToast'
+import Toast from '~/components/Toast.vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 const isBulkEditMode = ref(false)
+const api = useApi()
+const { success, error } = useToast()
 
 const toggleBulkEditMode = () => {
   isBulkEditMode.value = !isBulkEditMode.value
+}
+
+// 로그인 페이지로 이동
+const goToLogin = () => {
+  router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+}
+
+// 구간 선택 핸들러 수정
+const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleIds, planId }) => {
+  try {
+    // API 호출
+    const { data } = await api.post('/api/v1/todos/reading/update/', {
+      plan_id: planId,
+      schedule_ids: scheduleIds,
+      action: action === 'complete' ? 'complete' : 'cancel'
+    })
+
+    // 성공 시 토스트 메시지 표시
+    if (data && data.success) {
+      success(action === 'complete' ? '읽음으로 저장되었습니다.' : '읽지 않음으로 저장되었습니다.')
+    }
+  } catch (err) {
+    console.error('Error updating progress:', err)
+    error('일괄 수정 중 오류가 발생했습니다.')
+  } finally {
+    // 일괄 수정 모드 종료
+    isBulkEditMode.value = false
+  }
 }
 </script>
 
@@ -48,12 +85,15 @@ const toggleBulkEditMode = () => {
 .container {
   max-width: 768px;
   margin: 0 auto;
-  height: 100vh; /* 뷰포트 높이 사용 */
-  height: 100dvh; /* 동적 뷰포트 높이 사용 */
+  height: 100vh;
+  /* 뷰포트 높이 사용 */
+  height: 100dvh;
+  /* 동적 뷰포트 높이 사용 */
   display: flex;
   flex-direction: column;
   background: var(--background-color);
-  position: relative; /* fixed에서 relative로 변경 */
+  position: relative;
+  /* fixed에서 relative로 변경 */
   width: 100%;
 }
 
@@ -78,8 +118,10 @@ const toggleBulkEditMode = () => {
 
 .scroll-area {
   flex: 1;
-  min-height: 0; /* 중요: flex 자식 요소의 스크롤을 위해 필요 */
-  overflow: hidden; /* BibleScheduleContent에서 스크롤 처리 */
+  min-height: 0;
+  /* 중요: flex 자식 요소의 스크롤을 위해 필요 */
+  overflow: hidden;
+  /* BibleScheduleContent에서 스크롤 처리 */
 }
 
 /* iOS 안전영역 대응 */
@@ -110,12 +152,12 @@ const toggleBulkEditMode = () => {
 }
 
 .edit-mode-button {
-  padding: 0.2rem 0.75rem;
+  padding: 0.25rem 0.75rem;
   background: #F1F5F9;
   color: #64748B;
   border: 1px solid #CBD5E1;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   transition: all 0.2s ease;
 }
@@ -144,11 +186,6 @@ const toggleBulkEditMode = () => {
   .header {
     padding: 0.75rem;
   }
-
-  .edit-mode-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8125rem;
-  }
 }
 
 @keyframes fadeIn {
@@ -156,6 +193,7 @@ const toggleBulkEditMode = () => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -166,4 +204,4 @@ const toggleBulkEditMode = () => {
   opacity: 0;
   animation: fadeIn 0.4s ease-out forwards;
 }
-</style> 
+</style>
