@@ -1355,14 +1355,58 @@ const scheduleModalMounted = ref(false)
               
               <!-- 장 번호들 -->
               <div class="chapter-numbers" v-if="section.book === currentBook">
-                <span v-for="chapter in section.chapters" 
-                      :key="chapter"
-                      class="chapter-box"
-                      :class="{
-                        'current': chapter === currentChapter && section.book === currentBook
-                      }">
-                  {{ chapter }}
-                </span>
+                <!-- 3개 이하일 때는 모든 장 표시 -->
+                <template v-if="section.chapters.length <= 3">
+                  <span v-for="chapter in section.chapters" 
+                        :key="chapter"
+                        class="chapter-box"
+                        :class="{ 
+                          'current': chapter === currentChapter,
+                          'completed': isChapterCompleted(section.book, chapter)
+                        }">
+                    {{ chapter }}
+                  </span>
+                </template>
+
+                <!-- 4개 이상일 때는 생략 부호 사용 -->
+                <template v-else>
+                  <!-- 시작 장 -->
+                  <span class="chapter-box"
+                        :class="{ 
+                          'current': section.chapters[0] === currentChapter,
+                          'completed': isChapterCompleted(section.book, section.chapters[0])
+                        }">
+                    {{ section.chapters[0] }}
+                  </span>
+
+                  <!-- 중간 생략 부호와 현재 장 (모바일에서만 표시) -->
+                  <template v-if="currentChapter !== section.chapters[0] && 
+                                  currentChapter !== section.chapters[section.chapters.length - 1]">
+                    <!-- 현재 장이 중간에 있을 때는 점 2개 -->
+                    <span class="chapter-ellipsis mobile-only">··</span>
+                    <span class="chapter-box mobile-only"
+                          :class="{
+                            'current': true,
+                            'completed': isChapterCompleted(section.book, currentChapter)
+                          }">
+                      {{ currentChapter }}
+                    </span>
+                    <span class="chapter-ellipsis mobile-only">··</span>
+                  </template>
+                  <template v-else>
+                    <!-- 현재 장이 시작이나 끝일 때는 점 3개 -->
+                    <span class="chapter-ellipsis mobile-only">···</span>
+                  </template>
+
+                  <!-- 마지막 장 -->
+                  <span class="chapter-box"
+                        :class="{
+                          'current': section.chapters[section.chapters.length - 1] === currentChapter,
+                          'completed': isChapterCompleted(section.book, section.chapters[section.chapters.length - 1])
+                        }">
+                    {{ section.chapters[section.chapters.length - 1] }}
+                  </span>
+                </template>
               </div>
             </template>
           </div>
