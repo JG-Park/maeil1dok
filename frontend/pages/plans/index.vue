@@ -87,7 +87,7 @@
                     </h3>
                     <p class="plan-description">{{ plan.description }}</p>
                     <p class="subscriber-count">
-                      구독자: {{ plan.subscriber_count }}명
+                      구독한 사람: {{ plan.subscriber_count }}명
                     </p>
                   </div>
                   <button @click="subscribe(plan)" class="action-button subscribe">구독하기</button>
@@ -522,6 +522,18 @@ onMounted(async () => {
   padding: 1rem;
 }
 
+/* 플랜 카드 내부 레이아웃 수정 */
+.plan-card-content > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.plan-card-content > div > div:first-child {
+  flex: 1;
+}
+
 .plan-title {
   font-size: 1rem;
   font-weight: 600;
@@ -529,6 +541,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap; /* 긴 제목 처리 */
 }
 
 .default-badge {
@@ -546,6 +559,7 @@ onMounted(async () => {
   color: var(--text-secondary);
   margin-top: 0.5rem;
   font-size: 0.875rem;
+  word-break: break-word; /* 긴 설명 텍스트 처리 */
 }
 
 .subscriber-count {
@@ -555,11 +569,13 @@ onMounted(async () => {
 }
 
 .action-button {
-  padding: 0.25rem 0.75rem;
+  padding: 0.5rem 1rem;
   border-radius: 8px;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 600;
   transition: all 0.2s;
+  min-width: 80px;
+  text-align: center;
 }
 
 .action-button.subscribe {
