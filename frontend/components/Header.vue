@@ -98,6 +98,7 @@ const handleLogout = () => {
 .logo {
   height: 20px;
   width: auto;
+  margin-left: 5px;
 }
 
 .header-controls {
