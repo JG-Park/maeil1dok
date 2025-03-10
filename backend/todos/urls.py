@@ -1,20 +1,49 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
+router = DefaultRouter()
+router.register(r'bible-plans', views.BibleReadingPlanViewSet)
+
 urlpatterns = [
-    path('bible-schedules/', views.bible_schedule_list, name='bible_schedule_list'),
-    path('bible-schedules/<int:pk>/', views.bible_schedule_detail, name='bible_schedule_detail'),
-    path('bible-schedules/upload/', views.upload_schedule, name='upload_schedule'),
-    path('today-reading/', views.get_today_reading, name='today-reading'),
-    path('reading-schedule/', views.get_reading_schedule, name='reading-schedule'),
-    path('bible-schedules/upcoming/', views.get_bible_schedules, name='get-bible-schedules'),
-    path('bible-progress/', views.update_bible_progress, name='update_bible_progress'),
-    path('bible-progress/complete/', views.complete_bible_reading, name='complete_bible_reading'),
-    path('bible-progress/cancel/', views.cancel_bible_reading, name='cancel_bible_reading'),
-    path('bible-progress/status/', views.get_bible_progress, name='get_bible_progress'),
-    path('bible-progress/bulk-update/', views.bulk_update_bible_progress, name='bulk_update_bible_progress'),
-    path('reading-history/', views.get_reading_history, name='reading-history'),
-    path('completed-sections/', views.get_completed_sections_count, name='completed-sections'),
-    path('stats/', views.get_stats, name='get_stats'),
-    path('reading/<str:date>/', views.get_reading_for_date, name='get-reading-for-date'),
+    path('', include(router.urls)),
+    
+    path('schedules/', views.schedule_list, name='schedule-list'),
+    path('schedules/<int:pk>/', views.schedule_detail, name='schedule-detail'),
+    path('schedules/month/', views.get_schedules_for_month, name='schedules-month'),
+    path('schedules/today/', views.get_today_schedules, name='schedules-today'),
+    path('schedules/upload-excel/', views.upload_schedules_excel, name='upload-schedules-excel'),
+    
+    path('reading/', views.update_bible_progress, name='update_bible_progress'),
+    path('reading/update/', views.update_bible_progress, name='update_bible_progress'),
+    path('reading/history/', views.get_reading_history, name='progress-history'),
+    
+    path('plans/user/', views.get_user_plans, name='user-plans'),
+    
+    path('plan/', views.plan_subscription_list, name='plan-subscription-list'),
+    path('plan/<int:pk>/', views.plan_subscription_detail, name='plan-subscription-detail'),
+    path('plan/<int:pk>/toggle-active/', views.plan_subscription_toggle_active, name='plan-subscription-toggle-active'),
+    path('plan/<int:pk>/progress/', views.plan_subscription_progress, name='plan-subscription-progress'),
+    path('plan/<int:pk>/unsubscribe/', views.plan_subscription_unsubscribe, name='plan-subscription-unsubscribe'),
+    
+    path('detail/', views.get_chapter_detail, name='chapter-detail'),
+    path('next-position/', views.get_next_reading_position, name='next-reading-position'),
+    
+    # 영상 개론 관련 URL
+    path('video/intro/', views.video_intro_list, name='video-intro-list'),
+    path('video/intro/<int:pk>/', views.video_intro_detail, name='video-intro-detail'),
+    path('video/intro/upload/', views.upload_video_intros, name='upload-video-intros'),
+    path('user/video/intro/', views.get_user_video_intros, name='user-video-intros'),
+    
+    # 하세나 관련 URL
+    path('hasena/', views.hasena_record_list, name='hasena-record-list'),
+    path('hasena/<int:pk>/', views.hasena_record_detail, name='hasena-record-detail'),
+    
+    # 영상 개론 진행 상황 관련 URL
+    path('video/intro/progress/', views.update_video_intro_progress, name='update-video-intro-progress'),
+    
+    # 통계 관련 URL
+    path('stats/users/', views.get_total_users, name='total-users'),
+    path('stats/plan/', views.get_plan_stats, name='plan-stats'),
+    path('stats/progress/', views.get_progress_stats, name='progress-stats'),
 ] 
