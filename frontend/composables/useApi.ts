@@ -1,6 +1,7 @@
 import { useRuntimeConfig } from '#app'
 import { useNuxtApp } from '#app'
 import { useAuthStore } from '../stores/auth'
+import axios, { AxiosRequestConfig } from 'axios'
 
 // API 응답 타입 정의
 interface ApiResponse {
@@ -17,11 +18,17 @@ interface ApiInstance {
 }
 
 export const useApi = () => {
+  const config = useRuntimeConfig()
+  const baseURL = config.public.apiBaseUrl
+
+  const api = axios.create({
+    baseURL,
+    withCredentials: true
+  })
+
   const auth = useAuthStore()
 
   const getBaseUrl = () => {
-    const config = useRuntimeConfig()
-    
     if (process.server) {
       return 'http://localhost:8000'
     }
@@ -41,20 +48,27 @@ export const useApi = () => {
     return headers
   }
 
-  const get = async (url: string) => {
-    const fullUrl = `${getBaseUrl()}${url}`
-    
+  const get = async (url: string, config?: AxiosRequestConfig) => {
     try {
+      let fullUrl = `${getBaseUrl()}${url}`
+      if (config?.params) {
+        const searchParams = new URLSearchParams()
+        Object.entries(config.params).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            searchParams.append(key, value.toString())
+          }
+        })
+        fullUrl += `?${searchParams.toString()}`
+      }
+      
       let response = await fetch(fullUrl, {
         headers: getHeaders(),
         credentials: 'include'
       })
 
-      // 401 에러시 토큰 갱신 시도
       if (response.status === 401) {
         const refreshSuccess = await auth.refreshAccessToken()
         if (refreshSuccess) {
-          // 새 토큰으로 재시도
           response = await fetch(fullUrl, {
             headers: getHeaders(),
             credentials: 'include'
@@ -69,22 +83,32 @@ export const useApi = () => {
         throw new Error(`API request failed: ${response.status}`)
       }
 
-      return await response.json()
+      const data = await response.json()
+      return { data }
     } catch (error) {
-      console.error("API Request failed:", error)
       throw error
     }
   }
 
-  const post = async (url: string, data?: any) => {
+  const post = async (url: string, data?: any, config?: AxiosRequestConfig) => {
     const fullUrl = `${getBaseUrl()}${url}`
     
     try {
+      // FormData인 경우와 일반 데이터인 경우 분리 처리
+      const isFormData = data instanceof FormData;
+      
+      const headers = getHeaders();
+      
+      // FormData인 경우 Content-Type 헤더 제거 (브라우저가 자동으로 설정)
+      if (isFormData) {
+        delete headers['Content-Type'];
+      }
+      
       const response = await fetch(fullUrl, {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(data),
-        credentials: 'include'  // 쿠키를 포함하기 위해 추가
+        headers: headers,
+        body: isFormData ? data : JSON.stringify(data),
+        credentials: 'include'
       })
 
       if (!response.ok) {
@@ -93,14 +117,63 @@ export const useApi = () => {
 
       return response.json()
     } catch (error) {
-      console.error("API Post failed:", error)
       throw error
+    }
+  }
+
+  const put = async (url: string, data: any) => {
+    const fullUrl = `${getBaseUrl()}${url}`
+    
+    try {
+      const headers = getHeaders();
+      
+      const response = await fetch(fullUrl, {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
+    }
+  }
+
+  const patch = async (url: string, data: any) => {
+    const fullUrl = `${getBaseUrl()}${url}`
+    
+    try {
+      const headers = getHeaders();
+      
+      const response = await fetch(fullUrl, {
+        method: 'PATCH',
+        headers: headers,
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
     }
   }
 
   return {
     get,
     post,
+    put,
+    patch,
     async delete(url: string) {
       try {
         const response = await fetch(`${getBaseUrl()}${url}`, {
@@ -110,7 +183,6 @@ export const useApi = () => {
         if (!response.ok) throw new Error('API request failed')
         return response.json()
       } catch (error) {
-        console.error("API Delete failed:", error)
         throw error
       }
     },
@@ -126,57 +198,8 @@ export const useApi = () => {
         if (!response.ok) throw new Error('API request failed')
         return response.json()
       } catch (error) {
-        console.error("API Upload failed:", error)
         throw error
       }
     },
   }
 }
-
-// 성경 읽기 진도 관련 API
-export const useBibleProgressApi = () => {
-  const api = useApi()
-
-  // 읽기 진도 조회
-  const getBibleProgress = async (book: string, chapter: number) => {
-    try {
-      const response = await api.get(`/api/v1/todos/bible-progress/status/?book=${book}&chapter=${chapter}`)
-      return response
-    } catch (error) {
-      console.error('[Bible Progress API] Failed to get bible progress:', error)
-      throw error
-    }
-  }
-
-  // 읽기 완료 처리 (date 파라미터는 유지)
-  const completeBibleReading = async (date: string) => {
-    try {
-      const response = await api.post('/api/v1/todos/bible-progress/complete/', {
-        date
-      })
-      return response
-    } catch (error) {
-      console.error('Failed to complete bible reading:', error)
-      throw error
-    }
-  }
-
-  // 읽기 완료 취소 (date 파라미터는 유지)
-  const cancelBibleReading = async (date: string) => {
-    try {
-      const response = await api.post('/api/v1/todos/bible-progress/cancel/', {
-        date
-      })
-      return response
-    } catch (error) {
-      console.error('Failed to cancel bible reading:', error)
-      throw error
-    }
-  }
-
-  return {
-    getBibleProgress,
-    completeBibleReading,
-    cancelBibleReading
-  }
-} 
