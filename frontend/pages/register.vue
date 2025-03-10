@@ -19,7 +19,7 @@
             <div class="relative">
               <input id="username" v-model="formData.username" type="text" required @blur="checkUsername"
                 class="flex-1 mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                :class="{ 'border-red-500': usernameError, 'border-green-500': isUsernameChecked}">
+                :class="{ 'border-red-500': usernameError, 'border-green-500': isUsernameChecked }">
               <span v-if="usernameError" class="text-red-500 text-xs mt-1">{{ usernameError }}</span>
               <span v-if="isUsernameChecked && !usernameError" class="text-green-500 text-xs mt-1">사용 가능한 아이디입니다.</span>
             </div>
@@ -37,7 +37,7 @@
           <div class="relative">
             <input id="nickname" v-model="formData.nickname" type="text" required @blur="checkNickname"
               class="flex-1 mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-              :class="{'border-red-500': nicknameError, 'border-green-500': isNicknameChecked}">
+              :class="{ 'border-red-500': nicknameError, 'border-green-500': isNicknameChecked }">
             <span v-if="nicknameError" class="text-red-500 text-xs mt-1">{{ nicknameError }}</span>
             <span v-if="isNicknameChecked && !nicknameError" class="text-green-500 text-xs mt-1">사용 가능한 닉네임입니다.</span>
           </div>
@@ -59,10 +59,7 @@
 
           <div class="flex gap-4 justify-center">
             <button type="button" @click="handleKakaoLogin" class="social-button kakao-button">
-              <svg width="18" height="18" viewBox="0 0 18 18">
-                <path fill="#000000"
-                  d="M9 0C4.03 0 0 3.19 0 7.13c0 2.52 1.68 4.73 4.21 5.97.31.13.47.39.71.71l-.27 1.01c-.04.16.12.31.27.23l1.15-.67c.17-.1.35-.15.54-.15.31 0 .63.04.94.08C8.87 14.44 9 14.5 9 14.5s.13-.06 1.73-.19c.31-.04.63-.08.94-.08.19 0 .37.05.54.15l1.15.67c.15.08.31-.07.27-.23l-.27-1.01c-.04-.32.12-.58.43-.71 2.53-1.24 4.21-3.45 4.21-5.97C18 3.19 13.97 0 9 0" />
-              </svg>
+              <img src="@/assets/images/kakao.png" width="16" height="16" alt="카카오 로고">
               카카오로 시작하기
             </button>
           </div>
@@ -123,12 +120,12 @@ const checkUsername = async () => {
 
 const checkNickname = async () => {
   if (!formData.value.nickname) return
-  
+
   try {
     const response = await api.post('/api/v1/auth/check-nickname/', {
       nickname: formData.value.nickname
     })
-    
+
     if (response.available) {
       isNicknameChecked.value = true
       nicknameError.value = ''
@@ -147,7 +144,7 @@ const handleSubmit = async () => {
     alert('아이디와 닉네임 중복 확인이 필요합니다.')
     return
   }
-  
+
   loading.value = true
   try {
     const success = await auth.register(formData.value)
@@ -229,6 +226,7 @@ watch(() => formData.value.nickname, () => {
   background-color: var(--primary-light);
   color: var(--primary-dark);
 }
+
 .social-button {
   display: flex;
   align-items: center;
@@ -256,4 +254,4 @@ watch(() => formData.value.nickname, () => {
 .kakao-button:active {
   transform: translateY(0);
 }
-</style> 
+</style>

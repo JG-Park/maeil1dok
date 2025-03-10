@@ -2,32 +2,20 @@
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <!-- Back Button -->
-      <button 
-        @click="$router.back()" 
-        class="mb-8 flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-      >
+      <button @click="$router.back()"
+        class="mb-8 flex items-center text-gray-600 hover:text-gray-900 transition-colors">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
       </button>
 
       <div>
-        <img 
-          class="mx-auto h-8 w-auto object-contain" 
-          src="@/assets/images/로고_투명.png" 
-          alt="매일일독"
-        >
+        <img class="mx-auto h-8 w-auto object-contain" src="@/assets/images/로고_투명.png" alt="매일일독">
       </div>
 
       <!-- 카카오 로그인 버튼 -->
-      <button 
-        type="button" 
-        @click="handleKakaoLogin" 
-        class="social-button kakao-button w-full"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18">
-          <path fill="#000000" d="M9 0C4.03 0 0 3.19 0 7.13c0 2.52 1.68 4.73 4.21 5.97.31.13.47.39.71.71l-.27 1.01c-.04.16.12.31.27.23l1.15-.67c.17-.1.35-.15.54-.15.31 0 .63.04.94.08C8.87 14.44 9 14.5 9 14.5s.13-.06 1.73-.19c.31-.04.63-.08.94-.08.19 0 .37.05.54.15l1.15.67c.15.08.31-.07.27-.23l-.27-1.01c-.04-.32.12-.58.43-.71 2.53-1.24 4.21-3.45 4.21-5.97C18 3.19 13.97 0 9 0"/>
-        </svg>
+      <button type="button" @click="handleKakaoLogin" class="social-button kakao-button w-full">
+        <img src="@/assets/images/kakao.png" width="16" height="16" alt="카카오 로고">
         카카오로 시작하기
       </button>
 
@@ -46,34 +34,20 @@
         <div class="rounded-md shadow-sm -space-y-px">
           <div>
             <label for="username" class="sr-only">아이디</label>
-            <input
-              id="username"
-              v-model="username"
-              type="text"
-              required
+            <input id="username" v-model="username" type="text" required
               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-              placeholder="아이디"
-            >
+              placeholder="아이디">
           </div>
           <div>
             <label for="password" class="sr-only">비밀번호</label>
-            <input
-              id="password"
-              v-model="password"
-              type="password"
-              required
+            <input id="password" v-model="password" type="password" required
               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-              placeholder="비밀번호"
-            >
+              placeholder="비밀번호">
           </div>
         </div>
 
         <div>
-          <button
-            type="submit"
-            class="submit-button"
-            :disabled="loading"
-          >
+          <button type="submit" class="submit-button" :disabled="loading">
             {{ loading ? '로그인 중...' : '로그인' }}
           </button>
         </div>
@@ -198,4 +172,4 @@ const handleKakaoLogin = () => {
 .kakao-button:active {
   transform: translateY(0);
 }
-</style> 
+</style>
