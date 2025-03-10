@@ -1333,13 +1333,37 @@ const scheduleModalMounted = ref(false)
 
           <!-- 구간 표시 영역 -->
           <div class="reading-sections" v-if="currentSectionChapters.length > 0">
-            <template v-for="(section, index) in currentSectionChapters" :key="`section-${section.book}`">
+            <template v-for="(section, index) in currentSectionChapters" :key="index">
               <!-- 구간 구분선 -->
               <span v-if="index > 0" class="section-separator">|</span>
-              <!-- 실제 요소 -->
-              <span class="section-item">
-                {{ section.book }}
+              
+              <!-- 구간 번호 -->
+              <span class="section-number" 
+                    v-if="currentSectionChapters.length > 1"
+                    :class="{ 'current-section': section.book === currentBook }">
+                {{ index + 1 }}
               </span>
+              
+              <!-- 책 이름 -->
+              <span class="book-name" 
+                    :class="{ 
+                      'current-book': section.book === currentBook,
+                      'other-book': section.book !== currentBook 
+                    }">
+                {{ section.book_kor }}
+              </span>
+              
+              <!-- 장 번호들 -->
+              <div class="chapter-numbers" v-if="section.book === currentBook">
+                <span v-for="chapter in section.chapters" 
+                      :key="chapter"
+                      class="chapter-box"
+                      :class="{
+                        'current': chapter === currentChapter && section.book === currentBook
+                      }">
+                  {{ chapter }}
+                </span>
+              </div>
             </template>
           </div>
           <!-- 구간 정보가 없을 때 기본 표시 -->
