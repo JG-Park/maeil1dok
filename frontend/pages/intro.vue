@@ -181,7 +181,7 @@ onMounted(() => {
   margin: 0 auto;
   background: #f5f5f5;
   min-height: 100vh;
-  padding-bottom: calc(1.5rem + 80px);
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
 }
 
 .header {
@@ -217,40 +217,26 @@ onMounted(() => {
   height: 20px;
 }
 
-.content-section,
-.loading-state,
-.error-state {
+.content-section {
   background: white;
   margin: 1rem;
   padding: 1.5rem;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  text-align: center;
 }
 
-.loading-state,
-.error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-}
-
-.retry-button {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+@media (max-width: 640px) {
+  .content-section, .loading-state, .error-state {
+    margin: 0.75rem;
+    padding: 1.25rem;
+  }
 }
 
 .video-wrapper {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .video-container {
@@ -289,55 +275,6 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-.bottom-controls {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 1rem;
-  background: white;
-  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
-  max-width: 768px;
-  margin: 0 auto;
-}
-
-.complete-button {
-  width: 100%;
-  padding: 1rem;
-  border: none;
-  background: var(--primary-color);
-  color: white;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.complete-button:disabled {
-  background: var(--primary-light);
-  cursor: not-allowed;
-}
-
-.complete-button.completed {
-  background: #28a745;
-  /* 완료 상태일 때 초록색으로 변경 */
-}
-
-.complete-button:not(:disabled):hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
-.complete-button.completed:not(:disabled):hover {
-  background: #218838;
-  /* 완료 상태에서 호버했을 때 더 어두운 초록색 */
-}
-
-.complete-button:not(:disabled):active {
-  transform: translateY(0);
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -355,23 +292,93 @@ onMounted(() => {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
-@media (max-width: 640px) {
+.bottom-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem;
+  background: white;
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
+  max-width: 768px;
+  min-height: 50px;
+  margin: 0 auto;
+  z-index: 20;
+  flex-wrap: nowrap;
+  border-radius: 16px 16px 0 0;
+}
 
-  .content-section,
-  .loading-state,
-  .error-state {
-    margin: 0.75rem;
-    padding: 1.25rem;
+@supports (-webkit-touch-callout: none) {
+  /* Safari 웹에서만 적용되도록 standalone 모드가 아닐 때만 패딩 추가 */
+  @media not all and (display-mode: standalone) {
+    .bottom-controls {
+      padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
+    }
   }
 
-  .bottom-controls {
-    padding: 0.875rem;
+  /* PWA 홈 화면 앱(standalone 모드)에서는 safe-area-inset-bottom만 적용 */
+  @media (display-mode: standalone) {
+    .bottom-controls {
+      padding: 0.75rem 0.75rem calc(env(safe-area-inset-bottom)) 0.75rem;
+    }
   }
+}
 
-  .complete-button {
-    padding: 0.875rem;
-    border-radius: 10px;
-  }
+.complete-button {
+  width: 100%;
+  padding: 0.875rem;
+  border: none;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.complete-button:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.complete-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.complete-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.complete-button.completed {
+  background: var(--red-dark);
+}
+
+.complete-button.completed:hover:not(:disabled) {
+  background: var(--red-dark);
+}
+
+/* 로딩 스피너 스타일 추가 */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .youtube-button {
@@ -389,11 +396,12 @@ onMounted(() => {
 }
 
 .youtube-button:hover {
-  background-color: #CC0000;
+  background-color: #FF0000;
 }
 
 .youtube-icon {
   width: 24px;
   height: 24px;
 }
+
 </style>

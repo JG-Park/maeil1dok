@@ -142,7 +142,7 @@ onMounted(async () => {
   margin: 0 auto;
   background: #f5f5f5;
   min-height: 100vh;
-  padding-bottom: calc(1.5rem + 80px);
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
 }
 
 .header {
@@ -184,6 +184,13 @@ onMounted(async () => {
   padding: 1.5rem;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 640px) {
+  .content-section, .loading-state, .error-state {
+    margin: 0.75rem;
+    padding: 1.25rem;
+  }
 }
 
 .video-wrapper {
@@ -251,16 +258,39 @@ onMounted(async () => {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem;
   background: white;
-  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
   max-width: 768px;
+  min-height: 50px;
   margin: 0 auto;
+  z-index: 20;
+  flex-wrap: nowrap;
+  border-radius: 16px 16px 0 0;
+}
+
+@supports (-webkit-touch-callout: none) {
+  /* Safari 웹에서만 적용되도록 standalone 모드가 아닐 때만 패딩 추가 */
+  @media not all and (display-mode: standalone) {
+    .bottom-controls {
+      padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
+    }
+  }
+
+  /* PWA 홈 화면 앱(standalone 모드)에서는 safe-area-inset-bottom만 적용 */
+  @media (display-mode: standalone) {
+    .bottom-controls {
+      padding: 0.75rem 0.75rem calc(env(safe-area-inset-bottom)) 0.75rem;
+    }
+  }
 }
 
 .complete-button {
   width: 100%;
-  padding: 1rem;
+  padding: 0.875rem;
   border: none;
   background: var(--primary-color);
   color: white;
@@ -269,6 +299,10 @@ onMounted(async () => {
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .complete-button:hover:not(:disabled) {
@@ -286,11 +320,26 @@ onMounted(async () => {
 }
 
 .complete-button.completed {
-  background: #e74c3c;
+  background: var(--red-dark);
 }
 
 .complete-button.completed:hover:not(:disabled) {
-  background: #c0392b;
+  background: var(--red-dark);
+}
+
+/* 로딩 스피너 스타일 추가 */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .youtube-button {
@@ -308,27 +357,13 @@ onMounted(async () => {
 }
 
 .youtube-button:hover {
-  background-color: #CC0000;
+  background-color: #FF0000;
 }
+
 
 .youtube-icon {
   width: 24px;
   height: 24px;
 }
 
-@media (max-width: 640px) {
-  .content-section {
-    margin: 0.75rem;
-    padding: 1.25rem;
-  }
-
-  .bottom-controls {
-    padding: 0.875rem;
-  }
-
-  .complete-button {
-    padding: 0.875rem;
-    border-radius: 10px;
-  }
-}
 </style>
