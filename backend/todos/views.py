@@ -1782,24 +1782,25 @@ def upload_schedules_excel(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # IsAuthenticated에서 AllowAny로 변경
 def get_total_users(request):
-    """
-    전체 사용자 수를 반환하는 API (공개)
-    
-    [응답 예시]
-    {
-        "success": true,
-        "total_users": 132
-    }
-    """
+    """전체 참여자 수 조회"""
     try:
-        total_users = User.objects.count()
+        plan_id = request.query_params.get('plan_id')
         
+        if plan_id:
+            # 특정 플랜의 활성 구독자 수 반환
+            total_users = PlanSubscription.objects.filter(
+                plan_id=plan_id,
+                is_active=True
+            ).count()
+        else:
+            # 전체 사용자 수 반환
+            total_users = User.objects.filter(is_active=True).count()
+            
         return Response({
             'success': True,
             'total_users': total_users
         })
     except Exception as e:
-        logger.error(f"Error in get_total_users: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'error': str(e)
@@ -1808,106 +1809,48 @@ def get_total_users(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # IsAuthenticated, IsAdminUser에서 AllowAny로 변경
 def get_plan_stats(request):
-    """
-    특정 플랜의 통계 정보를 반환하는 API
-    
-    [필수 파라미터]
-    - plan_id: 플랜 ID
-    
-    [응답 예시]
-    {
-        "success": true,
-        "plan_name": "1년 성경 통독",
-        "total_subscribers": 45,
-        "today_completed_users": 12
-    }
-    """
+    """플랜별 통계 조회"""
     try:
         plan_id = request.query_params.get('plan_id')
-        
         if not plan_id:
-            # 기본 플랜 ID를 사용 (추가)
-            default_plan = BibleReadingPlan.objects.filter(is_default=True).first()
-            if default_plan:
-                plan_id = default_plan.id
-            else:
-                return Response({
-                    'success': False,
-                    'error': '플랜 ID가 필요합니다.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-        # 플랜 존재 여부 확인
-        try:
-            plan = BibleReadingPlan.objects.get(id=plan_id)
-        except BibleReadingPlan.DoesNotExist:
             return Response({
                 'success': False,
-                'error': '존재하지 않는 플랜입니다.'
-            }, status=status.HTTP_404_NOT_FOUND)
-        
-        # 오늘 날짜 가져오기
+                'error': '플랜 ID가 필요합니다.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        plan = get_object_or_404(BibleReadingPlan, id=plan_id)
         today = timezone.now().date()
-        
-        # 1. 총 구독자 수 계산
+
+        # 해당 플랜의 활성 구독자 수
         total_subscribers = PlanSubscription.objects.filter(
             plan=plan,
             is_active=True
         ).count()
-        
-        # 2. 오늘 일정을 모두 완료한 사용자 수 계산
-        
-        # 오늘의 모든 일정 가져오기
+
+        # 오늘의 일정
         today_schedules = DailyBibleSchedule.objects.filter(
             plan=plan,
             date=today
         )
-        
-        # 오늘 일정이 없는 경우
-        if not today_schedules.exists():
-            return Response({
-                'success': True,
-                'plan_name': plan.name,
-                'total_subscribers': total_subscribers,
-                'today_completed_users': 0,
-                'note': '오늘은 일정이 없습니다.'
-            })
-        
-        # 활성 구독 ID 목록
-        active_subscription_ids = PlanSubscription.objects.filter(
-            plan=plan,
-            is_active=True
-        ).values_list('id', flat=True)
-        
-        # 모든 일정을 완료한 사용자의 구독 ID 집합
-        completed_all_schedules = set()
-        
-        # 일정별로 완료한 구독 ID 집합들의 교집합 계산
-        for i, schedule in enumerate(today_schedules):
-            # 이 일정을 완료한 구독 ID 집합
-            completed_subscriptions = set(UserBibleProgress.objects.filter(
-                schedule=schedule,
-                is_completed=True,
-                subscription_id__in=active_subscription_ids
-            ).values_list('subscription_id', flat=True))
-            
-            # 첫 번째 일정이면 초기화, 아니면 교집합 계산
-            if i == 0:
-                completed_all_schedules = completed_subscriptions
-            else:
-                completed_all_schedules &= completed_subscriptions
-        
-        # 교집합의 크기가 모든 일정을 완료한 사용자 수
-        today_completed_users = len(completed_all_schedules)
-        
+
+        # 오늘 일정을 완료한 사용자 수
+        completed_users = set()
+        for schedule in today_schedules:
+            completed_users.update(
+                UserBibleProgress.objects.filter(
+                    schedule=schedule,
+                    is_completed=True,
+                    subscription__plan=plan,
+                    subscription__is_active=True
+                ).values_list('subscription__user_id', flat=True)
+            )
+
         return Response({
             'success': True,
             'plan_name': plan.name,
-            'total_subscribers': total_subscribers,
-            'today_completed_users': today_completed_users
+            'today_completed_users': len(completed_users)
         })
-        
     except Exception as e:
-        logger.error(f"Error in get_plan_stats: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'error': str(e)

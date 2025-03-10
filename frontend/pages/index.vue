@@ -175,7 +175,7 @@
               </svg>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ visitorStats.daily_visitors }}명 / {{ visitorStats.total_visitors }}명</div>
+              <div class="stat-value">{{ visitorStats.daily_visitors.toLocaleString() }}명 / {{ visitorStats.total_visitors.toLocaleString() }}명</div>
               <div class="stat-label">오늘 / 전체 방문자</div>
             </div>
           </div>
@@ -189,7 +189,7 @@
               </svg>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ totalMembers }}명</div>
+              <div class="stat-value">{{ totalMembers.toLocaleString() }}명</div>
               <div class="stat-label">전체 참여자</div>
             </div>
           </div>
@@ -203,7 +203,7 @@
               </svg>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ todayReaders }}명</div>
+              <div class="stat-value">{{ todayReaders.toLocaleString() }}명</div>
               <div class="stat-label">오늘 일독 완료</div>
             </div>
           </div>
@@ -482,14 +482,15 @@ const incrementVisitorCount = async () => {
 // 통계 데이터 가져오기
 const fetchStats = async () => {
   try {
+    const planId = selectedPlanId.value || 1 // 기본 플랜 ID는 1로 가정
+
     // 사용자 통계 가져오기
-    const usersResponse = await api.get('/api/v1/todos/stats/users/')
+    const usersResponse = await api.get('/api/v1/todos/stats/users/', {
+      params: { plan_id: planId }
+    })
     if (usersResponse.data.success) {
       totalMembers.value = usersResponse.data.total_users
     }
-
-    // 플랜 ID가 있거나 기본 플랜을 사용
-    const planId = selectedPlanId.value || 1 // 기본 플랜 ID는 1로 가정
 
     // 선택된 플랜의 통계 가져오기
     const planStatsResponse = await api.get('/api/v1/todos/stats/plan/', {
