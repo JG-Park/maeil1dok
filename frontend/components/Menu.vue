@@ -60,7 +60,7 @@
                 <!-- 하단 정보 영역 추가 -->
                 <div class="menu-footer">
                   <div class="app-version">
-                    <span>매일일독 2.0</span>
+                    <img src="@/assets/images/매일일독_footer.png" alt="매일일독" class="footer-logo"><span> v2.0.1</span>
                   </div>
                   <div class="github-link-container">
                     <a href="https://github.com/JG-Park/maeil1dok/" target="_blank" rel="noopener noreferrer"
@@ -214,10 +214,18 @@ const close = () => {
 }
 
 .app-version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   font-size: 0.8rem;
   color: var(--text-secondary);
   opacity: 0.8;
+  gap: 0.25rem;
+}
+
+.app-version img {
+  max-height: 0.75rem;;
 }
 
 .fade-enter-active,
