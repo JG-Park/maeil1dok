@@ -596,14 +596,11 @@ const toggleTask = async (task) => {
 // 오늘일독 버튼 클릭 시 실행되는 함수를 단순화
 const handleTodayReading = async () => {
   try {
-    // 선택된 플랜 ID 확인
-    if (!selectedPlanId.value) {
-      console.log('플랜이 선택되지 않았습니다')
-      return
-    }
+    // 선택된 플랜 ID 확인 (비로그인 사용자는 기본 플랜 ID 1 사용)
+    const planId = selectedPlanId.value || 1
 
     // 오늘의 스케줄 조회
-    const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${selectedPlanId.value}`)
+    const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${planId}`)
     console.log('오늘의 스케줄 응답:', response.data)
     
     if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
@@ -614,14 +611,18 @@ const handleTodayReading = async () => {
       router.push({
         path: '/reading',
         query: { 
-          plan: selectedPlanId.value,
+          plan: planId,
           book: schedule.book_code,
           chapter: schedule.start_chapter
         }
       })
     } else {
-      // 일정이 없는 경우
+      // 일정이 없는 경우에도 reading 페이지로 이동
       console.log('오늘은 일정이 없습니다')
+      router.push({
+        path: '/reading',
+        query: { plan: planId }
+      })
     }
   } catch (error) {
     console.error('오늘 일정 조회 오류:', error)
