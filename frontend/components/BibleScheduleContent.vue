@@ -86,7 +86,8 @@
 
       <!-- 비로그인 사용자 기본 플랜 안내 메시지 -->
       <Transition name="slide-fade">
-        <div v-if="showDefaultPlanMessage && !authStore.isAuthenticated" class="bulk-edit-indicator default-plan-indicator">
+        <div v-if="showDefaultPlanMessage && !authStore.isAuthenticated"
+          class="bulk-edit-indicator default-plan-indicator">
           <span class="bulk-edit-message">비로그인 사용자는 <strong>{{ defaultPlanName }}</strong>이 기본 선택되요.</span>
         </div>
       </Transition>
@@ -228,14 +229,36 @@
             <div class="modal-content">
               <h3>플랜 선택</h3>
               <div class="plan-list">
-                <button v-for="subscription in subscriptions" :key="subscription.plan_id" class="plan-item"
-                  :class="{ active: subscription.plan_id === (props.useDefaultPlan ? selectedSubscriptionId : route.query.plan) }"
-                  @click="selectPlan(subscription)">
-                  {{ subscription.plan_name }}
+                <button v-for="subscription in subscriptions" :key="subscription.plan_id" class="plan-item" :class="{
+                  active: String(subscription.plan_id) === String(route.query.plan)
+                }" @click="selectPlan(subscription)">
+                  <div class="plan-item-content">
+                    <div class="plan-info">
+                      <div class="check-icon-wrapper">
+                        <svg v-show="String(subscription.plan_id) === String(route.query.plan)" class="check-icon"
+                          xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                      <span class="plan-name">{{ subscription.plan_name }}</span>
+                    </div>
+                    <div class="plan-badges">
+                      <span v-if="subscription.is_default" class="default-badge">기본</span>
+                    </div>
+                  </div>
                 </button>
               </div>
               <div class="modal-buttons">
                 <button class="cancel-button" @click="showPlanModal = false">취소</button>
+                <button class="manage-plan-button" @click="goToPlanManagement">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  플랜 관리
+                </button>
               </div>
             </div>
           </div>
@@ -252,6 +275,9 @@
         </svg>
       </button>
     </Transition>
+
+    <!-- Toast 컴포넌트 ref 수정 -->
+    <Toast ref="toastRef" />
   </div>
 </template>
 
@@ -275,6 +301,7 @@ interface Schedule {
 interface Subscription {
   plan_id: string;
   plan_name: string;
+  is_default?: boolean;
 }
 
 interface BulkEditState {
@@ -358,6 +385,9 @@ const showScrollTop = ref(false)
 // ref 선언 부분에 추가
 const showDefaultPlanMessage = ref(false)
 const defaultPlanName = ref('')
+
+// ref 선언 추가
+const toastRef = ref(null)
 
 // 스크롤 이벤트 핸들러
 const handleScroll = (event: Event) => {
@@ -449,13 +479,10 @@ watch(showPlanModal, (newValue) => {
 
 // 플랜 선택 핸들러
 const selectPlan = (subscription: Subscription) => {
-  selectedSubscriptionId.value = subscription.plan_id
-  showPlanModal.value = false
-
-  // URL 파라미터 업데이트
   router.push({
     query: { ...route.query, plan: subscription.plan_id }
   })
+  showPlanModal.value = false
 }
 
 // Toast 설정
@@ -853,17 +880,17 @@ const fetchSubscriptions = async () => {
           selectedSubscriptionId.value = subscriptions.value[0].plan_id
           // URL 파라미터 업데이트 추가
           updateUrlPlanId(subscriptions.value[0].plan_id)
-          
+
           // 비로그인 사용자일 경우 안내 메시지 표시
           if (!authStore.isAuthenticated) {
             defaultPlanName.value = subscriptions.value[0].plan_name
             // 초기에는 메시지 숨김 상태 유지
             showDefaultPlanMessage.value = false
-            
+
             // 0.5초 후에 메시지 표시
             setTimeout(() => {
               showDefaultPlanMessage.value = true
-              
+
               // 메시지가 표시된 후 5초 뒤에 숨김
               setTimeout(() => {
                 showDefaultPlanMessage.value = false
@@ -894,17 +921,17 @@ const fetchSubscriptions = async () => {
           selectedSubscriptionId.value = response.data.plan_id
           // URL 파라미터 업데이트 추가
           updateUrlPlanId(response.data.plan_id)
-          
+
           // 비로그인 사용자일 경우 안내 메시지 표시
           if (!authStore.isAuthenticated) {
             defaultPlanName.value = response.data.plan_name
             // 초기에는 메시지 숨김 상태 유지
             showDefaultPlanMessage.value = false
-            
+
             // 0.5초 후에 메시지 표시
             setTimeout(() => {
               showDefaultPlanMessage.value = true
-              
+
               // 메시지가 표시된 후 5초 뒤에 숨김
               setTimeout(() => {
                 showDefaultPlanMessage.value = false
@@ -1058,7 +1085,7 @@ const closeModal = () => {
 const confirmGoToSchedule = () => {
   if (selectedSchedule.value) {
     const queryParams = new URLSearchParams()
-    
+
     // route.query 객체를 순회하며 안전하게 파라미터 설정
     Object.entries(route.query).forEach(([key, value]) => {
       if (typeof value === 'string') {
@@ -1071,14 +1098,14 @@ const confirmGoToSchedule = () => {
         })
       }
     })
-    
+
     // 선택된 구독 ID가 있을 때만 plan 파라미터 설정
     if (selectedSubscriptionId.value) {
       queryParams.set('plan', selectedSubscriptionId.value)
     }
-    
+
     queryParams.set('from', 'reading-plan') // from 파라미터 추가
-    
+
     // 선택된 일정의 책과 장 정보 추가
     if (selectedSchedule.value.book) {
       const bookCode = findBookCode(selectedSchedule.value.book)
@@ -1087,12 +1114,12 @@ const confirmGoToSchedule = () => {
         queryParams.set('chapter', String(selectedSchedule.value.start_chapter))
       }
     }
-    
+
     router.push({
       path: '/reading',
       query: Object.fromEntries(queryParams)
     })
-    
+
     showModal.value = false
   }
 }
@@ -1246,14 +1273,14 @@ const isInSelectedRange = (scheduleGroup: Schedule | null) => {
 const scrollToToday = async () => {
   const today = new Date()
   const todayMonth = today.getMonth() + 1
-  
+
   // 현재 달이 다르면 달 변경 및 데이터 새로 가져오기
   if (selectedMonth.value !== todayMonth) {
     selectedMonth.value = todayMonth
     await fetchSchedules()
     await nextTick() // DOM 업데이트 대기
   }
-  
+
   // 약간 지연 후 스크롤 실행
   setTimeout(() => {
     const todayElement = document.querySelector(`[data-date="${today.toISOString().split('T')[0]}"]`)
@@ -1277,7 +1304,7 @@ const scrollToLastIncomplete = async () => {
         plan_id: selectedSubscriptionId.value
       }
     })
-    
+
     if (data.success) {
       // 월 변경이 필요한 경우
       if (selectedMonth.value !== data.month) {
@@ -1285,7 +1312,7 @@ const scrollToLastIncomplete = async () => {
         await fetchSchedules() // 스케줄 데이터 새로 가져오기
         await nextTick() // DOM 업데이트 대기
       }
-      
+
       // 약간 지연 후 스크롤 실행
       setTimeout(() => {
         const element = document.querySelector(`[data-date="${data.date}"]`)
@@ -1312,10 +1339,10 @@ watch(() => props.isModal, async (newVal) => {
   if (newVal) {
     isInitialized.value = false
     isLoading.value = true
-    
+
     // 모달이 열릴 때마다 초기화 다시 실행
     await initializeComponent()
-    
+
     // DOM이 완전히 렌더링된 후 스크롤 실행
     if (props.currentBook && props.currentChapter) {
       // 더 긴 지연 시간 및 여러 번의 nextTick으로 안정성 향상
@@ -1331,7 +1358,7 @@ watch(() => props.isModal, async (newVal) => {
 // scrollToCurrentLocation 함수 개선
 const scrollToCurrentLocation = async () => {
   if (!props.currentBook || !props.currentChapter) return
-  
+
   try {
     // 현재 위치의 일정 정보 가져오기
     const { data } = await api.get('/api/v1/todos/detail/', {
@@ -1353,22 +1380,22 @@ const scrollToCurrentLocation = async () => {
 
       // 스크롤 동작 개선을 위해 타이밍 조정
       await nextTick()
-      
+
       // 지연 처리로 DOM 렌더링 완료 보장
       setTimeout(() => {
         // 대상 요소 찾기
         const targetElement = document.querySelector(`[data-date="${data.plan_date}"]`)
         if (!targetElement) return
-        
+
         // 스크롤 컨테이너 찾기
         const scheduleBody = document.querySelector('.schedule-body')
         if (!scheduleBody) return
-        
+
         // 스크롤 위치 계산
         const targetTop = targetElement.offsetTop
         const containerScrollTop = scheduleBody.scrollTop
         const containerHeight = scheduleBody.clientHeight
-        
+
         // 직접 스크롤 처리 - 컨테이너의 중앙에 타겟 위치
         scheduleBody.scrollTo({
           top: targetTop - (containerHeight / 2) + (targetElement.clientHeight / 2),
@@ -1392,6 +1419,12 @@ watch(() => props.isModal, async (newVal) => {
     }, 500)
   }
 }, { immediate: true })
+
+// script 섹션에 함수 추가
+const goToPlanManagement = () => {
+  showPlanModal.value = false
+  router.push('/plans')
+}
 
 </script>
 
@@ -2087,6 +2120,8 @@ watch(() => props.isModal, async (newVal) => {
 }
 
 .modal-buttons button {
+  display: flex;
+  justify-content: center;
   flex: 1;
   padding: 0.875rem;
   border-radius: 8px;
@@ -2268,25 +2303,97 @@ watch(() => props.isModal, async (newVal) => {
 }
 
 .plan-item {
-  padding: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
   border: 1px solid #E2E8F0;
   border-radius: 8px;
   background-color: white;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
-  font-weight: 500;
-  font-size: 0.9375rem;
 }
 
 .plan-item:hover {
   background-color: #F8FAFC;
+  border-color: #CBD5E1;
 }
 
 .plan-item.active {
   border-color: var(--primary-color);
-  background-color: var(--primary-light);
+  background-color: #F8FAFC;
+}
+
+.plan-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.check-icon-wrapper {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.check-icon {
+  width: 20px;
+  height: 20px;
   color: var(--primary-color);
+}
+
+.plan-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.plan-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.default-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.75em;
+  background-color: #F1F5F9;
+  border-radius: 6px;
+  font-weight: 500;
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #CBD5E1;
+}
+
+/* active 상태일 때 스타일 강화 */
+.plan-item.active {
+  background-color: #F8FAFC;
+  border-color: var(--primary-color);
+  border-width: 1px;
+}
+
+.plan-item.active .plan-name {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.plan-item.active .check-icon {
+  color: var(--primary-color);
+}
+
+/* 플랜 아이템 hover 효과 개선 */
+.plan-item:hover:not(.active) {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
 }
 
 .schedule-item.range-start {
@@ -2479,9 +2586,11 @@ watch(() => props.isModal, async (newVal) => {
   0% {
     box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(96, 165, 250, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(96, 165, 250, 0);
   }
@@ -2489,5 +2598,37 @@ watch(() => props.isModal, async (newVal) => {
 
 .highlight-animation {
   animation: highlight-pulse 1.5s ease-out;
+}
+
+/* 플랜 관리 버튼 스타일 추가 */
+.manage-plan-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.manage-plan-button:hover {
+  background: var(--primary-dark);
+}
+
+.manage-plan-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 모달 버튼 컨테이너 스타일 수정 */
+.modal-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #E2E8F0;
 }
 </style>
