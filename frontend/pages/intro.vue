@@ -11,8 +11,8 @@
 
     <div class="content-section fade-in" style="animation-delay: 0.2s">
       <div class="video-info">
-        <h2>민수기 개론</h2>
-        <p class="description">민수기의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
+        <h2>신명기  개론</h2>
+        <p class="description">신명기 의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
       </div>
 
       <div class="video-wrapper">
@@ -28,7 +28,7 @@
         </div>
         
         <a 
-          href="https://youtu.be/4Ttqlz3qR8Q" 
+          href="https://youtu.be/ODkCppuCsAA" 
           target="_blank" 
           class="youtube-button"
         >
@@ -54,7 +54,7 @@ const taskStore = useTaskStore()
 const router = useRouter()
 
 const handleComplete = () => {
-  taskStore.completeTask(3) // 민수기 개론 task의 ID
+  taskStore.completeTask(3) // 신명기  개론 task의 ID
   router.push('/')
 }
 </script>
