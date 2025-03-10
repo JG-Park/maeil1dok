@@ -1427,7 +1427,7 @@ h2 {
 }
 
 .new-badge {
-  background: #EF4444;
+  background: var(--error);
   color: white;
   font-size: 0.65rem;
   font-weight: 600;
@@ -1455,7 +1455,7 @@ h2 {
   height: 40px;
   background: #EBF5FF;
   border-radius: 10px;
-  color: #3B82F6;
+  color: var(--info);
   margin-right: 1rem;
   flex-shrink: 0;
   font-weight: 700;

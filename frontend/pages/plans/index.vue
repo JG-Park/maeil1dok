@@ -582,12 +582,12 @@ onMounted(async () => {
 }
 
 .action-button.cancel {
-  background: #EF4444;
+  background: var(--error);
   color: white;
 }
 
 .action-button.resume {
-  background: #10B981;
+  background: var(--success);
   color: white;
 }
 

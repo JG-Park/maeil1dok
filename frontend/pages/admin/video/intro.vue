@@ -655,7 +655,7 @@ watch(() => authStore.user, async (newUser) => {
 }
 
 .action-button.delete {
-  background: #EF4444;
+  background: var(--error);
   color: white;
 }
 

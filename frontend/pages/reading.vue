@@ -3188,8 +3188,8 @@ html.touch-device .nav-button.next:hover svg {
 
 .chapter-box.not-completed {
   background: #FEF2F2;
-  border-color: #EF4444;
-  color: #EF4444;
+  border-color: var(--error);
+  color: var(--error);
 }
 
 @media (max-width: 640px) {

@@ -1087,9 +1087,9 @@ const generateTestSchedules = async (count) => {
   --text-secondary: #4A5568;
   --background-light: #F8FAFC;
   --border-color: #E2E8F0;
-  --success-color: #10B981;
-  --warning-color: #F59E0B;
-  --error-color: #EF4444;
+  --success-color: var(--success);
+  --warning-color: var(--warning);
+  --error-color: var(--error);
 }
 
 .container {
@@ -1422,7 +1422,7 @@ h1 {
 }
 
 .action-button.edit:hover {
-  background: #3B82F6;
+  background: var(--info);
   color: white;
 }
 
