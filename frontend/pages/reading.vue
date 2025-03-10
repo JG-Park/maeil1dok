@@ -1,13 +1,10 @@
 <script setup>
-import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue'
-import { useTaskStore } from '~/stores/tasks'
+import { ref, onMounted, computed, watch, onUnmounted, nextTick, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useBibleProgressApi, useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import Toast from '~/components/Toast.vue'
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue'
 
-const taskStore = useTaskStore()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -16,10 +13,19 @@ const api = useApi()
 // Toast 컴포넌트 ref
 const toast = ref(null)
 
+// Toast 메시지 표시 함수
+const showToast = (message, type = 'success') => {
+  if (toast.value) {
+    toast.value.show(message, type)
+  }
+}
+
 // 상태 변수들을 상단으로 이동
 const showLoginModal = ref(false)
 const showModal = ref(false)
 const showScheduleModal = ref(false)
+const showCompleteConfirmModal = ref(false) // 추가: 완료/취소 확인 모달 표시 여부
+const currentAction = ref('complete') // 추가: 현재 액션('complete' 또는 'cancel')
 const bibleContent = ref('')
 const isLoading = ref(true)
 const chapterTitle = ref('')
@@ -32,39 +38,10 @@ const isTodayReadingFloating = ref(false)
 const schedules = ref([])
 const selectedMonth = ref(new Date().getMonth() + 1)
 const months = Array.from({ length: 12 }, (_, i) => i + 1)
-const readingStatus = ref('not_started')
-const currentSection = ref(null)
+const isUpdatingStatus = ref(false) // 상태 업데이트 중인지 나타내는 상태 추가
 
-// 월 선택기 드래그 스크롤 기능
-const monthScroll = ref(null)
-let isMouseDown = false
-let startX
-let scrollLeft
-
-const onMouseDown = (e) => {
-  isMouseDown = true
-  startX = e.pageX - monthScroll.value.offsetLeft
-  scrollLeft = monthScroll.value.scrollLeft
-  monthScroll.value.style.cursor = 'grabbing'
-}
-
-const onMouseLeave = () => {
-  isMouseDown = false
-  monthScroll.value.style.cursor = 'grab'
-}
-
-const onMouseUp = () => {
-  isMouseDown = false
-  monthScroll.value.style.cursor = 'grab'
-}
-
-const onMouseMove = (e) => {
-  if (!isMouseDown) return
-  e.preventDefault()
-  const x = e.pageX - monthScroll.value.offsetLeft
-  const walk = (x - startX) * 2
-  monthScroll.value.scrollLeft = scrollLeft - walk
-}
+// apiResponse를 반응형 변수로 선언
+const apiResponse = ref(null)
 
 // 성경 책 목록을 구약/신약으로 구분
 const bibleBooks = {
@@ -158,6 +135,28 @@ const chaptersArray = computed(() => {
   return book ? Array.from({ length: book.chapters }, (_, i) => i + 1) : []
 })
 
+// 날짜 포맷팅 함수 수정
+const formatScheduleDate = (dateString) => {
+  const date = new Date(dateString)
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const dayOfWeek = getDayOfWeek(dateString)
+  return `${month}/${day}(${dayOfWeek})`
+}
+
+// 장 완료 여부 확인 함수
+const isChapterCompleted = (book, chapter) => {
+  if (!apiResponse.value?.data?.plan_detail) return false
+
+  const detail = apiResponse.value.data.plan_detail.find(detail => {
+    const isTargetBook = detail.book === book
+    const isInRange = chapter >= detail.start_chapter && chapter <= detail.end_chapter
+    return isTargetBook && isInRange
+  })
+
+  return detail?.is_complete || false
+}
+
 // 성경 본문 로드 함수
 const loadBibleContent = async (book, chapter) => {
   isLoading.value = true
@@ -165,27 +164,36 @@ const loadBibleContent = async (book, chapter) => {
     // 성경 본문 로드
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃 설정
-    
+
     const response = await fetch(`/bible-proxy/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`, {
       signal: controller.signal
     })
     clearTimeout(timeoutId);
-    
+
     const text = await response.text()
-    
+
     currentBook.value = book
     currentChapter.value = chapter
-    
-    // 해당 구절의 일정 정보 가져오기
-    const scheduleData = await taskStore.fetchReadingSchedule(book, chapter)
-    if (scheduleData) {
-      taskStore.todayReading = scheduleData
+
+    // API 응답에서 스케줄 정보를 직접 사용
+    apiResponse.value = await api.get('/api/v1/todos/detail/', {
+      params: {
+        plan_id: route.query.plan,
+        book,
+        chapter
+      }
+    })
+
+    if (apiResponse.value.data) {
+      const { audio_link, guide_link } = apiResponse.value.data
+      chapterTitle.value = `${bookNames[book]} ${chapter}${book === 'psa' ? '편' : '장'}`
     }
-    
+
+    // 나머지 HTML 파싱 로직은 그대로 유지...
     const parser = new DOMParser()
     const doc = parser.parseFromString(text, 'text/html')
     const bibleElement = doc.getElementById('tdBible1')
-    
+
     if (bibleElement) {
       // 불필요한 요소 제거
       const elementsToRemove = bibleElement.querySelectorAll('input, select, form, .fontcontrol, a, [style*="display:none"], [style*="display: none"]')
@@ -196,14 +204,14 @@ const loadBibleContent = async (book, chapter) => {
       if (chapNum) {
         // 원본 텍스트를 가져옴 (예: "제 1 편" 또는 "제 1 장")
         let chapterText = chapNum.textContent
-        
+
         // '제'와 책 타입(장/편)을 모두 제거하고 숫자만 추출
         let chapterNumber = chapterText
           .replace('제', '')
           .replace('장', '')
           .replace('편', '')
           .trim()
-        
+
         // 시편인 경우 "편"으로 표시, 나머지는 "장"으로 표시
         const suffix = book === 'psa' ? '편' : '장'
         chapterTitle.value = `${bookNames[book] || ''} ${chapterNumber}${suffix}`
@@ -216,11 +224,11 @@ const loadBibleContent = async (book, chapter) => {
       // 모든 내용을 순서대로 처리
       const verses = []
       let currentSection = ''
-      
+
       // 시편 1편 특별 처리 - f 태그 내부의 모든 span 요소 검색
       if (book === 'psa' && chapter === 1) {
         const fTag = bibleElement.querySelector('f') // 시편 1편 특유의 f 태그 찾기
-        
+
         if (fTag) {
           // f 태그 내의 모든 span 요소 처리
           const spans = fTag.querySelectorAll('span')
@@ -229,7 +237,7 @@ const loadBibleContent = async (book, chapter) => {
             if (numberSpan) {
               const number = numberSpan.textContent.trim().replace(/\s+/g, '')
               let text = span.textContent.replace(numberSpan.textContent, '').trim()
-              
+
               verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
             }
           })
@@ -243,7 +251,7 @@ const loadBibleContent = async (book, chapter) => {
               .replace(/\(\s*\)/g, '')  // 빈 괄호 제거
               .replace(/\s+/g, ' ')     // 연속된 공백 하나로 통일
               .trim()                   // 앞뒤 공백 제거
-            
+
             if (currentSection) {  // 내용이 있는 경우에만 추가
               verses.push(`<h3 class="section-title">${currentSection}</h3>`)
             }
@@ -253,7 +261,7 @@ const loadBibleContent = async (book, chapter) => {
             const numberSpan = node.querySelector('.number')
             const number = numberSpan.textContent.trim().replace(/\s+/g, '')
             let text = node.textContent.replace(numberSpan.textContent, '').trim()
-            
+
             verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
           }
         })
@@ -264,13 +272,13 @@ const loadBibleContent = async (book, chapter) => {
         // 모든 텍스트 노드를 찾아 내용 추출
         const textNodes = Array.from(bibleElement.querySelectorAll('span'))
           .filter(span => span.querySelector('.number'))
-        
+
         textNodes.forEach(node => {
           const numberSpan = node.querySelector('.number')
           if (numberSpan) {
             const number = numberSpan.textContent.trim().replace(/\s+/g, '')
             let text = node.textContent.replace(numberSpan.textContent, '').trim()
-            
+
             verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
           }
         })
@@ -285,7 +293,7 @@ const loadBibleContent = async (book, chapter) => {
       }
 
       bibleContent.value = verses.join('')
-      
+
       // 본문 로드 완료 후 스크롤 위치를 최상단으로 이동
       window.scrollTo({
         top: 0,
@@ -294,13 +302,13 @@ const loadBibleContent = async (book, chapter) => {
     }
   } catch (error) {
     console.error('Failed to load bible content:', error)
-    
+
     // 에러 발생 시에도 chapterTitle 업데이트
     if (!chapterTitle.value) {
       const suffix = book === 'psa' ? '편' : '장'
       chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
     }
-    
+
     // 타임아웃이나 네트워크 오류 발생 시 안내 메시지 표시
     bibleContent.value = `
       <div class="error-message">
@@ -319,17 +327,44 @@ const loadBibleContent = async (book, chapter) => {
   }
 }
 
-// 다음 장으로 이동 - 터치 상태 초기화 추가
+// 상태 변수 추가
+const modalSource = ref('') // 'next-button' 또는 'complete-button'
+
+// goToNextChapter 함수 수정
 const goToNextChapter = (event) => {
   if (event && event.currentTarget) {
-    event.currentTarget.blur(); // 포커스 제거
+    event.currentTarget.blur();
   }
-  
+
   const maxChapter = bookChapters[currentBook.value]
-  if (currentChapter.value < maxChapter) {
+  const nextChapter = Number(currentChapter.value) + 1
+
+  // 현재 구간 정보 확인
+  const currentDetail = currentPlanDetail.value
+
+  // 로그인한 사용자이고, 현재 장이 구간의 마지막 장인 경우에만 완료 확인 모달 표시
+  if (authStore.isAuthenticated &&
+    currentDetail &&
+    !currentDetail.is_complete && // 읽지 않은 일정일 때만
+    currentBook.value === currentDetail.book &&
+    currentChapter.value === currentDetail.end_chapter) {
+    // 완료 확인 모달 표시
+    currentAction.value = 'complete'
+    modalSource.value = 'next-button'
+    showCompleteConfirmModal.value = true
+    return
+  }
+
+  if (nextChapter <= maxChapter) {
     // 같은 책의 다음 장
-    const nextChapter = currentChapter.value + 1
-    router.push(`/reading?book=${currentBook.value}&chapter=${nextChapter}`)
+    router.push({
+      path: '/reading',
+      query: {
+        ...route.query,
+        book: currentBook.value,
+        chapter: nextChapter.toString()
+      }
+    })
     loadBibleContent(currentBook.value, nextChapter)
   } else {
     // 다음 책의 첫 장으로
@@ -337,7 +372,14 @@ const goToNextChapter = (event) => {
     const currentBookIndex = books.indexOf(currentBook.value)
     if (currentBookIndex < books.length - 1) {
       const nextBook = books[currentBookIndex + 1]
-      router.push(`/reading?book=${nextBook}&chapter=1`)
+      router.push({
+        path: '/reading',
+        query: {
+          ...route.query,
+          book: nextBook,
+          chapter: '1'
+        }
+      })
       loadBibleContent(nextBook, 1)
     }
   }
@@ -346,13 +388,22 @@ const goToNextChapter = (event) => {
 // 이전 장으로 이동 - 터치 상태 초기화 추가
 const goToPrevChapter = (event) => {
   if (event && event.currentTarget) {
-    event.currentTarget.blur(); // 포커스 제거
+    event.currentTarget.blur();
   }
-  
-  if (currentChapter.value > 1) {
+
+  // 명시적으로 숫자로 변환
+  const prevChapter = Number(currentChapter.value) - 1
+
+  if (prevChapter >= 1) {
     // 같은 책의 이전 장
-    const prevChapter = currentChapter.value - 1
-    router.push(`/reading?book=${currentBook.value}&chapter=${prevChapter}`)
+    router.push({
+      path: '/reading',
+      query: {
+        ...route.query,
+        book: currentBook.value,
+        chapter: prevChapter.toString() // 문자열로 변환하여 전달
+      }
+    })
     loadBibleContent(currentBook.value, prevChapter)
   } else {
     // 이전 책의 마지막 장으로
@@ -361,16 +412,23 @@ const goToPrevChapter = (event) => {
     if (currentBookIndex > 0) {
       const prevBook = books[currentBookIndex - 1]
       const lastChapter = bookChapters[prevBook]
-      router.push(`/reading?book=${prevBook}&chapter=${lastChapter}`)
+      router.push({
+        path: '/reading',
+        query: {
+          ...route.query,
+          book: prevBook,
+          chapter: lastChapter.toString() // 문자열로 변환하여 전달
+        }
+      })
       loadBibleContent(prevBook, lastChapter)
     }
   }
 }
 
-// 책 선택 시 처리 - 오른쪽 장 영역도 자동 스크롤되도록 개선
+// 책 선택 시 처리
 const selectBook = (bookId) => {
   selectedBook.value = bookId
-  
+
   // 책이 선택되면 장 영역도 스크롤
   nextTick(() => {
     // 약간 지연 후 장 영역 스크롤 (책 선택 후 장 목록이 렌더링될 시간 필요)
@@ -382,8 +440,15 @@ const selectBook = (bookId) => {
 
 // 장 선택 시 처리
 const selectChapter = (chapter) => {
-  // URL을 명시적으로 업데이트
-  router.push(`/reading?book=${selectedBook.value}&chapter=${chapter}`)
+  // URL을 명시적으로 업데이트하되, 기존 쿼리 파라미터 유지
+  router.push({
+    path: '/reading',
+    query: {
+      ...route.query,
+      book: selectedBook.value,
+      chapter: chapter
+    }
+  })
   loadBibleContent(selectedBook.value, chapter)
   showModal.value = false
 }
@@ -394,15 +459,15 @@ const booksSection = ref(null)
 // 선택된 책으로 스크롤 - 부드러운 스크롤 복원
 const scrollToSelectedBook = () => {
   if (!booksSection.value) return
-  
+
   nextTick(() => {
     const activeBook = booksSection.value.querySelector(`.book-button.active, .book-button[data-id="${currentBook.value}"]`)
-    
+
     if (activeBook) {
       const container = booksSection.value
       const bookTop = activeBook.offsetTop
       const containerHeight = container.clientHeight
-      
+
       // 부드러운 스크롤 복원
       container.scrollTo({
         top: bookTop - containerHeight / 2 + activeBook.clientHeight / 2,
@@ -418,17 +483,17 @@ const chaptersSection = ref(null)
 // 선택된 장으로 스크롤 - 부드러운 스크롤 적용
 const scrollToSelectedChapter = () => {
   if (!chaptersSection.value) return
-  
+
   nextTick(() => {
     const activeChapter = chaptersSection.value.querySelector(`.chapter-button.active, .chapter-button[data-chapter="${currentChapter.value}"]`)
-    
+
     if (activeChapter) {
       const container = chaptersSection.value
       const chapterTop = activeChapter.offsetTop
       const chapterLeft = activeChapter.offsetLeft
       const containerHeight = container.clientHeight
       const containerWidth = container.clientWidth
-      
+
       // 부드러운 스크롤 적용
       container.scrollTo({
         top: chapterTop - containerHeight / 2 + activeChapter.clientHeight / 2,
@@ -444,11 +509,11 @@ watch(showModal, (newValue) => {
   if (newValue) {
     // 모달이 열릴 때 selectedBook을 현재 책으로 설정
     selectedBook.value = currentBook.value
-    
+
     // 왼쪽 먼저 스크롤 후 오른쪽 스크롤
     setTimeout(() => {
       scrollToSelectedBook()
-      
+
       // 왼쪽 스크롤 후 약간 지연 후 오른쪽 스크롤
       setTimeout(() => {
         scrollToSelectedChapter()
@@ -498,53 +563,6 @@ const goToLogin = () => {
   showLoginModal.value = false
 }
 
-// 페이지 로드 시 오늘의 읽기 정보를 가져오는 함수
-const initializeTodayReading = async () => {
-  if (!taskStore.todayReading) {
-    await taskStore.fetchTodayReading()
-  }
-}
-
-// 날짜 포맷팅 함수 수정
-const formatScheduleDate = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  const days = ['일', '월', '화', '수', '목', '금', '토']
-  
-  // 모바일 체크
-  const isMobile = window.innerWidth <= 640
-  
-  if (isMobile) {
-    return `${date.getMonth() + 1}/${date.getDate()}(${days[date.getDay()]})`
-  }
-  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
-}
-
-// formatButtonDate 함수 추가
-const formatButtonDate = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return `${date.getMonth() + 1}/${date.getDate()}`
-}
-
-// formattedDate computed 속성 수정
-const formattedDate = computed(() => {
-  return formatScheduleDate(taskStore.todayReading?.date)
-})
-
-// URL 변경 감지
-watch(
-  () => route.query,
-  (newQuery) => {
-    const bookParam = String(newQuery.book || '')
-    const chapterParam = Number(newQuery.chapter || 1)
-    
-    if (bookParam && chapterParam && 
-        (bookParam !== currentBook.value || chapterParam !== currentChapter.value)) {
-      loadBibleContent(bookParam, chapterParam)
-    }
-  }
-)
 
 // 터치 디바이스 감지 함수 추가
 const detectTouchDevice = () => {
@@ -554,7 +572,7 @@ const detectTouchDevice = () => {
   if (hasTouchClass) return true; // 이미 검사했으면 바로 반환
 
   const isTouchDevice = (
-    'ontouchstart' in window || 
+    'ontouchstart' in window ||
     navigator.maxTouchPoints > 0 ||
     navigator.msMaxTouchPoints > 0
   );
@@ -564,34 +582,38 @@ const detectTouchDevice = () => {
   } else {
     document.documentElement.classList.add('no-touch-device');
   }
-  
+
   return isTouchDevice;
 };
 
 // 페이지 마운트 시 터치 디바이스 감지 실행
-onMounted(async () => {  // async 키워드 추가
+onMounted(async () => {
   detectTouchDevice();
-  
-  await initializeTodayReading()
-  
-  const bookParam = String(route.query.book || '')
-  const chapterParam = Number(route.query.chapter || 1)
-  
-  if (bookParam && chapterParam) {
-    selectedBook.value = bookParam
-    currentChapter.value = chapterParam
-    loadBibleContent(bookParam, chapterParam)
-  } else if (taskStore.todayReading) {
-    selectedBook.value = taskStore.todayReading.book
-    currentChapter.value = taskStore.todayReading.chapter
-    loadBibleContent(taskStore.todayReading.book, taskStore.todayReading.chapter)
-  } else {
-    loadBibleContent('gen', 1)
-  }
 
-  // 스크롤 이벤트 리스너 추가
-  window.addEventListener('scroll', handleScroll, { passive: true })
-  handleScroll() // 초기 상태 체크
+  try {
+    // URL 파라미터에서 book과 chapter를 명시적으로 가져옴
+    const book = route.query.book || 'gen'
+    const chapter = Number(route.query.chapter) || 1
+
+    // 파라미터가 있는 경우에만 상태 업데이트 및 컨텐츠 로드
+    if (route.query.book && route.query.chapter) {
+      currentBook.value = route.query.book
+      currentChapter.value = Number(route.query.chapter)
+      await loadBibleContent(currentBook.value, currentChapter.value)
+
+      // 모든 로딩이 완료된 후 장 표시 상태 업데이트
+      setTimeout(updateChapterDisplay, 100)
+    }
+
+    // 스크롤 이벤트 리스너 등록
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+
+    // 스타일 적용을 위해 약간의 지연 후 DOM 업데이트
+    await nextTick()
+  } catch (error) {
+    console.error('페이지 초기화 중 오류 발생:', error)
+  }
 })
 
 // 컴포넌트가 언마운트될 때 이벤트 리스너 제거
@@ -606,9 +628,9 @@ const handleScroll = () => {
   const todayReadingElement = document.querySelector('.today-reading')
   const contentSection = document.querySelector('.content-section')
   const floatingSpacer = document.querySelector('.floating-spacer')
-  
+
   if (!todayReadingElement || !contentSection) return
-  
+
   const todayReadingHeight = todayReadingElement.offsetHeight
   const todayReadingTop = todayReadingElement.offsetTop
   const scrollProgress = Math.min(Math.max((scrollY - todayReadingTop + headerHeight) / todayReadingHeight, 0), 1)
@@ -630,192 +652,18 @@ const handleScroll = () => {
 // 스케줄 모달 관련 함수들
 const openScheduleModal = () => {
   showScheduleModal.value = true
+  
+  // 모달이 열린 후 scheduleModalMounted 상태 변경
+  // 이를 통해 스크롤 함수 실행 시점 제어
+  setTimeout(() => {
+    scheduleModalMounted.value = true
+  }, 100)
 }
 
 const closeScheduleModal = () => {
   showScheduleModal.value = false
+  scheduleModalMounted.value = false
 }
-
-// 한글 성경 이름을 코드로 변환하는 함수
-const findBookCode = (koreanName) => {
-  const allBooks = [...bibleBooks.old, ...bibleBooks.new]
-  const book = allBooks.find(b => b.name === koreanName)
-  return book?.id
-}
-
-// 일정 선택 처리
-const handleScheduleSelect = (schedule) => {
-  const bookCode = findBookCode(schedule.book)
-  if (!bookCode) {
-    console.error('Invalid book name:', schedule.book)
-    return
-  }
-  
-  router.push(`/reading?book=${bookCode}&chapter=${schedule.start_chapter}&from=reading-plan`)
-  showScheduleModal.value = false
-}
-
-// 선택된 월의 스케줄만 필터링
-const filteredSchedules = computed(() => {
-  return schedules.value.filter(schedule => {
-    const scheduleDate = new Date(schedule.date)
-    return scheduleDate.getMonth() + 1 === selectedMonth.value
-  })
-})
-
-// 읽기 상태 확인 함수 수정
-const getReadingStatus = (schedule) => {
-  const today = new Date()
-  const scheduleDate = new Date(schedule.date)
-  
-  // 날짜 비교를 위해 시간 부분을 제거
-  today.setHours(0, 0, 0, 0)
-  scheduleDate.setHours(0, 0, 0, 0)
-  
-  // 1. 읽은 구간 확인 (날짜와 상관없이)
-  if (authStore.isAuthenticated) {
-    const isRead = readingHistory.value.some(history => 
-      history.book === schedule.book && 
-      history.last_chapter_read === schedule.end_chapter
-    )
-    if (isRead) return 'completed'
-  }
-  
-  // 2. 오늘 구간 확인
-  if (scheduleDate.getTime() === today.getTime()) {
-    return 'current'
-  }
-  
-  // 3. 과거 구간은 읽지 않음으로 표시
-  if (scheduleDate < today) {
-    return 'not_completed'
-  }
-  
-  // 4. 미래 구간
-  return 'upcoming'
-}
-
-// 현재 장이 읽기 구간의 마지막 장인지 확인하는 computed 속성
-const isLastChapterInSchedule = computed(() => {
-  if (!taskStore.todayReading) return false
-  
-  return currentBook.value === taskStore.todayReading.book && 
-         currentChapter.value === taskStore.todayReading.end_chapter
-})
-
-// isToday computed 속성 수정
-const isToday = computed(() => {
-  if (!taskStore.todayReading?.date) return false
-  
-  const today = new Date()
-  const scheduleDate = new Date(taskStore.todayReading.date)
-  
-  return today.getFullYear() === scheduleDate.getFullYear() &&
-         today.getMonth() === scheduleDate.getMonth() &&
-         today.getDate() === scheduleDate.getDate()
-})
-
-// isPastDate computed 속성 추가
-const isPastDate = computed(() => {
-  if (!taskStore.todayReading?.date) return false
-  
-  const today = new Date()
-  const scheduleDate = new Date(taskStore.todayReading.date)
-  today.setHours(0, 0, 0, 0)
-  scheduleDate.setHours(0, 0, 0, 0)
-  
-  return scheduleDate < today
-})
-
-// isFutureDate computed 속성 추가
-const isFutureDate = computed(() => {
-  if (!taskStore.todayReading?.date) return false
-  
-  const today = new Date()
-  const scheduleDate = new Date(taskStore.todayReading.date)
-  today.setHours(0, 0, 0, 0)
-  scheduleDate.setHours(0, 0, 0, 0)
-  
-  return scheduleDate > today
-})
-
-const { getBibleProgress, completeBibleReading, cancelBibleReading } = useBibleProgressApi()
-
-// 읽기 상태 조회
-const checkReadingStatus = async () => {
-  if (!currentBook.value || !currentChapter.value) {
-    return
-  }
-  
-  try {
-    const response = await getBibleProgress(currentBook.value, currentChapter.value)
-    
-    readingStatus.value = response.status
-    currentSection.value = {
-      ...response.section,
-      is_completed: response.status === 'completed'
-    }
-  } catch (error) {
-    console.error('[Reading Status] Failed to check status:', error)
-  }
-}
-
-// 읽기 완료 처리
-const handleCompleteReading = () => {
-  if (!authStore.isAuthenticated) {
-    showLoginModal.value = true
-    return
-  }
-
-  if (!taskStore.todayReading?.date) return
-  showCompleteConfirmModal.value = true
-}
-
-// 실제 읽기 완료 처리 함수
-const confirmCompleteReading = async () => {
-  try {
-    isLoading.value = true
-    await completeBibleReading(taskStore.todayReading.date)
-    readingStatus.value = 'completed'
-    showCompleteConfirmModal.value = false
-  } catch (error) {
-    console.error('Failed to complete reading:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// 읽기 완료 취소
-const handleCancelReading = async () => {
-  if (!taskStore.todayReading?.date) return
-  
-  try {
-    isLoading.value = true
-    await cancelBibleReading(taskStore.todayReading.date)
-    readingStatus.value = 'not_started'
-  } catch (error) {
-    console.error('Failed to cancel reading:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// 컴포넌트 마운트 시 상태 체크
-onMounted(async () => {
-  await checkReadingStatus()
-})
-
-// 날짜/책/장이 변경될 때 상태 다시 체크
-watch(
-  [
-    () => currentBook.value,
-    () => currentChapter.value,
-    () => taskStore.todayReading?.date
-  ],
-  async () => {
-    await checkReadingStatus()
-  }
-)
 
 // 글자 크기 상태 관리
 const fontSize = ref(16) // 기본 글자 크기
@@ -834,164 +682,20 @@ const resetFontSize = () => {
   fontSize.value = DEFAULT_FONT_SIZE
 }
 
-// 상태 변수들을 상단으로 이동 섹션에 추가
-const readingHistory = ref([])
-
-// 읽기 이력 가져오기
-const fetchReadingHistory = async () => {
-  try {
-    const response = await api.get('/api/v1/todos/reading-history/')
-    readingHistory.value = response
-  } catch (error) {
-    console.error('Failed to fetch reading history:', error)
-  }
-}
-
-// 현재 장이 속한 구간의 마지막 장이 읽음 상태인지 확인하는 computed 속성 추가
-const isCurrentSectionCompleted = computed(() => {
-  if (!taskStore.todayReading) return false
-  
-  // 현재 장이 속한 구간의 마지막 장이 읽음 상태인지 확인
-  const currentSection = schedules.value.find(schedule => {
-    return schedule.book === bookNames[currentBook.value] &&
-           schedule.start_chapter <= currentChapter.value &&
-           schedule.end_chapter >= currentChapter.value
-  })
-
-  if (!currentSection) return false
-
-  // 해당 구간의 마지막 장이 읽음 상태인지 확인
-  const isRead = readingHistory.value.some(history => 
-    new Date(history.date).toDateString() === new Date(currentSection.date).toDateString()
-  )
-
-  return isRead
-})
-
-// 현재 장이 읽음 상태인지 확인하는 computed 속성
-const isCurrentChapterCompleted = computed(() => {
-  if (!currentSection.value) return false
-  
-  // section과 status 모두 확인
-  return currentSection.value.is_completed || readingStatus.value === 'completed'
-})
-
-// 관리 모드 관련 상태
-const isManageMode = ref(false)
-const selectedSchedules = ref([])
-
-// 개별 일정 선택/해제
-const toggleSelect = (schedule) => {
-  const index = selectedSchedules.value.findIndex(s => 
-    s.date === schedule.date
-  )
-  
-  if (index === -1) {
-    selectedSchedules.value.push(schedule)
-  } else {
-    selectedSchedules.value.splice(index, 1)
-  }
-}
-
-// 과거 미완료 전체 선택
-const selectAllIncomplete = () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const incompleteSchedules = filteredSchedules.value.filter(schedule => {
-    const scheduleDate = new Date(schedule.date)
-    scheduleDate.setHours(0, 0, 0, 0)
-    return scheduleDate < today && getReadingStatus(schedule) === 'not_completed'
-  })
-  
-  selectedSchedules.value = incompleteSchedules
-}
-
-// 선택된 일정 일괄 업데이트
-const bulkUpdateProgress = async (action) => {
-  try {
-    await api.post('/api/v1/todos/bible-progress/bulk-update/', {
-      schedules: selectedSchedules.value,
-      action: action
-    })
-    
-    // 상태 갱신
-    await fetchReadingHistory()
-    selectedSchedules.value = []
-    
-    // 토스트 메시지 표시
-    toast.value?.show()
-    
-  } catch (error) {
-    console.error('Failed to update schedules:', error)
-  }
-}
-
-// 오늘 날짜의 일정으로 스크롤하는 함수
-const scrollToToday = () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const todaySchedule = filteredSchedules.value.find(schedule => {
-    const scheduleDate = new Date(schedule.date)
-    scheduleDate.setHours(0, 0, 0, 0)
-    return scheduleDate.getTime() === today.getTime()
-  })
-  
-  if (todaySchedule) {
-    const element = document.querySelector(`[data-date="${todaySchedule.date}"]`)
-    element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-}
-
-// 구간 선택 관련 상태
-const isRangeSelectMode = ref(false)
-const rangeStart = ref(null)
-
-// 구간 선택 모드 토글
-const toggleRangeSelect = () => {
-  isRangeSelectMode.value = !isRangeSelectMode.value
-  if (!isRangeSelectMode.value) {
-    rangeStart.value = null
-  }
-  selectedSchedules.value = []  // 선택 초기화
-}
-
-// 일정이 선택되었는지 확인
-const isScheduleSelected = (schedule) => {
-  return selectedSchedules.value.some(s => 
-    new Date(s.date).getTime() === new Date(schedule.date).getTime()
-  )
-}
-
-// 특정 장이 읽음 상태인지 확인하는 함수
-const isChapterCompleted = (chapter) => {
-  if (!taskStore.todayReading) return false
-  
-  // 현재 장이 완료 상태인 경우
-  if (chapter === currentChapter.value && readingStatus.value === 'completed') {
-    return true
-  }
-  
-  // 읽기 이력에서 해당 장이 완료되었는지 확인
-  return readingHistory.value.some(history => 
-    history.book === currentBook.value && 
-    history.last_chapter_read >= chapter
-  )
-}
-
-// 읽기 완료 확인 모달 상태
-const showCompleteConfirmModal = ref(false)
-
-// 뒤로가기 처리 함수 추가
+// 뒤로가기 처리 함수 수정
 const handleBackNavigation = () => {
-  const { from, month } = route.query
-  
-  if (from === 'reading-plan' && month) {
-    // reading-plan 페이지로 돌아가되, month 파라미터 유지
-    router.push(`/reading-plan?month=${month}`)
+  const { from } = route.query
+
+  // from 파라미터가 있는 경우 해당 경로로 이동
+  if (from) {
+    // 현재 query 파라미터에서 from을 제외한 나머지를 유지
+    const { from: _, ...restQuery } = route.query
+    router.push({
+      path: `/${from}`,
+      query: restQuery // 나머지 query 파라미터 유지
+    })
   } else {
-    // 기본적으로는 홈으로
+    // from이 없는 경우 홈으로 이동 (기존 동작 유지)
     router.push('/')
   }
 }
@@ -1000,7 +704,7 @@ const handleBackNavigation = () => {
 const handleAudioLink = (audioLink) => {
   // 유튜브 URL에서 비디오 ID 추출
   const videoId = audioLink.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1]
-  
+
   if (!videoId) {
     // 유튜브 링크가 아니거나 ID를 추출할 수 없는 경우 기본 링크로 열기
     window.open(audioLink, '_blank')
@@ -1014,15 +718,15 @@ const handleAudioLink = (audioLink) => {
     // 모바일에서는 앱 스키마 사용
     const youtubeAppUrl = `vnd.youtube://${videoId}`
     const webUrl = `https://www.youtube.com/watch?v=${videoId}`
-    
+
     // 앱으로 열기 시도
     window.location.href = youtubeAppUrl
-    
+
     // 앱이 없는 경우를 위한 타임아웃
     const timeout = setTimeout(() => {
       window.location.href = webUrl
     }, 2500)
-    
+
     // 페이지를 떠날 때 타임아웃 제거
     window.onblur = () => {
       clearTimeout(timeout)
@@ -1032,6 +736,431 @@ const handleAudioLink = (audioLink) => {
     window.open(audioLink, '_blank')
   }
 }
+
+// 페이지 로드 시 실행
+onMounted(async () => {
+  const route = useRoute()
+  const router = useRouter()
+
+  // URL 파라미터에서 정보 추출
+  const book = String(route.query.book || '')
+  const chapter = String(route.query.chapter || '')
+  const planId = route.query.plan // plan_id가 없을 수 있음
+  const from = String(route.query.from || '')
+
+  try {
+    // book과 chapter 파라미터가 모두 있는 경우 1번 API 호출
+    if (book && chapter) {
+      // plan_id가 있을 때만 params에 포함
+      const params = {
+        book,
+        chapter
+      }
+      if (planId) {
+        params.plan_id = planId
+      }
+
+      const response = await api.get('/api/v1/todos/detail/', { params })
+
+      // 응답 데이터 처리
+      const data = response.data
+      currentBook.value = data.book
+      currentChapter.value = data.chapter
+      loadBibleContent(data.book, data.chapter)
+      return
+    }
+
+    // book이나 chapter 파라미터가 없는 경우
+    if (!book || !chapter) {
+      // 기본값으로 창세기 1장 설정
+      const defaultBook = 'gen'
+      const defaultChapter = '1'
+
+      // URL 업데이트
+      const newQuery = {
+        ...route.query,
+        book: defaultBook,
+        chapter: defaultChapter
+      }
+
+      router.replace({
+        query: newQuery
+      })
+
+      // 파라미터 설정 후 성경 본문 로드
+      currentBook.value = defaultBook
+      currentChapter.value = Number(defaultChapter)
+      await loadBibleContent(defaultBook, Number(defaultChapter))
+      return
+    }
+
+    // 필수 파라미터가 없는 경우 2번 API 호출 (오늘 날짜 기준)
+    const today = new Date().toISOString().split('T')[0]
+    const statusResponse = await api.get('/api/todos/status/', {
+      params: {
+        date: today,
+        plan_id: planId
+      }
+    })
+
+    const statusData = statusResponse.data
+
+    // 누락된 파라미터를 URL에 업데이트
+    const newQuery = {
+      ...route.query,
+      book: statusData.book,
+      chapter: statusData.start_chapter,
+      plan: statusData.plan_id
+    }
+
+    // URL 업데이트
+    router.replace({
+      query: newQuery
+    })
+
+    // 1번 API 재호출
+    const detailResponse = await api.get('/api/todos/detail/', {
+      params: {
+        plan_id: statusData.plan_id,
+        book: statusData.book,
+        chapter: statusData.start_chapter
+      }
+    })
+
+    const detailData = detailResponse.data
+    currentBook.value = detailData.book
+    currentChapter.value = detailData.chapter
+    loadBibleContent(detailData.book, detailData.chapter)
+
+  } catch (error) {
+    console.error('API 요청 중 오류 발생:', error)
+
+    // 오류 발생 시에도 기본값으로 창세기 1장 설정
+    const defaultBook = 'gen'
+    const defaultChapter = '1'
+
+    // URL 업데이트
+    router.replace({
+      query: {
+        ...route.query,
+        book: defaultBook,
+        chapter: defaultChapter
+      }
+    })
+
+    // 기본 성경 본문 로드
+    currentBook.value = defaultBook
+    currentChapter.value = Number(defaultChapter)
+    await loadBibleContent(defaultBook, Number(defaultChapter))
+  }
+})
+
+// 모달에서 일정 클릭 시 처리
+const handleScheduleClick = (schedule) => {
+  const { book, start_chapter } = schedule
+
+  // bibleBooks에서 책 코드 찾기
+  const allBooks = [...bibleBooks.old, ...bibleBooks.new]
+  const bookCode = allBooks.find(b => b.name === book)?.id
+
+  if (!bookCode) {
+    console.error('Book not found:', book)
+    return
+  }
+
+  // 기존 URL 파라미터 유지하면서 book과 chapter만 변경
+  const query = {
+    ...route.query, // 기존 쿼리 파라미터 유지
+    book: bookCode,
+    chapter: start_chapter
+  }
+
+  // 모달 닫기
+  closeScheduleModal()
+
+  // 페이지 이동 및 성경 본문 로드
+  router.push({
+    path: '/reading',
+    query
+  })
+
+  // 성경 본문 로드
+  loadBibleContent(bookCode, start_chapter)
+}
+
+// 읽기 완료 처리 함수 수정
+const handleCompleteReading = () => {
+  // 로그인 체크 추가
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true
+    return
+  }
+
+  if (isUpdatingStatus.value || !apiResponse.value?.data) return
+
+  // 완료 액션으로 설정하고 모달 표시
+  currentAction.value = 'complete'
+  modalSource.value = 'complete-button'
+  showCompleteConfirmModal.value = true
+}
+
+// 읽기 완료 취소 처리 함수 수정
+const handleCancelReading = () => {
+  // 로그인 체크 추가
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true
+    return
+  }
+
+  if (isUpdatingStatus.value || !apiResponse.value?.data) return
+
+  currentAction.value = 'cancel'
+  showCompleteConfirmModal.value = true
+}
+
+// 현재 장에 해당하는 plan_detail을 찾는 computed 속성
+const currentPlanDetail = computed(() => {
+  if (!apiResponse.value?.data?.plan_detail) return null
+
+  return apiResponse.value.data.plan_detail.find(detail => {
+    const isCurrentBook = detail.book === currentBook.value
+    const isInChapterRange =
+      currentChapter.value >= detail.start_chapter &&
+      currentChapter.value <= detail.end_chapter
+    return isCurrentBook && isInChapterRange
+  })
+})
+
+// 구간 정보 계산 computed 수정
+const sectionInfo = computed(() => {
+  const detail = currentPlanDetail.value
+
+  if (!detail) {
+    // plan_detail이 없는 경우 기본 데이터 사용
+    return {
+      book: apiResponse.value?.data?.book,
+      book_kor: apiResponse.value?.data?.book_kor,
+      start_chapter: Number(currentChapter.value),
+      end_chapter: Number(currentChapter.value)
+    }
+  }
+
+  // 현재 구간 정보 사용
+  return {
+    book: detail.book,
+    book_kor: detail.book_kor,
+    start_chapter: detail.start_chapter,
+    end_chapter: detail.end_chapter
+  }
+})
+
+// 모달에서 확인 버튼 클릭 시 실제 API 호출 수정
+const confirmCompleteReading = async () => {
+  try {
+    isUpdatingStatus.value = true
+
+    const plan_id = apiResponse.value?.data?.plan_id
+    const currentDetail = currentPlanDetail.value
+
+    if (!plan_id || !currentDetail?.schedule_id) {
+      console.warn('필요한 정보가 없습니다. 페이지를 새로고침해 주세요.');
+      return
+    }
+
+    // 현재 구간의 schedule_id만 전송
+    const response = await api.post('/api/v1/todos/reading/update/', {
+      plan_id,
+      schedule_ids: [currentDetail.schedule_id],
+      action: currentAction.value
+    })
+
+    // API 응답 후 상태 업데이트를 위해 detail API 재호출
+    await loadBibleContent(currentBook.value, currentChapter.value)
+
+    // 스토어 상태 업데이트 (선택적)
+  } catch (error) {
+    console.error(`성경 읽기 ${currentAction.value === 'complete' ? '완료' : '취소'} 처리 중 오류:`, error)
+  } finally {
+    showCompleteConfirmModal.value = false
+    isUpdatingStatus.value = false
+  }
+}
+
+// 요일 표시를 위한 함수 추가
+const getDayOfWeek = (dateString) => {
+  const days = ['일', '월', '화', '수', '목', '금', '토']
+  const date = new Date(dateString)
+  return days[date.getDay()] // getDate()가 아닌 getDay()를 사용
+}
+
+// 현재 구간의 모든 장 정보를 가져오는 computed 속성 추가
+const currentSectionChapters = computed(() => {
+  if (!apiResponse.value?.data?.plan_detail) return []
+
+  return apiResponse.value.data.plan_detail.map(detail => ({
+    book: detail.book,
+    book_kor: detail.book_kor,
+    chapters: Array.from(
+      { length: detail.end_chapter - detail.start_chapter + 1 },
+      (_, i) => detail.start_chapter + i
+    ),
+    is_complete: detail.is_complete
+  }))
+})
+
+// 현재 선택된 장 정보를 reactive하게 관리
+const currentSelection = reactive({
+  book: route.params.book || '',
+  chapter: parseInt(route.params.chapter) || 1
+})
+
+// 오늘 날짜인지 확인하는 computed 속성
+const isToday = computed(() => {
+  if (!currentScheduleDate.value) return false
+
+  const today = new Date()
+  const targetDate = new Date(currentScheduleDate.value)
+
+  return today.getFullYear() === targetDate.getFullYear() &&
+    today.getMonth() === targetDate.getMonth() &&
+    today.getDate() === targetDate.getDate()
+})
+
+// 과거 날짜인지 확인하는 computed 속성
+const isPastDate = computed(() => {
+  if (!currentScheduleDate.value) return false
+
+  const today = new Date()
+  const targetDate = new Date(currentScheduleDate.value)
+  today.setHours(0, 0, 0, 0)
+  targetDate.setHours(0, 0, 0, 0)
+
+  return targetDate < today
+})
+
+// 미래 날짜인지 확인하는 computed 속성
+const isFutureDate = computed(() => {
+  if (!currentScheduleDate.value) return false
+
+  const today = new Date()
+  const targetDate = new Date(currentScheduleDate.value)
+  today.setHours(0, 0, 0, 0)
+  targetDate.setHours(0, 0, 0, 0)
+
+  return targetDate > today
+})
+
+// 날짜 관련 computed 속성 추가
+const currentScheduleDate = computed(() => {
+  if (apiResponse.value?.data?.plan_detail?.[0]?.date) {
+    return apiResponse.value.data.plan_detail[0].date
+  }
+  return null
+})
+
+// 읽기 상태를 반환하는 computed 속성 추가
+const readingStatus = computed(() => {
+  if (!apiResponse.value?.data?.plan_detail) return 'not_available';
+
+  const currentDetail = currentPlanDetail.value;
+  if (!currentDetail) return 'not_available';
+
+  return currentDetail.is_complete ? 'completed' : 'in_progress';
+});
+
+// BibleScheduleContent가 마운트된 후 현재 위치로 스크롤
+const scheduleContentRef = ref(null)
+
+// URL 파라미터 변경 감지 및 현재 위치로 스크롤
+watch([() => route.params.book, () => route.params.chapter], async ([newBook, newChapter]) => {
+  if (newBook && newChapter) {
+    // 컴포넌트가 준비될 때까지 대기
+    await nextTick()
+    // 현재 위치로 스크롤
+    if (scheduleContentRef.value?.scrollToCurrentLocation) {
+      scheduleContentRef.value.scrollToCurrentLocation()
+    }
+  }
+}, { immediate: true })
+
+// 장 표시 상태를 업데이트하는 함수
+const updateChapterDisplay = async () => {
+  await nextTick()
+  // URL 파라미터와 현재 상태가 일치하는지 확인
+  if (route.query.book && route.query.chapter) {
+    currentBook.value = route.query.book
+    currentChapter.value = Number(route.query.chapter)
+  }
+}
+
+// route.query 변경 감지
+watch(
+  () => route.query,
+  async () => {
+    await updateChapterDisplay()
+  },
+  { deep: true }
+)
+
+// 모달 취소 처리 함수 수정
+const handleModalCancel = () => {
+  if (modalSource.value === 'next-button') {
+    // 다음 장으로 이동
+    const maxChapter = bookChapters[currentBook.value]
+    const nextChapter = Number(currentChapter.value) + 1
+
+    if (nextChapter <= maxChapter) {
+      router.push({
+        path: '/reading',
+        query: {
+          ...route.query,
+          book: currentBook.value,
+          chapter: nextChapter.toString()
+        }
+      })
+      loadBibleContent(currentBook.value, nextChapter)
+    } else {
+      // 다음 책의 첫 장으로
+      const books = Object.keys(bookNames)
+      const currentBookIndex = books.indexOf(currentBook.value)
+      if (currentBookIndex < books.length - 1) {
+        const nextBook = books[currentBookIndex + 1]
+        router.push({
+          path: '/reading',
+          query: {
+            ...route.query,
+            book: nextBook,
+            chapter: '1'
+          }
+        })
+        loadBibleContent(nextBook, 1)
+      }
+    }
+  }
+
+  // 모달 닫기
+  showCompleteConfirmModal.value = false
+  modalSource.value = ''
+}
+
+// 버튼 표시 여부를 결정하는 computed 속성 수정
+const showReadingButtons = computed(() => {
+  // 1. API 응답이 없거나 로딩 중이면 버튼 숨김
+  if (!apiResponse.value || isLoading.value) return false;
+
+  // 2. 메시지가 있으면 일정이 없는 것이므로 버튼 숨김
+  if (apiResponse.value.data?.message) return false;
+
+  // 3. plan_detail이 비어있으면 버튼 숨김
+  if (!apiResponse.value.data?.plan_detail || apiResponse.value.data.plan_detail.length === 0) return false;
+
+  // 4. 현재 장에 해당하는 plan_detail이 있는지 확인
+  return currentPlanDetail.value !== null;
+});
+
+// 모달 관련 상태 변수들
+const scheduleModalMounted = ref(false)
+
 </script>
 
 <template>
@@ -1039,88 +1168,86 @@ const handleAudioLink = (audioLink) => {
     <div class="header fade-in">
       <button class="back-button" @click="handleBackNavigation">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
       </button>
       <h1>성경일독</h1>
     </div>
 
-    <div 
-      class="today-reading fade-in" 
-      :class="{ floating: isTodayReadingFloating }" 
-      style="animation-delay: 0.1s" 
-      v-if="taskStore.todayReading"
-    >
+    <div class="today-reading fade-in" :class="{ floating: isTodayReadingFloating }" style="animation-delay: 0.1s"
+      v-if="apiResponse?.data">
       <div class="today-info">
         <div class="reading-meta">
-          <button 
-            class="schedule-button"
-            @click="openScheduleModal"
-          >
+          <button class="schedule-button" @click="openScheduleModal">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" 
-                stroke="currentColor" 
-                stroke-width="2" 
-                stroke-linecap="round"
-              />
+              <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
             <span>성경통독표</span>
           </button>
-          <button 
-            v-if="readingStatus === 'completed'"
-            class="complete-button complete-cancel-button" 
-            @click="handleCancelReading"
-            :disabled="isLoading"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M6 18L18 6M6 6l12 12" 
-                stroke="currentColor" 
-                stroke-width="2" 
-                stroke-linecap="round"
-              />
-            </svg>
-            <span>완료 취소</span>
-          </button>
-          <button 
-            v-else
-            class="complete-button" 
-            @click="handleCompleteReading"
-            :disabled="isLoading"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M20 6L9 17l-5-5" 
-                stroke="currentColor" 
-                stroke-width="2" 
-                stroke-linecap="round" 
-                stroke-linejoin="round"
-              />
-            </svg>
-            <span>{{ authStore.isAuthenticated ? '완료' : '완료로 기록' }}</span>
-          </button>
+          <!-- 플랜이 선택된 경우에만 완료/취소 버튼 표시 -->
+          <template v-if="route.query.plan && showReadingButtons">
+            <transition name="fade" mode="out-in">
+              <button v-if="readingStatus === 'completed'" key="cancel" class="complete-button complete-cancel-button"
+                @click="handleCancelReading" :disabled="isLoading || isUpdatingStatus">
+                <span v-if="isUpdatingStatus" class="loading-spinner small"></span>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <span>읽지 않음으로 기록</span>
+              </button>
+              <button v-else-if="readingStatus === 'in_progress'" key="complete" class="complete-button"
+                @click="handleCompleteReading" :disabled="isLoading || isUpdatingStatus">
+                <span v-if="isUpdatingStatus" class="loading-spinner small"></span>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+                <span>읽음으로 기록</span>
+              </button>
+            </transition>
+          </template>
+          <!-- 플랜이 선택되지 않은 경우 경고 메시지 표시 -->
+          <template v-else-if="!route.query.plan">
+            <div class="plan-warning">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.83-2.83L13.83 4.44a2 2 0 00-3.66 0L3.24 16.17A2 2 0 005.07 19z"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>플랜 선택되지 않음</span>
+            </div>
+          </template>
+          <!-- 일정이 없는 경우 메시지 표시 -->
+          <template v-else-if="apiResponse?.data?.message">
+            <div class="plan-warning">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.83-2.83L13.83 4.44a2 2 0 00-3.66 0L3.24 16.17A2 2 0 005.07 19z"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>{{ apiResponse.data.message }}</span>
+            </div>
+          </template>
         </div>
       </div>
       <div class="today-links">
-        <a 
-          v-if="taskStore.todayReading.audio_link" 
-          @click.prevent="handleAudioLink(taskStore.todayReading.audio_link)"
-          href="#"
-          class="link-button audio"
-          title="오디오"
-        >
+        <a v-if="apiResponse?.data?.audio_link" @click.prevent="handleAudioLink(apiResponse.data.audio_link)" href="#"
+          class="link-button audio" title="오디오">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 4a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2z" fill="currentColor"/>
+            <path
+              d="M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 4a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2z"
+              fill="currentColor" />
           </svg>
           <span class="link-text">오디오</span>
         </a>
-        <a 
-          v-if="taskStore.todayReading.guide_link" 
-          :href="taskStore.todayReading.guide_link" 
-          target="_blank" 
-          class="link-button guide"
-          title="가이드"
-        >
+        <a v-if="apiResponse?.data?.guide_link" :href="apiResponse.data.guide_link" target="_blank"
+          class="link-button guide" title="가이드">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           <span class="link-text">해설</span>
         </a>
@@ -1135,42 +1262,29 @@ const handleAudioLink = (audioLink) => {
             <div class="button-content">
               <h2>{{ chapterTitle }}</h2>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </div>
           </button>
           <div class="font-size-controls">
-            <button 
-              class="font-button" 
-              @click="adjustFontSize(-1)"
-              :disabled="fontSize <= 14"
-            >
+            <button class="font-button" @click="adjustFontSize(-1)" :disabled="fontSize <= 14">
               <span class="font-icon small">가</span>
             </button>
-            <button 
-              class="font-button" 
-              @click="adjustFontSize(1)"
-              :disabled="fontSize >= 24"
-            >
+            <button class="font-button" @click="adjustFontSize(1)" :disabled="fontSize >= 24">
               <span class="font-icon">가</span>
             </button>
-            <button 
-              class="font-button reset"
-              @click="resetFontSize"
-              :disabled="fontSize === DEFAULT_FONT_SIZE"
-              title="기본 크기로 초기화"
-            >
+            <button class="font-button reset" @click="resetFontSize" :disabled="fontSize === DEFAULT_FONT_SIZE"
+              title="기본 크기로 초기화">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M2 10C2 10 4.00498 7.26822 5.63384 5.63824C7.26269 4.00827 9.5136 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.89691 21 4.43511 18.2543 3.35177 14.5M2 10V4M2 10H8" 
-                  stroke="currentColor" 
-                  stroke-width="2" 
-                  stroke-linecap="round"
-                  stroke-linejoin="round"/>
+                <path
+                  d="M2 10C2 10 4.00498 7.26822 5.63384 5.63824C7.26269 4.00827 9.5136 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.89691 21 4.43511 18.2543 3.35177 14.5M2 10V4M2 10H8"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
           </div>
         </div>
-        
+
         <div v-if="isLoading" class="loading">
           <div class="loading-spinner"></div>
           <p>
@@ -1178,99 +1292,71 @@ const handleAudioLink = (audioLink) => {
           </p>
         </div>
 
-        <div v-else class="bible-content text-adjustable" 
-             :style="{ fontSize: `${fontSize}px` }" 
-             v-html="bibleContent">
+        <div v-else class="bible-content text-adjustable" :style="{ fontSize: `${fontSize}px` }" v-html="bibleContent">
         </div>
       </div>
     </div>
 
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
       <button class="nav-button prev" @click="goToPrevChapter($event)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
         <span>이전</span>
       </button>
-      
+
       <div class="center-content">
         <div class="current-page">
-          <div 
-            v-if="taskStore.todayReading" 
-            class="schedule-date"
-            :class="{
-              'completed': authStore.isAuthenticated ? readingStatus === 'completed' : isPastDate,
-              'not-completed': authStore.isAuthenticated ? (!isToday && readingStatus !== 'completed') : false,
-              'current': isToday,
-              'upcoming': !authStore.isAuthenticated && isFutureDate
-            }"
-          >
-            <div v-if="authStore.isAuthenticated ? readingStatus === 'completed' : isPastDate" class="status-icon">
+          <!-- 날짜 표시 영역 -->
+          <div class="schedule-date" :class="{
+            'completed': readingStatus === 'completed',
+            'not-completed': readingStatus === 'not-completed',
+            'current': isToday,
+            'upcoming': !authStore.isAuthenticated && isFutureDate
+          }">
+            <div class="status-icon" v-if="readingStatus === 'completed'">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
               </svg>
             </div>
-            
-            <div v-else-if="authStore.isAuthenticated && !isToday" class="status-icon">
+            <div class="status-icon" v-else-if="readingStatus === 'not-completed'">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
               </svg>
             </div>
-            
-            <div v-else-if="isToday" class="status-icon today">
-              오늘
-            </div>
-            
-            {{ formatScheduleDate(taskStore.todayReading.date) }}
+            <div class="status-icon today" v-else-if="isToday">오늘</div>
+            {{ currentScheduleDate ? formatScheduleDate(currentScheduleDate) : '' }}
           </div>
-          
-          <div class="chapter-range">
-            {{ bookNames[currentBook] }}
-            <template v-if="taskStore.todayReading">
-              <span 
-                class="chapter-number"
-                :class="{ 
-                  'current': taskStore.todayReading.chapter === currentChapter,
-                  'completed': isChapterCompleted(taskStore.todayReading.chapter)
-                }"
-              >
-                {{ taskStore.todayReading.chapter }}
+
+          <!-- 구간 표시 영역 -->
+          <div class="reading-sections" v-if="currentSectionChapters.length > 0">
+            <template v-for="(section, index) in currentSectionChapters" :key="`section-${section.book}`">
+              <!-- 구간 구분선 -->
+              <span v-if="index > 0" class="section-separator">|</span>
+              <!-- 실제 요소 -->
+              <span class="section-item">
+                {{ section.book }}
               </span>
-
-              <span class="chapter-separator">-</span>
-
-              <template v-if="currentChapter !== taskStore.todayReading.chapter && 
-                              currentChapter !== taskStore.todayReading.end_chapter">
-                <span class="chapter-number current">
-                  {{ currentChapter }}
-                </span>
-                <span class="chapter-separator">-</span>
-              </template>
-
-              <span 
-                class="chapter-number"
-                :class="{ 
-                  'current': taskStore.todayReading.end_chapter === currentChapter,
-                  'completed': isChapterCompleted(taskStore.todayReading.end_chapter)
-                }"
-              >
-                {{ taskStore.todayReading.end_chapter }}
-              </span>
-              <span>{{ currentBook === 'psa' ? '편' : '장' }}</span>
             </template>
-            <template v-else>
-              {{ currentChapter }}{{ currentBook === 'psa' ? '편' : '장' }}
-            </template>
+          </div>
+          <!-- 구간 정보가 없을 때 기본 표시 -->
+          <div class="reading-sections" v-else>
+            <span class="book-name">{{ bookNames[currentBook] }}</span>
+            <div class="chapter-numbers">
+              <span class="chapter-box current">{{ currentChapter }}</span>
+            </div>
           </div>
         </div>
       </div>
-      
+
       <button class="nav-button next" @click="goToNextChapter($event)">
         <span>다음</span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
       </button>
     </div>
@@ -1282,7 +1368,8 @@ const handleAudioLink = (audioLink) => {
             <h3>성경 선택</h3>
             <button class="close-button" @click="showModal = false">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </button>
           </div>
@@ -1291,13 +1378,8 @@ const handleAudioLink = (audioLink) => {
               <div class="testament">
                 <h4>구약</h4>
                 <div class="books-list">
-                  <button 
-                    v-for="book in bibleBooks.old" 
-                    :key="book.id"
-                    :data-id="book.id"
-                    :class="['book-button', { active: selectedBook === book.id }]"
-                    @click="selectBook(book.id)"
-                  >
+                  <button v-for="book in bibleBooks.old" :key="book.id" :data-id="book.id"
+                    :class="['book-button', { active: selectedBook === book.id }]" @click="selectBook(book.id)">
                     {{ book.name }}
                   </button>
                 </div>
@@ -1305,13 +1387,8 @@ const handleAudioLink = (audioLink) => {
               <div class="testament">
                 <h4>신약</h4>
                 <div class="books-list">
-                  <button 
-                    v-for="book in bibleBooks.new" 
-                    :key="book.id"
-                    :data-id="book.id"
-                    :class="['book-button', { active: selectedBook === book.id }]"
-                    @click="selectBook(book.id)"
-                  >
+                  <button v-for="book in bibleBooks.new" :key="book.id" :data-id="book.id"
+                    :class="['book-button', { active: selectedBook === book.id }]" @click="selectBook(book.id)">
                     {{ book.name }}
                   </button>
                 </div>
@@ -1320,13 +1397,8 @@ const handleAudioLink = (audioLink) => {
             <div class="chapters-section" ref="chaptersSection">
               <h4>장</h4>
               <div class="chapters-grid">
-                <button 
-                  v-for="chapter in chaptersArray" 
-                  :key="chapter"
-                  :data-chapter="chapter"
-                  :class="['chapter-button', { active: chapter === currentChapter }]"
-                  @click="selectChapter(chapter)"
-                >
+                <button v-for="chapter in chaptersArray" :key="chapter" :data-chapter="chapter"
+                  :class="['chapter-button', { active: chapter === currentChapter }]" @click="selectChapter(chapter)">
                   {{ chapter }}
                 </button>
               </div>
@@ -1344,19 +1416,18 @@ const handleAudioLink = (audioLink) => {
             <div class="header-controls">
               <button class="close-button" @click="closeScheduleModal">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 </svg>
               </button>
             </div>
           </div>
-          
+
           <BibleScheduleContent 
-            v-if="showScheduleModal"
-            :is-modal="true"
+            v-if="showScheduleModal" 
+            :is-modal="true" 
             :current-book="currentBook"
-            :current-chapter="currentChapter"
-            @schedule-select="handleScheduleSelect"
-          />
+            :current-chapter="currentChapter" 
+            @schedule-select="handleScheduleClick" />
         </div>
       </div>
     </Teleport>
@@ -1367,13 +1438,14 @@ const handleAudioLink = (audioLink) => {
           <div class="modal-body">
             <button class="close-button absolute-close" @click="showLoginModal = false">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </button>
             <div class="modal-content-wrapper">
               <div class="modal-icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 15V12M12 9h.01M5.07 19H19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h.07z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M12 15V12M12 9h.01M5.07 19H19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h.07z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 </svg>
               </div>
               <div class="modal-text">
@@ -1394,11 +1466,7 @@ const handleAudioLink = (audioLink) => {
       </div>
     </Teleport>
 
-    <Toast 
-      ref="toast"
-      message="저장되었습니다!"
-      type="success"
-    />
+    <Toast ref="toast" />
 
     <Teleport to="body">
       <div v-if="showCompleteConfirmModal" class="modal-overlay" @click="showCompleteConfirmModal = false">
@@ -1406,27 +1474,34 @@ const handleAudioLink = (audioLink) => {
           <div class="modal-body">
             <button class="close-button absolute-close" @click="showCompleteConfirmModal = false">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </button>
             <div class="modal-content-wrapper">
               <div class="modal-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <svg v-if="currentAction === 'complete'" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" />
+                </svg>
+                <svg v-else width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" />
                 </svg>
               </div>
               <div class="modal-text">
-                <h3>읽기 완료</h3>
-                <p>
-                  {{ bookNames[currentBook] }} {{ taskStore.todayReading?.chapter }}-{{ taskStore.todayReading?.end_chapter }}장까지<br>
-                  구간을 읽음으로 표시하겠어요?
+                <h3>{{ currentAction === 'complete' ? '읽기 완료' : '완료 취소' }}</h3>
+                <p v-if="sectionInfo">
+                  {{ sectionInfo.book_kor }} {{ sectionInfo.start_chapter }}{{ sectionInfo.start_chapter !==
+                    sectionInfo.end_chapter ? `-${sectionInfo.end_chapter}` : '' }}장까지<br>
+                  구간을 {{ currentAction === 'complete' ? '읽음으로 표시하겠어요?' : '읽지 않음으로 변경하겠어요?' }}
                 </p>
               </div>
               <div class="modal-actions">
                 <button class="confirm-button" @click="confirmCompleteReading">
                   네
                 </button>
-                <button class="cancel-button" @click="showCompleteConfirmModal = false">
+                <button class="cancel-button" @click="handleModalCancel">
                   아니요
                 </button>
               </div>
@@ -1435,6 +1510,12 @@ const handleAudioLink = (audioLink) => {
         </div>
       </div>
     </Teleport>
+
+    <!-- BibleScheduleContent 컴포넌트를 숨김 처리 -->
+    <div class="hidden-schedule-content">
+      <BibleScheduleContent v-if="apiResponse?.data" ref="scheduleContentRef" :current-book="route.params.book"
+        :current-chapter="Number(route.params.chapter)" :use-default-plan="true" :key="route.query.plan" />
+    </div>
   </div>
 </template>
 
@@ -1513,7 +1594,8 @@ const handleAudioLink = (audioLink) => {
   position: relative;
   top: 0;
   -webkit-tap-highlight-color: transparent;
-  min-height: 52px; /* 최소 높이 추가 */
+  min-height: 52px;
+  /* 최소 높이 추가 */
 }
 
 .today-info {
@@ -1522,8 +1604,10 @@ const handleAudioLink = (audioLink) => {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0;
-  flex-wrap: nowrap; /* 줄바꿈 방지 */
-  min-width: 0; /* 플렉스 아이템 축소 허용 */
+  flex-wrap: nowrap;
+  /* 줄바꿈 방지 */
+  min-width: 0;
+  /* 플렉스 아이템 축소 허용 */
 }
 
 .reading-meta {
@@ -1531,8 +1615,10 @@ const handleAudioLink = (audioLink) => {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0;
-  flex-wrap: nowrap; /* 줄바꿈 방지 */
-  min-width: 0; /* 플렉스 아이템 축소 허용 */
+  flex-wrap: nowrap;
+  /* 줄바꿈 방지 */
+  min-width: 0;
+  /* 플렉스 아이템 축소 허용 */
 }
 
 .date-badge {
@@ -1576,7 +1662,7 @@ const handleAudioLink = (audioLink) => {
   margin: 0;
   border-radius: 0;
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03)!important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   z-index: 9;
   display: flex;
@@ -1596,9 +1682,8 @@ const handleAudioLink = (audioLink) => {
   z-index: -1;
 }
 
-.today-reading.floating > * {
+.today-reading.floating>* {
   max-width: 768px;
-  margin: 0 1rem;
 }
 
 @media (max-width: 640px) {
@@ -1607,8 +1692,8 @@ const handleAudioLink = (audioLink) => {
     margin: 0;
     padding: 0.5rem;
   }
-  
-  .today-reading.floating > * {
+
+  .today-reading.floating>* {
     margin: 0 0.5rem;
   }
 }
@@ -1674,8 +1759,13 @@ const handleAudioLink = (audioLink) => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .bible-content {
@@ -1732,19 +1822,30 @@ const handleAudioLink = (audioLink) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 0.75rem;
-  gap: 1rem;
+  padding: 0.25rem;
   background: white;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
   max-width: 768px;
   min-height: 50px;
   margin: 0 auto;
   z-index: 20;
-  flex-wrap: nowrap; /* 줄바꿈 방지 */
+  flex-wrap: nowrap;
+  border-radius: 16px 16px 0 0;
 }
+
 @supports (-webkit-touch-callout: none) {
-  .navigation-controls {
-    padding: 0.5rem 1.75rem calc(env(safe-area-inset-bottom) - 8px) 1.75rem;
+  /* Safari 웹에서만 적용되도록 standalone 모드가 아닐 때만 패딩 추가 */
+  @media not all and (display-mode: standalone) {
+    .navigation-controls {
+      padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
+    }
+  }
+
+  /* PWA 홈 화면 앱(standalone 모드)에서는 safe-area-inset-bottom만 적용 */
+  @media (display-mode: standalone) {
+    .navigation-controls {
+      padding: 0.5rem 0.35rem calc(env(safe-area-inset-bottom) - 0.35rem) 0.35rem;
+    }
   }
 }
 
@@ -1752,16 +1853,18 @@ const handleAudioLink = (audioLink) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 0.25rem;
+  padding: 0.25rem;
   border: none;
   border-radius: 8px;
   color: #4b5563;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent; /* 추가: 터치 하이라이트 제거 */
-  outline: none; /* 추가: 포커스 아웃라인 제거 */
+  -webkit-tap-highlight-color: transparent;
+  /* 추가: 터치 하이라이트 제거 */
+  outline: none;
+  /* 추가: 포커스 아웃라인 제거 */
 }
 
 /* 추가: 터치 디바이스에서 호버 상태 제거 */
@@ -1770,7 +1873,7 @@ const handleAudioLink = (audioLink) => {
     background-color: transparent;
     color: #4b5563;
   }
-  
+
   .nav-button:hover svg {
     transform: none;
   }
@@ -1810,10 +1913,14 @@ const handleAudioLink = (audioLink) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 160px; /* 버튼과 텍스트가 같은 공간을 차지하도록 */
-  flex: 1; /* 남은 공간 모두 차지 */
-  min-width: 0; /* 플렉스 아이템 축소 허용 */
-  padding: 0 0.5rem; /* 좌우 여백 추가 */
+  min-width: 160px;
+  /* 버튼과 텍스트가 같은 공간을 차지하도록 */
+  flex: 1;
+  /* 남은 공간 모두 차지 */
+  min-width: 0;
+  /* 플렉스 아이템 축소 허용 */
+  padding: 0 0.1rem;
+  /* 좌우 여백 추가 */
 }
 
 .chapter-indicator {
@@ -1830,25 +1937,35 @@ const handleAudioLink = (audioLink) => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.8125rem;  /* 글자 크기 약간 줄임 */
+  font-size: 0.8125rem;
+  /* 글자 크기 약간 줄임 */
   letter-spacing: -0.02em;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem 0.75rem;  /* 상단 버튼에 맞게 패딩 조정 */
+  padding: 0.35rem 0.75rem;
+  /* 상단 버튼에 맞게 패딩 조정 */
   margin: 0 0.1rem 0.1rem 0;
-  height: 32px;  /* 높이 고정 */
-  gap: 0.375rem;  /* 아이콘과 텍스트 사이 간격 */
-  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-  flex-shrink: 1; /* 필요한 경우 크기 축소 허용 */
-  min-width: 0; /* 플렉스 아이템 축소 허용 */
-  overflow: hidden; /* 내용이 넘칠 경우 숨김 */
-  text-overflow: ellipsis; /* 넘치는 텍스트 ... 처리 */
+  height: 32px;
+  /* 높이 고정 */
+  gap: 0.375rem;
+  /* 아이콘과 텍스트 사이 간격 */
+  white-space: nowrap;
+  /* 텍스트 줄바꿈 방지 */
+  flex-shrink: 1;
+  /* 필요한 경우 크기 축소 허용 */
+  min-width: 0;
+  /* 플렉스 아이템 축소 허용 */
+  overflow: hidden;
+  /* 내용이 넘칠 경우 숨김 */
+  text-overflow: ellipsis;
+  /* 넘치는 텍스트 ... 처리 */
 }
 
 .complete-button:hover {
   background: rgba(46, 144, 250, 0.15);
-  border-color: #2E90FA;  /* hover 시에는 진한 테두리 */
+  border-color: #2E90FA;
+  /* hover 시에는 진한 테두리 */
   color: #1570D1;
 }
 
@@ -1858,15 +1975,20 @@ const handleAudioLink = (audioLink) => {
 }
 
 .complete-cancel-button {
-  border: 1px solid rgba(220, 38, 38, 0.25);  /* 테두리 더 연하게 */
-  background: rgba(220, 38, 38, 0.05);  /* 배경 더 연하게 */
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  /* 테두리 더 연하게 */
+  background: rgba(220, 38, 38, 0.05);
+  /* 배경 더 연하게 */
   color: #DC2626;
 }
 
 .complete-cancel-button:hover {
-  background: rgba(220, 38, 38, 0.1);  /* hover 배경 더 연하게 */
-  border-color: rgba(220, 38, 38, 0.4);  /* hover 테두리 더 연하게 */
-  color: #DC2626;  /* hover 시에도 빨간색 유지 */
+  background: rgba(220, 38, 38, 0.1);
+  /* hover 배경 더 연하게 */
+  border-color: rgba(220, 38, 38, 0.4);
+  /* hover 테두리 더 연하게 */
+  color: #DC2626;
+  /* hover 시에도 빨간색 유지 */
 }
 
 .complete-button:disabled,
@@ -1882,11 +2004,13 @@ const handleAudioLink = (audioLink) => {
 @media (max-width: 640px) {
   .today-reading {
     padding: 0.5rem 0.65rem;
-    gap: 0.5rem; /* 간격 조정 */
+    gap: 0.5rem;
+    /* 간격 조정 */
   }
 
   .reading-meta {
-    gap: 0.5rem; /* 모바일에서 간격 줄임 */
+    gap: 0.5rem;
+    /* 모바일에서 간격 줄임 */
   }
 
   .schedule-button {
@@ -1894,7 +2018,8 @@ const handleAudioLink = (audioLink) => {
     font-size: 0.75rem;
     height: 28px;
     gap: 0.25rem;
-    min-width: 80px; /* 최소 너비 설정 */
+    min-width: 80px;
+    /* 최소 너비 설정 */
   }
 
   .complete-button {
@@ -1902,22 +2027,27 @@ const handleAudioLink = (audioLink) => {
     font-size: 0.75rem;
     height: 28px;
     gap: 0.25rem;
-    min-width: 64px; /* 최소 너비 설정 */
+    min-width: 64px;
+    /* 최소 너비 설정 */
   }
 
   @supports (-webkit-touch-callout: none) {
     .today-reading {
-      padding: 0.5rem 0.5rem; /* 패딩 더 줄임 */
+      padding: 0.5rem 0.5rem;
+      /* 패딩 더 줄임 */
     }
 
     .reading-meta {
-      gap: 0.35rem; /* 간격 더 줄임 */
+      gap: 0.35rem;
+      /* 간격 더 줄임 */
     }
 
     .schedule-button,
     .complete-button {
-      padding: 0.25rem 0.35rem; /* 패딩 더 줄임 */
-      font-size: 0.7rem; /* 폰트 크기 더 줄임 */
+      padding: 0.25rem 0.35rem;
+      /* 패딩 더 줄임 */
+      font-size: 0.7rem;
+      /* 폰트 크기 더 줄임 */
     }
   }
 }
@@ -1927,6 +2057,7 @@ const handleAudioLink = (audioLink) => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2042,7 +2173,8 @@ const handleAudioLink = (audioLink) => {
   flex: 1;
   overflow: hidden;
   position: relative;
-  min-height: 400px; /* 최소 높이 설정 */
+  min-height: 400px;
+  /* 최소 높이 설정 */
 }
 
 .modal-content-wrapper {
@@ -2061,11 +2193,13 @@ const handleAudioLink = (audioLink) => {
   overflow-y: auto;
   height: 100%;
   -webkit-overflow-scrolling: touch;
-  position: absolute; /* 절대 위치로 변경 */
+  position: absolute;
+  /* 절대 위치로 변경 */
   left: 0;
   top: 0;
   bottom: 0;
-  width: 45%; /* 너비 설정 */
+  width: 45%;
+  /* 너비 설정 */
 }
 
 .chapters-section {
@@ -2074,11 +2208,13 @@ const handleAudioLink = (audioLink) => {
   overflow-y: auto;
   height: 100%;
   -webkit-overflow-scrolling: touch;
-  position: absolute; /* 절대 위치로 변경 */
+  position: absolute;
+  /* 절대 위치로 변경 */
   right: 0;
   top: 0;
   bottom: 0;
-  width: 55%; /* 너비 설정 */
+  width: 55%;
+  /* 너비 설정 */
 }
 
 .testament {
@@ -2126,27 +2262,11 @@ const handleAudioLink = (audioLink) => {
   width: 100%;
 }
 
-.book-button {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text-primary);
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  user-select: none;
-}
-
-.book-button.active {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  font-weight: 500;
-}
-
+.book-button,
 .chapter-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.75rem;
   background: none;
   border: 1px solid #eee;
@@ -2156,16 +2276,15 @@ const handleAudioLink = (audioLink) => {
   width: 100%;
   min-width: 44px;
   height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-weight: 500;
 }
 
+.book-button.active,
 .chapter-button.active {
   background: var(--primary-light);
   color: var(--primary-color);
   border-color: var(--primary-color);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .chapter-button:hover,
@@ -2178,6 +2297,7 @@ const handleAudioLink = (audioLink) => {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -2267,7 +2387,7 @@ const handleAudioLink = (audioLink) => {
 
 .login-modal {
   max-width: 320px;
-  max-height: 350px;
+  max-height: 320px;
   width: 90%;
   text-align: center;
   background: white;
@@ -2518,7 +2638,7 @@ const handleAudioLink = (audioLink) => {
   .link-button {
     padding: 0.375rem;
   }
-  
+
   .link-text {
     font-size: 0.6875rem;
   }
@@ -2625,7 +2745,7 @@ const handleAudioLink = (audioLink) => {
     font-size: 0.8125rem;
     gap: 0.1rem;
   }
-  
+
   .chapter-dot {
     margin: 0 0.05rem;
     font-size: 0.7em;
@@ -2640,7 +2760,9 @@ const handleAudioLink = (audioLink) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;  /* 간격 줄임 */
+  gap: 0.375rem;
+  margin-bottom: 0.25rem;
+  /* 간격 줄임 */
 }
 
 .status-icon {
@@ -2656,28 +2778,30 @@ const handleAudioLink = (audioLink) => {
 }
 
 .schedule-date.not-completed {
-  color: #DC2626;
+  color: #e54444;
 }
 
 .schedule-date.current {
-  color: #2E90FA;
+  color: #4170CD;
 }
 
 .schedule-date.upcoming {
-  color: #94A3B8;  /* 미래 날짜는 회색으로 표시 */
+  color: #94A3B8;
+  /* 미래 날짜는 회색으로 표시 */
 }
 
 @media (max-width: 640px) {
   .schedule-date {
-    font-size: 0.75rem;
-    gap: 0.25rem;  /* 모바일에서 더 좁게 */
+    font-size: 0.8rem;
+    gap: 0.25rem;
+    /* 모바일에서 더 좁게 */
   }
-  
+
   .status-icon {
     width: 18px;
     height: 18px;
   }
-  
+
 }
 
 .schedule-button {
@@ -2687,23 +2811,29 @@ const handleAudioLink = (audioLink) => {
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  border: 1px solid var(--primary-color);  /* 테두리 추가 */
+  border: 1px solid var(--primary-color);
+  /* 테두리 추가 */
   cursor: pointer;
   transition: all 0.2s ease;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.9;  /* 약간 투명도 추가 */
-  gap: 0.375rem;  /* 아이콘과 텍스트 사이 간격 */
-  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-  flex-shrink: 0; /* 버튼 크기 축소 방지 */
+  opacity: 0.9;
+  /* 약간 투명도 추가 */
+  gap: 0.375rem;
+  /* 아이콘과 텍스트 사이 간격 */
+  white-space: nowrap;
+  /* 텍스트 줄바꿈 방지 */
+  flex-shrink: 0;
+  /* 버튼 크기 축소 방지 */
 }
 
 .schedule-button:hover {
   background: var(--primary-hover);
   color: var(--primary-dark);
-  opacity: 1;  /* 호버 시 투명도 제거 */
+  opacity: 1;
+  /* 호버 시 투명도 제거 */
 }
 
 @media (max-width: 640px) {
@@ -2717,7 +2847,7 @@ const handleAudioLink = (audioLink) => {
 
 .confirm-modal {
   max-width: 320px;
-  max-height: 350px;
+  max-height: 320px;
   width: 90%;
   text-align: center;
   background: white;
@@ -2751,6 +2881,7 @@ const handleAudioLink = (audioLink) => {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2762,13 +2893,6 @@ const handleAudioLink = (audioLink) => {
   letter-spacing: 1px;
   margin: 0 -0.1rem;
   font-size: 0.75em;
-}
-
-@media (max-width: 640px) {
-  .chapter-ellipsis {
-    margin: 0 -0.2rem;
-    font-size: 0.7em;
-  }
 }
 
 .chapter-separator {
@@ -2915,4 +3039,210 @@ html.touch-device .nav-button.next:hover svg {
   background-color: #e5e7eb;
   color: #1f2937;
 }
-</style> 
+
+/* 트랜지션 효과 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+/* 버튼 공통 스타일 조정 - 최소 너비 제거하고 패딩 유지 */
+.complete-button,
+.complete-cancel-button {
+  width: auto;
+  /* 너비 자동 조절 */
+  transition: all 0.3s ease;
+  position: relative;
+  /* 로딩 스피너 위치 기준 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 로딩 스피너 스타일 */
+.loading-spinner.small {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spinner 0.8s linear infinite;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+}
+
+/* 로딩 중일 때 버튼 내 텍스트와 아이콘 숨김 */
+.complete-button:disabled span:not(.loading-spinner),
+.complete-button:disabled svg,
+.complete-cancel-button:disabled span:not(.loading-spinner),
+.complete-cancel-button:disabled svg {
+  opacity: 0;
+}
+
+/* 버튼 너비 동기화를 위한 스타일 */
+.complete-button span,
+.complete-cancel-button span {
+  margin: 0 0.15rem;
+  /* 텍스트 좌우 마진 조정 */
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 새로운 스타일 추가 */
+.reading-sections {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.section-separator {
+  color: #CBD5E1;
+  margin: 0 0.75rem;
+}
+
+.section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+  margin-right: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.section-number.current-section {
+  background: #F0FDF4;
+  border-color: #c3e0cd;
+  color: var(--primary-color);
+}
+
+.book-name {
+  color: #64748B;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.book-name.current-book {
+  color: var(--primary-color);
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.book-name.other-book {
+  margin-right: 0;
+}
+
+.chapter-numbers {
+  display: inline-flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.chapter-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.75rem;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #64748B;
+}
+
+.chapter-box.current {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.chapter-box.completed {
+  background: #F0FDF4;
+  border-color: #22C55E;
+  color: #22C55E;
+}
+
+.chapter-box.not-completed {
+  background: #FEF2F2;
+  border-color: #EF4444;
+  color: #EF4444;
+}
+
+@media (max-width: 640px) {
+  .reading-sections {
+    font-size: 0.85rem;
+  }
+
+  .chapter-box {
+    min-width: 1rem;
+    height: 1.25rem;
+    font-size: 0.75rem;
+  }
+
+  .section-number {
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* 플랜 경고 메시지 스타일 */
+.plan-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #e39611;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.plan-warning svg {
+  color: #e39611;
+}
+
+@media (max-width: 640px) {
+  .plan-warning {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
+}
+
+/* 성경통독표 컴포넌트를 숨기는 스타일 추가 */
+.hidden-schedule-content {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+</style>
