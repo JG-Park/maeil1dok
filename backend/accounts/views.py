@@ -9,7 +9,11 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests
 from django.conf import settings
+from django.utils import timezone
+from todos.models import BibleReadingPlan, PlanSubscription
+import logging
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 # Create your views here.
@@ -20,6 +24,20 @@ def register(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
+        
+        # 기본 플랜 구독 자동 생성
+        default_plan = BibleReadingPlan.objects.filter(is_default=True).first()
+        if default_plan:
+            subscription = PlanSubscription.objects.create(
+                user=user,
+                plan=default_plan,
+                start_date=timezone.now().date(),
+                is_active=True
+            )
+            logger.info(f"사용자 {user.username}의 기본 플랜 구독이 생성되었습니다. 플랜: {default_plan.name}")
+        else:
+            logger.warning("기본 플랜이 설정되어 있지 않아 구독을 생성할 수 없습니다.")
+        
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -178,6 +196,19 @@ def complete_kakao_signup(request):
             profile_image=profile_image
         )
         
+        # 기본 플랜 구독 자동 생성
+        default_plan = BibleReadingPlan.objects.filter(is_default=True).first()
+        if default_plan:
+            subscription = PlanSubscription.objects.create(
+                user=user,
+                plan=default_plan,
+                start_date=timezone.now().date(),
+                is_active=True
+            )
+            logger.info(f"카카오 사용자 {user.nickname}의 기본 플랜 구독이 생성되었습니다. 플랜: {default_plan.name}")
+        else:
+            logger.warning("기본 플랜이 설정되어 있지 않아 구독을 생성할 수 없습니다.")
+        
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
@@ -185,4 +216,5 @@ def complete_kakao_signup(request):
             'user': UserSerializer(user).data
         })
     except Exception as e:
+        logger.error(f"카카오 회원가입 중 오류 발생: {str(e)}")
         return Response({'error': str(e)}, status=400)
