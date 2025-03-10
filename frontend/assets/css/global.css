@@ -52,6 +52,15 @@ html {
   --warning: #f59e0b;
   --info: #3b82f6;
 
+  --red: #f15454;
+  --red-dark: #c0392b;
+  --blue: #3b82f6;
+  --blue-dark: #2563eb;
+  --yellow: #f59e0b;
+  --yellow-dark: #f59e0b;
+  --green: #10b981;
+  --green-dark: #10b981;
+
   /* Typography */
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
 
