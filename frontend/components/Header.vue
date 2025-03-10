@@ -1,7 +1,6 @@
 <template>
   <div class="header-wrapper">
     <header class="header">
-      <Toast ref="toast" />
       <NuxtLink to="/" class="logo-link">
         <img src="~/assets/images/로고_투명.png" alt="매일일독" class="logo">
       </NuxtLink>
@@ -52,15 +51,14 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
-import { computed, ref } from 'vue'
-import Toast from '~/components/Toast.vue'
+import { computed, ref, inject } from 'vue'
 import Menu from '~/components/Menu.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-const toast = ref(null)
 const isMenuOpen = ref(false)
+const toast = inject('toast')
 
 const isAuthPage = computed(() => {
   return ['/login', '/register'].includes(route.path)
@@ -68,7 +66,7 @@ const isAuthPage = computed(() => {
 
 const handleLogout = () => {
   auth.logout()
-  toast.value.show('로그아웃 되었어요.')
+  toast.value?.show('로그아웃 되었어요.')
   router.push('/')
 }
 </script>

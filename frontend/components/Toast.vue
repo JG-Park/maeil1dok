@@ -44,12 +44,15 @@ defineExpose({ show })
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   pointer-events: none;
+  width: 100%;
+  max-width: 90vw;
+  padding: 0 20px;
 }
 
 .toast {
@@ -62,7 +65,8 @@ defineExpose({ show })
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   pointer-events: auto;
   min-width: 200px;
-  max-width: 90vw;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .toast-content {
