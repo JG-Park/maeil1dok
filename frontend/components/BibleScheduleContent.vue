@@ -1079,6 +1079,15 @@ const confirmGoToSchedule = () => {
     
     queryParams.set('from', 'reading-plan') // from 파라미터 추가
     
+    // 선택된 일정의 책과 장 정보 추가
+    if (selectedSchedule.value.book) {
+      const bookCode = findBookCode(selectedSchedule.value.book)
+      if (bookCode) {
+        queryParams.set('book', bookCode)
+        queryParams.set('chapter', String(selectedSchedule.value.start_chapter))
+      }
+    }
+    
     router.push({
       path: '/reading',
       query: Object.fromEntries(queryParams)
