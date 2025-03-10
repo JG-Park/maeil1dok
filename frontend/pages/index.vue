@@ -167,6 +167,19 @@
           </div>
         </div>
         <div class="stats-container">
+          <!-- 방문자 통계 (통합) -->
+          <div class="stat-item">
+            <div class="stat-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ visitorStats.daily_visitors }}명 / {{ visitorStats.total_visitors }}명</div>
+              <div class="stat-label">오늘 / 전체 방문자</div>
+            </div>
+          </div>
+          
           <div class="stat-item">
             <div class="stat-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -435,6 +448,37 @@ const todayReaders = ref(0)
 const progressPercentage = ref(0)
 const personalProgressPercentage = ref(0)
 
+// 방문자 통계 상태 추가
+const visitorStats = ref({
+  daily_visitors: 0,
+  total_visitors: 0
+})
+
+// 방문자 통계 가져오기
+const fetchVisitorStats = async () => {
+  try {
+    const response = await api.get('/api/v1/todos/stats/visitors/')
+    if (response.data.success) {
+      visitorStats.value = {
+        daily_visitors: response.data.daily_visitors,
+        total_visitors: response.data.total_visitors
+      }
+    }
+  } catch (error) {
+    console.error('방문자 통계를 가져오는데 실패했습니다:', error)
+  }
+}
+
+// 방문자 수 증가
+const incrementVisitorCount = async () => {
+  try {
+    await api.post('/api/v1/todos/stats/visitors/increment/')
+    await fetchVisitorStats() // 통계 새로고침
+  } catch (error) {
+    console.error('방문자 수 증가에 실패했습니다:', error)
+  }
+}
+
 // 통계 데이터 가져오기
 const fetchStats = async () => {
   try {
@@ -541,6 +585,15 @@ onMounted(() => {
   fetchVideoIntros()
 
   initTodayTasks()
+
+  // 방문자 수 증가 및 통계 가져오기
+  // 페이지 로드 시 한 번만 실행
+  if (!sessionStorage.getItem('visited')) {
+    incrementVisitorCount()
+    sessionStorage.setItem('visited', 'true')
+  } else {
+    fetchVisitorStats() // 통계만 새로고침
+  }
 })
 
 onBeforeUnmount(() => {

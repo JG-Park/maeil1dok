@@ -16,6 +16,7 @@ from django.db import transaction
 from django.utils.dateparse import parse_date
 import re
 from io import BytesIO
+from django.utils.timezone import localtime
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -2012,10 +2013,29 @@ def get_progress_stats(request):
 def increment_visitor_count(request):
     """방문자 수 증가"""
     try:
+        # 세션에서 마지막 방문 날짜 확인
+        last_visit = request.session.get('last_visit')
+        today = localtime().date().isoformat()
+
+        # 오늘 이미 방문했다면 카운트하지 않음
+        if last_visit == today:
+            today_count = VisitorCount.objects.filter(date=today).first()
+            return Response({
+                'success': True,
+                'daily_count': today_count.daily_count if today_count else 0,
+                'counted': False
+            })
+
+        # 오늘 첫 방문이면 카운트 증가
         visitor_count = VisitorCount.increment_daily_count()
+
+        # 세션에 마지막 방문 날짜 저장
+        request.session['last_visit'] = today
+
         return Response({
             'success': True,
-            'daily_count': visitor_count.daily_count
+            'daily_count': visitor_count.daily_count,
+            'counted': True
         })
     except Exception as e:
         return Response({

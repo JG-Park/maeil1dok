@@ -222,8 +222,10 @@ class VisitorCount(models.Model):
             defaults={'daily_count': 1}
         )
         if not created:
-            visitor_count.daily_count = models.F('daily_count') + 1
-            visitor_count.save()
+            # F() 표현식 대신 실제 값을 가져와서 증가
+            cls.objects.filter(id=visitor_count.id).update(daily_count=models.F('daily_count') + 1)
+            # 업데이트된 객체 다시 조회
+            visitor_count.refresh_from_db()
         return visitor_count
 
     @classmethod
