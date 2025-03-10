@@ -51,4 +51,7 @@ dist/
 .DS_Store
 
 # Docker
-.docker/ 
+.docker/
+
+# Cursor
+.cursor/ 
