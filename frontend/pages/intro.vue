@@ -3,7 +3,8 @@
     <div class="header fade-in" style="animation-delay: 0s">
       <button class="back-button" @click="$router.back()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
       </button>
       <h1>개론</h1>
@@ -26,21 +27,12 @@
 
       <div class="video-wrapper">
         <div class="video-container">
-          <iframe
-            width="100%"
-            height="100%"
-            :src="getEmbedUrl(videoIntro.url_link)"
-            frameborder="0"
+          <iframe width="100%" height="100%" :src="getEmbedUrl(videoIntro.url_link)" frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-          ></iframe>
+            allowfullscreen></iframe>
         </div>
-        
-        <a 
-          :href="videoIntro.url_link" 
-          target="_blank" 
-          class="youtube-button"
-        >
+
+        <a :href="videoIntro.url_link" target="_blank" class="youtube-button">
           <img src="/youtube-icon.svg" alt="YouTube" class="youtube-icon">
           YouTube 앱으로 보기
         </a>
@@ -48,12 +40,8 @@
     </div>
 
     <div v-if="videoIntro" class="bottom-controls fade-in" style="animation-delay: 0.3s">
-      <button 
-        class="complete-button" 
-        @click="markAsCompleted"
-        :disabled="isCompleting"
-        :class="{ 'completed': isCompleted }"
-      >
+      <button class="complete-button" @click="markAsCompleted" :disabled="isCompleting"
+        :class="{ 'completed': isCompleted }">
         {{ completionStatus }}
       </button>
     </div>
@@ -93,16 +81,16 @@ const completionStatus = computed(() => {
 // YouTube URL을 임베드 URL로 변환
 const getEmbedUrl = (url) => {
   if (!url) return ''
-  
+
   // YouTube URL 패턴 확인
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
   const match = url.match(regExp)
-  
+
   if (match && match[2].length === 11) {
     // 영상 ID 추출 후 임베드 URL 생성
     return `https://www.youtube.com/embed/${match[2]}`
   }
-  
+
   return url // 변환할 수 없는 경우 원래 URL 반환
 }
 
@@ -113,14 +101,14 @@ const fetchVideoIntro = async () => {
     loading.value = false
     return
   }
-  
+
   loading.value = true
   error.value = null
-  
+
   try {
     const response = await api.get(`/api/v1/todos/video/intro/${videoIntroId.value}/`)
     videoIntro.value = response.data
-    
+
     // 현재 사용자의 이 영상에 대한 완료 상태 확인
     if (auth.isAuthenticated) {
       await checkCompletionStatus()
@@ -138,12 +126,12 @@ const checkCompletionStatus = async () => {
   try {
     const userIntrosResponse = await api.get('/api/v1/todos/user/video/intro/')
     const userIntros = userIntrosResponse.data
-    
+
     // 현재 영상에 대한 사용자 진행 상태 찾기
     const currentProgress = userIntros.find(
       intro => intro.video_intro && intro.video_intro.id === parseInt(videoIntroId.value)
     )
-    
+
     if (currentProgress) {
       isCompleted.value = currentProgress.is_completed
     } else {
@@ -161,17 +149,17 @@ const markAsCompleted = async () => {
     router.push('/login?next=' + route.fullPath)
     return
   }
-  
+
   isCompleting.value = true
-  
+
   try {
     const newStatus = !isCompleted.value // 현재 상태의 반대 값 (토글)
-    
+
     await api.post('/api/v1/todos/video/intro/progress/', {
       video_intro_id: videoIntroId.value,
       is_completed: newStatus
     })
-    
+
     isCompleted.value = newStatus
   } catch (err) {
     console.error('영상 완료 상태 업데이트 오류:', err)
@@ -229,7 +217,9 @@ onMounted(() => {
   height: 20px;
 }
 
-.content-section, .loading-state, .error-state {
+.content-section,
+.loading-state,
+.error-state {
   background: white;
   margin: 1rem;
   padding: 1.5rem;
@@ -238,7 +228,8 @@ onMounted(() => {
   text-align: center;
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -264,7 +255,8 @@ onMounted(() => {
 
 .video-container {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 비율 */
+  padding-bottom: 56.25%;
+  /* 16:9 비율 */
   height: 0;
   overflow: hidden;
   border-radius: 12px;
@@ -328,7 +320,8 @@ onMounted(() => {
 }
 
 .complete-button.completed {
-  background: #28a745; /* 완료 상태일 때 초록색으로 변경 */
+  background: #28a745;
+  /* 완료 상태일 때 초록색으로 변경 */
 }
 
 .complete-button:not(:disabled):hover {
@@ -337,7 +330,8 @@ onMounted(() => {
 }
 
 .complete-button.completed:not(:disabled):hover {
-  background: #218838; /* 완료 상태에서 호버했을 때 더 어두운 초록색 */
+  background: #218838;
+  /* 완료 상태에서 호버했을 때 더 어두운 초록색 */
 }
 
 .complete-button:not(:disabled):active {
@@ -349,6 +343,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -361,7 +356,10 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
-  .content-section, .loading-state, .error-state {
+
+  .content-section,
+  .loading-state,
+  .error-state {
     margin: 0.75rem;
     padding: 1.25rem;
   }
@@ -398,4 +396,4 @@ onMounted(() => {
   width: 24px;
   height: 24px;
 }
-</style> 
+</style>
