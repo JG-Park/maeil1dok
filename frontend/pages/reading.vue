@@ -3248,12 +3248,6 @@ html.touch-device .nav-button.next:hover svg {
   font-weight: 600;
 }
 
-.chapter-box.completed {
-  background: #F0FDF4;
-  border-color: #22C55E;
-  color: #22C55E;
-}
-
 .chapter-box.not-completed {
   background: #FEF2F2;
   border-color: var(--error);
