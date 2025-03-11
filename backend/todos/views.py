@@ -2005,4 +2005,83 @@ def get_visitor_stats(request):
         return Response({
             'success': False,
             'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def hasena_record_update(request):
+    """하세나하시조 완료/취소 처리"""
+    try:
+        date_str = request.data.get('date')
+        is_completed = request.data.get('is_completed', True)
+
+        if not date_str:
+            return Response(
+                {'detail': '날짜가 필요합니다.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # 날짜 형식 변환
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            
+            # 중복 확인 및 업데이트/생성
+            record, created = HasenaRecord.objects.update_or_create(
+                user=request.user,
+                date=date,
+                defaults={
+                    'is_completed': is_completed
+                }
+            )
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'id': record.id,
+                    'date': record.date.isoformat(),
+                    'is_completed': record.is_completed,
+                    'created_at': record.created_at.isoformat(),
+                    'updated_at': record.updated_at.isoformat()
+                }
+            })
+            
+        except ValueError:
+            return Response(
+                {'detail': '날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식이어야 합니다.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+    except Exception as e:
+        return Response(
+            {'detail': f'하세나 완료 처리 중 오류가 발생했습니다: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_hasena_status(request):
+    """현재 사용자의 하세나 완료 상태 조회"""
+    try:
+        # 오늘 날짜 가져오기
+        today = timezone.now().date()
+        
+        # 오늘의 하세나 기록 조회
+        record = HasenaRecord.objects.filter(
+            user=request.user,
+            date=today
+        ).first()
+        
+        return Response({
+            'success': True,
+            'data': {
+                'id': record.id if record else None,
+                'date': today.isoformat(),
+                'is_completed': record.is_completed if record else False
+            }
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'detail': f'하세나 상태 조회 중 오류가 발생했습니다: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 

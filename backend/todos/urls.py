@@ -38,6 +38,8 @@ urlpatterns = [
     # 하세나 관련 URL
     path('hasena/', views.hasena_record_list, name='hasena-record-list'),
     path('hasena/<int:pk>/', views.hasena_record_detail, name='hasena-record-detail'),
+    path('hasena/update/', views.hasena_record_update, name='hasena-record-update'),
+    path('hasena/status/', views.get_user_hasena_status, name='hasena-user-status'),
     
     # 영상 개론 진행 상황 관련 URL
     path('video/intro/progress/', views.update_video_intro_progress, name='update-video-intro-progress'),
