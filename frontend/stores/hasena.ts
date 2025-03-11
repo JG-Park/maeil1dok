@@ -59,15 +59,10 @@ export const useHasenaStore = defineStore('hasena', () => {
     try {
       const formattedDate = formatApiDate(date)
       
-      console.log('업데이트 전 상태:', isCompleted.value)
-      
       const response = await api.post('/api/v1/todos/hasena/update/', {
         date: formattedDate,
         is_completed: !isCompleted.value
       })
-      
-      console.log('API 응답 전체:', response);
-      console.log('API 응답 데이터:', response.data);
       
       // 응답 구조 분석 및 안전한 처리
       if (response.data) {
@@ -82,8 +77,6 @@ export const useHasenaStore = defineStore('hasena', () => {
           // 직접 데이터가 반환되는 경우
           isCompleted.value = response.data.is_completed
         }
-        
-        console.log('완료 상태 업데이트 - 이전:', oldValue, '-> 이후:', isCompleted.value)
       }
       
       return response.data
