@@ -123,13 +123,18 @@
             <!-- 하세나하시조 (월~토에만 표시) -->
             <div v-if="!isSunday" class="task video-task" @click="toggleTask({ id: 3, title: '하세나하시조' })">
               <div class="task-content">
-                <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <span class="task-text">
+                <template v-if="todayTasks.find(t => t.title === '하세나하시조')?.completed">
+                  <span class="check-mark">✓</span>
+                </template>
+                <template v-else>
+                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </template>
+                <span class="task-text" :class="{ 'completed': todayTasks.find(t => t.title === '하세나하시조')?.completed }">
                   <span class="task-title">하세나하시조</span>
                   <span class="task-subtitle">함께 하시조!</span>
                 </span>
@@ -431,7 +436,7 @@ const todayTasks = ref([
 const initTodayTasks = () => {
   todayTasks.value = [
     { title: '오늘일독', completed: false },
-    // 하세나하시조는 별도 섹션으로 이동했으므로 여기서는 삭제
+    { title: '하세나하시조', completed: false }, // 하세나하시조 항목 추가
   ]
 }
 
@@ -623,10 +628,16 @@ onMounted(() => {
   } else {
     fetchVisitorStats() // 통계만 새로고침
   }
+
+  // 하세나 상태 변경 이벤트 리스너 추가
+  window.addEventListener('hasenaStatusUpdated', refreshHasenaStatus)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeDropdownOnOutsideClick)
+
+  // 컴포넌트 언마운트 시 이벤트 리스너 제거
+  window.removeEventListener('hasenaStatusUpdated', refreshHasenaStatus)
 })
 
 // selectedPlanId가 변경될 때 통계 다시 로드
@@ -672,7 +683,7 @@ const toggleTask = async (task) => {
     return
   }
   
-  // 하세나하시조 버튼 - 일정 체크 없이 바로 이동
+  // 하세나하시조 버튼 - 완료 상태 반영
   if (task.id === 3 || task.title === '하세나하시조') {
     router.push('/hasena')
     return
@@ -687,7 +698,6 @@ const handleTodayReading = async () => {
 
     // 오늘의 스케줄 조회
     const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${planId}`)
-    console.log('오늘의 스케줄 응답:', response.data)
     
     if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
       // 첫 번째 스케줄 정보 가져오기
@@ -704,7 +714,6 @@ const handleTodayReading = async () => {
       })
     } else {
       // 일정이 없는 경우에도 reading 페이지로 이동
-      console.log('오늘은 일정이 없습니다')
       router.push({
         path: '/reading',
         query: { plan: planId }
@@ -723,7 +732,6 @@ const navigateToReading = async () => {
   try {
     // 내일 일정 가져오기
     const response = await api.get(`/api/v1/todos/schedules/tomorrow/?plan_id=${planId}`)
-    console.log('내일 일정 응답:', response.data)
     
     if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
       const schedule = response.data.schedules[0]
@@ -732,7 +740,7 @@ const navigateToReading = async () => {
       
       router.push(`/reading?plan=${planId}&book=${bookCode}&chapter=${startChapter}`)
     } else {
-      console.log('내일 일정이 없습니다')
+      ('내일 일정이 없습니다')
       router.push(`/reading?plan=${planId}`)
     }
   } catch (error) {
@@ -863,6 +871,47 @@ watch(() => auth.isAuthenticated, (newValue) => {
 watch(() => selectedPlanId.value, () => {
   fetchVideoIntros()
 })
+
+// 하세나 완료 상태 조회 함수 수정
+const fetchHasenaStatus = async () => {
+  try {
+    const { data } = await api.get('/api/v1/todos/hasena/status/')
+    if (data.success) {
+      // todayTasks에서 하세나하시조 항목 찾아서 완료 상태 업데이트
+      const hasenaTask = todayTasks.value.find(task => task.title === '하세나하시조')
+      if (hasenaTask) {
+        hasenaTask.completed = data.data.is_completed
+      }
+    }
+  } catch (error) {
+    console.error('하세나 완료 상태 조회 실패:', error)
+  }
+}
+
+// 페이지 로드 시 하세나 상태도 함께 조회
+onMounted(async () => {
+  initTodayTasks()
+  
+  // 이벤트 리스너 등록
+  window.addEventListener('hasenaStatusUpdated', refreshHasenaStatus)
+  
+  // 초기 데이터 로드
+  await Promise.all([
+    fetchVideoIntros(),
+    fetchHasenaStatus()
+  ])
+})
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeDropdownOnOutsideClick)
+  window.removeEventListener('hasenaStatusUpdated', refreshHasenaStatus)
+})
+
+// 하세나 상태 변경 시 재조회
+const refreshHasenaStatus = async () => {
+  await fetchHasenaStatus()
+}
 </script>
 
 <style scoped>
