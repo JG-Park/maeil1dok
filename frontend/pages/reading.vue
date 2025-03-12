@@ -1288,7 +1288,7 @@ const scheduleModalMounted = ref(false)
         <div v-if="isLoading" class="loading">
           <div class="loading-spinner"></div>
           <p>
-            {{ bookNames[selectedBook] }} {{ currentChapter }}장을 불러오는 중입니다...
+            본문을 불러오는 중입니다...
           </p>
         </div>
 
