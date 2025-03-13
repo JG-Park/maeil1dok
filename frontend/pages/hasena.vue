@@ -87,13 +87,10 @@ const toast = ref(null)
 
 // 비디오 관련 상수
 const videoUrl = ref('https://www.youtube.com/embed/videoseries?list=PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL')
-const latestVideoId = ref('vs4Bcv4sJRY') // 최신 영상 ID 저장
+const latestVideoId = ref('') // 빈 값으로 초기화
 const youtubeAppUrl = computed(() => {
-  // 최신 영상 ID를 사용하여 YouTube 앱 URL 생성
-  return `vnd.youtube://${latestVideoId.value}`
+  return latestVideoId.value ? `vnd.youtube://${latestVideoId.value}` : null
 })
-const videoTitle = "하세나하시조"
-const videoDescription = "오늘의 하시조, 함께하시조!"
 const isMobile = ref(false)
 
 // 상태 변수들
@@ -101,9 +98,6 @@ const isLoading = ref(true)
 const error = ref(null)
 const bibleTitle = ref('')
 const parsedContent = ref('')
-const isCompleted = ref(false)
-const isUpdating = ref(false)
-const todayRecord = ref(null)
 
 // 날짜 관련
 const today = new Date()
@@ -223,12 +217,47 @@ const handleComplete = async () => {
   }
 }
 
+// YouTube 현재 재생 비디오 가져오기
+const setupYouTubeListener = () => {
+  if (!window.YT) {
+    const tag = document.createElement('script')
+    tag.src = 'https://www.youtube.com/iframe_api'
+    const firstScriptTag = document.getElementsByTagName('script')[0]
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+    
+    window.onYouTubeIframeAPIReady = () => {
+      const iframe = document.querySelector('.video-container iframe')
+      if (iframe) {
+        // iframe의 ID 설정
+        iframe.id = 'hasena-youtube-player'
+        
+        // iframe src를 API 버전으로 변경
+        const currentSrc = iframe.src
+        iframe.src = currentSrc + '&enablejsapi=1'
+        
+        // YouTube Player 인스턴스 생성
+        new window.YT.Player('hasena-youtube-player', {
+          events: {
+            'onReady': (event) => {
+              // 플레이어가 준비되면 현재 비디오 ID 가져오기
+              latestVideoId.value = event.target.getVideoData().video_id
+            }
+          }
+        })
+      }
+    }
+  }
+}
+
 onMounted(() => {
   // 모바일 기기 확인
   isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
   // 하세나 본문 가져오기
   fetchHasenaContent()
+  
+  // YouTube 현재 재생 비디오 ID 가져오기
+  setupYouTubeListener()
 })
 </script>
 
