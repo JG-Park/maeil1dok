@@ -874,16 +874,18 @@ watch(() => selectedPlanId.value, () => {
 // 하세나 완료 상태 조회 함수 수정
 const fetchHasenaStatus = async () => {
   try {
-    const { data } = await api.get('/api/v1/todos/hasena/status/')
-    if (data.success) {
-      // todayTasks에서 하세나하시조 항목 찾아서 완료 상태 업데이트
-      const hasenaTask = todayTasks.value.find(task => task.title === '하세나하시조')
-      if (hasenaTask) {
-        hasenaTask.completed = data.data.is_completed
-      }
+    // 로그인 상태 확인 후 API 호출
+    const authStore = useAuthStore();
+    if (!authStore.isAuthenticated) {
+      // 로그인하지 않은 경우 API 호출하지 않음
+      return;
     }
+    
+    const response = await useApi().get('/api/v1/todos/hasena/status/');
+    hasenaStatus.value = response.data;
   } catch (error) {
-    console.error('하세나 완료 상태 조회 실패:', error)
+    console.error('하세나 완료 상태 조회 실패:', error);
+    // 오류 처리 로직
   }
 }
 

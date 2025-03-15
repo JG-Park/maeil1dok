@@ -61,6 +61,17 @@ export const useApi = () => {
         fullUrl += `?${searchParams.toString()}`
       }
       
+      // 인증이 필요한 API 경로인지 확인
+      const requiresAuth = url.includes('/api/v1/todos/hasena/status/') || 
+                           url.includes('/api/v1/todos/user/');
+      
+      // 인증이 필요하지만 로그인되지 않은 경우 즉시 반환
+      const authStore = useAuthStore();
+      if (requiresAuth && !authStore.isAuthenticated) {
+        console.log('인증이 필요한 API 호출이지만 로그인되지 않았습니다:', url);
+        return { data: { success: false, message: 'Authentication required' } };
+      }
+      
       let response = await fetch(fullUrl, {
         headers: getHeaders(),
         credentials: 'include'
