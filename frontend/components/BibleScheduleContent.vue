@@ -479,6 +479,9 @@ watch(showPlanModal, (newValue) => {
 
 // 플랜 선택 핸들러
 const selectPlan = (subscription: Subscription) => {
+  // 선택된 구독 ID 직접 업데이트
+  selectedSubscriptionId.value = subscription.plan_id
+  
   router.push({
     query: { ...route.query, plan: subscription.plan_id }
   })
@@ -1425,6 +1428,22 @@ const goToPlanManagement = () => {
   showPlanModal.value = false
   router.push('/plans')
 }
+
+// URL의 plan 파라미터 변경 감지를 위한 watch 추가
+watch(() => route.query.plan, async (newPlanId, oldPlanId) => {
+  if (newPlanId && newPlanId !== oldPlanId && String(newPlanId) !== String(selectedSubscriptionId.value)) {
+    // URL 파라미터가 변경되면 selectedSubscriptionId 업데이트
+    selectedSubscriptionId.value = String(newPlanId)
+    
+    // 이미 selectedSubscriptionId가 변경되면 스케줄을 조회하는 watch가 있지만,
+    // 직접 호출하여 즉시 데이터 로드
+    try {
+      await fetchSchedules()
+    } catch (error) {
+      console.error('플랜 변경 후 스케줄 로딩 실패:', error)
+    }
+  }
+}, { immediate: true })
 
 </script>
 
