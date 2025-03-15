@@ -8,15 +8,14 @@
     <div class="content-wrapper">
       <DailyStatus class="fade-in" style="animation-delay: 0.2s" />
 
-      <!-- 공지사항 섹션 수정 -->
-      <div class="section notice-section fade-in" style="animation-delay: 0.25s">
+      <!-- 공지사항 -->
+      <!-- <div class="section notice-section fade-in" style="animation-delay: 0.25s">
         <div class="notice-header">
           <div class="notice-title-wrapper">
             <h2>공지사항</h2>
           </div>
         </div>
         
-        <!-- 플랜 업데이트 공지 추가 -->
         <div class="notice-content" @click="navigateTo('/notice/plan-update')">
           <div class="notice-icon app-icon">
             새기능
@@ -30,10 +29,10 @@
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-        </div>
+        </div> -->
 
-        <!-- 앱 설치 방법 공지 -->
-        <div class="notice-content" style="margin-top: 0.5rem" @click="navigateTo('/install')">
+        <!-- 앱 설치 방법 -->
+        <!-- <div class="notice-content" style="margin-top: 0.5rem" @click="navigateTo('/install')">
           <div class="notice-icon app-icon disabled">
             APP
           </div>
@@ -47,7 +46,7 @@
             </svg>
           </div>
         </div>
-      </div>
+      </div>  -->
 
       <div class="horizontal-sections fade-in" style="animation-delay: 0.3s">
         <div class="section flex-1">
