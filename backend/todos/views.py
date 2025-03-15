@@ -1958,11 +1958,13 @@ def increment_visitor_count(request):
     try:
         # 세션에서 마지막 방문 날짜 확인
         last_visit = request.session.get('last_visit')
-        today = localtime().date().isoformat()
+        
+        # localtime() 대신 timezone.now()를 사용하여 aware datetime 얻기
+        today = timezone.now().date().isoformat()
 
         # 오늘 이미 방문했다면 카운트하지 않음
         if last_visit == today:
-            today_count = VisitorCount.objects.filter(date=today).first()
+            today_count = VisitorCount.objects.filter(date=timezone.now().date()).first()
             return Response({
                 'success': True,
                 'daily_count': today_count.daily_count if today_count else 0,
