@@ -68,7 +68,6 @@ export const useApi = () => {
       // 인증이 필요하지만 로그인되지 않은 경우 즉시 반환
       const authStore = useAuthStore();
       if (requiresAuth && !authStore.isAuthenticated) {
-        console.log('인증이 필요한 API 호출이지만 로그인되지 않았습니다:', url);
         return { data: { success: false, message: 'Authentication required' } };
       }
       
