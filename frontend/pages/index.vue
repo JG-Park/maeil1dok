@@ -488,19 +488,42 @@ const fetchVisitorStats = async () => {
         daily_visitors: response.data.daily_visitors,
         total_visitors: response.data.total_visitors
       }
+    } else {
+      console.error('방문자 통계 응답 오류:', response.data)
+      // 오류 응답이지만 이전 값은 유지
     }
   } catch (error) {
     console.error('방문자 통계를 가져오는데 실패했습니다:', error)
+    // 오류 발생 시 기본값 설정 (빈 화면 방지)
+    if (!visitorStats.value.daily_visitors && !visitorStats.value.total_visitors) {
+      visitorStats.value = {
+        daily_visitors: 0,
+        total_visitors: 0
+      }
+    }
   }
 }
 
 // 방문자 수 증가
 const incrementVisitorCount = async () => {
   try {
-    await api.post('/api/v1/todos/stats/visitors/increment/')
-    await fetchVisitorStats() // 통계 새로고침
+    const response = await api.post('/api/v1/todos/stats/visitors/increment/')
+    
+    if (response.data && response.data.success) {
+      // 응답에서 직접 데이터를 사용
+      visitorStats.value = {
+        daily_visitors: response.data.daily_count || 0,
+        total_visitors: visitorStats.value.total_visitors + (response.data.counted ? 1 : 0)
+      };
+    } else {
+      // 서버에서 실패 응답이 왔을 때 통계만 가져오기
+      await fetchVisitorStats();
+    }
   } catch (error) {
-    console.error('방문자 수 증가에 실패했습니다:', error)
+    console.error('방문자 수 증가에 실패했습니다:', error);
+    // 실패해도 기존 통계는 표시
+    await fetchVisitorStats();
+    throw error; // 에러를 다시 던져서 호출자가 처리할 수 있게 함
   }
 }
 
@@ -612,21 +635,33 @@ onMounted(() => {
     }
   }
 
-  // 비동기 함수 실행
-  initData()
+  // 방문자 카운트 관련 로직을 별도의 비동기 함수로 분리
+  const initVisitorCount = async () => {
+    // 세션 ID를 포함한 더 강력한 방문 체크 (날짜도 포함)
+    const today = new Date().toDateString();
+    const visitKey = `visited_${today}`;
+    
+    if (!sessionStorage.getItem(visitKey)) {
+      try {
+        await incrementVisitorCount();
+      } catch (error) {
+        console.error('방문자 카운터 증가 실패, 통계만 로드합니다:', error);
+        await fetchVisitorStats();
+      }
+      sessionStorage.setItem(visitKey, 'true')
+    } else {
+      await fetchVisitorStats();
+    }
+  }
 
+  // 비동기 함수들 실행
+  initData()
+  initVisitorCount()
+  
   // 영상 개론 목록 가져오기
   fetchVideoIntros()
 
   initTodayTasks()
-
-  // 방문자 수 증가 및 통계 가져오기
-  if (!sessionStorage.getItem('visited')) {
-    incrementVisitorCount()
-    sessionStorage.setItem('visited', 'true')
-  } else {
-    fetchVisitorStats() // 통계만 새로고침
-  }
 
   // 하세나 상태 변경 이벤트 리스너 추가
   window.addEventListener('hasenaStatusUpdated', refreshHasenaStatus)
