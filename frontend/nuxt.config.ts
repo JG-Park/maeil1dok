@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   },
   modules: [
     '@pinia/nuxt',
-    '@nuxtjs/tailwindcss'
+    '@nuxtjs/tailwindcss',
   ],
   css: [
     '@/assets/css/main.css',
@@ -71,5 +71,20 @@ export default defineNuxtConfig({
   // 페이지 미들웨어 설정
   router: {
     middleware: ['auth']
+  },
+  // Vite 설정 추가
+  vite: {
+    server: {
+      // 운영 환경에서는 HMR 관련 설정 비활성화
+      hmr: process.env.NODE_ENV === 'production' ? false : {
+        protocol: 'ws',
+        host: 'localhost',
+        port: 3000
+      }
+    }
+  },
+  // 개발/운영 환경 설정
+  nitro: {
+    preset: process.env.NODE_ENV === 'production' ? 'node-server' : 'dev'
   }
 })

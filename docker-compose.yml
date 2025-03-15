@@ -59,7 +59,13 @@ services:
       - "${FRONTEND_SERVICE_PORT}:3000"
     environment:
       - HOST=0.0.0.0
-    command: npm run dev
+      - NODE_ENV=${NODE_ENV:-development}
+    command: >
+      sh -c "if [ \"$${NODE_ENV}\" = \"production\" ]; then 
+               npm run build && npm run start; 
+             else 
+               npm run dev; 
+             fi"
 
 volumes:
   mysql_data:
