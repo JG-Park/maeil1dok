@@ -316,7 +316,7 @@ const loadBibleContent = async (book, chapter) => {
           <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
-        <p>공회 서버 상태가 좋거나 매일일독과의 통신이 원활하지 않아요. 아래 버튼으로 직접 접속해보세요.</p>
+        <p>공회 서버 상태가 좋지 않거나 매일일독과의 통신이 원활하지 않아요. 대한성서공회 사이트에 직접 접속해보세요.</p>
         <a href="https://www.bskorea.or.kr/bible/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}" target="_blank" class="external-link">
           대한성서공회에서 보기
         </a>
