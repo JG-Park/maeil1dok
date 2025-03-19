@@ -175,20 +175,6 @@ const loadBibleContent = async (book, chapter) => {
     currentBook.value = book
     currentChapter.value = chapter
 
-    // API 응답에서 스케줄 정보를 직접 사용
-    apiResponse.value = await api.get('/api/v1/todos/detail/', {
-      params: {
-        plan_id: route.query.plan,
-        book,
-        chapter
-      }
-    })
-
-    if (apiResponse.value.data) {
-      const { audio_link, guide_link } = apiResponse.value.data
-      chapterTitle.value = `${bookNames[book]} ${chapter}${book === 'psa' ? '편' : '장'}`
-    }
-
     // 나머지 HTML 파싱 로직은 그대로 유지...
     const parser = new DOMParser()
     const doc = parser.parseFromString(text, 'text/html')
@@ -324,6 +310,31 @@ const loadBibleContent = async (book, chapter) => {
     `
   } finally {
     isLoading.value = false
+    
+    // 2단계 로딩이 완료된 후 1단계 정보를 로드
+    loadUIInfo(book, chapter)
+  }
+}
+
+// 상단 UI 정보 로드 함수
+const loadUIInfo = async (book, chapter) => {
+  try {
+    // API 응답에서 스케줄 정보를 가져옴
+    apiResponse.value = await api.get('/api/v1/todos/detail/', {
+      params: {
+        plan_id: route.query.plan,
+        book,
+        chapter
+      }
+    })
+
+    if (apiResponse.value.data) {
+      const { audio_link, guide_link } = apiResponse.value.data
+      // 이미 chapterTitle은 loadBibleContent에서 설정되었으므로 필요 없음
+    }
+  } catch (error) {
+    console.error('Failed to load UI info:', error)
+    // UI 정보 로드 실패 시 기본 정보만 표시
   }
 }
 
@@ -599,6 +610,8 @@ onMounted(async () => {
     if (route.query.book && route.query.chapter) {
       currentBook.value = route.query.book
       currentChapter.value = Number(route.query.chapter)
+      
+      // 2단계(성경 본문)를 먼저 로드 - 1단계는 loadBibleContent 내부에서 완료 후 호출
       await loadBibleContent(currentBook.value, currentChapter.value)
 
       // 모든 로딩이 완료된 후 장 표시 상태 업데이트
@@ -1333,7 +1346,7 @@ const scheduleModalMounted = ref(false)
 
           <!-- 구간 표시 영역 -->
           <div class="reading-sections" v-if="currentSectionChapters.length > 0">
-            <template v-for="(section, index) in currentSectionChapters" :key="index">
+            <template v-for="(section, index) in currentSectionChapters" :key="`section-${index}`">
               <!-- 구간 구분선 -->
               <span v-if="index > 0" class="section-separator">|</span>
               
