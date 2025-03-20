@@ -1003,12 +1003,47 @@ const confirmCompleteReading = async () => {
     // API 응답 후 상태 업데이트를 위해 detail API 재호출
     await loadBibleContent(currentBook.value, currentChapter.value)
 
-    // 스토어 상태 업데이트 (선택적)
+    // 다음 버튼에서 왔고 완료 액션이었으면 다음 장으로 이동
+    if (modalSource.value === 'next-button' && currentAction.value === 'complete') {
+      // 현재 책의 최대 장 수와 다음 장 번호 계산
+      const maxChapter = bookChapters[currentBook.value]
+      const nextChapter = Number(currentChapter.value) + 1
+
+      if (nextChapter <= maxChapter) {
+        // 같은 책의 다음 장으로 이동
+        router.push({
+          path: '/reading',
+          query: {
+            ...route.query,
+            book: currentBook.value,
+            chapter: nextChapter.toString()
+          }
+        })
+        loadBibleContent(currentBook.value, nextChapter)
+      } else {
+        // 다음 책의 첫 장으로 이동
+        const books = Object.keys(bookNames)
+        const currentBookIndex = books.indexOf(currentBook.value)
+        if (currentBookIndex < books.length - 1) {
+          const nextBook = books[currentBookIndex + 1]
+          router.push({
+            path: '/reading',
+            query: {
+              ...route.query,
+              book: nextBook,
+              chapter: '1'
+            }
+          })
+          loadBibleContent(nextBook, 1)
+        }
+      }
+    }
   } catch (error) {
     console.error(`성경 읽기 ${currentAction.value === 'complete' ? '완료' : '취소'} 처리 중 오류:`, error)
   } finally {
     showCompleteConfirmModal.value = false
     isUpdatingStatus.value = false
+    modalSource.value = '' // 모달 소스 초기화
   }
 }
 
