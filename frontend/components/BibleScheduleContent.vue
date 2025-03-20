@@ -146,7 +146,8 @@
                 <div class="schedule-reading">
                   <span v-if="isCurrentLocation(schedule)" class="current-location-badge">현재 위치</span>
                   <span class="bible-text">
-                    {{ schedule.book }} {{ schedule.start_chapter }}-{{ schedule.end_chapter }}장
+                    {{ schedule.book }} {{ schedule.start_chapter === schedule.end_chapter ? 
+                      schedule.start_chapter : `${schedule.start_chapter}-${schedule.end_chapter}` }}장
                   </span>
                 </div>
               </div>
@@ -528,7 +529,12 @@ const formatScheduleGroup = (scheduleGroup: Schedule[]) => {
   if (scheduleGroup.length === 1) {
     // 단일 성경책인 경우
     const schedule = scheduleGroup[0]
-    return `${schedule.book} ${schedule.start_chapter}-${schedule.end_chapter}장`
+    // 시작 장과 끝 장이 같으면 한 번만 표시
+    if (schedule.start_chapter === schedule.end_chapter) {
+      return `${schedule.book} ${schedule.start_chapter}장`
+    } else {
+      return `${schedule.book} ${schedule.start_chapter}-${schedule.end_chapter}장`
+    }
   } else {
     // 여러 성경책인 경우 (첫 번째 책의 시작장부터 마지막 책의 끝장까지)
     const firstBook = scheduleGroup[0]
@@ -537,7 +543,13 @@ const formatScheduleGroup = (scheduleGroup: Schedule[]) => {
     // 같은 책이 여러 개일 수 있으므로 중복 제거
     const uniqueBooks = [...new Set(scheduleGroup.map(s => s.book))].join(', ')
 
-    return `${firstBook.book} ${firstBook.start_chapter}장-${lastBook.book} ${lastBook.end_chapter}장`
+    // 시작 장과 끝 장의 표시 방식 개선
+    const startChapterText = `${firstBook.start_chapter}장`
+    const endChapterText = firstBook.book === lastBook.book && 
+                           firstBook.start_chapter === lastBook.end_chapter ? 
+                           '' : `-${lastBook.book} ${lastBook.end_chapter}장`
+
+    return `${firstBook.book} ${startChapterText}${endChapterText}`
   }
 }
 
@@ -604,12 +616,12 @@ const handleGroupCheckboxClick = async (scheduleGroup: Schedule[]) => {
 
   try {
     const currentStatus = getReadingStatusForGroup(scheduleGroup)
-    const isCompleted = currentStatus !== 'completed'
-    const action = isCompleted ? 'complete' : 'cancel'
+    const newIsCompleted = currentStatus !== 'completed'
+    const action = newIsCompleted ? 'complete' : 'cancel'
 
     // 낙관적 업데이트: 로컬 상태 먼저 변경
     scheduleGroup.forEach(schedule => {
-      schedule.is_completed = isCompleted
+      schedule.is_completed = newIsCompleted
     })
 
     // API 호출로 상태 업데이트
@@ -620,14 +632,14 @@ const handleGroupCheckboxClick = async (scheduleGroup: Schedule[]) => {
     })
 
     // 성공 메시지 표시
-    const message = isCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
+    const message = newIsCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
     success(message)
   } catch (err) {
     console.error('읽기 상태 업데이트 실패:', err)
 
     // 실패 시 롤백
     scheduleGroup.forEach(schedule => {
-      schedule.is_completed = !isCompleted
+      schedule.is_completed = !newIsCompleted
     })
 
     showError('상태 변경에 실패했습니다. 다시 시도해주세요.')
@@ -1095,8 +1107,8 @@ const confirmGoToSchedule = () => {
         queryParams.append(key, value)
       } else if (Array.isArray(value)) {
         value.forEach(v => {
-          if (typeof v === 'string') {
-            queryParams.append(key, v)
+          if (v !== null) {
+            queryParams.append(key, String(v))
           }
         })
       }
@@ -1274,29 +1286,45 @@ const isInSelectedRange = (scheduleGroup: Schedule | null) => {
 
 // 오늘 날짜로 스크롤 함수 수정
 const scrollToToday = async () => {
-  const today = new Date()
-  const todayMonth = today.getMonth() + 1
+  const today = new Date();
+  const todayMonth = today.getMonth() + 1;
+  const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD 형식
 
   // 현재 달이 다르면 달 변경 및 데이터 새로 가져오기
   if (selectedMonth.value !== todayMonth) {
-    selectedMonth.value = todayMonth
-    await fetchSchedules()
-    await nextTick() // DOM 업데이트 대기
+    selectedMonth.value = todayMonth;
+    await fetchSchedules();
+    await nextTick(); // DOM 업데이트 대기
+    await nextTick(); // 추가 대기
   }
 
   // 약간 지연 후 스크롤 실행
   setTimeout(() => {
-    const todayElement = document.querySelector(`[data-date="${today.toISOString().split('T')[0]}"]`)
+    const todayElement = document.querySelector(`[data-date="${todayString}"]`);
     if (todayElement) {
-      const scheduleBody = document.querySelector('.schedule-body')
-      if (props.isModal && scheduleBody) {
-        todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      } else {
-        todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const scheduleBody = document.querySelector('.schedule-body');
+      if (scheduleBody) {
+        try {
+          // 타입 단언으로 오류 방지
+          const todayHTMLElement = todayElement as HTMLElement;
+          const targetTop = todayHTMLElement.offsetTop;
+          const containerHeight = scheduleBody.clientHeight;
+          const targetHeight = todayHTMLElement.clientHeight;
+          
+          scheduleBody.scrollTo({
+            top: targetTop - (containerHeight / 2) + (targetHeight / 2),
+            behavior: 'smooth'
+          });
+        } catch (err) {
+          // 스크롤 실패 시 기본 방식으로 폴백
+          todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
+    } else {
+      console.warn('오늘 날짜의 일정을 찾을 수 없습니다');
     }
-  }, 100)
-}
+  }, 300);
+};
 
 // 마지막 미완료 항목으로 스크롤도 동일하게 개선
 const scrollToLastIncomplete = async () => {
@@ -1337,30 +1365,34 @@ const scrollToLastIncomplete = async () => {
   }
 }
 
-// 모달이 열릴 때 초기화되는 watch 추가
+// 모달이 열릴 때 초기화되는 watch 수정
 watch(() => props.isModal, async (newVal) => {
   if (newVal) {
-    isInitialized.value = false
-    isLoading.value = true
+    isInitialized.value = false;
+    isLoading.value = true;
 
     // 모달이 열릴 때마다 초기화 다시 실행
-    await initializeComponent()
+    await initializeComponent();
 
     // DOM이 완전히 렌더링된 후 스크롤 실행
     if (props.currentBook && props.currentChapter) {
-      // 더 긴 지연 시간 및 여러 번의 nextTick으로 안정성 향상
+      // 더 긴 지연 시간으로 안정성 향상
       setTimeout(async () => {
-        await nextTick()
-        await nextTick()
-        await scrollToCurrentLocation()
-      }, 500)
+        await nextTick();
+        await nextTick();
+        try {
+          await scrollToCurrentLocation();
+        } catch (err) {
+          console.error('현재 위치로 스크롤 실패:', err);
+        }
+      }, 800); // 지연 시간 증가
     }
   }
-}, { immediate: true })
+}, { immediate: true });
 
-// scrollToCurrentLocation 함수 개선
+// scrollToCurrentLocation 함수 전체 개선
 const scrollToCurrentLocation = async () => {
-  if (!props.currentBook || !props.currentChapter) return
+  if (!props.currentBook || !props.currentChapter) return;
 
   try {
     // 현재 위치의 일정 정보 가져오기
@@ -1370,48 +1402,54 @@ const scrollToCurrentLocation = async () => {
         book: props.currentBook,
         chapter: props.currentChapter
       }
-    })
+    });
 
     if (data && data.plan_date) {
       // 월 변경이 필요한 경우 처리
-      const targetMonth = new Date(data.plan_date).getMonth() + 1
+      const targetMonth = new Date(data.plan_date).getMonth() + 1;
       if (selectedMonth.value !== targetMonth) {
-        selectedMonth.value = targetMonth
-        await fetchSchedules() // 데이터 새로 가져오기
-        await nextTick() // DOM 업데이트 대기
+        selectedMonth.value = targetMonth;
+        await fetchSchedules(); // 데이터 새로 가져오기
+        await nextTick(); // DOM 업데이트 대기
+        await nextTick(); // 추가 대기로 안정성 향상
       }
 
-      // 스크롤 동작 개선을 위해 타이밍 조정
-      await nextTick()
-
-      // 지연 처리로 DOM 렌더링 완료 보장
+      // 충분한 지연 시간 제공으로 DOM 렌더링 완료 보장
       setTimeout(() => {
         // 대상 요소 찾기
-        const targetElement = document.querySelector(`[data-date="${data.plan_date}"]`)
-        if (!targetElement) return
+        const targetElement = document.querySelector(`[data-date="${data.plan_date}"]`);
+        if (!targetElement) {
+          console.warn('현재 위치의 대상 요소를 찾을 수 없습니다:', data.plan_date);
+          return;
+        }
 
         // 스크롤 컨테이너 찾기
-        const scheduleBody = document.querySelector('.schedule-body')
-        if (!scheduleBody) return
+        const scheduleBody = document.querySelector('.schedule-body');
+        if (!scheduleBody) {
+          console.warn('스크롤 컨테이너를 찾을 수 없습니다');
+          return;
+        }
 
+        // 타입 단언을 사용하여 TypeScript 오류 해결
+        const targetHTMLElement = targetElement as HTMLElement;
+        
         // 스크롤 위치 계산
-        const targetTop = targetElement.offsetTop
-        const containerScrollTop = scheduleBody.scrollTop
-        const containerHeight = scheduleBody.clientHeight
+        const targetTop = targetHTMLElement.offsetTop;
+        const containerHeight = scheduleBody.clientHeight;
+        const targetHeight = targetHTMLElement.clientHeight;
 
-        // 직접 스크롤 처리 - 컨테이너의 중앙에 타겟 위치
+        // 직접 스크롤 처리 - 컨테이너의 중앙에 타겟 위치시키기
         scheduleBody.scrollTo({
-          top: targetTop - (containerHeight / 2) + (targetElement.clientHeight / 2),
+          top: targetTop - (containerHeight / 2) + (targetHeight / 2),
           behavior: 'smooth'
-        })
-      }, 300)
+        });
+      }, 500); // 지연 시간 증가
     }
   } catch (error) {
-    console.error('Error fetching current location:', error)
-    showError('현재 위치를 찾을 수 없습니다.')
+    console.error('현재 위치 조회 실패:', error);
+    showError('현재 위치를 찾을 수 없습니다.');
   }
-}
-
+};
 
 // 모달이 처음 표시될 때 현재 위치로 스크롤
 watch(() => props.isModal, async (newVal) => {
