@@ -181,14 +181,23 @@ const loadBibleContent = async (book, chapter) => {
     const bibleElement = doc.getElementById('tdBible1')
 
     if (bibleElement) {
-      // a 태그 처리 방식 수정 - href만 제거하고 내용은 유지
-      const anchorTags = bibleElement.querySelectorAll('a')
-      anchorTags.forEach(anchor => {
-        // a 태그 자체는 유지하고 href 속성만 제거
-        anchor.removeAttribute('href')
+      // smallTitle 내부의 a 태그는 href만 제거하고 유지
+      const sectionTitles = bibleElement.querySelectorAll('.smallTitle')
+      sectionTitles.forEach(section => {
+        const anchors = section.querySelectorAll('a')
+        anchors.forEach(anchor => {
+          // href 속성만 제거하고 a 태그 자체는 유지
+          anchor.removeAttribute('href')
+        })
       })
 
-      // 불필요한 요소 제거 (a 태그 제외)
+      // 그 외의 a 태그는 완전히 제거
+      const otherAnchors = bibleElement.querySelectorAll('a:not(.smallTitle a)')
+      otherAnchors.forEach(anchor => {
+        anchor.remove()
+      })
+
+      // 기타 불필요한 요소 제거
       const elementsToRemove = bibleElement.querySelectorAll('input, select, form, .fontcontrol, [style*="display:none"], [style*="display: none"]')
       elementsToRemove.forEach(el => el.remove())
 
