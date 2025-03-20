@@ -1249,7 +1249,7 @@ const scheduleModalMounted = ref(false)
       v-if="apiResponse?.data">
       <div class="today-info">
         <div class="reading-meta">
-          <button class="schedule-button" @click="openScheduleModal">
+          <button class="reading-meta-btn schedule-button" @click="openScheduleModal">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -1259,15 +1259,16 @@ const scheduleModalMounted = ref(false)
           <!-- 플랜이 선택된 경우에만 완료/취소 버튼 표시 -->
           <template v-if="route.query.plan && showReadingButtons">
             <transition name="fade" mode="out-in">
-              <button v-if="readingStatus === 'completed'" key="cancel" class="complete-button complete-cancel-button"
-                @click="handleCancelReading" :disabled="isLoading || isUpdatingStatus">
+              <button v-if="readingStatus === 'completed'" key="cancel"
+                class="reading-meta-btn complete-button complete-cancel-button" @click="handleCancelReading"
+                :disabled="isLoading || isUpdatingStatus">
                 <span v-if="isUpdatingStatus" class="loading-spinner small"></span>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 </svg>
                 <span>읽지 않음으로 기록</span>
               </button>
-              <button v-else-if="readingStatus === 'in_progress'" key="complete" class="complete-button"
+              <button v-else-if="readingStatus === 'in_progress'" key="complete" class="reading-meta-btn complete-button"
                 @click="handleCompleteReading" :disabled="isLoading || isUpdatingStatus">
                 <span v-if="isUpdatingStatus" class="loading-spinner small"></span>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -1414,14 +1415,12 @@ const scheduleModalMounted = ref(false)
               </span>
 
               <!-- 책 이름 -->
-              <template v-for="(section, index) in currentSectionChapters" :key="`book-${index}`">
-                <span class="book-name" :class="{
-                  'current-book': section.book === currentBook,
-                  'other-book': section.book !== currentBook
-                }">
-                  {{ section.book_kor }}
-                </span>
-              </template>
+              <span v-for="(section, index) in currentSectionChapters" :key="`book-${index}`" class="book-name" :class="{
+                'current-book': section.book === currentBook,
+                'other-book': section.book !== currentBook
+              }">
+                {{ section.book_kor }}
+              </span>
 
               <!-- 장 번호들 -->
               <div class="chapter-numbers" v-if="section.book === currentBook" :key="`chapters-${index}`">
@@ -1733,20 +1732,16 @@ const scheduleModalMounted = ref(false)
   gap: 0.75rem;
   margin-bottom: 0;
   flex-wrap: nowrap;
-  /* 줄바꿈 방지 */
   min-width: 0;
-  /* 플렉스 아이템 축소 허용 */
 }
 
 .reading-meta {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-bottom: 0;
   flex-wrap: nowrap;
-  /* 줄바꿈 방지 */
   min-width: 0;
-  /* 플렉스 아이템 축소 허용 */
 }
 
 .date-badge {
@@ -1917,7 +1912,7 @@ const scheduleModalMounted = ref(false)
   display: flex;
   align-items: flex-start;
   font-weight: normal;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
 }
 
 :deep(.verse-number) {
@@ -2057,43 +2052,47 @@ const scheduleModalMounted = ref(false)
   font-weight: 500;
 }
 
-.complete-button {
-  border: 1px solid rgba(46, 144, 250, 0.5);
-  background: rgba(46, 144, 250, 0.1);
-  color: #2E90FA;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.8125rem;
-  /* 글자 크기 약간 줄임 */
-  letter-spacing: -0.02em;
+.reading-meta-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem 0.75rem;
-  /* 상단 버튼에 맞게 패딩 조정 */
-  margin: 0 0.1rem 0.1rem 0;
-  height: 32px;
-  /* 높이 고정 */
   gap: 0.375rem;
-  /* 아이콘과 텍스트 사이 간격 */
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
   white-space: nowrap;
-  /* 텍스트 줄바꿈 방지 */
-  flex-shrink: 1;
-  /* 필요한 경우 크기 축소 허용 */
-  min-width: 0;
-  /* 플렉스 아이템 축소 허용 */
-  overflow: hidden;
-  /* 내용이 넘칠 경우 숨김 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  letter-spacing: -0.02em;
   text-overflow: ellipsis;
-  /* 넘치는 텍스트 ... 처리 */
+  overflow: hidden;
+
+}
+
+.schedule-button {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.schedule-button:hover {
+  background: var(--primary-hover);
+  color: var(--primary-dark);
+  opacity: 1;
+}
+
+.complete-button {
+  border: 1px solid rgba(46, 144, 250, 1);
+  background: rgba(46, 144, 250, 0.1);
+  color: #2E90FA;
 }
 
 .complete-button:hover {
   background: rgba(46, 144, 250, 0.15);
   border-color: #2E90FA;
-  /* hover 시에는 진한 테두리 */
   color: #1570D1;
 }
 
@@ -2104,19 +2103,14 @@ const scheduleModalMounted = ref(false)
 
 .complete-cancel-button {
   border: 1px solid rgba(220, 38, 38, 0.25);
-  /* 테두리 더 연하게 */
   background: rgba(220, 38, 38, 0.05);
-  /* 배경 더 연하게 */
   color: #DC2626;
 }
 
 .complete-cancel-button:hover {
   background: rgba(220, 38, 38, 0.1);
-  /* hover 배경 더 연하게 */
   border-color: rgba(220, 38, 38, 0.4);
-  /* hover 테두리 더 연하게 */
   color: #DC2626;
-  /* hover 시에도 빨간색 유지 */
 }
 
 .complete-button:disabled,
@@ -2147,7 +2141,6 @@ const scheduleModalMounted = ref(false)
     height: 28px;
     gap: 0.25rem;
     min-width: 80px;
-    /* 최소 너비 설정 */
   }
 
   .complete-button {
@@ -2932,38 +2925,6 @@ const scheduleModalMounted = ref(false)
 
 }
 
-.schedule-button {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  padding: 0.25rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: 1px solid var(--primary-color);
-  /* 테두리 추가 */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.9;
-  /* 약간 투명도 추가 */
-  gap: 0.375rem;
-  /* 아이콘과 텍스트 사이 간격 */
-  white-space: nowrap;
-  /* 텍스트 줄바꿈 방지 */
-  flex-shrink: 0;
-  /* 버튼 크기 축소 방지 */
-}
-
-.schedule-button:hover {
-  background: var(--primary-hover);
-  color: var(--primary-dark);
-  opacity: 1;
-  /* 호버 시 투명도 제거 */
-}
-
 @media (max-width: 640px) {
   .schedule-button {
     padding: 0.25rem 0.5rem;
@@ -3180,18 +3141,6 @@ html.touch-device .nav-button.next:hover svg {
   transform: translateY(5px);
 }
 
-/* 버튼 공통 스타일 조정 - 최소 너비 제거하고 패딩 유지 */
-.complete-button,
-.complete-cancel-button {
-  width: auto;
-  /* 너비 자동 조절 */
-  transition: all 0.3s ease;
-  position: relative;
-  /* 로딩 스피너 위치 기준 */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
 
 /* 로딩 스피너 스타일 */
 .loading-spinner.small {
@@ -3375,4 +3324,5 @@ html.touch-device .nav-button.next:hover svg {
   color: #6B7280;
   letter-spacing: -0.1em;
 }
+
 </style>
