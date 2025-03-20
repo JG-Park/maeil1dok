@@ -1540,23 +1540,27 @@ const scheduleModalMounted = ref(false)
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="showScheduleModal" class="modal-overlay" @click="closeScheduleModal">
-        <div class="modal-content schedule-modal" @click.stop>
-          <div class="modal-header">
-            <h3>성경통독표</h3>
-            <div class="header-controls">
-              <button class="close-button" @click="closeScheduleModal">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-              </button>
-            </div>
-          </div>
+      <Transition name="modal-fade">
+        <div v-if="showScheduleModal" class="modal-overlay" @click="closeScheduleModal">
+          <Transition name="modal-slide">
+            <div class="modal-content schedule-modal" @click.stop>
+              <div class="modal-header">
+                <h3>성경통독표</h3>
+                <div class="header-controls">
+                  <button class="close-button" @click="closeScheduleModal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
 
-          <BibleScheduleContent v-if="showScheduleModal" :is-modal="true" :current-book="currentBook"
-            :current-chapter="currentChapter" @schedule-select="handleScheduleClick" />
+              <BibleScheduleContent v-if="showScheduleModal" :is-modal="true" :current-book="currentBook"
+                :current-chapter="currentChapter" @schedule-select="handleScheduleClick" />
+            </div>
+          </Transition>
         </div>
-      </div>
+      </Transition>
     </Teleport>
 
     <Teleport to="body">
@@ -2438,7 +2442,6 @@ const scheduleModalMounted = ref(false)
   background: #FFFFFF;
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  animation: modalSlideUp 0.3s ease-out;
 }
 
 @media (max-width: 480px) {
@@ -3325,4 +3328,61 @@ html.touch-device .nav-button.next:hover svg {
   letter-spacing: -0.1em;
 }
 
+/* 모달 애니메이션 */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-slide-enter-active {
+  animation: modalSlideUp 0.3s ease-out forwards;
+}
+
+.modal-slide-leave-active {
+  animation: modalSlideDown 0.3s ease-in forwards;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalSlideDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+}
+
+/* 기존의 modalSlideUp 애니메이션은 제거하고 위의 코드로 대체합니다 */
+.schedule-modal {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow: hidden;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* ... 기존 스타일들 ... */
 </style>
