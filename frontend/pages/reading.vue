@@ -181,8 +181,15 @@ const loadBibleContent = async (book, chapter) => {
     const bibleElement = doc.getElementById('tdBible1')
 
     if (bibleElement) {
-      // 불필요한 요소 제거
-      const elementsToRemove = bibleElement.querySelectorAll('input, select, form, .fontcontrol, a, [style*="display:none"], [style*="display: none"]')
+      // a 태그 처리 방식 수정 - href만 제거하고 내용은 유지
+      const anchorTags = bibleElement.querySelectorAll('a')
+      anchorTags.forEach(anchor => {
+        // a 태그 자체는 유지하고 href 속성만 제거
+        anchor.removeAttribute('href')
+      })
+
+      // 불필요한 요소 제거 (a 태그 제외)
+      const elementsToRemove = bibleElement.querySelectorAll('input, select, form, .fontcontrol, [style*="display:none"], [style*="display: none"]')
       elementsToRemove.forEach(el => el.remove())
 
       // 장 제목 설정 (책 이름 + 장 번호) - 시편은 "편"으로 표시
@@ -231,16 +238,22 @@ const loadBibleContent = async (book, chapter) => {
       } else {
         // 기존 파싱 로직 (다른 모든 성경)
         Array.from(bibleElement.childNodes).forEach(node => {
-          // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트
+          // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트하는 부분 수정
           if (node.classList?.contains('smallTitle')) {
-            currentSection = node.textContent.trim()
+            // 원본 제목 텍스트
+            let titleText = node.textContent.trim()
               .replace(/\(\s*\)/g, '')  // 빈 괄호 제거
               .replace(/\s+/g, ' ')     // 연속된 공백 하나로 통일
               .trim()                   // 앞뒤 공백 제거
 
-            if (currentSection) {  // 내용이 있는 경우에만 추가
-              verses.push(`<h3 class="section-title">${currentSection}</h3>`)
+            // 괄호 내용을 작은 글자로 표시하기 위해 HTML로 변환
+            // 괄호 패턴 찾기: (내용) 형태
+            titleText = titleText.replace(/(\([^)]+\))/g, '<span class="reference">$1</span>')
+
+            if (titleText) {  // 내용이 있는 경우에만 추가
+              verses.push(`<h3 class="section-title">${titleText}</h3>`)
             }
+            currentSection = titleText.replace(/<[^>]+>/g, ''); // HTML 태그 제거한 순수 텍스트 저장
           }
           // span 요소이고 number 클래스를 가진 자식이 있으면 구절로 처리
           else if (node.tagName === 'SPAN' && node.querySelector('.number')) {
@@ -310,7 +323,7 @@ const loadBibleContent = async (book, chapter) => {
     `
   } finally {
     isLoading.value = false
-    
+
     // 2단계 로딩이 완료된 후 1단계 정보를 로드
     loadUIInfo(book, chapter)
   }
@@ -610,7 +623,7 @@ onMounted(async () => {
     if (route.query.book && route.query.chapter) {
       currentBook.value = route.query.book
       currentChapter.value = Number(route.query.chapter)
-      
+
       // 2단계(성경 본문)를 먼저 로드 - 1단계는 loadBibleContent 내부에서 완료 후 호출
       await loadBibleContent(currentBook.value, currentChapter.value)
 
@@ -665,7 +678,7 @@ const handleScroll = () => {
 // 스케줄 모달 관련 함수들
 const openScheduleModal = () => {
   showScheduleModal.value = true
-  
+
   // 모달이 열린 후 scheduleModalMounted 상태 변경
   // 이를 통해 스크롤 함수 실행 시점 제어
   setTimeout(() => {
@@ -1346,37 +1359,34 @@ const scheduleModalMounted = ref(false)
 
           <!-- 구간 표시 영역 -->
           <div class="reading-sections" v-if="currentSectionChapters.length > 0">
-            <template v-for="(section, index) in currentSectionChapters" :key="`section-${index}`">
+            <template v-for="(section, index) in currentSectionChapters">
               <!-- 구간 구분선 -->
-              <span v-if="index > 0" class="section-separator">|</span>
-              
+              <span v-if="index > 0" class="section-separator" :key="`separator-${index}`">|</span>
+
               <!-- 구간 번호 -->
-              <span class="section-number" 
-                    v-if="currentSectionChapters.length > 1"
-                    :class="{ 'current-section': section.book === currentBook }">
+              <span class="section-number" v-if="currentSectionChapters.length > 1"
+                :class="{ 'current-section': section.book === currentBook }" :key="`section-${index}`">
                 {{ index + 1 }}
               </span>
-              
+
               <!-- 책 이름 -->
-              <span class="book-name" 
-                    :class="{ 
-                      'current-book': section.book === currentBook,
-                      'other-book': section.book !== currentBook 
-                    }">
-                {{ section.book_kor }}
-              </span>
-              
+              <template v-for="(section, index) in currentSectionChapters" :key="`book-${index}`">
+                <span class="book-name" :class="{
+                  'current-book': section.book === currentBook,
+                  'other-book': section.book !== currentBook
+                }">
+                  {{ section.book_kor }}
+                </span>
+              </template>
+
               <!-- 장 번호들 -->
-              <div class="chapter-numbers" v-if="section.book === currentBook">
+              <div class="chapter-numbers" v-if="section.book === currentBook" :key="`chapters-${index}`">
                 <!-- 3개 이하일 때는 모든 장 표시 -->
                 <template v-if="section.chapters.length <= 3">
-                  <span v-for="chapter in section.chapters" 
-                        :key="chapter"
-                        class="chapter-box"
-                        :class="{ 
-                          'current': chapter === currentChapter,
-                          'completed': isChapterCompleted(section.book, chapter)
-                        }">
+                  <span v-for="chapter in section.chapters" :key="chapter" class="chapter-box" :class="{
+                    'current': chapter === currentChapter,
+                    'completed': isChapterCompleted(section.book, chapter)
+                  }">
                     {{ chapter }}
                   </span>
                 </template>
@@ -1384,24 +1394,22 @@ const scheduleModalMounted = ref(false)
                 <!-- 4개 이상일 때는 생략 부호 사용 -->
                 <template v-else>
                   <!-- 시작 장 -->
-                  <span class="chapter-box"
-                        :class="{ 
-                          'current': section.chapters[0] === currentChapter,
-                          'completed': isChapterCompleted(section.book, section.chapters[0])
-                        }">
+                  <span class="chapter-box" :class="{
+                    'current': section.chapters[0] === currentChapter,
+                    'completed': isChapterCompleted(section.book, section.chapters[0])
+                  }">
                     {{ section.chapters[0] }}
                   </span>
 
                   <!-- 중간 생략 부호와 현재 장 (모바일에서만 표시) -->
-                  <template v-if="currentChapter !== section.chapters[0] && 
-                                  currentChapter !== section.chapters[section.chapters.length - 1]">
+                  <template v-if="currentChapter !== section.chapters[0] &&
+                    currentChapter !== section.chapters[section.chapters.length - 1]">
                     <!-- 현재 장이 중간에 있을 때는 점 2개 -->
                     <span class="chapter-ellipsis mobile-only">··</span>
-                    <span class="chapter-box mobile-only"
-                          :class="{
-                            'current': true,
-                            'completed': isChapterCompleted(section.book, currentChapter)
-                          }">
+                    <span class="chapter-box mobile-only" :class="{
+                      'current': true,
+                      'completed': isChapterCompleted(section.book, currentChapter)
+                    }">
                       {{ currentChapter }}
                     </span>
                     <span class="chapter-ellipsis mobile-only">··</span>
@@ -1412,11 +1420,10 @@ const scheduleModalMounted = ref(false)
                   </template>
 
                   <!-- 마지막 장 -->
-                  <span class="chapter-box"
-                        :class="{
-                          'current': section.chapters[section.chapters.length - 1] === currentChapter,
-                          'completed': isChapterCompleted(section.book, section.chapters[section.chapters.length - 1])
-                        }">
+                  <span class="chapter-box" :class="{
+                    'current': section.chapters[section.chapters.length - 1] === currentChapter,
+                    'completed': isChapterCompleted(section.book, section.chapters[section.chapters.length - 1])
+                  }">
                     {{ section.chapters[section.chapters.length - 1] }}
                   </span>
                 </template>
@@ -1503,12 +1510,8 @@ const scheduleModalMounted = ref(false)
             </div>
           </div>
 
-          <BibleScheduleContent 
-            v-if="showScheduleModal" 
-            :is-modal="true" 
-            :current-book="currentBook"
-            :current-chapter="currentChapter" 
-            @schedule-select="handleScheduleClick" />
+          <BibleScheduleContent v-if="showScheduleModal" :is-modal="true" :current-book="currentBook"
+            :current-chapter="currentChapter" @schedule-select="handleScheduleClick" />
         </div>
       </div>
     </Teleport>
@@ -3319,5 +3322,13 @@ html.touch-device .nav-button.next:hover svg {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* section-title 내부의 reference 클래스 스타일 추가 */
+:deep(.section-title .reference) {
+  font-size: 0.75em;
+  font-weight: 500;
+  color: #6B7280;
+  letter-spacing: -0.1em;
 }
 </style>
