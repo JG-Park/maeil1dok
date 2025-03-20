@@ -1726,7 +1726,6 @@ const scheduleModalMounted = ref(false)
   top: 0;
   -webkit-tap-highlight-color: transparent;
   min-height: 52px;
-  /* 최소 높이 추가 */
 }
 
 .today-info {
@@ -1814,7 +1813,6 @@ const scheduleModalMounted = ref(false)
 }
 
 @media (max-width: 640px) {
-
   .today-reading.floating {
     margin: 0;
     padding: 0.5rem;
@@ -1961,14 +1959,12 @@ const scheduleModalMounted = ref(false)
 }
 
 @supports (-webkit-touch-callout: none) {
-  /* Safari 웹에서만 적용되도록 standalone 모드가 아닐 때만 패딩 추가 */
   @media not all and (display-mode: standalone) {
     .navigation-controls {
       padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
     }
   }
 
-  /* PWA 홈 화면 앱(standalone 모드)에서는 safe-area-inset-bottom만 적용 */
   @media (display-mode: standalone) {
     .navigation-controls {
       padding: 0.5rem 0.35rem calc(env(safe-area-inset-bottom) - 0.35rem) 0.35rem;
@@ -1989,12 +1985,9 @@ const scheduleModalMounted = ref(false)
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
-  /* 추가: 터치 하이라이트 제거 */
   outline: none;
-  /* 추가: 포커스 아웃라인 제거 */
 }
 
-/* 추가: 터치 디바이스에서 호버 상태 제거 */
 @media (hover: none) {
   .nav-button:hover {
     background-color: transparent;
@@ -2006,7 +1999,6 @@ const scheduleModalMounted = ref(false)
   }
 }
 
-/* 기존 코드 유지 */
 .nav-button:hover {
   background-color: #e5e7eb;
   color: #1f2937;
@@ -2041,13 +2033,9 @@ const scheduleModalMounted = ref(false)
   align-items: center;
   justify-content: center;
   min-width: 160px;
-  /* 버튼과 텍스트가 같은 공간을 차지하도록 */
   flex: 1;
-  /* 남은 공간 모두 차지 */
   min-width: 0;
-  /* 플렉스 아이템 축소 허용 */
   padding: 0 0.1rem;
-  /* 좌우 여백 추가 */
 }
 
 .chapter-indicator {
@@ -2131,12 +2119,10 @@ const scheduleModalMounted = ref(false)
   .today-reading {
     padding: 0.5rem 0.65rem;
     gap: 0.5rem;
-    /* 간격 조정 */
   }
 
   .reading-meta {
     gap: 0.5rem;
-    /* 모바일에서 간격 줄임 */
   }
 
   .schedule-button {
@@ -2153,26 +2139,21 @@ const scheduleModalMounted = ref(false)
     height: 28px;
     gap: 0.25rem;
     min-width: 64px;
-    /* 최소 너비 설정 */
   }
 
   @supports (-webkit-touch-callout: none) {
     .today-reading {
       padding: 0.5rem 0.5rem;
-      /* 패딩 더 줄임 */
     }
 
     .reading-meta {
       gap: 0.35rem;
-      /* 간격 더 줄임 */
     }
 
     .schedule-button,
     .complete-button {
       padding: 0.25rem 0.35rem;
-      /* 패딩 더 줄임 */
       font-size: 0.7rem;
-      /* 폰트 크기 더 줄임 */
     }
   }
 }
@@ -2299,7 +2280,6 @@ const scheduleModalMounted = ref(false)
   overflow: hidden;
   position: relative;
   min-height: 400px;
-  /* 최소 높이 설정 */
 }
 
 .modal-content-wrapper {
@@ -2319,12 +2299,10 @@ const scheduleModalMounted = ref(false)
   height: 100%;
   -webkit-overflow-scrolling: touch;
   position: absolute;
-  /* 절대 위치로 변경 */
   left: 0;
   top: 0;
   bottom: 0;
   width: 45%;
-  /* 너비 설정 */
 }
 
 .chapters-section {
@@ -2334,12 +2312,10 @@ const scheduleModalMounted = ref(false)
   height: 100%;
   -webkit-overflow-scrolling: touch;
   position: absolute;
-  /* 절대 위치로 변경 */
   right: 0;
   top: 0;
   bottom: 0;
   width: 55%;
-  /* 너비 설정 */
 }
 
 .testament {
@@ -2886,7 +2862,6 @@ const scheduleModalMounted = ref(false)
   justify-content: center;
   gap: 0.375rem;
   margin-bottom: 0.25rem;
-  /* 간격 줄임 */
 }
 
 .status-icon {
@@ -2911,14 +2886,12 @@ const scheduleModalMounted = ref(false)
 
 .schedule-date.upcoming {
   color: #94A3B8;
-  /* 미래 날짜는 회색으로 표시 */
 }
 
 @media (max-width: 640px) {
   .schedule-date {
     font-size: 0.8rem;
     gap: 0.25rem;
-    /* 모바일에서 더 좁게 */
   }
 
   .status-icon {
@@ -3023,7 +2996,6 @@ const scheduleModalMounted = ref(false)
   border: 1px solid currentColor;
 }
 
-/* 에러 메시지 스타일 */
 :deep(.error-message) {
   display: flex;
   flex-direction: column;
@@ -3072,17 +3044,14 @@ const scheduleModalMounted = ref(false)
   background: #DBEAFE;
 }
 
-/* 폰트 설정 */
 :root {
   --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 전체 페이지에 폰트 적용 */
 .page-container {
   font-family: var(--font-family);
 }
 
-/* 성경 본문에도 폰트 적용 */
 :deep(.bible-content) {
   font-family: var(--font-family);
   line-height: 1.8;
@@ -3094,7 +3063,6 @@ const scheduleModalMounted = ref(false)
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 터치 디바이스에서 hover 관련 스타일 제거 */
 html.touch-device .nav-button:hover {
   background-color: transparent;
   color: #4b5563;
@@ -3109,7 +3077,6 @@ html.touch-device .nav-button.next:hover svg {
   transform: none !important;
 }
 
-/* hover 가능한 디바이스에서만 hover 효과 적용 */
 @media (hover: hover) {
   html.no-touch-device .nav-button:hover {
     background-color: #e5e7eb;
@@ -3125,14 +3092,12 @@ html.touch-device .nav-button.next:hover svg {
   }
 }
 
-/* 버튼 active 상태 (터치) 스타일 */
 .nav-button:active {
   transform: translateY(1px);
   background-color: #e5e7eb;
   color: #1f2937;
 }
 
-/* 트랜지션 효과 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -3144,8 +3109,6 @@ html.touch-device .nav-button.next:hover svg {
   transform: translateY(5px);
 }
 
-
-/* 로딩 스피너 스타일 */
 .loading-spinner.small {
   width: 14px;
   height: 14px;
@@ -3160,7 +3123,6 @@ html.touch-device .nav-button.next:hover svg {
   margin: 0;
 }
 
-/* 로딩 중일 때 버튼 내 텍스트와 아이콘 숨김 */
 .complete-button:disabled span:not(.loading-spinner),
 .complete-button:disabled svg,
 .complete-cancel-button:disabled span:not(.loading-spinner),
@@ -3168,11 +3130,9 @@ html.touch-device .nav-button.next:hover svg {
   opacity: 0;
 }
 
-/* 버튼 너비 동기화를 위한 스타일 */
 .complete-button span,
 .complete-cancel-button span {
   margin: 0 0.15rem;
-  /* 텍스트 좌우 마진 조정 */
 }
 
 @keyframes spinner {
@@ -3181,7 +3141,6 @@ html.touch-device .nav-button.next:hover svg {
   }
 }
 
-/* 새로운 스타일 추가 */
 .reading-sections {
   display: flex;
   align-items: center;
@@ -3284,7 +3243,6 @@ html.touch-device .nav-button.next:hover svg {
   }
 }
 
-/* 플랜 경고 메시지 스타일 */
 .plan-warning {
   display: flex;
   align-items: center;
@@ -3307,7 +3265,6 @@ html.touch-device .nav-button.next:hover svg {
   }
 }
 
-/* 성경통독표 컴포넌트를 숨기는 스타일 추가 */
 .hidden-schedule-content {
   position: absolute;
   width: 1px;
@@ -3320,7 +3277,6 @@ html.touch-device .nav-button.next:hover svg {
   border: 0;
 }
 
-/* section-title 내부의 reference 클래스 스타일 추가 */
 :deep(.section-title .reference) {
   font-size: 0.75em;
   font-weight: 500;
@@ -3328,7 +3284,6 @@ html.touch-device .nav-button.next:hover svg {
   letter-spacing: -0.1em;
 }
 
-/* 모달 애니메이션 */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
   transition: opacity 0.3s ease;
@@ -3369,7 +3324,6 @@ html.touch-device .nav-button.next:hover svg {
   }
 }
 
-/* 기존의 modalSlideUp 애니메이션은 제거하고 위의 코드로 대체합니다 */
 .schedule-modal {
   display: flex;
   flex-direction: column;
@@ -3383,6 +3337,4 @@ html.touch-device .nav-button.next:hover svg {
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
-
-/* ... 기존 스타일들 ... */
 </style>
