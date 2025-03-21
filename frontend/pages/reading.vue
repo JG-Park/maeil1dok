@@ -13,13 +13,6 @@ const api = useApi()
 // Toast 컴포넌트 ref
 const toast = ref(null)
 
-// Toast 메시지 표시 함수
-const showToast = (message, type = 'success') => {
-  if (toast.value) {
-    toast.value.show(message, type)
-  }
-}
-
 // 상태 변수들을 상단으로 이동
 const showLoginModal = ref(false)
 const showModal = ref(false)
@@ -35,13 +28,10 @@ const currentChapter = ref(1)
 const selectedBook = ref('gen')
 const isHeaderFloating = ref(false)
 const isTodayReadingFloating = ref(false)
-const schedules = ref([])
-const selectedMonth = ref(new Date().getMonth() + 1)
-const months = Array.from({ length: 12 }, (_, i) => i + 1)
 const isUpdatingStatus = ref(false) // 상태 업데이트 중인지 나타내는 상태 추가
 
-// apiResponse를 반응형 변수로 선언
-const apiResponse = ref(null)
+// apiResponse를 반응형 변수로 선언 - 이름 변경
+const readingDetailResponse = ref(null)
 
 // 성경 책 목록을 구약/신약으로 구분
 const bibleBooks = {
@@ -146,9 +136,9 @@ const formatScheduleDate = (dateString) => {
 
 // 장 완료 여부 확인 함수
 const isChapterCompleted = (book, chapter) => {
-  if (!apiResponse.value?.data?.plan_detail) return false
+  if (!readingDetailResponse.value?.data?.plan_detail) return false
 
-  const detail = apiResponse.value.data.plan_detail.find(detail => {
+  const detail = readingDetailResponse.value.data.plan_detail.find(detail => {
     const isTargetBook = detail.book === book
     const isInRange = chapter >= detail.start_chapter && chapter <= detail.end_chapter
     return isTargetBook && isInRange
@@ -165,7 +155,7 @@ const loadBibleContent = async (book, chapter) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃 설정
 
-    const response = await fetch(`/bible-proxy/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`, {
+    const response = await fetch(`/bible-proxy/bible/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`, {
       signal: controller.signal
     })
     clearTimeout(timeoutId);
@@ -341,22 +331,27 @@ const loadBibleContent = async (book, chapter) => {
 // 상단 UI 정보 로드 함수
 const loadUIInfo = async (book, chapter) => {
   try {
-    // API 응답에서 스케줄 정보를 가져옴
-    apiResponse.value = await api.get('/api/v1/todos/detail/', {
+    // 이미 해당 book과 chapter에 대한 API 응답이 있는지 확인
+    const hasSameData = readingDetailResponse.value?.data &&
+      readingDetailResponse.value.data.book === book &&
+      readingDetailResponse.value.data.chapter === chapter;
+    
+    // 이미 동일한 데이터가 있으면 API 호출 스킵
+    if (hasSameData) {
+      return;
+    }
+
+    // 필요한 경우에만 API 호출
+    console.log('UI 정보 로드를 위한 API 호출: ', book, chapter);
+    readingDetailResponse.value = await api.get('/api/v1/todos/detail/', {
       params: {
         plan_id: route.query.plan,
         book,
         chapter
       }
-    })
-
-    if (apiResponse.value.data) {
-      const { audio_link, guide_link } = apiResponse.value.data
-      // 이미 chapterTitle은 loadBibleContent에서 설정되었으므로 필요 없음
-    }
+    });
   } catch (error) {
-    console.error('Failed to load UI info:', error)
-    // UI 정보 로드 실패 시 기본 정보만 표시
+    console.error('UI 정보 로드 실패:', error);
   }
 }
 
@@ -621,34 +616,133 @@ const detectTouchDevice = () => {
 
 // 페이지 마운트 시 터치 디바이스 감지 실행
 onMounted(async () => {
+  const route = useRoute()
+  const router = useRouter()
+  
   detectTouchDevice();
 
+  // URL 파라미터에서 정보 추출
+  const book = String(route.query.book || '')
+  const chapter = String(route.query.chapter || '')
+  const planId = route.query.plan // plan_id가 없을 수 있음
+  const from = String(route.query.from || '')
+
   try {
-    // URL 파라미터에서 book과 chapter를 명시적으로 가져옴
-    const book = route.query.book || 'gen'
-    const chapter = Number(route.query.chapter) || 1
+    // book과 chapter 파라미터가 모두 있는 경우 1번 API 호출
+    if (book && chapter) {
+      // plan_id가 있을 때만 params에 포함
+      const params = {
+        book,
+        chapter
+      }
+      if (planId) {
+        params.plan_id = planId
+      }
 
-    // 파라미터가 있는 경우에만 상태 업데이트 및 컨텐츠 로드
-    if (route.query.book && route.query.chapter) {
-      currentBook.value = route.query.book
-      currentChapter.value = Number(route.query.chapter)
+      // API 호출 결과를 readingDetailResponse.value에 저장
+      readingDetailResponse.value = await api.get('/api/v1/todos/detail/', { params })
 
-      // 2단계(성경 본문)를 먼저 로드 - 1단계는 loadBibleContent 내부에서 완료 후 호출
-      await loadBibleContent(currentBook.value, currentChapter.value)
-
-      // 모든 로딩이 완료된 후 장 표시 상태 업데이트
-      setTimeout(updateChapterDisplay, 100)
+      // 응답 데이터 처리
+      const data = readingDetailResponse.value.data
+      currentBook.value = data.book
+      currentChapter.value = data.chapter
+      loadBibleContent(data.book, data.chapter)
+      return
     }
 
-    // 스크롤 이벤트 리스너 등록
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
+    // book이나 chapter 파라미터가 없는 경우
+    if (!book || !chapter) {
+      // 기본값으로 창세기 1장 설정
+      const defaultBook = 'gen'
+      const defaultChapter = '1'
 
-    // 스타일 적용을 위해 약간의 지연 후 DOM 업데이트
-    await nextTick()
+      // URL 업데이트
+      const newQuery = {
+        ...route.query,
+        book: defaultBook,
+        chapter: defaultChapter
+      }
+
+      router.replace({
+        query: newQuery
+      })
+
+      // 파라미터 설정 후 성경 본문 로드
+      currentBook.value = defaultBook
+      currentChapter.value = Number(defaultChapter)
+      await loadBibleContent(defaultBook, Number(defaultChapter))
+      return
+    }
+
+    // 필수 파라미터가 없는 경우 2번 API 호출 (오늘 날짜 기준)
+    const today = new Date().toISOString().split('T')[0]
+    const statusResponse = await api.get('/api/todos/status/', {
+      params: {
+        date: today,
+        plan_id: planId
+      }
+    })
+
+    const statusData = statusResponse.data
+
+    // 누락된 파라미터를 URL에 업데이트
+    const newQuery = {
+      ...route.query,
+      book: statusData.book,
+      chapter: statusData.start_chapter,
+      plan: statusData.plan_id
+    }
+
+    // URL 업데이트
+    router.replace({
+      query: newQuery
+    })
+
+    // 1번 API 재호출
+    readingDetailResponse.value = await api.get('/api/todos/detail/', {
+      params: {
+        plan_id: statusData.plan_id,
+        book: statusData.book,
+        chapter: statusData.start_chapter
+      }
+    })
+
+    const detailData = readingDetailResponse.value.data
+    currentBook.value = detailData.book
+    currentChapter.value = detailData.chapter
+    loadBibleContent(detailData.book, detailData.chapter)
+
   } catch (error) {
-    console.error('페이지 초기화 중 오류 발생:', error)
+    console.error('API 요청 중 오류 발생:', error)
+
+    // 오류 발생 시에도 기본값으로 창세기 1장 설정
+    const defaultBook = 'gen'
+    const defaultChapter = '1'
+
+    // URL 업데이트
+    router.replace({
+      query: {
+        ...route.query,
+        book: defaultBook,
+        chapter: defaultChapter
+      }
+    })
+
+    // 기본 성경 본문 로드
+    currentBook.value = defaultBook
+    currentChapter.value = Number(defaultChapter)
+    await loadBibleContent(defaultBook, Number(defaultChapter))
   }
+
+  // 스크롤 이벤트 리스너 등록
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll()
+
+  // 스타일 적용을 위해 약간의 지연 후 DOM 업데이트
+  await nextTick()
+  
+  // 모든 로딩이 완료된 후 장 표시 상태 업데이트
+  setTimeout(updateChapterDisplay, 100)
 })
 
 // 컴포넌트가 언마운트될 때 이벤트 리스너 제거
@@ -772,124 +866,6 @@ const handleAudioLink = (audioLink) => {
   }
 }
 
-// 페이지 로드 시 실행
-onMounted(async () => {
-  const route = useRoute()
-  const router = useRouter()
-
-  // URL 파라미터에서 정보 추출
-  const book = String(route.query.book || '')
-  const chapter = String(route.query.chapter || '')
-  const planId = route.query.plan // plan_id가 없을 수 있음
-  const from = String(route.query.from || '')
-
-  try {
-    // book과 chapter 파라미터가 모두 있는 경우 1번 API 호출
-    if (book && chapter) {
-      // plan_id가 있을 때만 params에 포함
-      const params = {
-        book,
-        chapter
-      }
-      if (planId) {
-        params.plan_id = planId
-      }
-
-      const response = await api.get('/api/v1/todos/detail/', { params })
-
-      // 응답 데이터 처리
-      const data = response.data
-      currentBook.value = data.book
-      currentChapter.value = data.chapter
-      loadBibleContent(data.book, data.chapter)
-      return
-    }
-
-    // book이나 chapter 파라미터가 없는 경우
-    if (!book || !chapter) {
-      // 기본값으로 창세기 1장 설정
-      const defaultBook = 'gen'
-      const defaultChapter = '1'
-
-      // URL 업데이트
-      const newQuery = {
-        ...route.query,
-        book: defaultBook,
-        chapter: defaultChapter
-      }
-
-      router.replace({
-        query: newQuery
-      })
-
-      // 파라미터 설정 후 성경 본문 로드
-      currentBook.value = defaultBook
-      currentChapter.value = Number(defaultChapter)
-      await loadBibleContent(defaultBook, Number(defaultChapter))
-      return
-    }
-
-    // 필수 파라미터가 없는 경우 2번 API 호출 (오늘 날짜 기준)
-    const today = new Date().toISOString().split('T')[0]
-    const statusResponse = await api.get('/api/todos/status/', {
-      params: {
-        date: today,
-        plan_id: planId
-      }
-    })
-
-    const statusData = statusResponse.data
-
-    // 누락된 파라미터를 URL에 업데이트
-    const newQuery = {
-      ...route.query,
-      book: statusData.book,
-      chapter: statusData.start_chapter,
-      plan: statusData.plan_id
-    }
-
-    // URL 업데이트
-    router.replace({
-      query: newQuery
-    })
-
-    // 1번 API 재호출
-    const detailResponse = await api.get('/api/todos/detail/', {
-      params: {
-        plan_id: statusData.plan_id,
-        book: statusData.book,
-        chapter: statusData.start_chapter
-      }
-    })
-
-    const detailData = detailResponse.data
-    currentBook.value = detailData.book
-    currentChapter.value = detailData.chapter
-    loadBibleContent(detailData.book, detailData.chapter)
-
-  } catch (error) {
-    console.error('API 요청 중 오류 발생:', error)
-
-    // 오류 발생 시에도 기본값으로 창세기 1장 설정
-    const defaultBook = 'gen'
-    const defaultChapter = '1'
-
-    // URL 업데이트
-    router.replace({
-      query: {
-        ...route.query,
-        book: defaultBook,
-        chapter: defaultChapter
-      }
-    })
-
-    // 기본 성경 본문 로드
-    currentBook.value = defaultBook
-    currentChapter.value = Number(defaultChapter)
-    await loadBibleContent(defaultBook, Number(defaultChapter))
-  }
-})
-
 // 모달에서 일정 클릭 시 처리
 const handleScheduleClick = (schedule) => {
   const { book, start_chapter } = schedule
@@ -931,7 +907,7 @@ const handleCompleteReading = () => {
     return
   }
 
-  if (isUpdatingStatus.value || !apiResponse.value?.data) return
+  if (isUpdatingStatus.value || !readingDetailResponse.value?.data) return
 
   // 완료 액션으로 설정하고 모달 표시
   currentAction.value = 'complete'
@@ -947,7 +923,7 @@ const handleCancelReading = () => {
     return
   }
 
-  if (isUpdatingStatus.value || !apiResponse.value?.data) return
+  if (isUpdatingStatus.value || !readingDetailResponse.value?.data) return
 
   currentAction.value = 'cancel'
   showCompleteConfirmModal.value = true
@@ -955,9 +931,9 @@ const handleCancelReading = () => {
 
 // 현재 장에 해당하는 plan_detail을 찾는 computed 속성
 const currentPlanDetail = computed(() => {
-  if (!apiResponse.value?.data?.plan_detail) return null
+  if (!readingDetailResponse.value?.data?.plan_detail) return null
 
-  return apiResponse.value.data.plan_detail.find(detail => {
+  return readingDetailResponse.value.data.plan_detail.find(detail => {
     const isCurrentBook = detail.book === currentBook.value
     const isInChapterRange =
       currentChapter.value >= detail.start_chapter &&
@@ -973,8 +949,8 @@ const sectionInfo = computed(() => {
   if (!detail) {
     // plan_detail이 없는 경우 기본 데이터 사용
     return {
-      book: apiResponse.value?.data?.book,
-      book_kor: apiResponse.value?.data?.book_kor,
+      book: readingDetailResponse.value?.data?.book,
+      book_kor: readingDetailResponse.value?.data?.book_kor,
       start_chapter: Number(currentChapter.value),
       end_chapter: Number(currentChapter.value)
     }
@@ -994,7 +970,7 @@ const confirmCompleteReading = async () => {
   try {
     isUpdatingStatus.value = true
 
-    const plan_id = apiResponse.value?.data?.plan_id
+    const plan_id = readingDetailResponse.value?.data?.plan_id
     const currentDetail = currentPlanDetail.value
 
     if (!plan_id || !currentDetail?.schedule_id) {
@@ -1065,9 +1041,9 @@ const getDayOfWeek = (dateString) => {
 
 // 현재 구간의 모든 장 정보를 가져오는 computed 속성 추가
 const currentSectionChapters = computed(() => {
-  if (!apiResponse.value?.data?.plan_detail) return []
+  if (!readingDetailResponse.value?.data?.plan_detail) return []
 
-  return apiResponse.value.data.plan_detail.map(detail => ({
+  return readingDetailResponse.value.data.plan_detail.map(detail => ({
     book: detail.book,
     book_kor: detail.book_kor,
     chapters: Array.from(
@@ -1076,12 +1052,6 @@ const currentSectionChapters = computed(() => {
     ),
     is_complete: detail.is_complete
   }))
-})
-
-// 현재 선택된 장 정보를 reactive하게 관리
-const currentSelection = reactive({
-  book: route.params.book || '',
-  chapter: parseInt(route.params.chapter) || 1
 })
 
 // 오늘 날짜인지 확인하는 computed 속성
@@ -1122,15 +1092,15 @@ const isFutureDate = computed(() => {
 
 // 날짜 관련 computed 속성 추가
 const currentScheduleDate = computed(() => {
-  if (apiResponse.value?.data?.plan_detail?.[0]?.date) {
-    return apiResponse.value.data.plan_detail[0].date
+  if (readingDetailResponse.value?.data?.plan_detail?.[0]?.date) {
+    return readingDetailResponse.value.data.plan_detail[0].date
   }
   return null
 })
 
 // 읽기 상태를 반환하는 computed 속성 추가
 const readingStatus = computed(() => {
-  if (!apiResponse.value?.data?.plan_detail) return 'not_available';
+  if (!readingDetailResponse.value?.data?.plan_detail) return 'not_available';
 
   const currentDetail = currentPlanDetail.value;
   if (!currentDetail) return 'not_available';
@@ -1216,13 +1186,13 @@ const handleModalCancel = () => {
 // 버튼 표시 여부를 결정하는 computed 속성 수정
 const showReadingButtons = computed(() => {
   // 1. API 응답이 없거나 로딩 중이면 버튼 숨김
-  if (!apiResponse.value || isLoading.value) return false;
+  if (!readingDetailResponse.value || isLoading.value) return false;
 
   // 2. 메시지가 있으면 일정이 없는 것이므로 버튼 숨김
-  if (apiResponse.value.data?.message) return false;
+  if (readingDetailResponse.value.data?.message) return false;
 
   // 3. plan_detail이 비어있으면 버튼 숨김
-  if (!apiResponse.value.data?.plan_detail || apiResponse.value.data.plan_detail.length === 0) return false;
+  if (!readingDetailResponse.value.data?.plan_detail || readingDetailResponse.value.data.plan_detail.length === 0) return false;
 
   // 4. 현재 장에 해당하는 plan_detail이 있는지 확인
   return currentPlanDetail.value !== null;
@@ -1246,7 +1216,7 @@ const scheduleModalMounted = ref(false)
     </div>
 
     <div class="today-reading fade-in" :class="{ floating: isTodayReadingFloating }" style="animation-delay: 0.1s"
-      v-if="apiResponse?.data">
+      v-if="readingDetailResponse?.data">
       <div class="today-info">
         <div class="reading-meta">
           <button class="reading-meta-btn schedule-button" @click="openScheduleModal">
@@ -1291,20 +1261,20 @@ const scheduleModalMounted = ref(false)
             </div>
           </template>
           <!-- 일정이 없는 경우 메시지 표시 -->
-          <template v-else-if="apiResponse?.data?.message">
+          <template v-else-if="readingDetailResponse?.data?.message">
             <div class="plan-warning">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.83-2.83L13.83 4.44a2 2 0 00-3.66 0L3.24 16.17A2 2 0 005.07 19z"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span>{{ apiResponse.data.message }}</span>
+              <span>{{ readingDetailResponse.data.message }}</span>
             </div>
           </template>
         </div>
       </div>
       <div class="today-links">
-        <a v-if="apiResponse?.data?.audio_link" @click.prevent="handleAudioLink(apiResponse.data.audio_link)" href="#"
+        <a v-if="readingDetailResponse?.data?.audio_link" @click.prevent="handleAudioLink(readingDetailResponse.data.audio_link)" href="#"
           class="link-button audio" title="오디오">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -1313,7 +1283,7 @@ const scheduleModalMounted = ref(false)
           </svg>
           <span class="link-text">오디오</span>
         </a>
-        <a v-if="apiResponse?.data?.guide_link" :href="apiResponse.data.guide_link" target="_blank"
+        <a v-if="readingDetailResponse?.data?.guide_link" :href="readingDetailResponse.data.guide_link" target="_blank"
           class="link-button guide" title="가이드">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -1644,7 +1614,7 @@ const scheduleModalMounted = ref(false)
 
     <!-- BibleScheduleContent 컴포넌트를 숨김 처리 -->
     <div class="hidden-schedule-content">
-      <BibleScheduleContent v-if="apiResponse?.data" ref="scheduleContentRef" :current-book="route.params.book"
+      <BibleScheduleContent v-if="readingDetailResponse?.data" ref="scheduleContentRef" :current-book="route.params.book"
         :current-chapter="Number(route.params.chapter)" :use-default-plan="true" :key="route.query.plan" />
     </div>
   </div>
