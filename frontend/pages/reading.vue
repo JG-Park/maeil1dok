@@ -5,41 +5,65 @@ import { useAuthStore } from '~/stores/auth'
 import Toast from '~/components/Toast.vue'
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue'
 
+// 라우터 및 스토어 설정
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const api = useApi()
 
-// Toast 컴포넌트 ref
+// ===== 컴포넌트 상태 관리 =====
+
+// 토스트 상태
 const toast = ref(null)
 
-// 상태 변수들을 상단으로 이동
+// 모달 상태 관리
 const showLoginModal = ref(false)
 const showModal = ref(false)
 const showScheduleModal = ref(false)
-const showCompleteConfirmModal = ref(false) // 추가: 완료/취소 확인 모달 표시 여부
-const currentAction = ref('complete') // 추가: 현재 액션('complete' 또는 'cancel')
+const showCompleteConfirmModal = ref(false)
+const showVersionModal = ref(false)
+const scheduleModalMounted = ref(false)
+const modalSource = ref('') // 'next-button' 또는 'complete-button'
+
+// 성경 내용 상태 관리
 const bibleContent = ref('')
-const isLoading = ref(true)
 const chapterTitle = ref('')
 const sectionTitle = ref('')
 const currentBook = ref('')
 const currentChapter = ref(1)
 const selectedBook = ref('gen')
-const isHeaderFloating = ref(false)
-const isTodayReadingFloating = ref(false)
-const isUpdatingStatus = ref(false) // 상태 업데이트 중인지 나타내는 상태 추가
-
-// apiResponse를 반응형 변수로 선언 - 이름 변경
+const currentVersion = ref('GAE')
 const readingDetailResponse = ref(null)
 
-// 성경 책 목록을 구약/신약으로 구분
+// UI 상태 관리
+const isLoading = ref(true)
+const isUpdatingStatus = ref(false)
+const isTodayReadingFloating = ref(true)
+const currentAction = ref('complete')
+const showTopButton = ref(false)
+
+// 글자 크기 상태 관리 
+const fontSize = ref(16)
+const DEFAULT_FONT_SIZE = 16
+
+// 성경 역본 정보
+const versionNames = {
+  'KNT': '새한글',
+  'GAE': '개역개정',
+  'HAN': '개역한글', 
+  'SAE': '표준새번역',
+  'SAENEW': '새번역',
+  'COG': '공동번역',
+  'COGNEW': '공동번역 개정판',
+}
+
+// 성경 책 정보
 const bibleBooks = {
   old: [
     { id: 'gen', name: '창세기', chapters: 50 },
     { id: 'exo', name: '출애굽기', chapters: 40 },
     { id: 'lev', name: '레위기', chapters: 27 },
-    { id: 'num', name: '민수기 ', chapters: 36 },
+    { id: 'num', name: '민수기', chapters: 36 },
     { id: 'deu', name: '신명기', chapters: 34 },
     { id: 'jos', name: '여호수아', chapters: 24 },
     { id: 'jdg', name: '사사기', chapters: 21 },
@@ -147,185 +171,578 @@ const isChapterCompleted = (book, chapter) => {
   return detail?.is_complete || false
 }
 
-// 성경 본문 로드 함수
+// 기본 성경 본문 로드 함수 - 라우팅 역할만 수행
 const loadBibleContent = async (book, chapter) => {
   isLoading.value = true
+
   try {
-    // 성경 본문 로드
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃 설정
-
-    const response = await fetch(`/bible-proxy/bible/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`, {
-      signal: controller.signal
-    })
-    clearTimeout(timeoutId);
-
-    const text = await response.text()
-
-    currentBook.value = book
-    currentChapter.value = chapter
-
-    // 나머지 HTML 파싱 로직은 그대로 유지...
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(text, 'text/html')
-    const bibleElement = doc.getElementById('tdBible1')
-
-    if (bibleElement) {
-      // smallTitle 내부의 a 태그는 href만 제거하고 유지
-      const sectionTitles = bibleElement.querySelectorAll('.smallTitle')
-      sectionTitles.forEach(section => {
-        const anchors = section.querySelectorAll('a')
-        anchors.forEach(anchor => {
-          // href 속성만 제거하고 a 태그 자체는 유지
-          anchor.removeAttribute('href')
-        })
-      })
-
-      // 그 외의 a 태그는 완전히 제거
-      const otherAnchors = bibleElement.querySelectorAll('a:not(.smallTitle a)')
-      otherAnchors.forEach(anchor => {
-        anchor.remove()
-      })
-
-      // 기타 불필요한 요소 제거
-      const elementsToRemove = bibleElement.querySelectorAll('input, select, form, .fontcontrol, [style*="display:none"], [style*="display: none"]')
-      elementsToRemove.forEach(el => el.remove())
-
-      // 장 제목 설정 (책 이름 + 장 번호) - 시편은 "편"으로 표시
-      const chapNum = bibleElement.querySelector('.chapNum')
-      if (chapNum) {
-        // 원본 텍스트를 가져옴 (예: "제 1 편" 또는 "제 1 장")
-        let chapterText = chapNum.textContent
-
-        // '제'와 책 타입(장/편)을 모두 제거하고 숫자만 추출
-        let chapterNumber = chapterText
-          .replace('제', '')
-          .replace('장', '')
-          .replace('편', '')
-          .trim()
-
-        // 시편인 경우 "편"으로 표시, 나머지는 "장"으로 표시
-        const suffix = book === 'psa' ? '편' : '장'
-        chapterTitle.value = `${bookNames[book] || ''} ${chapterNumber}${suffix}`
-      } else {
-        // .chapNum 요소가 없는 경우 (특히 1장짜리 책)
-        const suffix = book === 'psa' ? '편' : '장'
-        chapterTitle.value = `${bookNames[book] || ''} ${currentChapter.value}${suffix}`
-      }
-
-      // 모든 내용을 순서대로 처리
-      const verses = []
-      let currentSection = ''
-
-      // 시편 1편 특별 처리 - f 태그 내부의 모든 span 요소 검색
-      if (book === 'psa' && chapter === 1) {
-        const fTag = bibleElement.querySelector('f') // 시편 1편 특유의 f 태그 찾기
-
-        if (fTag) {
-          // f 태그 내의 모든 span 요소 처리
-          const spans = fTag.querySelectorAll('span')
-          spans.forEach(span => {
-            const numberSpan = span.querySelector('.number')
-            if (numberSpan) {
-              const number = numberSpan.textContent.trim().replace(/\s+/g, '')
-              let text = span.textContent.replace(numberSpan.textContent, '').trim()
-
-              verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
-            }
-          })
-        }
-      } else {
-        // 기존 파싱 로직 (다른 모든 성경)
-        Array.from(bibleElement.childNodes).forEach(node => {
-          // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트하는 부분 수정
-          if (node.classList?.contains('smallTitle')) {
-            // 원본 제목 텍스트
-            let titleText = node.textContent.trim()
-              .replace(/\(\s*\)/g, '')  // 빈 괄호 제거
-              .replace(/\s+/g, ' ')     // 연속된 공백 하나로 통일
-              .trim()                   // 앞뒤 공백 제거
-
-            // 괄호 내용을 작은 글자로 표시하기 위해 HTML로 변환
-            // 괄호 패턴 찾기: (내용) 형태
-            titleText = titleText.replace(/(\([^)]+\))/g, '<span class="reference">$1</span>')
-
-            if (titleText) {  // 내용이 있는 경우에만 추가
-              verses.push(`<h3 class="section-title">${titleText}</h3>`)
-            }
-            currentSection = titleText.replace(/<[^>]+>/g, ''); // HTML 태그 제거한 순수 텍스트 저장
-          }
-          // span 요소이고 number 클래스를 가진 자식이 있으면 구절로 처리
-          else if (node.tagName === 'SPAN' && node.querySelector('.number')) {
-            const numberSpan = node.querySelector('.number')
-            const number = numberSpan.textContent.trim().replace(/\s+/g, '')
-            let text = node.textContent.replace(numberSpan.textContent, '').trim()
-
-            verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
-          }
-        })
-      }
-
-      // 내용이 없으면 텍스트 상자로 직접 추출 시도 (백업 방법)
-      if (verses.length === 0) {
-        // 모든 텍스트 노드를 찾아 내용 추출
-        const textNodes = Array.from(bibleElement.querySelectorAll('span'))
-          .filter(span => span.querySelector('.number'))
-
-        textNodes.forEach(node => {
-          const numberSpan = node.querySelector('.number')
-          if (numberSpan) {
-            const number = numberSpan.textContent.trim().replace(/\s+/g, '')
-            let text = node.textContent.replace(numberSpan.textContent, '').trim()
-
-            verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
-          }
-        })
-      }
-
-      // 첫 번째 섹션 제목 설정 (있는 경우에만)
-      const firstTitle = bibleElement.querySelector('.smallTitle')
-      if (firstTitle) {
-        sectionTitle.value = firstTitle.textContent.trim()
-      } else {
-        sectionTitle.value = ''  // 섹션 제목이 없는 경우
-      }
-
-      bibleContent.value = verses.join('')
-
-      // 본문 로드 완료 후 스크롤 위치를 최상단으로 이동
-      window.scrollTo({
-        top: 0,
-        behavior: 'instant' // 즉시 이동
-      })
+    // 역본에 따라 다른 로드 함수 호출
+    if (currentVersion.value === 'KNT') {
+      // 새한글성경(KNT) 전용 로드 함수
+      await loadKntBibleContent(book, chapter)
+    } else {
+      // 나머지 역본들을 위한 표준 로드 함수
+      await loadStandardBibleContent(book, chapter)
     }
+
+    // 본문 로드 완료 후 스크롤 위치를 최상단으로 이동
+    window.scrollTo({
+      top: 0,
+      behavior: 'instant' // 즉시 이동
+    })
   } catch (error) {
     console.error('Failed to load bible content:', error)
-
-    // 에러 발생 시에도 chapterTitle 업데이트
-    if (!chapterTitle.value) {
-      const suffix = book === 'psa' ? '편' : '장'
-      chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
-    }
-
-    // 타임아웃이나 네트워크 오류 발생 시 안내 메시지 표시
-    bibleContent.value = `
-      <div class="error-message">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
-        <p>공회 서버 상태가 좋지 않거나 매일일독과의 통신이 원활하지 않아요. 대한성서공회 사이트에 직접 접속해보세요.</p>
-        <a href="https://www.bskorea.or.kr/bible/korbibReadpage.php?version=GAE&book=${book}&chap=${chapter}" target="_blank" class="external-link">
-          대한성서공회에서 보기
-        </a>
-      </div>
-    `
+    handleBibleContentError(book, chapter)
   } finally {
     isLoading.value = false
 
     // 2단계 로딩이 완료된 후 1단계 정보를 로드
     loadUIInfo(book, chapter)
   }
+}
+
+// 새한글성경(KNT) 전용 로드 함수 수정
+const loadKntBibleContent = async (book, chapter) => {
+  try {
+
+    // 새한글성경은 다른 URL 구조 사용
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초로 연장
+
+    const url = `/bible-proxy/KNT/get_chapter.php?version=d7a4326402395391-01&chapter=${book.toUpperCase()}.${chapter}`
+
+    const response = await fetch(url, {
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    // JSON 형식으로 응답 받기
+    const jsonData = await response.json()
+
+    // 현재 책과 장 정보 업데이트
+    currentBook.value = book
+    currentChapter.value = chapter
+
+    // 응답 확인 및 파싱
+    if (jsonData.found) {
+      // JSON 응답의 HTML 콘텐츠를 파싱
+      parseKntVersion(jsonData, book, chapter)
+    } else {
+      // 데이터를 찾지 못한 경우
+      handleKntContentNotFound(book, chapter)
+    }
+  } catch (error) {
+    console.error('새한글성경 로드 실패:', error)
+
+    // 에러 발생 시 북 제목 및 장 설정
+    if (!chapterTitle.value) {
+      const suffix = book === 'psa' ? '편' : '장'
+      chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
+    }
+
+    // 에러 메시지
+    bibleContent.value = `
+      <div class="knt-message">
+        <h3>새한글성경</h3>
+        <p>새한글성경 로드 중 오류가 발생했습니다.</p>
+        <p>아래 링크를 통해 대한성서공회 사이트에서 직접 볼 수 있습니다.</p>
+        <div class="knt-button-container">
+          <a href="https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}" 
+             target="_blank" 
+             class="knt-external-link">
+             대한성서공회에서 새한글성경 보기
+          </a>
+        </div>
+      </div>
+    `
+  }
+}
+
+// 표준 역본 로드 함수 (개역개정, 새번역 등)
+const loadStandardBibleContent = async (book, chapter) => {
+  try {
+    // 일반적인 역본들은 동일한 URL 구조 사용
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+    const response = await fetch(`/bible-proxy/bible/korbibReadpage.php?version=${currentVersion.value}&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`, {
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    const text = await response.text()
+
+    // 현재 책과 장 정보 업데이트
+    currentBook.value = book
+    currentChapter.value = chapter
+
+    // 표준 파싱 함수 호출
+    parseStandardContent(text, book, chapter)
+  } catch (error) {
+    throw error // 상위 함수에서 처리하도록 전달
+  }
+}
+
+// 표준 역본 HTML 파싱 함수
+const parseStandardContent = (htmlText, book, chapter) => {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(htmlText, 'text/html')
+  const bibleElement = doc.getElementById('tdBible1')
+
+  if (!bibleElement) {
+    handleBibleContentError(book, chapter)
+    return
+  }
+
+  // 기본 DOM 정리 작업
+  cleanupBibleElement(bibleElement)
+
+  // 장 제목 설정
+  setChapterTitle(bibleElement, book, chapter)
+
+  // 표준 역본 파싱 로직 호출
+  parseGaeVersion(bibleElement, book, chapter)
+}
+
+// 새한글성경(KNT) 파싱 함수 수정 - 다양한 형식 대응
+const parseKntVersion = (jsonData, book, chapter) => {
+  try {
+
+    // JSON 객체인 경우 (일반적인 케이스)
+    if (typeof jsonData !== 'string' && jsonData.reference) {
+      // 장 제목 설정 
+      const suffix = book === 'psa' ? '편' : '장';
+      const reference = jsonData.reference || `${bookNames[book] || ''} ${chapter}`;
+      
+      // reference에 이미 장/편이 포함되어 있는지 확인
+      if (reference.includes('장') || reference.includes('편')) {
+        chapterTitle.value = reference;
+      } else {
+        // 장/편 단위가 없으면 추가
+        chapterTitle.value = `${reference}${suffix}`;
+      }
+
+      // 섹션 제목 초기화
+      sectionTitle.value = '';
+
+      // 최종 결과를 담을 배열
+      const verses = [];
+      
+      // HTML 콘텐츠로부터 모든 요소 추출
+      const content = jsonData.content;
+      
+      // 1. 모든 HTML 태그별로 분석
+      
+      // 장 번호 (건너뛰기)
+      content.replace(/<h2[^>]*class="c"[^>]*>\d+<\/h2>/g, '');
+      
+      // 섹션 제목들 찾기
+      const sectionTitles = [];
+      const sectionRegex = /<p class="s">(.*?)<\/p>/g;
+      let sectionMatch;
+      while ((sectionMatch = sectionRegex.exec(content)) !== null) {
+        sectionTitles.push({
+          type: 'section',
+          index: sectionMatch.index,
+          content: sectionMatch[1].trim(),
+          fullMatch: sectionMatch[0]
+        });
+      }
+      
+      // 부제목 찾기
+      const subTitles = [];
+      const subTitleRegex = /<p class="sp">(.*?)<\/p>/g;
+      let subTitleMatch;
+      while ((subTitleMatch = subTitleRegex.exec(content)) !== null) {
+        subTitles.push({
+          type: 'subtitle',
+          index: subTitleMatch.index,
+          content: subTitleMatch[1].trim(),
+          fullMatch: subTitleMatch[0]
+        });
+      }
+      
+      // 모든 타입의 구절 단락 찾기 (p.p, p.q1, p.nb 등)
+      const paragraphs = [];
+      const paragraphRegex = /<p(?:\s+[^>]*class="([^"]*)"[^>]*|\s+[^>]*data-vid="[^"]*"[^>]*|\s+[^>]*)>(.*?)<\/p>/gs;
+      let paragraphMatch;
+      while ((paragraphMatch = paragraphRegex.exec(content)) !== null) {
+        const classType = paragraphMatch[1] || 'p'; // 클래스가 없으면 'p'로 기본값 설정
+        paragraphs.push({
+          type: 'paragraph',
+          class: classType,
+          index: paragraphMatch.index,
+          content: paragraphMatch[2],
+          fullMatch: paragraphMatch[0]
+        });
+      }
+      
+      // 모든 요소를 원래 순서대로 정렬
+      const allElements = [...sectionTitles, ...subTitles, ...paragraphs].sort((a, b) => a.index - b.index);
+      
+      // 첫 번째 섹션 제목 저장 (있는 경우)
+      const firstSection = allElements.find(el => el.type === 'section');
+      if (firstSection) {
+        sectionTitle.value = firstSection.content;
+      }
+      
+      // 2. 요소들 순서대로 처리하여 HTML 생성
+      const processedSubtitles = new Set();
+      allElements.forEach(element => {
+        if (element.type === 'section') {
+          // 섹션 제목 처리
+          verses.push(`<h3 class="section-title">${element.content}</h3>`);
+        } else if (element.type === 'subtitle') {
+          // 부제목 중복 확인 후 처리
+          if (!processedSubtitles.has(element.content)) {
+            verses.push(`<p class="sub-title">${element.content}</p>`);
+            processedSubtitles.add(element.content);
+          }
+        } else if (element.type === 'paragraph') {
+          // 일반 p 태그 내용은 특수 클래스(q1, nb 등)를 가진 경우에만 표시
+          // 구절 단락 처리 - 구절 번호와 내용 추출
+          const verseSpans = element.content.match(/<span class="verse-span"[^>]*>.*?<\/span>/gs) || [];
+          
+          // 현재 처리 중인 구절 번호와 텍스트
+          let currentVerseNum = null;
+          let verseText = "";
+          
+          // 각 구절 처리
+          if (verseSpans.length > 0) {
+            verseSpans.forEach(verseSpan => {
+              // 구절 번호 추출
+              const numMatch = verseSpan.match(/<span[^>]*class="v"[^>]*>(\d+)<\/span>/);
+              
+              if (numMatch) {
+                // 이전 구절 데이터가 있으면 먼저 처리
+                if (currentVerseNum && verseText) {
+                  verses.push(`<div class="verse"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`);
+                }
+                
+                // 새 구절 시작
+                currentVerseNum = numMatch[1];
+                
+                // 구절 텍스트 추출 (구절 번호, 각주 등 제거)
+                verseText = verseSpan
+                  .replace(/<span[^>]*class="v"[^>]*>\d+<\/span>/, '') // 구절 번호 제거
+                  .replace(/<span[^>]*class="verse-span"[^>]*>/, '')   // 여는 태그 제거
+                  .replace(/<\/span>$/, '')                           // 닫는 태그 제거
+                  .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '') // 각주 제거
+                  .replace(/<\/?[^>]+(>|$)/g, '').trim();            // 기타 HTML 태그 제거
+              } else {
+                // 구절 번호 없는 경우 - 이전 구절의 계속되는 내용일 수 있음
+                const additionalText = verseSpan
+                  .replace(/<span[^>]*class="verse-span"[^>]*>/, '')
+                  .replace(/<\/span>$/, '')
+                  .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '')
+                  .replace(/<\/?[^>]+(>|$)/g, '')
+                  .trim();
+                
+                if (additionalText && currentVerseNum) {
+                  verseText += ' ' + additionalText;
+                }
+              }
+            });
+            
+            // 마지막 구절 처리
+            if (currentVerseNum && verseText) {
+              verses.push(`<div class="verse"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`);
+            }
+          } else {
+            // verseSpans이 없을 경우 - 직접 내용에서 구절 찾기 시도
+            // 예: <p class="p">1 욥이 여호와께 대답했다.</p> 형식
+            
+            // 구절 번호 패턴을 찾음 (줄 시작에 숫자)
+            const directVerseMatch = element.content.match(/^(?:<[^>]*>)*\s*(\d+)\s+(.+)$/);
+            
+            if (directVerseMatch) {
+              const verseNum = directVerseMatch[1];
+              let verseContent = directVerseMatch[2];
+              
+              // HTML 태그 제거
+              verseContent = verseContent.replace(/<\/?[^>]+(>|$)/g, '').trim();
+              
+              // 각주 제거
+              verseContent = verseContent.replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '');
+              
+              verses.push(`<div class="verse"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseContent}</span></div>`);
+            } else {
+              // 구절 번호 패턴이 없는 경우
+              // p 태그가 특수 클래스를 가진 경우에만 처리 (단순 p 태그는 무시)
+              const plainText = element.content.replace(/<\/?[^>]+(>|$)/g, '').trim();
+              if (plainText && (element.class === 'q1' || element.class === 'nb')) {
+                verses.push(`<div class="paragraph">${plainText}</div>`);
+              }
+              // 일반 p 태그는 렌더링하지 않음 (중복 방지)
+            }
+          }
+        }
+      });
+      
+      // 최종 HTML 설정
+      if (verses.length > 0) {
+        bibleContent.value = verses.join('');
+      } else {
+        console.error('추출된 내용이 없음');
+        handleKntContentNotFound(book, chapter);
+      }
+    } else {
+      // HTML 문자열인 경우 (이전 방식 호환)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(jsonData, 'text/html');
+      
+      // 다양한 방식으로 시도
+      const bibleElement = doc.querySelector('#tdBible1') || 
+                          doc.querySelector('.bible-content') || 
+                          doc.querySelector('body');
+      
+      if (bibleElement) {
+        extractKntVerses(bibleElement);
+      } else {
+        handleKntContentNotFound(book, chapter);
+      }
+    }
+  } catch (error) {
+    console.error('새한글성경 파싱 실패:', error, error.stack);
+    handleKntContentNotFound(book, chapter);
+  }
+}
+
+// 새한글성경 콘텐츠를 찾을 수 없을 때 처리
+const handleKntContentNotFound = (book, chapter) => {
+  // 장 제목 설정
+  if (!chapterTitle.value) {
+    const suffix = book === 'psa' ? '편' : '장'
+    chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
+  }
+
+  // 안내 메시지 표시
+  bibleContent.value = `
+    <div class="knt-message">
+      <h3>새한글성경</h3>
+      <p>새한글성경 본문을 불러올 수 없습니다.</p>
+      <p>아래 링크를 통해 대한성서공회 사이트에서 직접 볼 수 있습니다.</p>
+      <div class="knt-button-container">
+        <a href="https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}" 
+           target="_blank" 
+           class="knt-external-link">
+          대한성서공회에서 새한글성경 보기
+        </a>
+      </div>
+    </div>
+  `
+}
+
+// 새한글성경 구절 추출 함수
+const extractKntVerses = (bibleElement) => {
+  const verses = []
+
+  // 먼저 paragraph 요소 검색
+  const paragraphs = bibleElement.querySelectorAll('p')
+
+  if (paragraphs.length > 0) {
+    // 구절 패턴: 숫자 다음에 텍스트
+    paragraphs.forEach(p => {
+      const text = p.textContent.trim()
+      const match = text.match(/^(\d+)(.+)$/)
+
+      if (match) {
+        const verseNum = match[1].trim()
+        const verseText = match[2].trim()
+
+        verses.push(`<div class="verse"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseText}</span></div>`)
+      } else if (text) {
+        // 구절 번호가 없는 경우 - 제목일 수 있음
+        verses.push(`<h3 class="section-title">${text}</h3>`)
+      }
+    })
+  } else {
+    // 다른 구조의 요소 시도 (div, span 등)
+    const elements = bibleElement.querySelectorAll('div, span')
+
+    elements.forEach(el => {
+      const text = el.textContent.trim()
+      // 구절 패턴 찾기
+      const match = text.match(/^(\d+)(.+)$/)
+
+      if (match && match[1].length < 4) { // 구절 번호는 보통 짧음
+        const verseNum = match[1].trim()
+        const verseText = match[2].trim()
+
+        verses.push(`<div class="verse"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseText}</span></div>`)
+      }
+    })
+  }
+
+  // 추출된 구절이 있으면 표시
+  if (verses.length > 0) {
+    bibleContent.value = verses.join('')
+  }
+}
+// DOM 요소 정리 함수
+const cleanupBibleElement = (bibleElement) => {
+  // smallTitle 내부의 a 태그는 href만 제거하고 유지
+  const sectionTitles = bibleElement.querySelectorAll('.smallTitle')
+  sectionTitles.forEach(section => {
+    const anchors = section.querySelectorAll('a')
+    anchors.forEach(anchor => {
+      anchor.removeAttribute('href')
+    })
+  })
+
+  // 그 외의 a 태그는 완전히 제거
+  const otherAnchors = bibleElement.querySelectorAll('a:not(.smallTitle a)')
+  otherAnchors.forEach(anchor => {
+    anchor.remove()
+  })
+
+  // 기타 불필요한 요소 제거
+  const elementsToRemove = bibleElement.querySelectorAll('input, select, form, .fontcontrol, [style*="display:none"], [style*="display: none"]')
+  elementsToRemove.forEach(el => el.remove())
+}
+
+// 장 제목 설정 함수
+const setChapterTitle = (bibleElement, book, chapter) => {
+  // 장 제목 설정 (책 이름 + 장 번호) - 시편은 "편"으로 표시
+  const chapNum = bibleElement.querySelector('.chapNum')
+  if (chapNum) {
+    // 원본 텍스트를 가져옴 (예: "제 1 편" 또는 "제 1 장")
+    let chapterText = chapNum.textContent
+
+    // '제'와 책 타입(장/편)을 모두 제거하고 숫자만 추출
+    let chapterNumber = chapterText
+      .replace('제', '')
+      .replace('장', '')
+      .replace('편', '')
+      .trim()
+
+    // 시편인 경우 "편"으로 표시, 나머지는 "장"으로 표시
+    const suffix = book === 'psa' ? '편' : '장'
+    chapterTitle.value = `${bookNames[book] || ''} ${chapterNumber}${suffix}`
+  } else {
+    // .chapNum 요소가 없는 경우 (특히 1장짜리 책)
+    const suffix = book === 'psa' ? '편' : '장'
+    chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
+  }
+}
+
+// 개역개정 파싱 함수
+const parseGaeVersion = (bibleElement, book, chapter) => {
+  const verses = []
+  let currentSection = ''
+
+  // 시편 1편 특별 처리
+  if (book === 'psa' && chapter === 1) {
+    parseGaePsalm1(bibleElement, verses)
+  } else {
+    // 일반적인 장 파싱
+    parseGaeNormalChapter(bibleElement, verses)
+  }
+
+  // 첫 번째 섹션 제목 설정 (있는 경우에만)
+  const firstTitle = bibleElement.querySelector('.smallTitle')
+  if (firstTitle) {
+    sectionTitle.value = firstTitle.textContent.trim()
+  } else {
+    sectionTitle.value = ''  // 섹션 제목이 없는 경우
+  }
+
+  bibleContent.value = verses.join('')
+}
+
+// 개역개정 일반 장 파싱 함수
+const parseGaeNormalChapter = (bibleElement, verses) => {
+  Array.from(bibleElement.childNodes).forEach(node => {
+    // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트
+    if (node.classList?.contains('smallTitle')) {
+      // 원본 제목 텍스트
+      let titleText = node.textContent.trim()
+        .replace(/\(\s*\)/g, '')  // 빈 괄호 제거
+        .replace(/\s+/g, ' ')     // 연속된 공백 하나로 통일
+        .trim()                   // 앞뒤 공백 제거
+
+      // 괄호 내용을 작은 글자로 표시하기 위해 HTML로 변환
+      // 괄호 패턴 찾기: (내용) 형태
+      titleText = titleText.replace(/(\([^)]+\))/g, '<span class="reference">$1</span>')
+
+      if (titleText) {  // 내용이 있는 경우에만 추가
+        verses.push(`<h3 class="section-title">${titleText}</h3>`)
+      }
+    }
+    // span 요소이고 number 클래스를 가진 자식이 있으면 구절로 처리
+    else if (node.tagName === 'SPAN' && node.querySelector('.number')) {
+      const numberSpan = node.querySelector('.number')
+      const number = numberSpan.textContent.trim().replace(/\s+/g, '')
+      let text = node.textContent.replace(numberSpan.textContent, '').trim()
+
+      verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
+    }
+  })
+
+  // 내용이 없으면 텍스트 상자로 직접 추출 시도 (백업 방법)
+  if (verses.length === 0) {
+    extractVersesFromTextNodes(bibleElement, verses)
+  }
+}
+
+// 개역개정 시편 1편 특별 처리 함수
+const parseGaePsalm1 = (bibleElement, verses) => {
+  const fTag = bibleElement.querySelector('f') // 시편 1편 특유의 f 태그 찾기
+
+  if (fTag) {
+    // f 태그 내의 모든 span 요소 처리
+    const spans = fTag.querySelectorAll('span')
+    spans.forEach(span => {
+      const numberSpan = span.querySelector('.number')
+      if (numberSpan) {
+        const number = numberSpan.textContent.trim().replace(/\s+/g, '')
+        let text = span.textContent.replace(numberSpan.textContent, '').trim()
+
+        verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
+      }
+    })
+  }
+}
+
+// 백업 방법: 텍스트 노드에서 구절 추출
+const extractVersesFromTextNodes = (bibleElement, verses) => {
+  const textNodes = Array.from(bibleElement.querySelectorAll('span'))
+    .filter(span => span.querySelector('.number'))
+
+  textNodes.forEach(node => {
+    const numberSpan = node.querySelector('.number')
+    if (numberSpan) {
+      const number = numberSpan.textContent.trim().replace(/\s+/g, '')
+      let text = node.textContent.replace(numberSpan.textContent, '').trim()
+
+      verses.push(`<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`)
+    }
+  })
+}
+
+// 오류 처리 함수
+const handleBibleContentError = (book, chapter) => {
+  // 에러 발생 시에도 chapterTitle 업데이트
+  if (!chapterTitle.value) {
+    const suffix = book === 'psa' ? '편' : '장'
+    chapterTitle.value = `${bookNames[book] || ''} ${chapter}${suffix}`
+  }
+
+  // 타임아웃이나 네트워크 오류 발생 시 안내 메시지 표시
+  bibleContent.value = `
+      <div class="error-message">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
+        <p>공회 서버 상태가 좋지 않거나 매일일독과의 통신이 원활하지 않아요. 대한성서공회 사이트에 직접 접속해보세요.</p>
+      <a href="https://www.bskorea.or.kr/bible/korbibReadpage.php?version=${currentVersion.value}&book=${book}&chap=${chapter}" target="_blank" class="external-link">
+          대한성서공회에서 보기
+        </a>
+      </div>
+    `
 }
 
 // 상단 UI 정보 로드 함수
@@ -335,14 +752,13 @@ const loadUIInfo = async (book, chapter) => {
     const hasSameData = readingDetailResponse.value?.data &&
       readingDetailResponse.value.data.book === book &&
       readingDetailResponse.value.data.chapter === chapter;
-    
+
     // 이미 동일한 데이터가 있으면 API 호출 스킵
     if (hasSameData) {
       return;
     }
 
     // 필요한 경우에만 API 호출
-    console.log('UI 정보 로드를 위한 API 호출: ', book, chapter);
     readingDetailResponse.value = await api.get('/api/v1/todos/detail/', {
       params: {
         plan_id: route.query.plan,
@@ -354,9 +770,6 @@ const loadUIInfo = async (book, chapter) => {
     console.error('UI 정보 로드 실패:', error);
   }
 }
-
-// 상태 변수 추가
-const modalSource = ref('') // 'next-button' 또는 'complete-button'
 
 // goToNextChapter 함수 수정
 const goToNextChapter = (event) => {
@@ -613,170 +1026,91 @@ const detectTouchDevice = () => {
 
   return isTouchDevice;
 };
-
 // 페이지 마운트 시 터치 디바이스 감지 실행
 onMounted(async () => {
-  const route = useRoute()
-  const router = useRouter()
-  
   detectTouchDevice();
+  window.addEventListener('scroll', handleScroll, { passive: true })
 
   // URL 파라미터에서 정보 추출
-  const book = String(route.query.book || '')
-  const chapter = String(route.query.chapter || '')
-  const planId = route.query.plan // plan_id가 없을 수 있음
-  const from = String(route.query.from || '')
+  const { book = '', chapter = '', plan: planId, version = '' } = route.query
+
+  // URL에 역본 정보가 있으면 적용
+  if (version && versionNames[version]) {
+    currentVersion.value = version
+  }
 
   try {
-    // book과 chapter 파라미터가 모두 있는 경우 1번 API 호출
+    // book과 chapter 파라미터가 모두 있는 경우
     if (book && chapter) {
-      // plan_id가 있을 때만 params에 포함
-      const params = {
-        book,
-        chapter
-      }
-      if (planId) {
-        params.plan_id = planId
-      }
+      const params = { book, chapter }
+      if (planId) params.plan_id = planId
 
-      // API 호출 결과를 readingDetailResponse.value에 저장
       readingDetailResponse.value = await api.get('/api/v1/todos/detail/', { params })
-
-      // 응답 데이터 처리
-      const data = readingDetailResponse.value.data
-      currentBook.value = data.book
-      currentChapter.value = data.chapter
-      loadBibleContent(data.book, data.chapter)
+      const { book: responseBook, chapter: responseChapter } = readingDetailResponse.value.data
+      
+      currentBook.value = responseBook
+      currentChapter.value = responseChapter
+      loadBibleContent(responseBook, responseChapter)
       return
     }
 
-    // book이나 chapter 파라미터가 없는 경우
-    if (!book || !chapter) {
-      // 기본값으로 창세기 1장 설정
-      const defaultBook = 'gen'
-      const defaultChapter = '1'
+    // 파라미터가 없는 경우 기본값 설정
+    const defaultBook = 'gen'
+    const defaultChapter = '1'
 
-      // URL 업데이트
-      const newQuery = {
-        ...route.query,
-        book: defaultBook,
-        chapter: defaultChapter
-      }
-
-      router.replace({
-        query: newQuery
+    // 필수 파라미터가 없고 plan이 있는 경우 오늘 날짜 기준 조회
+    if (planId) {
+      const today = new Date().toISOString().split('T')[0]
+      const { data: statusData } = await api.get('/api/todos/status/', {
+        params: { date: today, plan_id: planId }
       })
 
-      // 파라미터 설정 후 성경 본문 로드
-      currentBook.value = defaultBook
-      currentChapter.value = Number(defaultChapter)
-      await loadBibleContent(defaultBook, Number(defaultChapter))
-      return
-    }
-
-    // 필수 파라미터가 없는 경우 2번 API 호출 (오늘 날짜 기준)
-    const today = new Date().toISOString().split('T')[0]
-    const statusResponse = await api.get('/api/todos/status/', {
-      params: {
-        date: today,
-        plan_id: planId
-      }
-    })
-
-    const statusData = statusResponse.data
-
-    // 누락된 파라미터를 URL에 업데이트
-    const newQuery = {
-      ...route.query,
-      book: statusData.book,
-      chapter: statusData.start_chapter,
-      plan: statusData.plan_id
-    }
-
-    // URL 업데이트
-    router.replace({
-      query: newQuery
-    })
-
-    // 1번 API 재호출
-    readingDetailResponse.value = await api.get('/api/todos/detail/', {
-      params: {
+      // URL 업데이트 및 상세 정보 조회
+      const params = {
         plan_id: statusData.plan_id,
         book: statusData.book,
         chapter: statusData.start_chapter
       }
+
+      router.replace({ query: { ...route.query, ...params } })
+      readingDetailResponse.value = await api.get('/api/todos/detail/', { params })
+
+      const { book: detailBook, chapter: detailChapter } = readingDetailResponse.value.data
+      currentBook.value = detailBook
+      currentChapter.value = detailChapter
+      loadBibleContent(detailBook, detailChapter)
+      return
+    }
+
+    // 기본값으로 설정
+    router.replace({
+      query: { ...route.query, book: defaultBook, chapter: defaultChapter }
     })
 
-    const detailData = readingDetailResponse.value.data
-    currentBook.value = detailData.book
-    currentChapter.value = detailData.chapter
-    loadBibleContent(detailData.book, detailData.chapter)
+    currentBook.value = defaultBook
+    currentChapter.value = Number(defaultChapter)
+    await loadBibleContent(defaultBook, Number(defaultChapter))
 
   } catch (error) {
     console.error('API 요청 중 오류 발생:', error)
-
-    // 오류 발생 시에도 기본값으로 창세기 1장 설정
+    
+    // 오류 시 기본값으로 설정
     const defaultBook = 'gen'
     const defaultChapter = '1'
-
-    // URL 업데이트
+    
     router.replace({
-      query: {
-        ...route.query,
-        book: defaultBook,
-        chapter: defaultChapter
-      }
+      query: { ...route.query, book: defaultBook, chapter: defaultChapter }
     })
 
-    // 기본 성경 본문 로드
-    currentBook.value = defaultBook
+    currentBook.value = defaultBook 
     currentChapter.value = Number(defaultChapter)
     await loadBibleContent(defaultBook, Number(defaultChapter))
   }
 
-  // 스크롤 이벤트 리스너 등록
-  window.addEventListener('scroll', handleScroll, { passive: true })
-  handleScroll()
-
-  // 스타일 적용을 위해 약간의 지연 후 DOM 업데이트
+  // DOM 업데이트 후 장 표시 상태 업데이트
   await nextTick()
-  
-  // 모든 로딩이 완료된 후 장 표시 상태 업데이트
   setTimeout(updateChapterDisplay, 100)
 })
-
-// 컴포넌트가 언마운트될 때 이벤트 리스너 제거
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
-})
-
-// 스크롤 핸들러 함수 수정
-const handleScroll = () => {
-  const scrollY = window.scrollY
-  const headerHeight = 48
-  const todayReadingElement = document.querySelector('.today-reading')
-  const contentSection = document.querySelector('.content-section')
-  const floatingSpacer = document.querySelector('.floating-spacer')
-
-  if (!todayReadingElement || !contentSection) return
-
-  const todayReadingHeight = todayReadingElement.offsetHeight
-  const todayReadingTop = todayReadingElement.offsetTop
-  const scrollProgress = Math.min(Math.max((scrollY - todayReadingTop + headerHeight) / todayReadingHeight, 0), 1)
-
-  isHeaderFloating.value = scrollY > 0
-  isTodayReadingFloating.value = scrollProgress > 0.5 // 50% 스크롤 되었을 때 floating 상태로 전환
-
-  // 플로팅 상태일 때 spacer 높이 설정
-  if (floatingSpacer) {
-    floatingSpacer.style.setProperty('--floating-height', `${todayReadingHeight}px`)
-    if (isTodayReadingFloating.value) {
-      floatingSpacer.classList.add('active')
-    } else {
-      floatingSpacer.classList.remove('active')
-    }
-  }
-}
 
 // 스케줄 모달 관련 함수들
 const openScheduleModal = () => {
@@ -794,9 +1128,6 @@ const closeScheduleModal = () => {
   scheduleModalMounted.value = false
 }
 
-// 글자 크기 상태 관리
-const fontSize = ref(16) // 기본 글자 크기
-const DEFAULT_FONT_SIZE = 16 // 기본 글자 크기 상수
 
 // 글자 크기 조절 함수
 const adjustFontSize = (delta) => {
@@ -1066,17 +1397,6 @@ const isToday = computed(() => {
     today.getDate() === targetDate.getDate()
 })
 
-// 과거 날짜인지 확인하는 computed 속성
-const isPastDate = computed(() => {
-  if (!currentScheduleDate.value) return false
-
-  const today = new Date()
-  const targetDate = new Date(currentScheduleDate.value)
-  today.setHours(0, 0, 0, 0)
-  targetDate.setHours(0, 0, 0, 0)
-
-  return targetDate < today
-})
 
 // 미래 날짜인지 확인하는 computed 속성
 const isFutureDate = computed(() => {
@@ -1198,8 +1518,51 @@ const showReadingButtons = computed(() => {
   return currentPlanDetail.value !== null;
 });
 
-// 모달 관련 상태 변수들
-const scheduleModalMounted = ref(false)
+// 역본 변경 함수 추가
+const changeVersion = (version) => {
+  if (currentVersion.value === version) {
+    showVersionModal.value = false
+    return
+  }
+
+  currentVersion.value = version
+  showVersionModal.value = false
+
+  // URL 쿼리 파라미터에 version 추가
+  router.push({
+    path: '/reading',
+    query: {
+      ...route.query,
+      version: version
+    }
+  })
+  // 현재 페이지 다시 로드
+  loadBibleContent(currentBook.value, currentChapter.value)
+}
+
+// 역본 선택 모달 열기
+const openVersionModal = () => {
+  showVersionModal.value = true
+}
+// 스크롤 이벤트 핸들러 추가 - top 버튼 표시 여부만 결정
+const handleScroll = () => {
+  // 100px 이상 스크롤 되었을 때 top 버튼 표시
+  showTopButton.value = window.scrollY > 100
+}
+
+
+// 컴포넌트 언마운트시 이벤트 리스너 제거
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
+// 페이지 상단으로 스크롤하는 함수
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
 
 </script>
 
@@ -1226,6 +1589,7 @@ const scheduleModalMounted = ref(false)
             </svg>
             <span>성경통독표</span>
           </button>
+
           <!-- 플랜이 선택된 경우에만 완료/취소 버튼 표시 -->
           <template v-if="route.query.plan && showReadingButtons">
             <transition name="fade" mode="out-in">
@@ -1238,8 +1602,9 @@ const scheduleModalMounted = ref(false)
                 </svg>
                 <span>읽지 않음으로 기록</span>
               </button>
-              <button v-else-if="readingStatus === 'in_progress'" key="complete" class="reading-meta-btn complete-button"
-                @click="handleCompleteReading" :disabled="isLoading || isUpdatingStatus">
+              <button v-else-if="readingStatus === 'in_progress'" key="complete"
+                class="reading-meta-btn complete-button" @click="handleCompleteReading"
+                :disabled="isLoading || isUpdatingStatus">
                 <span v-if="isUpdatingStatus" class="loading-spinner small"></span>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -1274,8 +1639,9 @@ const scheduleModalMounted = ref(false)
         </div>
       </div>
       <div class="today-links">
-        <a v-if="readingDetailResponse?.data?.audio_link" @click.prevent="handleAudioLink(readingDetailResponse.data.audio_link)" href="#"
-          class="link-button audio" title="오디오">
+        <a v-if="readingDetailResponse?.data?.audio_link"
+          @click.prevent="handleAudioLink(readingDetailResponse.data.audio_link)" href="#" class="link-button audio"
+          title="오디오">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 4a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2z"
@@ -1299,30 +1665,43 @@ const scheduleModalMounted = ref(false)
       <div class="floating-spacer"></div>
       <div class="content-section fade-in" style="animation-delay: 0.2s">
         <div class="chapter-controls">
-          <button class="chapter-select-button" @click="showModal = true">
-            <div class="button-content">
-              <h2>{{ chapterTitle }}</h2>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
-              </svg>
+          <div class="chapter-select-button-wrapper left">
+            <!-- 역본 선택 버튼 추가 -->
+            <button class="version-button" @click="openVersionModal">
+              <div class="button-content">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <h2>{{ versionNames[currentVersion] }}</h2>
+              </div>
+            </button>
+            <button class="chapter-select-button" @click="showModal = true">
+              <div class="button-content">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+                <h2>{{ chapterTitle }}</h2>
+              </div>
+            </button>
+          </div>
+          <div class="chapter-select-button-wrapper right">
+            <div class="font-size-controls">
+              <button class="font-button" @click="adjustFontSize(-1)" :disabled="fontSize <= 14">
+                <span class="font-icon small">가</span>
+              </button>
+              <button class="font-button" @click="adjustFontSize(1)" :disabled="fontSize >= 24">
+                <span class="font-icon">가</span>
+              </button>
+              <button class="font-button reset" @click="resetFontSize" :disabled="fontSize === DEFAULT_FONT_SIZE"
+                title="기본 크기로 초기화">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M2 10C2 10 4.00498 7.26822 5.63384 5.63824C7.26269 4.00827 9.5136 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.89691 21 4.43511 18.2543 3.35177 14.5M2 10V4M2 10H8"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
             </div>
-          </button>
-          <div class="font-size-controls">
-            <button class="font-button" @click="adjustFontSize(-1)" :disabled="fontSize <= 14">
-              <span class="font-icon small">가</span>
-            </button>
-            <button class="font-button" @click="adjustFontSize(1)" :disabled="fontSize >= 24">
-              <span class="font-icon">가</span>
-            </button>
-            <button class="font-button reset" @click="resetFontSize" :disabled="fontSize === DEFAULT_FONT_SIZE"
-              title="기본 크기로 초기화">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M2 10C2 10 4.00498 7.26822 5.63384 5.63824C7.26269 4.00827 9.5136 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.89691 21 4.43511 18.2543 3.35177 14.5M2 10V4M2 10H8"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </button>
           </div>
         </div>
 
@@ -1614,9 +1993,53 @@ const scheduleModalMounted = ref(false)
 
     <!-- BibleScheduleContent 컴포넌트를 숨김 처리 -->
     <div class="hidden-schedule-content">
-      <BibleScheduleContent v-if="readingDetailResponse?.data" ref="scheduleContentRef" :current-book="route.params.book"
-        :current-chapter="Number(route.params.chapter)" :use-default-plan="true" :key="route.query.plan" />
+      <BibleScheduleContent v-if="readingDetailResponse?.data" ref="scheduleContentRef"
+        :current-book="route.params.book" :current-chapter="Number(route.params.chapter)" :use-default-plan="true"
+        :key="route.query.plan" />
     </div>
+
+    <!-- 역본 선택 모달 추가 -->
+    <Teleport to="body">
+      <div v-if="showVersionModal" class="modal-overlay" @click="showVersionModal = false">
+        <div class="modal-content version-modal" @click.stop>
+          <div class="modal-header">
+            <h3>역본 선택</h3>
+            <button class="close-button" @click="showVersionModal = false">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="versions-list">
+              <button v-for="(name, code) in versionNames" :key="code" class="version-select-button"
+                :class="{ active: currentVersion === code }" @click="changeVersion(code)">
+                <div class="button-content">
+                  <span>{{ name }}<span class="new-badge" v-if="name === '새한글'">N</span></span>
+                  <svg v-if="currentVersion === code" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Top 버튼 추가 -->
+    <button 
+      v-show="showTopButton" 
+      @click="scrollToTop" 
+      class="top-button"
+      aria-label="페이지 상단으로 이동"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 19V5M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -1810,7 +2233,7 @@ const scheduleModalMounted = ref(false)
 .content-section {
   background: white;
   margin: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 3.8rem;
   padding: 0.85rem;
   border-radius: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
@@ -2143,12 +2566,6 @@ const scheduleModalMounted = ref(false)
 .fade-in {
   opacity: 0;
   animation: fadeIn 0.4s ease-out forwards;
-}
-
-@media (max-width: 640px) {
-  .content-section {
-    margin-top: 0.625rem;
-  }
 }
 
 :deep(.section-title) {
@@ -2564,10 +2981,10 @@ const scheduleModalMounted = ref(false)
 }
 
 .chapter-select-button {
-  width: 100%;
+  width: 75%;
   background: #f8f9fa;
   border: 1px solid #e9ecef;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2591,7 +3008,8 @@ const scheduleModalMounted = ref(false)
 .button-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.35rem;
+
 }
 
 .button-content h2 {
@@ -2715,9 +3133,10 @@ const scheduleModalMounted = ref(false)
 }
 
 .chapter-controls {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
   touch-action: manipulation;
   -webkit-touch-callout: none;
@@ -2725,10 +3144,154 @@ const scheduleModalMounted = ref(false)
   -webkit-user-select: none;
 }
 
+.chapter-select-button-wrapper.left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0; /* 오버플로우 방지를 위해 필요 */
+}
+
+.chapter-select-button-wrapper.right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto; /* 크기 고정 */
+  max-width: 120px;
+}
+
+.chapter-select-button {
+  flex: 1;
+  min-width: 0; /* 오버플로우 방지 */
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .font-size-controls {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.35rem;
   flex-shrink: 0;
+}
+
+.version-button {
+  flex: 0 0 auto;
+  min-width: 85px; /* "공동번역 개정판" 텍스트 고려 */
+  max-width: 130px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.version-button .button-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.version-button .button-content svg,
+.chapter-select-button .button-content svg {
+  flex-shrink: 0;
+}
+.chapter-select-button .button-content svg {
+  margin: 0 -0.05rem 0 -0.2rem;
+}
+
+.version-button .button-content h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.875rem;
+}
+
+.chapter-select-button .button-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.chapter-select-button .button-content h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 640px) {
+  .chapter-controls {
+    gap: 0.35rem;
+  }
+  
+  .chapter-select-button-wrapper.left {
+    gap: 0.35rem;
+  }
+  
+  .version-button {
+    min-width: 100px;
+    max-width: 110px;
+    padding: 0.35rem 0.5rem;
+  }
+  
+  .version-button .button-content h2,
+  .chapter-select-button .button-content h2 {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .version-button {
+    min-width: 85px;
+    max-width: 95px;
+    padding: 0.35rem 0.4rem;
+  }
+  
+  .font-size-controls {
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .chapter-controls {
+    gap: 0.25rem;
+  }
+  
+  .chapter-select-button-wrapper.left {
+    gap: 0.25rem;
+  }
+  
+  .version-button {
+    min-width: 80px;
+    max-width: 85px;
+  }
+  
+  .version-button .button-content h2 {
+    font-size: 0.75rem;
+  }
+  
+  .font-button {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 .font-button {
@@ -2749,7 +3312,6 @@ const scheduleModalMounted = ref(false)
   .font-button {
     padding: 0;
     margin: 0;
-    touch-action: manipulation;
   }
 }
 
@@ -3033,11 +3595,6 @@ const scheduleModalMounted = ref(false)
   -moz-osx-font-smoothing: grayscale;
 }
 
-html.touch-device .nav-button:hover {
-  background-color: transparent;
-  color: #4b5563;
-}
-
 html.touch-device .nav-button:hover svg {
   transform: none !important;
 }
@@ -3277,6 +3834,7 @@ html.touch-device .nav-button.next:hover svg {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -3288,6 +3846,7 @@ html.touch-device .nav-button.next:hover svg {
     opacity: 1;
     transform: translateY(0);
   }
+
   to {
     opacity: 0;
     transform: translateY(30px);
@@ -3306,5 +3865,212 @@ html.touch-device .nav-button.next:hover svg {
   background: #FFFFFF;
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.version-modal {
+  max-width: 300px;
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.versions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  overflow-y: auto;
+  max-height: 350px; /* 모달 내에서 스크롤 가능한 영역 크기 지정 */
+}
+
+.version-select-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  min-width: 44px;
+  height: 44px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.version-select-button.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.version-select-button:hover {
+  background: var(--primary-light);
+}
+
+.version-select-button .button-content {
+  display: flex;
+  align-items: center;
+}
+
+.chapter-select-button {
+  flex: 1;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.version-button {
+  flex: 0 0 auto;
+  max-width: 140px; /* 역본 버튼 너비 살짝 늘림 */
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.version-button .button-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.version-button .button-content h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .chapter-select-button {
+    height: 32px
+  }
+  
+  .version-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    min-width: 60px;
+  }
+
+  .version-button .button-content svg {
+    margin: 0 -0.05rem 0 -0.05rem;
+  }
+}
+
+:deep(.sub-title) {
+  font-size: 0.875rem;
+  color: #6B7280;
+  font-style: italic;
+}
+
+:deep(.paragraph) {
+  margin: 0.5rem 0;
+  line-height: 1.8;
+}
+
+
+.new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e53e3e;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  margin-left: 0.375rem;
+  line-height: 1;
+}
+
+.version-button .button-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+}
+
+.today-reading-header {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  z-index: 10;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: none; /* 애니메이션 효과 제거 */
+}
+
+/* Top 버튼 스타일 */
+.top-button {
+  position: fixed;
+  bottom: 4rem;
+  right: 1.5rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 30;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.top-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* 모바일 기기에서 크기 조정 */
+@media (max-width: 640px) {
+  .top-button {
+    width: 2.5rem;
+    height: 2.5rem;
+    right: 1rem;
+  }
 }
 </style>
