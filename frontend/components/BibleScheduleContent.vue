@@ -284,9 +284,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch, onBeforeUnmount } from 'vue'
-import { useAuthStore } from '~/stores/auth'
-import { useApi } from '~/composables/useApi'
-import { useToast } from '~/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
+import { useApi } from '@/composables/useApi'
+import { useToast } from '@/composables/useToast'
 import { useRouter, useRoute } from 'vue-router'
 
 // 타입 정의 추가
@@ -616,12 +616,12 @@ const handleGroupCheckboxClick = async (scheduleGroup: Schedule[]) => {
 
   try {
     const currentStatus = getReadingStatusForGroup(scheduleGroup)
-    const newIsCompleted = currentStatus !== 'completed'
-    const action = newIsCompleted ? 'complete' : 'cancel'
+    const isCompleted = currentStatus !== 'completed'
+    const action = isCompleted ? 'complete' : 'cancel'
 
     // 낙관적 업데이트: 로컬 상태 먼저 변경
     scheduleGroup.forEach(schedule => {
-      schedule.is_completed = newIsCompleted
+      schedule.is_completed = isCompleted
     })
 
     // API 호출로 상태 업데이트
@@ -632,14 +632,14 @@ const handleGroupCheckboxClick = async (scheduleGroup: Schedule[]) => {
     })
 
     // 성공 메시지 표시
-    const message = newIsCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
+    const message = isCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
     success(message)
   } catch (err) {
     console.error('읽기 상태 업데이트 실패:', err)
 
     // 실패 시 롤백
     scheduleGroup.forEach(schedule => {
-      schedule.is_completed = !newIsCompleted
+      schedule.is_completed = !isCompleted
     })
 
     showError('상태 변경에 실패했습니다. 다시 시도해주세요.')
@@ -695,28 +695,6 @@ const formatScheduleDate = (dateString: string) => {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
 }
 
-// 읽기 상태 확인 함수
-const getReadingStatus = (schedule: Schedule) => {
-  const today = new Date()
-  const scheduleDate = new Date(schedule.date)
-
-  today.setHours(0, 0, 0, 0)
-  scheduleDate.setHours(0, 0, 0, 0)
-
-  // BE에서 반환된 is_completed 값 사용
-  if (schedule.is_completed === true) return 'completed'
-
-  if (scheduleDate < today) {
-    return 'not_completed'
-  }
-
-  if (scheduleDate.getTime() === today.getTime()) {
-    return 'current'
-  }
-
-  return 'upcoming'
-}
-
 // 오늘 날짜인지 확인
 const isToday = (dateString: string) => {
   const today = new Date()
@@ -725,82 +703,6 @@ const isToday = (dateString: string) => {
   return today.getFullYear() === scheduleDate.getFullYear() &&
     today.getMonth() === scheduleDate.getMonth() &&
     today.getDate() === scheduleDate.getDate()
-}
-
-// 읽기 상태 토글
-const toggleReadingStatus = async (schedule: Schedule) => {
-  if (!authStore.isAuthenticated) {
-    showLoginModal.value = true
-    return
-  }
-
-  try {
-    const isCompleted = getReadingStatus(schedule) === 'completed'
-    const newStatus = !isCompleted
-
-    // 로컬 상태 미리 업데이트 (낙관적 업데이트)
-    const groupedSchedules = filteredGroupedSchedules.value
-    if (groupedSchedules && groupedSchedules[schedule.date]) {
-      const scheduleGroup = groupedSchedules[schedule.date]
-      scheduleGroup.forEach(s => {
-        if (s.book === schedule.book && s.end_chapter === schedule.end_chapter) {
-          s.is_completed = newStatus
-        }
-      })
-    }
-
-    // API 호출로 상태 업데이트
-    await api.post('/api/v1/todos/reading/update/', {
-      date: schedule.date,
-      book: schedule.book,
-      end_chapter: schedule.end_chapter,
-      is_completed: newStatus
-    })
-
-    // 성공 메시지 표시
-    success(newStatus ? '읽음으로 저장했어요.' : '안읽음으로 저장했어요.')
-  } catch (err) {
-    console.error('Failed to update reading status:', err)
-
-    // 실패 시 로컬 상태 롤백
-    const groupedSchedules = filteredGroupedSchedules.value
-    if (groupedSchedules && groupedSchedules[schedule.date]) {
-      const scheduleGroup = groupedSchedules[schedule.date]
-      scheduleGroup.forEach(s => {
-        if (s.book === schedule.book && s.end_chapter === schedule.end_chapter) {
-          s.is_completed = !newStatus
-        }
-      })
-    }
-
-    // 에러 메시지 표시
-    showError('저장에 실패했어요. 다시 시도해주세요.')
-  }
-}
-
-// 읽기 이력 가져오기
-const fetchReadingHistory = async () => {
-  try {
-    if (!selectedSubscriptionId.value) {
-      console.error('선택된 구독 ID가 없습니다.')
-      return
-    }
-
-    const params = {
-      plan_id: selectedSubscriptionId.value,
-      month: selectedMonth.value.toString().padStart(2, '0')
-    }
-
-    // 로그인 사용자만 읽기 이력 가져오기
-    if (authStore.isAuthenticated) {
-      const response = await api.get('/api/v1/todos/reading/history/', { params })
-      readingHistory.value = response.data || []
-    } else {
-      readingHistory.value = [] // 비로그인 사용자는 빈 배열 설정
-    }
-  } catch (error) {
-    console.error('읽기 이력 가져오기 실패:', error)
-  }
 }
 
 // 일정 클릭 핸들러 수정
@@ -996,10 +898,14 @@ watch(
     if (newMonth === oldMonth && newSubscriptionId === oldSubscriptionId) {
       return
     }
-    try {
-      await fetchSchedules()
-    } catch (error) {
-      console.error('스케줄 다시 불러오기 실패:', error)
+    
+    // 초기화가 완료된 경우에만 스케줄을 다시 로드
+    if (isInitialized.value) {
+      try {
+        await fetchSchedules()
+      } catch (error) {
+        console.error('스케줄 다시 불러오기 실패:', error)
+      }
     }
   }
 )
@@ -1294,8 +1200,6 @@ const scrollToToday = async () => {
   if (selectedMonth.value !== todayMonth) {
     selectedMonth.value = todayMonth;
     await fetchSchedules();
-    await nextTick(); // DOM 업데이트 대기
-    await nextTick(); // 추가 대기
   }
 
   // 약간 지연 후 스크롤 실행
@@ -1473,12 +1377,13 @@ watch(() => route.query.plan, async (newPlanId, oldPlanId) => {
     // URL 파라미터가 변경되면 selectedSubscriptionId 업데이트
     selectedSubscriptionId.value = String(newPlanId)
     
-    // 이미 selectedSubscriptionId가 변경되면 스케줄을 조회하는 watch가 있지만,
-    // 직접 호출하여 즉시 데이터 로드
-    try {
-      await fetchSchedules()
-    } catch (error) {
-      console.error('플랜 변경 후 스케줄 로딩 실패:', error)
+    // 이미 initializeComponent가 완료된 경우에만 스케줄을 다시 로드
+    if (isInitialized.value) {
+      try {
+        await fetchSchedules()
+      } catch (error) {
+        console.error('플랜 변경 후 스케줄 로딩 실패:', error)
+      }
     }
   }
 }, { immediate: true })
