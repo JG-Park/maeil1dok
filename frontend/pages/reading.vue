@@ -50,7 +50,7 @@ const DEFAULT_FONT_SIZE = 16
 const versionNames = {
   'KNT': '새한글',
   'GAE': '개역개정',
-  'HAN': '개역한글', 
+  'HAN': '개역한글',
   'SAE': '표준새번역',
   'SAENEW': '새번역',
   'COG': '공동번역',
@@ -207,7 +207,7 @@ const loadKntBibleContent = async (book, chapter) => {
 
     // 새한글성경은 다른 URL 구조 사용
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초로 연장
+    const timeoutId = setTimeout(() => controller.abort(), 20000) // 15초로 연장
 
     const url = `/bible-proxy/KNT/get_chapter.php?version=d7a4326402395391-01&chapter=${book.toUpperCase()}.${chapter}`
 
@@ -243,17 +243,15 @@ const loadKntBibleContent = async (book, chapter) => {
 
     // 에러 메시지
     bibleContent.value = `
-      <div class="knt-message">
-        <h3>새한글성경</h3>
-        <p>새한글성경 로드 중 오류가 발생했습니다.</p>
-        <p>아래 링크를 통해 대한성서공회 사이트에서 직접 볼 수 있습니다.</p>
-        <div class="knt-button-container">
-          <a href="https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}" 
-             target="_blank" 
-             class="knt-external-link">
-             대한성서공회에서 새한글성경 보기
-          </a>
-        </div>
+      <div class="error-message">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
+        <p>공회 서버 상태가 좋지 않거나 매일일독과의 통신이 원활하지 않아요. 대한성서공회 사이트에 직접 접속해보세요.</p>
+        <a href="https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}" target="_blank" class="external-link">
+          대한성서공회에서 보기
+        </a>
       </div>
     `
   }
@@ -264,7 +262,7 @@ const loadStandardBibleContent = async (book, chapter) => {
   try {
     // 일반적인 역본들은 동일한 URL 구조 사용
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
 
     const response = await fetch(`/bible-proxy/bible/korbibReadpage.php?version=${currentVersion.value}&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`, {
       signal: controller.signal
@@ -315,7 +313,7 @@ const parseKntVersion = (jsonData, book, chapter) => {
       // 장 제목 설정 
       const suffix = book === 'psa' ? '편' : '장';
       const reference = jsonData.reference || `${bookNames[book] || ''} ${chapter}`;
-      
+
       // reference에 이미 장/편이 포함되어 있는지 확인
       if (reference.includes('장') || reference.includes('편')) {
         chapterTitle.value = reference;
@@ -329,15 +327,15 @@ const parseKntVersion = (jsonData, book, chapter) => {
 
       // 최종 결과를 담을 배열
       const verses = [];
-      
+
       // HTML 콘텐츠로부터 모든 요소 추출
       const content = jsonData.content;
-      
+
       // 1. 모든 HTML 태그별로 분석
-      
+
       // 장 번호 (건너뛰기)
       content.replace(/<h2[^>]*class="c"[^>]*>\d+<\/h2>/g, '');
-      
+
       // 섹션 제목들 찾기
       const sectionTitles = [];
       const sectionRegex = /<p class="s">(.*?)<\/p>/g;
@@ -350,7 +348,7 @@ const parseKntVersion = (jsonData, book, chapter) => {
           fullMatch: sectionMatch[0]
         });
       }
-      
+
       // 부제목 찾기
       const subTitles = [];
       const subTitleRegex = /<p class="sp">(.*?)<\/p>/g;
@@ -363,7 +361,7 @@ const parseKntVersion = (jsonData, book, chapter) => {
           fullMatch: subTitleMatch[0]
         });
       }
-      
+
       // 모든 타입의 구절 단락 찾기 (p.p, p.q1, p.nb 등)
       const paragraphs = [];
       const paragraphRegex = /<p(?:\s+[^>]*class="([^"]*)"[^>]*|\s+[^>]*data-vid="[^"]*"[^>]*|\s+[^>]*)>(.*?)<\/p>/gs;
@@ -378,16 +376,16 @@ const parseKntVersion = (jsonData, book, chapter) => {
           fullMatch: paragraphMatch[0]
         });
       }
-      
+
       // 모든 요소를 원래 순서대로 정렬
       const allElements = [...sectionTitles, ...subTitles, ...paragraphs].sort((a, b) => a.index - b.index);
-      
+
       // 첫 번째 섹션 제목 저장 (있는 경우)
       const firstSection = allElements.find(el => el.type === 'section');
       if (firstSection) {
         sectionTitle.value = firstSection.content;
       }
-      
+
       // 2. 요소들 순서대로 처리하여 HTML 생성
       const processedSubtitles = new Set();
       allElements.forEach(element => {
@@ -404,26 +402,26 @@ const parseKntVersion = (jsonData, book, chapter) => {
           // 일반 p 태그 내용은 특수 클래스(q1, nb 등)를 가진 경우에만 표시
           // 구절 단락 처리 - 구절 번호와 내용 추출
           const verseSpans = element.content.match(/<span class="verse-span"[^>]*>.*?<\/span>/gs) || [];
-          
+
           // 현재 처리 중인 구절 번호와 텍스트
           let currentVerseNum = null;
           let verseText = "";
-          
+
           // 각 구절 처리
           if (verseSpans.length > 0) {
             verseSpans.forEach(verseSpan => {
               // 구절 번호 추출
               const numMatch = verseSpan.match(/<span[^>]*class="v"[^>]*>(\d+)<\/span>/);
-              
+
               if (numMatch) {
                 // 이전 구절 데이터가 있으면 먼저 처리
                 if (currentVerseNum && verseText) {
                   verses.push(`<div class="verse"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`);
                 }
-                
+
                 // 새 구절 시작
                 currentVerseNum = numMatch[1];
-                
+
                 // 구절 텍스트 추출 (구절 번호, 각주 등 제거)
                 verseText = verseSpan
                   .replace(/<span[^>]*class="v"[^>]*>\d+<\/span>/, '') // 구절 번호 제거
@@ -439,13 +437,13 @@ const parseKntVersion = (jsonData, book, chapter) => {
                   .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '')
                   .replace(/<\/?[^>]+(>|$)/g, '')
                   .trim();
-                
+
                 if (additionalText && currentVerseNum) {
                   verseText += ' ' + additionalText;
                 }
               }
             });
-            
+
             // 마지막 구절 처리
             if (currentVerseNum && verseText) {
               verses.push(`<div class="verse"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`);
@@ -453,20 +451,20 @@ const parseKntVersion = (jsonData, book, chapter) => {
           } else {
             // verseSpans이 없을 경우 - 직접 내용에서 구절 찾기 시도
             // 예: <p class="p">1 욥이 여호와께 대답했다.</p> 형식
-            
+
             // 구절 번호 패턴을 찾음 (줄 시작에 숫자)
             const directVerseMatch = element.content.match(/^(?:<[^>]*>)*\s*(\d+)\s+(.+)$/);
-            
+
             if (directVerseMatch) {
               const verseNum = directVerseMatch[1];
               let verseContent = directVerseMatch[2];
-              
+
               // HTML 태그 제거
               verseContent = verseContent.replace(/<\/?[^>]+(>|$)/g, '').trim();
-              
+
               // 각주 제거
               verseContent = verseContent.replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '');
-              
+
               verses.push(`<div class="verse"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseContent}</span></div>`);
             } else {
               // 구절 번호 패턴이 없는 경우
@@ -480,7 +478,7 @@ const parseKntVersion = (jsonData, book, chapter) => {
           }
         }
       });
-      
+
       // 최종 HTML 설정
       if (verses.length > 0) {
         bibleContent.value = verses.join('');
@@ -492,12 +490,12 @@ const parseKntVersion = (jsonData, book, chapter) => {
       // HTML 문자열인 경우 (이전 방식 호환)
       const parser = new DOMParser();
       const doc = parser.parseFromString(jsonData, 'text/html');
-      
+
       // 다양한 방식으로 시도
-      const bibleElement = doc.querySelector('#tdBible1') || 
-                          doc.querySelector('.bible-content') || 
-                          doc.querySelector('body');
-      
+      const bibleElement = doc.querySelector('#tdBible1') ||
+        doc.querySelector('.bible-content') ||
+        doc.querySelector('body');
+
       if (bibleElement) {
         extractKntVerses(bibleElement);
       } else {
@@ -520,18 +518,16 @@ const handleKntContentNotFound = (book, chapter) => {
 
   // 안내 메시지 표시
   bibleContent.value = `
-    <div class="knt-message">
-      <h3>새한글성경</h3>
-      <p>새한글성경 본문을 불러올 수 없습니다.</p>
-      <p>아래 링크를 통해 대한성서공회 사이트에서 직접 볼 수 있습니다.</p>
-      <div class="knt-button-container">
-        <a href="https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}" 
-           target="_blank" 
-           class="knt-external-link">
-          대한성서공회에서 새한글성경 보기
+      <div class="error-message">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
+        <p>공회 서버 상태가 좋지 않거나 매일일독과의 통신이 원활하지 않아요. 대한성서공회 사이트에 직접 접속해보세요.</p>
+        <a href="https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}" target="_blank" class="external-link">
+          대한성서공회에서 보기
         </a>
       </div>
-    </div>
   `
 }
 
@@ -1047,7 +1043,7 @@ onMounted(async () => {
 
       readingDetailResponse.value = await api.get('/api/v1/todos/detail/', { params })
       const { book: responseBook, chapter: responseChapter } = readingDetailResponse.value.data
-      
+
       currentBook.value = responseBook
       currentChapter.value = responseChapter
       loadBibleContent(responseBook, responseChapter)
@@ -1093,16 +1089,16 @@ onMounted(async () => {
 
   } catch (error) {
     console.error('API 요청 중 오류 발생:', error)
-    
+
     // 오류 시 기본값으로 설정
     const defaultBook = 'gen'
     const defaultChapter = '1'
-    
+
     router.replace({
       query: { ...route.query, book: defaultBook, chapter: defaultChapter }
     })
 
-    currentBook.value = defaultBook 
+    currentBook.value = defaultBook
     currentChapter.value = Number(defaultChapter)
     await loadBibleContent(defaultBook, Number(defaultChapter))
   }
@@ -1578,8 +1574,7 @@ const scrollToTop = () => {
       <h1>성경일독</h1>
     </div>
 
-    <div class="today-reading fade-in" :class="{ floating: isTodayReadingFloating }" style="animation-delay: 0.1s"
-      v-if="readingDetailResponse?.data">
+    <div class="today-reading fade-in" style="animation-delay: 0.1s" v-if="readingDetailResponse?.data">
       <div class="today-info">
         <div class="reading-meta">
           <button class="reading-meta-btn schedule-button" @click="openScheduleModal">
@@ -1662,7 +1657,6 @@ const scrollToTop = () => {
     </div>
 
     <div class="content-section-wrapper">
-      <div class="floating-spacer"></div>
       <div class="content-section fade-in" style="animation-delay: 0.2s">
         <div class="chapter-controls">
           <div class="chapter-select-button-wrapper left">
@@ -1670,7 +1664,9 @@ const scrollToTop = () => {
             <button class="version-button" @click="openVersionModal">
               <div class="button-content">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                 </svg>
                 <h2>{{ versionNames[currentVersion] }}</h2>
               </div>
@@ -2029,17 +2025,15 @@ const scrollToTop = () => {
       </div>
     </Teleport>
 
-    <!-- Top 버튼 추가 -->
-    <button 
-      v-show="showTopButton" 
-      @click="scrollToTop" 
-      class="top-button"
-      aria-label="페이지 상단으로 이동"
-    >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 19V5M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-    </button>
+    <!-- Top 버튼 (트랜지션 추가) -->
+    <Transition name="fade">
+      <button v-show="showTopButton" @click="scrollToTop" class="top-button" aria-label="페이지 상단으로 이동">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 19V5M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </button>
+    </Transition>
   </div>
 </template>
 
@@ -2056,7 +2050,8 @@ const scrollToTop = () => {
   margin: 0 auto;
   background: #f5f5f5;
   min-height: 100vh;
-  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  position: relative;
+  /* top-button의 위치 기준 설정 */
 }
 
 .header {
@@ -2071,16 +2066,6 @@ const scrollToTop = () => {
   height: 50px;
   transition: all 0.15s ease;
   margin: 0;
-}
-
-.header.floating {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.12);
-  margin: 0 -0.25rem;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
 }
 
 .back-button {
@@ -2108,17 +2093,21 @@ const scrollToTop = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  margin: 0.5rem;
-  padding: 0.5rem 0.85rem;
-  border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  z-index: 5;
+  top: 50px;
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 0.7rem 0.85rem;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top;
-  position: relative;
-  top: 0;
-  -webkit-tap-highlight-color: transparent;
   min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .today-info {
@@ -2173,1904 +2162,1877 @@ const scrollToTop = () => {
   -webkit-user-select: none;
 }
 
-.today-reading.floating {
-  position: fixed;
-  max-width: 768px;
-  width: 100%;
-  top: 48px;
-  margin: 0;
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  z-index: 9;
-  display: flex;
-  justify-content: center;
-}
-
-.today-reading.floating::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: inherit;
-  box-shadow: inherit;
-  border-bottom: inherit;
-  z-index: -1;
-}
-
-.today-reading.floating>* {
-  max-width: 768px;
-}
-
-@media (max-width: 640px) {
-  .today-reading.floating {
-    margin: 0;
-    padding: 0.5rem;
-  }
-
-  .today-reading.floating>* {
-    margin: 0 0.5rem;
-  }
-}
-
 .content-section-wrapper {
   position: relative;
 }
 
-.floating-spacer {
-  height: 0;
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.floating-spacer.active {
-  height: var(--floating-height);
-}
-
-
 .content-section {
   background: white;
   margin: 0.5rem;
-  margin-top: 3.8rem;
   padding: 0.85rem;
   border-radius: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-.reading-info {
-  margin-bottom: 1.5rem;
-  cursor: pointer;
-}
-
-.reading-info h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.subtitle {
-  color: var(--text-secondary);
-  font-size: 1rem;
-}
-
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: var(--text-secondary);
-  gap: 1rem;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.bible-content {
-  font-size: 1rem;
-  line-height: 1.8;
-  letter-spacing: -0.04em;
-  color: var(--text-primary);
-  font-family: 'RIDIBatang', serif;
-  font-weight: normal;
-  touch-action: pan-x pan-y;
-}
-
-.reading-info h2,
-.reading-info .subtitle {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-:deep(.verse) {
-  font-family: 'RIDIBatang', serif;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: flex-start;
-  font-weight: normal;
-  letter-spacing: -0.02em;
-}
-
-:deep(.verse-number) {
-  color: var(--primary-color);
-  font-weight: 500;
-  margin-right: 0.3rem;
-  min-width: 0.8em;
-  flex-shrink: 0;
-  text-align: right;
-  font-size: 0.75em;
-  font-family: 'Pretendard', sans-serif;
-  position: relative;
-}
-
-:deep(.verse-text) {
-  flex: 1;
-}
-
-:deep(table),
-:deep(td),
-:deep(.num) {
-  all: unset;
-}
-
-.navigation-controls {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.25rem;
-  background: white;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
-  max-width: 768px;
-  min-height: 50px;
-  margin: 0 auto;
-  z-index: 20;
-  flex-wrap: nowrap;
-  border-radius: 16px 16px 0 0;
+  margin-bottom: 4rem;
 }
 
 @supports (-webkit-touch-callout: none) {
-  @media not all and (display-mode: standalone) {
-    .navigation-controls {
-      padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
-    }
-  }
-
   @media (display-mode: standalone) {
-    .navigation-controls {
-      padding: 0.5rem 0.35rem calc(env(safe-area-inset-bottom) - 0.35rem) 0.35rem;
+    .content-section {
+      margin-bottom: 5.5rem;
     }
   }
 }
 
-.nav-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: none;
-  border-radius: 8px;
-  color: #4b5563;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-  outline: none;
-}
-
-@media (hover: none) {
-  .nav-button:hover {
-    background-color: transparent;
-    color: #4b5563;
+  .reading-info {
+    margin-bottom: 1.5rem;
+    cursor: pointer;
   }
 
-  .nav-button:hover svg {
-    transform: none;
-  }
-}
-
-.nav-button:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
-}
-
-.nav-button:active {
-  transform: translateY(1px);
-}
-
-.nav-button.prev {
-  padding-left: 0.75rem;
-}
-
-.nav-button.next {
-  padding-right: 0.75rem;
-}
-
-.nav-button svg {
-  transition: transform 0.2s ease;
-}
-
-.nav-button.prev:hover svg {
-  transform: translateX(-2px);
-}
-
-.nav-button.next:hover svg {
-  transform: translateX(2px);
-}
-
-.center-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 160px;
-  flex: 1;
-  min-width: 0;
-  padding: 0 0.1rem;
-}
-
-.chapter-indicator {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.reading-meta-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  letter-spacing: -0.02em;
-  text-overflow: ellipsis;
-  overflow: hidden;
-
-}
-
-.schedule-button {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-}
-
-.schedule-button:hover {
-  background: var(--primary-hover);
-  color: var(--primary-dark);
-  opacity: 1;
-}
-
-.complete-button {
-  border: 1px solid rgba(46, 144, 250, 1);
-  background: rgba(46, 144, 250, 0.1);
-  color: #2E90FA;
-}
-
-.complete-button:hover {
-  background: rgba(46, 144, 250, 0.15);
-  border-color: #2E90FA;
-  color: #1570D1;
-}
-
-.complete-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.complete-cancel-button {
-  border: 1px solid rgba(220, 38, 38, 0.25);
-  background: rgba(220, 38, 38, 0.05);
-  color: #DC2626;
-}
-
-.complete-cancel-button:hover {
-  background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.4);
-  color: #DC2626;
-}
-
-.complete-button:disabled,
-.complete-cancel-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.nav-button:hover {
-  color: var(--primary-color);
-}
-
-@media (max-width: 640px) {
-  .today-reading {
-    padding: 0.5rem 0.65rem;
-    gap: 0.5rem;
+  .reading-info h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
   }
 
-  .reading-meta {
-    gap: 0.5rem;
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
   }
 
-  .schedule-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    height: 28px;
-    gap: 0.25rem;
-    min-width: 80px;
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    gap: 1rem;
   }
 
-  .complete-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    height: 28px;
-    gap: 0.25rem;
-    min-width: 64px;
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .bible-content {
+    font-size: 1rem;
+    line-height: 1.8;
+    letter-spacing: -0.04em;
+    color: var(--text-primary);
+    font-family: 'RIDIBatang', serif;
+    font-weight: normal;
+    touch-action: pan-x pan-y;
+  }
+
+  .reading-info h2,
+  .reading-info .subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  :deep(.verse) {
+    font-family: 'RIDIBatang', serif;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    font-weight: normal;
+    letter-spacing: -0.02em;
+  }
+
+  :deep(.verse-number) {
+    color: var(--primary-color);
+    font-weight: 500;
+    margin-right: 0.3rem;
+    min-width: 0.8em;
+    flex-shrink: 0;
+    text-align: right;
+    font-size: 0.75em;
+    font-family: 'Pretendard', sans-serif;
+    position: relative;
+  }
+
+  :deep(.verse-text) {
+    flex: 1;
+  }
+
+  :deep(table),
+  :deep(td),
+  :deep(.num) {
+    all: unset;
+  }
+
+  .navigation-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem;
+    background: white;
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
+    max-width: 768px;
+    min-height: 50px;
+    margin: 0 auto;
+    z-index: 20;
+    flex-wrap: nowrap;
+    border-radius: 16px 16px 0 0;
   }
 
   @supports (-webkit-touch-callout: none) {
-    .today-reading {
-      padding: 0.5rem 0.5rem;
+    @media not all and (display-mode: standalone) {
+      .navigation-controls {
+        padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
+      }
     }
 
-    .reading-meta {
-      gap: 0.35rem;
-    }
-
-    .schedule-button,
-    .complete-button {
-      padding: 0.25rem 0.35rem;
-      font-size: 0.7rem;
+    @media (display-mode: standalone) {
+      .navigation-controls {
+        padding: 0.5rem 0.35rem calc(env(safe-area-inset-bottom) - 0.35rem) 0.35rem;
+      }
     }
   }
-}
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  opacity: 0;
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-:deep(.section-title) {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #4170CD;
-  margin: 2rem 0 0.25rem;
-  text-align: center;
-}
-
-:deep(.section-title:first-child) {
-  margin-top: 0;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  animation: fadeIn 0.2s ease-out;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
-}
-
-.modal-content {
-  width: 90%;
-  height: 100%;
-  max-width: 480px;
-  max-height: 85vh;
-  overflow: hidden;
-  background: white;
-  border-radius: 16px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #F1F5F9;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: white;
-}
-
-.modal-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-}
-
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.close-button {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-secondary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
-@media (max-width: 640px) {
-  .modal-header {
-    padding: 0.8rem 1rem;
-  }
-
-  .modal-header h3 {
-    font-size: 1rem;
-  }
-}
-
-.modal-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  min-height: 400px;
-}
-
-.modal-content-wrapper {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding-top: 1rem;
-}
-
-.books-section {
-  flex: 1;
-  border-right: 1px solid #eee;
-  padding: 0 1rem 0.85rem 1rem;
-  overflow-y: auto;
-  height: 100%;
-  -webkit-overflow-scrolling: touch;
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 45%;
-}
-
-.chapters-section {
-  flex: 1.3;
-  padding: 0 1rem 0.85rem 1rem;
-  overflow-y: auto;
-  height: 100%;
-  -webkit-overflow-scrolling: touch;
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 55%;
-}
-
-.testament {
-  display: flex;
-  flex-direction: column;
-}
-
-.testament h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  position: sticky;
-  top: 0;
-  background: white;
-  padding: 0.5rem 0;
-  z-index: 1;
-}
-
-.books-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  overflow-y: auto;
-}
-
-.chapters-section h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  position: sticky;
-  top: 0;
-  background: white;
-  padding: 0.5rem 0;
-  z-index: 1;
-}
-
-.chapters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  gap: 0.5rem;
-  min-width: 0;
-  align-content: start;
-  width: 100%;
-}
-
-.book-button,
-.chapter-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem;
-  background: none;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-  min-width: 44px;
-  height: 44px;
-  font-weight: 500;
-}
-
-.book-button.active,
-.chapter-button.active {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-  font-weight: 600;
-}
-
-.chapter-button:hover,
-.book-button:hover {
-  background: var(--primary-light);
-}
-
-@keyframes modalEnter {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-
-.schedule-modal {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  max-width: 480px;
-  max-height: 85vh;
-  overflow: hidden;
-  background: #FFFFFF;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-@media (max-width: 480px) {
-  .modal-content {
-    width: 100%;
-    max-width: 95vw;
-    max-height: 85vh;
-    border-radius: 16px;
-    margin: 0;
-  }
-
-  .books-section {
-    flex: 0.7;
-    padding-right: 0.75rem;
-  }
-
-  .chapters-section {
-    flex: 1.3;
-  }
-
-  .chapters-grid {
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-    gap: 0.4rem;
-  }
-
-  .chapter-button {
-    padding: 0;
-    font-size: 0.9rem;
-    height: 40px;
-    min-width: 40px;
-  }
-
-  .book-button {
-    padding: 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  .schedule-modal {
-    max-width: 95vw;
-  }
-}
-
-@supports (-webkit-touch-callout: none) {
-  .modal-content {
-    height: 85vh;
-  }
-
-  .modal-body {
-    height: calc(100% - 60px);
-  }
-
-  .books-section,
-  .chapters-section {
-    -webkit-overflow-scrolling: touch;
-    overflow-y: auto;
-  }
-
-  .schedule-modal {
-    height: 85vh;
-  }
-}
-
-.modal-content * {
-  -webkit-tap-highlight-color: transparent;
-}
-
-
-.login-modal {
-  max-width: 320px;
-  max-height: 320px;
-  width: 90%;
-  text-align: center;
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  margin: 1rem;
-  padding: 1rem;
-  animation: slideUp 0.3s ease-out;
-}
-
-
-.modal-icon {
-  width: 48px;
-  height: 48px;
-  color: var(--primary-color);
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-text {
-  margin-bottom: 1rem;
-  width: 100%;
-}
-
-.modal-text h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.75rem;
-  word-break: keep-all;
-}
-
-.modal-text p {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  font-size: 0.9375rem;
-  word-break: keep-all;
-}
-
-.modal-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.login-button,
-.modal-actions .cancel-button {
-  width: 100%;
-  padding: 0.45rem;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 0.9375rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.login-button {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-}
-
-.login-button:hover {
-  background: var(--primary-dark);
-}
-
-.modal-actions .cancel-button {
-  background: #f1f3f5;
-  color: var(--text-secondary);
-  border: none;
-}
-
-.modal-actions .cancel-button:hover {
-  background: #e9ecef;
-  color: var(--text-primary);
-}
-
-.absolute-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 1;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.absolute-close:hover {
-  color: var(--text-primary);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.chapter-select-button {
-  width: 75%;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 36px;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.chapter-select-button:hover {
-  background: #f1f3f5;
-  border-color: #dee2e6;
-}
-
-.chapter-select-button:active {
-  transform: translateY(1px);
-}
-
-.button-content {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-
-}
-
-.button-content h2 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.button-content svg {
-  color: var(--text-secondary);
-}
-
-.text-adjustable {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-.header,
-.nav-button,
-.modal-header,
-.modal-content button {
-  -webkit-text-size-adjust: none;
-  text-size-adjust: none;
-  font-size: 14px !important;
-}
-
-:deep(.bible-content) {
-  line-height: 1.8;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-  font-size: 16px;
-  min-height: 0vw;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-:deep(.bible-content p) {
-  margin: 1em 0;
-}
-
-:deep(.bible-content .chapter-num) {
-  font-weight: bold;
-  color: #4170CD;
-  font-size: 1rem !important;
-}
-
-:deep(.bible-content .verse-num) {
-  font-size: 0.85em;
-  color: #666;
-  vertical-align: top;
-  margin-right: 0.2em;
-}
-
-@media (max-width: 640px) {
-  :deep(.bible-content) {
-    font-size: 18px;
-  }
-}
-
-.current-page {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  text-align: center;
-}
-
-@media (max-width: 640px) {
-  .current-page {
-    font-size: 0.875rem;
-  }
-}
-
-.link-text {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.link-button {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.link-button[href*="audio"] {
-  background: var(--red-light);
-  color: var(--red-primary);
-}
-
-.link-button[href*="audio"]:hover {
-  background: var(--red-hover);
-}
-
-.link-button[href*="guide"] {
-  background: var(--blue-light);
-  color: var(--blue-primary);
-}
-
-.link-button[href*="guide"]:hover {
-  background: var(--blue-hover);
-}
-
-@media (max-width: 640px) {
-  .link-button {
-    padding: 0.375rem;
-  }
-
-  .link-text {
-    font-size: 0.6875rem;
-  }
-}
-
-.chapter-controls {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.chapter-select-button-wrapper.left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 0; /* 오버플로우 방지를 위해 필요 */
-}
-
-.chapter-select-button-wrapper.right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 0 0 auto; /* 크기 고정 */
-  max-width: 120px;
-}
-
-.chapter-select-button {
-  flex: 1;
-  min-width: 0; /* 오버플로우 방지 */
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 36px;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.font-size-controls {
-  display: flex;
-  gap: 0.35rem;
-  flex-shrink: 0;
-}
-
-.version-button {
-  flex: 0 0 auto;
-  min-width: 85px; /* "공동번역 개정판" 텍스트 고려 */
-  max-width: 130px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 36px;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.version-button .button-content {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.version-button .button-content svg,
-.chapter-select-button .button-content svg {
-  flex-shrink: 0;
-}
-.chapter-select-button .button-content svg {
-  margin: 0 -0.05rem 0 -0.2rem;
-}
-
-.version-button .button-content h2 {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.875rem;
-}
-
-.chapter-select-button .button-content {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.chapter-select-button .button-content h2 {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (max-width: 640px) {
-  .chapter-controls {
-    gap: 0.35rem;
-  }
-  
-  .chapter-select-button-wrapper.left {
-    gap: 0.35rem;
-  }
-  
-  .version-button {
-    min-width: 100px;
-    max-width: 110px;
-    padding: 0.35rem 0.5rem;
-  }
-  
-  .version-button .button-content h2,
-  .chapter-select-button .button-content h2 {
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .version-button {
-    min-width: 85px;
-    max-width: 95px;
-    padding: 0.35rem 0.4rem;
-  }
-  
-  .font-size-controls {
+  .nav-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     gap: 0.25rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .chapter-controls {
-    gap: 0.25rem;
-  }
-  
-  .chapter-select-button-wrapper.left {
-    gap: 0.25rem;
-  }
-  
-  .version-button {
-    min-width: 80px;
-    max-width: 85px;
-  }
-  
-  .version-button .button-content h2 {
-    font-size: 0.75rem;
-  }
-  
-  .font-button {
-    width: 32px;
-    height: 32px;
-  }
-}
-
-.font-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid #e9ecef;
-  background: #f8f9fa;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-@supports (-webkit-touch-callout: none) {
-  .font-button {
-    padding: 0;
-    margin: 0;
-  }
-}
-
-.font-button:hover:not(:disabled) {
-  background: #f1f3f5;
-  border-color: #dee2e6;
-}
-
-.font-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.font-icon {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.font-icon.small {
-  font-size: 0.7rem;
-}
-
-@media (max-width: 640px) {
-  .font-button {
-    width: 32px;
-    height: 32px;
-  }
-}
-
-.font-button.reset {
-  color: var(--text-secondary);
-}
-
-.font-button.reset:hover:not(:disabled) {
-  color: var(--text-primary);
-}
-
-@supports (-webkit-touch-callout: none) {
-  .font-button {
-    padding: 0;
-    margin: 0;
-  }
-}
-
-.chapter-range {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.chapter-dot {
-  color: #CBD5E1;
-  margin: 0 0.1rem;
-  font-size: 0.75em;
-}
-
-@media (max-width: 640px) {
-  .chapter-range {
-    font-size: 0.8125rem;
-    gap: 0.1rem;
+    padding: 0.25rem;
+    border: none;
+    border-radius: 8px;
+    color: #4b5563;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
   }
 
-  .chapter-dot {
-    margin: 0 0.05rem;
-    font-size: 0.7em;
-  }
-}
+  @media (hover: none) {
+    .nav-button:hover {
+      background-color: transparent;
+      color: #4b5563;
+    }
 
-.schedule-date {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  text-align: center;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  margin-bottom: 0.25rem;
-}
-
-.status-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-}
-
-.schedule-date.completed {
-  color: var(--primary-color);
-}
-
-.schedule-date.not-completed {
-  color: #e54444;
-}
-
-.schedule-date.current {
-  color: #4170CD;
-}
-
-.schedule-date.upcoming {
-  color: #94A3B8;
-}
-
-@media (max-width: 640px) {
-  .schedule-date {
-    font-size: 0.8rem;
-    gap: 0.25rem;
+    .nav-button:hover svg {
+      transform: none;
+    }
   }
 
-  .status-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-}
-
-@media (max-width: 640px) {
-  .schedule-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    height: 28px;
-    gap: 0.25rem;
-  }
-}
-
-.confirm-modal {
-  max-width: 320px;
-  max-height: 320px;
-  width: 90%;
-  text-align: center;
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  margin: 1rem;
-  padding: 1rem;
-  animation: slideUp 0.3s ease-out;
-}
-
-.confirm-button {
-  width: 100%;
-  padding: 0.45rem;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 0.9375rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-}
-
-.confirm-button:hover {
-  background: var(--primary-dark);
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.chapter-ellipsis {
-  color: #CBD5E1;
-  letter-spacing: 1px;
-  margin: 0 -0.1rem;
-  font-size: 0.75em;
-}
-
-.chapter-separator {
-  color: #CBD5E1;
-  margin: 0 0.25rem;
-}
-
-.chapter-number {
-  font-weight: 400;
-}
-
-.chapter-number.current {
-  font-weight: 700;
-  color: var(--primary-color);
-}
-
-.chapter-number.completed {
-  color: var(--primary-color);
-}
-
-@media (max-width: 640px) {
-  .chapter-separator {
-    margin: 0 0.15rem;
-  }
-}
-
-.status-icon.today {
-  background: #EFF6FF;
-  color: #2563EB;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  padding: 0.05rem 0.25rem;
-  border-radius: 4px;
-  width: auto;
-  height: auto;
-  border: 1px solid currentColor;
-}
-
-:deep(.error-message) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 2rem 1rem;
-  color: #64748B;
-  gap: 1rem;
-}
-
-:deep(.error-message svg) {
-  color: #DC2626;
-}
-
-:deep(.error-message h3) {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #334155;
-  margin: 0;
-  line-height: 1.5;
-}
-
-:deep(.error-message p) {
-  font-size: 0.9375rem;
-  margin: 0;
-  line-height: 1.5;
-}
-
-:deep(.external-link) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.85rem;
-  font-size: 0.85rem;
-  background: #EFF6FF;
-  color: #2563EB;
-  border-radius: 8px;
-  font-weight: 500;
-  text-decoration: none;
-  margin-top: 1rem;
-  transition: all 0.2s ease;
-}
-
-:deep(.external-link:hover) {
-  background: #DBEAFE;
-}
-
-:root {
-  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-.page-container {
-  font-family: var(--font-family);
-}
-
-:deep(.bible-content) {
-  font-family: var(--font-family);
-  line-height: 1.8;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-  font-size: 16px;
-  min-height: 0vw;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-html.touch-device .nav-button:hover svg {
-  transform: none !important;
-}
-
-html.touch-device .nav-button.prev:hover svg,
-html.touch-device .nav-button.next:hover svg {
-  transform: none !important;
-}
-
-@media (hover: hover) {
-  html.no-touch-device .nav-button:hover {
+  .nav-button:hover {
     background-color: #e5e7eb;
     color: #1f2937;
   }
 
-  html.no-touch-device .nav-button.prev:hover svg {
+  .nav-button:active {
+    transform: translateY(1px);
+  }
+
+  .nav-button.prev {
+    padding-left: 0.75rem;
+  }
+
+  .nav-button.next {
+    padding-right: 0.75rem;
+  }
+
+  .nav-button svg {
+    transition: transform 0.2s ease;
+  }
+
+  .nav-button.prev:hover svg {
     transform: translateX(-2px);
   }
 
-  html.no-touch-device .nav-button.next:hover svg {
+  .nav-button.next:hover svg {
     transform: translateX(2px);
   }
-}
 
-.nav-button:active {
-  transform: translateY(1px);
-  background-color: #e5e7eb;
-  color: #1f2937;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(5px);
-}
-
-.loading-spinner.small {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spinner 0.8s linear infinite;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  margin: 0;
-}
-
-.complete-button:disabled span:not(.loading-spinner),
-.complete-button:disabled svg,
-.complete-cancel-button:disabled span:not(.loading-spinner),
-.complete-cancel-button:disabled svg {
-  opacity: 0;
-}
-
-.complete-button span,
-.complete-cancel-button span {
-  margin: 0 0.15rem;
-}
-
-@keyframes spinner {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.reading-sections {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  font-size: 0.875rem;
-}
-
-.section-separator {
-  color: #CBD5E1;
-  margin: 0 0.75rem;
-}
-
-.section-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748B;
-  margin-right: 0.25rem;
-  transition: all 0.2s ease;
-}
-
-.section-number.current-section {
-  background: #F0FDF4;
-  border-color: #c3e0cd;
-  color: var(--primary-color);
-}
-
-.book-name {
-  color: #64748B;
-  font-weight: 500;
-  margin-right: 0.5rem;
-}
-
-.book-name.current-book {
-  color: var(--primary-color);
-  font-weight: 600;
-  margin-right: 0.5rem;
-}
-
-.book-name.other-book {
-  margin-right: 0;
-}
-
-.chapter-numbers {
-  display: inline-flex;
-  gap: 0.25rem;
-  flex-wrap: wrap;
-}
-
-.chapter-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0.75rem;
-  padding: 0 0.35rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  color: #64748B;
-}
-
-.chapter-box.current {
-  background: var(--primary-light);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.chapter-box.not-completed {
-  background: #FEF2F2;
-  border-color: var(--error);
-  color: var(--error);
-}
-
-@media (max-width: 640px) {
-  .reading-sections {
-    font-size: 0.85rem;
+  .center-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 160px;
+    flex: 1;
+    min-width: 0;
+    padding: 0 0.1rem;
   }
 
-  .chapter-box {
-    min-width: 1rem;
-    height: 1.25rem;
-    font-size: 0.75rem;
+  .chapter-indicator {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 
-  .section-number {
-    width: 1.25rem;
-    height: 1.25rem;
-    font-size: 0.75rem;
-  }
-}
-
-.plan-warning {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  color: #e39611;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.plan-warning svg {
-  color: #e39611;
-}
-
-@media (max-width: 640px) {
-  .plan-warning {
+  .reading-meta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
     padding: 0.25rem 0.5rem;
+    border-radius: 8px;
     font-size: 0.75rem;
-    gap: 0.25rem;
-  }
-}
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    letter-spacing: -0.02em;
+    text-overflow: ellipsis;
+    overflow: hidden;
 
-.hidden-schedule-content {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-:deep(.section-title .reference) {
-  font-size: 0.75em;
-  font-weight: 500;
-  color: #6B7280;
-  letter-spacing: -0.1em;
-}
-
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-slide-enter-active {
-  animation: modalSlideUp 0.3s ease-out forwards;
-}
-
-.modal-slide-leave-active {
-  animation: modalSlideDown 0.3s ease-in forwards;
-}
-
-@keyframes modalSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
   }
 
-  to {
+  .schedule-button {
+    background: var(--primary-light);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+  }
+
+  .schedule-button:hover {
+    background: var(--primary-hover);
+    color: var(--primary-dark);
     opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes modalSlideDown {
-  from {
-    opacity: 1;
-    transform: translateY(0);
   }
 
-  to {
+  .complete-button {
+    border: 1px solid rgba(46, 144, 250, 1);
+    background: rgba(46, 144, 250, 0.1);
+    color: #2E90FA;
+  }
+
+  .complete-button:hover {
+    background: rgba(46, 144, 250, 0.15);
+    border-color: #2E90FA;
+    color: #1570D1;
+  }
+
+  .complete-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .complete-cancel-button {
+    border: 1px solid rgba(220, 38, 38, 0.25);
+    background: rgba(220, 38, 38, 0.05);
+    color: #DC2626;
+  }
+
+  .complete-cancel-button:hover {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.4);
+    color: #DC2626;
+  }
+
+  .complete-button:disabled,
+  .complete-cancel-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .nav-button:hover {
+    color: var(--primary-color);
+  }
+
+  @media (max-width: 640px) {
+    .reading-meta {
+      gap: 0.5rem;
+    }
+
+    .schedule-button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      height: 28px;
+      gap: 0.25rem;
+      min-width: 80px;
+    }
+
+    .complete-button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      height: 28px;
+      gap: 0.25rem;
+      min-width: 64px;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+
+      .reading-meta {
+        gap: 0.35rem;
+      }
+
+      .schedule-button,
+      .complete-button {
+        padding: 0.25rem 0.35rem;
+        font-size: 0.7rem;
+      }
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in {
     opacity: 0;
-    transform: translateY(30px);
+    animation: fadeIn 0.4s ease-out forwards;
   }
-}
 
-.schedule-modal {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  max-width: 480px;
-  max-height: 85vh;
-  overflow: hidden;
-  background: #FFFFFF;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-.version-modal {
-  max-width: 300px;
-  max-height: 420px;
-  display: flex;
-  flex-direction: column;
-}
-
-.versions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 1rem;
-  overflow-y: auto;
-  max-height: 350px; /* 모달 내에서 스크롤 가능한 영역 크기 지정 */
-}
-
-.version-select-button {
-  width: 100%;
-  padding: 0.75rem;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-  min-width: 44px;
-  height: 44px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  letter-spacing: -0.02em;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
-.version-select-button.active {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-  font-weight: 600;
-}
-
-.version-select-button:hover {
-  background: var(--primary-light);
-}
-
-.version-select-button .button-content {
-  display: flex;
-  align-items: center;
-}
-
-.chapter-select-button {
-  flex: 1;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 36px;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.version-button {
-  flex: 0 0 auto;
-  max-width: 140px; /* 역본 버튼 너비 살짝 늘림 */
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 36px;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.version-button .button-content {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.version-button .button-content h2 {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-@media (max-width: 640px) {
-  .chapter-select-button {
-    height: 32px
+  :deep(.section-title) {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #4170CD;
+    margin: 2rem 0 0.25rem;
+    text-align: center;
   }
-  
-  .version-button {
+
+  :deep(.section-title:first-child) {
+    margin-top: 0;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    animation: fadeIn 0.2s ease-out;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+  }
+
+  .modal-content {
+    width: 90%;
+    height: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow: hidden;
+    background: white;
+    border-radius: 16px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #F1F5F9;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 32px;
-    min-width: 60px;
+    background: white;
   }
 
-  .version-button .button-content svg {
-    margin: 0 -0.05rem 0 -0.05rem;
+  .modal-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
   }
-}
 
-:deep(.sub-title) {
-  font-size: 0.875rem;
-  color: #6B7280;
-  font-style: italic;
-}
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
-:deep(.paragraph) {
-  margin: 0.5rem 0;
-  line-height: 1.8;
-}
+  .close-button {
+    padding: 0.5rem;
+    margin: -0.5rem;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .close-button:hover {
+    background: var(--primary-light);
+    color: var(--text-primary);
+  }
+
+  @media (max-width: 640px) {
+    .modal-header {
+      padding: 0.8rem 1rem;
+    }
+
+    .modal-header h3 {
+      font-size: 1rem;
+    }
+  }
+
+  .modal-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    min-height: 400px;
+  }
+
+  .modal-content-wrapper {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1rem;
+  }
+
+  .books-section {
+    flex: 1;
+    border-right: 1px solid #eee;
+    padding: 0 1rem 0.85rem 1rem;
+    overflow-y: auto;
+    height: 100%;
+    -webkit-overflow-scrolling: touch;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 45%;
+  }
+
+  .chapters-section {
+    flex: 1.3;
+    padding: 0 1rem 0.85rem 1rem;
+    overflow-y: auto;
+    height: 100%;
+    -webkit-overflow-scrolling: touch;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 55%;
+  }
+
+  .testament {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .testament h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    position: sticky;
+    top: 0;
+    background: white;
+    padding: 0.5rem 0;
+    z-index: 1;
+  }
+
+  .books-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow-y: auto;
+  }
+
+  .chapters-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    position: sticky;
+    top: 0;
+    background: white;
+    padding: 0.5rem 0;
+    z-index: 1;
+  }
+
+  .chapters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 0.5rem;
+    min-width: 0;
+    align-content: start;
+    width: 100%;
+  }
+
+  .book-button,
+  .chapter-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    background: none;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+    font-weight: 500;
+  }
+
+  .book-button.active,
+  .chapter-button.active {
+    background: var(--primary-light);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    font-weight: 600;
+  }
+
+  .chapter-button:hover,
+  .book-button:hover {
+    background: var(--primary-light);
+  }
+
+  @keyframes modalEnter {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 
 
-.new-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #e53e3e;
-  color: white;
-  font-size: 0.625rem;
-  font-weight: 700;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  margin-left: 0.375rem;
-  line-height: 1;
-}
+  .schedule-modal {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow: hidden;
+    background: #FFFFFF;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
 
-.version-button .button-content {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-}
+  @media (max-width: 480px) {
+    .modal-content {
+      width: 100%;
+      max-width: 95vw;
+      max-height: 85vh;
+      border-radius: 16px;
+      margin: 0;
+    }
 
-.today-reading-header {
-  position: sticky;
-  top: 0;
-  background-color: white;
-  z-index: 10;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: none; /* 애니메이션 효과 제거 */
-}
+    .books-section {
+      flex: 0.7;
+      padding-right: 0.75rem;
+    }
 
-/* Top 버튼 스타일 */
-.top-button {
-  position: fixed;
-  bottom: 4rem;
-  right: 1.5rem;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  background-color: var(--primary-color);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 30;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  border: none;
-  transition: all 0.3s ease;
-}
+    .chapters-section {
+      flex: 1.3;
+    }
 
-.top-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
+    .chapters-grid {
+      grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+      gap: 0.4rem;
+    }
 
-/* 모바일 기기에서 크기 조정 */
-@media (max-width: 640px) {
+    .chapter-button {
+      padding: 0;
+      font-size: 0.9rem;
+      height: 40px;
+      min-width: 40px;
+    }
+
+    .book-button {
+      padding: 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .schedule-modal {
+      max-width: 95vw;
+    }
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .modal-content {
+      height: 85vh;
+    }
+
+    .modal-body {
+      height: calc(100% - 60px);
+    }
+
+    .books-section,
+    .chapters-section {
+      -webkit-overflow-scrolling: touch;
+      overflow-y: auto;
+    }
+
+    .schedule-modal {
+      height: 85vh;
+    }
+  }
+
+  .modal-content * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+
+  .login-modal {
+    max-width: 320px;
+    max-height: 320px;
+    width: 90%;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    margin: 1rem;
+    padding: 1rem;
+    animation: slideUp 0.3s ease-out;
+  }
+
+
+  .modal-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-text {
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+
+  .modal-text h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    word-break: keep-all;
+  }
+
+  .modal-text p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-size: 0.9375rem;
+    word-break: keep-all;
+  }
+
+  .modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .login-button,
+  .modal-actions .cancel-button {
+    width: 100%;
+    padding: 0.45rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .login-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+  }
+
+  .login-button:hover {
+    background: var(--primary-dark);
+  }
+
+  .modal-actions .cancel-button {
+    background: #f1f3f5;
+    color: var(--text-secondary);
+    border: none;
+  }
+
+  .modal-actions .cancel-button:hover {
+    background: #e9ecef;
+    color: var(--text-primary);
+  }
+
+  .absolute-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .absolute-close:hover {
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .chapter-select-button {
+    width: 75%;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 36px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .chapter-select-button:hover {
+    background: #f1f3f5;
+    border-color: #dee2e6;
+  }
+
+  .chapter-select-button:active {
+    transform: translateY(1px);
+  }
+
+  .button-content {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+  }
+
+  .button-content h2 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .button-content svg {
+    color: var(--text-secondary);
+  }
+
+  .text-adjustable {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .header,
+  .nav-button,
+  .modal-header,
+  .modal-content button {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    font-size: 14px !important;
+  }
+
+  :deep(.bible-content) {
+    line-height: 1.8;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    font-size: 16px;
+    min-height: 0vw;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :deep(.bible-content p) {
+    margin: 1em 0;
+  }
+
+  :deep(.bible-content .chapter-num) {
+    font-weight: bold;
+    color: #4170CD;
+    font-size: 1rem !important;
+  }
+
+  :deep(.bible-content .verse-num) {
+    font-size: 0.85em;
+    color: #666;
+    vertical-align: top;
+    margin-right: 0.2em;
+  }
+
+  @media (max-width: 640px) {
+    :deep(.bible-content) {
+      font-size: 18px;
+    }
+  }
+
+  .current-page {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .current-page {
+      font-size: 0.875rem;
+    }
+  }
+
+  .link-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .link-button {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .link-button[href*="audio"] {
+    background: var(--red-light);
+    color: var(--red-primary);
+  }
+
+  .link-button[href*="audio"]:hover {
+    background: var(--red-hover);
+  }
+
+  .link-button[href*="guide"] {
+    background: var(--blue-light);
+    color: var(--blue-primary);
+  }
+
+  .link-button[href*="guide"]:hover {
+    background: var(--blue-hover);
+  }
+
+  @media (max-width: 640px) {
+    .link-button {
+      padding: 0.375rem;
+    }
+
+    .link-text {
+      font-size: 0.6875rem;
+    }
+  }
+
+  .chapter-controls {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .chapter-select-button-wrapper.left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+    /* 오버플로우 방지를 위해 필요 */
+  }
+
+  .chapter-select-button-wrapper.right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    /* 크기 고정 */
+    max-width: 120px;
+  }
+
+  .chapter-select-button {
+    flex: 1;
+    min-width: 0;
+    /* 오버플로우 방지 */
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 36px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .font-size-controls {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  .version-button {
+    flex: 0 0 auto;
+    min-width: 85px;
+    /* "공동번역 개정판" 텍스트 고려 */
+    max-width: 130px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 36px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .version-button .button-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .version-button .button-content svg,
+  .chapter-select-button .button-content svg {
+    flex-shrink: 0;
+  }
+
+  .chapter-select-button .button-content svg {
+    margin: 0 -0.05rem 0 -0.2rem;
+  }
+
+  .version-button .button-content h2 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.875rem;
+  }
+
+  .chapter-select-button .button-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .chapter-select-button .button-content h2 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 640px) {
+    .chapter-controls {
+      gap: 0.35rem;
+    }
+
+    .chapter-select-button-wrapper.left {
+      gap: 0.35rem;
+    }
+
+    .version-button {
+      min-width: 100px;
+      max-width: 110px;
+      padding: 0.35rem 0.5rem;
+    }
+
+    .version-button .button-content h2,
+    .chapter-select-button .button-content h2 {
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .version-button {
+      min-width: 85px;
+      max-width: 95px;
+      padding: 0.35rem 0.4rem;
+    }
+
+    .font-size-controls {
+      gap: 0.25rem;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .chapter-controls {
+      gap: 0.25rem;
+    }
+
+    .chapter-select-button-wrapper.left {
+      gap: 0.25rem;
+    }
+
+    .version-button {
+      min-width: 80px;
+      max-width: 85px;
+    }
+
+    .version-button .button-content h2 {
+      font-size: 0.75rem;
+    }
+
+    .font-button {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  .font-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e9ecef;
+    background: #f8f9fa;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .font-button {
+      padding: 0;
+      margin: 0;
+    }
+  }
+
+  .font-button:hover:not(:disabled) {
+    background: #f1f3f5;
+    border-color: #dee2e6;
+  }
+
+  .font-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .font-icon {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .font-icon.small {
+    font-size: 0.7rem;
+  }
+
+  @media (max-width: 640px) {
+    .font-button {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  .font-button.reset {
+    color: var(--text-secondary);
+  }
+
+  .font-button.reset:hover:not(:disabled) {
+    color: var(--text-primary);
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .font-button {
+      padding: 0;
+      margin: 0;
+    }
+  }
+
+  .chapter-range {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .chapter-dot {
+    color: #CBD5E1;
+    margin: 0 0.1rem;
+    font-size: 0.75em;
+  }
+
+  @media (max-width: 640px) {
+    .chapter-range {
+      font-size: 0.8125rem;
+      gap: 0.1rem;
+    }
+
+    .chapter-dot {
+      margin: 0 0.05rem;
+      font-size: 0.7em;
+    }
+  }
+
+  .schedule-date {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+  }
+
+  .schedule-date.completed {
+    color: var(--primary-color);
+  }
+
+  .schedule-date.not-completed {
+    color: #e54444;
+  }
+
+  .schedule-date.current {
+    color: #4170CD;
+  }
+
+  .schedule-date.upcoming {
+    color: #94A3B8;
+  }
+
+  @media (max-width: 640px) {
+    .schedule-date {
+      font-size: 0.8rem;
+      gap: 0.25rem;
+    }
+
+    .status-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+  }
+
+  @media (max-width: 640px) {
+    .schedule-button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      height: 28px;
+      gap: 0.25rem;
+    }
+  }
+
+  .confirm-modal {
+    max-width: 320px;
+    max-height: 320px;
+    width: 90%;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    margin: 1rem;
+    padding: 1rem;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .confirm-button {
+    width: 100%;
+    padding: 0.45rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+  }
+
+  .confirm-button:hover {
+    background: var(--primary-dark);
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .chapter-ellipsis {
+    color: #CBD5E1;
+    letter-spacing: 1px;
+    margin: 0 -0.1rem;
+    font-size: 0.75em;
+  }
+
+  .chapter-separator {
+    color: #CBD5E1;
+    margin: 0 0.25rem;
+  }
+
+  .chapter-number {
+    font-weight: 400;
+  }
+
+  .chapter-number.current {
+    font-weight: 700;
+    color: var(--primary-color);
+  }
+
+  .chapter-number.completed {
+    color: var(--primary-color);
+  }
+
+  @media (max-width: 640px) {
+    .chapter-separator {
+      margin: 0 0.15rem;
+    }
+  }
+
+  .status-icon.today {
+    background: #EFF6FF;
+    color: #2563EB;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.05rem 0.25rem;
+    border-radius: 4px;
+    width: auto;
+    height: auto;
+    border: 1px solid currentColor;
+  }
+
+  :deep(.error-message) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #64748B;
+    gap: 1rem;
+  }
+
+  :deep(.error-message svg) {
+    color: #DC2626;
+  }
+
+  :deep(.error-message h3) {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #334155;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  :deep(.error-message p) {
+    font-size: 0.9375rem;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  :deep(.external-link) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.85rem;
+    font-size: 0.85rem;
+    background: #EFF6FF;
+    color: #2563EB;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    margin-top: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.external-link:hover) {
+    background: #DBEAFE;
+  }
+
+  :root {
+    --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .page-container {
+    font-family: var(--font-family);
+  }
+
+  :deep(.bible-content) {
+    font-family: var(--font-family);
+    line-height: 1.8;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    font-size: 16px;
+    min-height: 0vw;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.touch-device .nav-button:hover svg {
+    transform: none !important;
+  }
+
+  html.touch-device .nav-button.prev:hover svg,
+  html.touch-device .nav-button.next:hover svg {
+    transform: none !important;
+  }
+
+  @media (hover: hover) {
+    html.no-touch-device .nav-button:hover {
+      background-color: #e5e7eb;
+      color: #1f2937;
+    }
+
+    html.no-touch-device .nav-button.prev:hover svg {
+      transform: translateX(-2px);
+    }
+
+    html.no-touch-device .nav-button.next:hover svg {
+      transform: translateX(2px);
+    }
+  }
+
+  .nav-button:active {
+    transform: translateY(1px);
+    background-color: #e5e7eb;
+    color: #1f2937;
+  }
+
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  .loading-spinner.small {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spinner 0.8s linear infinite;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+  }
+
+  .complete-button:disabled span:not(.loading-spinner),
+  .complete-button:disabled svg,
+  .complete-cancel-button:disabled span:not(.loading-spinner),
+  .complete-cancel-button:disabled svg {
+    opacity: 0;
+  }
+
+  .complete-button span,
+  .complete-cancel-button span {
+    margin: 0 0.15rem;
+  }
+
+  @keyframes spinner {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .reading-sections {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 0.875rem;
+  }
+
+  .section-separator {
+    color: #CBD5E1;
+    margin: 0 0.75rem;
+  }
+
+  .section-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748B;
+    margin-right: 0.25rem;
+    transition: all 0.2s ease;
+  }
+
+  .section-number.current-section {
+    background: #F0FDF4;
+    border-color: #c3e0cd;
+    color: var(--primary-color);
+  }
+
+  .book-name {
+    color: #64748B;
+    font-weight: 500;
+    margin-right: 0.5rem;
+  }
+
+  .book-name.current-book {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-right: 0.5rem;
+  }
+
+  .book-name.other-book {
+    margin-right: 0;
+  }
+
+  .chapter-numbers {
+    display: inline-flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .chapter-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0.75rem;
+    padding: 0 0.35rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    color: #64748B;
+  }
+
+  .chapter-box.current {
+    background: var(--primary-light);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+  }
+
+  .chapter-box.not-completed {
+    background: #FEF2F2;
+    border-color: var(--error);
+    color: var(--error);
+  }
+
+  @media (max-width: 640px) {
+    .reading-sections {
+      font-size: 0.85rem;
+    }
+
+    .chapter-box {
+      min-width: 1rem;
+      height: 1.25rem;
+      font-size: 0.75rem;
+    }
+
+    .section-number {
+      width: 1.25rem;
+      height: 1.25rem;
+      font-size: 0.75rem;
+    }
+  }
+
+  .plan-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: #e39611;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  .plan-warning svg {
+    color: #e39611;
+  }
+
+  @media (max-width: 640px) {
+    .plan-warning {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      gap: 0.25rem;
+    }
+  }
+
+  .hidden-schedule-content {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  :deep(.section-title .reference) {
+    font-size: 0.75em;
+    font-weight: 500;
+    color: #6B7280;
+    letter-spacing: -0.1em;
+  }
+
+  .modal-fade-enter-active,
+  .modal-fade-leave-active {
+    transition: opacity 0.3s ease;
+  }
+
+  .modal-fade-enter-from,
+  .modal-fade-leave-to {
+    opacity: 0;
+  }
+
+  .modal-slide-enter-active {
+    animation: modalSlideUp 0.3s ease-out forwards;
+  }
+
+  .modal-slide-leave-active {
+    animation: modalSlideDown 0.3s ease-in forwards;
+  }
+
+  @keyframes modalSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes modalSlideDown {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    to {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+  }
+
+  .schedule-modal {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow: hidden;
+    background: #FFFFFF;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  .version-modal {
+    max-width: 300px;
+    max-height: 420px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .versions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: 350px;
+    /* 모달 내에서 스크롤 가능한 영역 크기 지정 */
+  }
+
+  .version-select-button {
+    width: 100%;
+    padding: 0.75rem;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    letter-spacing: -0.02em;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .version-select-button.active {
+    background: var(--primary-light);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    font-weight: 600;
+  }
+
+  .version-select-button:hover {
+    background: var(--primary-light);
+  }
+
+  .version-select-button .button-content {
+    display: flex;
+    align-items: center;
+  }
+
+  .chapter-select-button {
+    flex: 1;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 36px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .version-button {
+    flex: 0 0 auto;
+    max-width: 140px;
+    /* 역본 버튼 너비 살짝 늘림 */
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 36px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .version-button .button-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .version-button .button-content h2 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .chapter-select-button {
+      height: 32px
+    }
+
+    .version-button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 32px;
+      min-width: 60px;
+    }
+
+    .version-button .button-content svg {
+      margin: 0 -0.05rem 0 -0.05rem;
+    }
+  }
+
+  :deep(.sub-title) {
+    font-size: 0.875rem;
+    color: #6B7280;
+    font-style: italic;
+  }
+
+  :deep(.paragraph) {
+    margin: 0.5rem 0;
+    line-height: 1.8;
+  }
+
+
+  .new-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e53e3e;
+    color: white;
+    font-size: 0.625rem;
+    font-weight: 700;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-left: 0.375rem;
+    line-height: 1;
+  }
+
+  .version-button .button-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+  }
+
+  .today-reading-header {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 10;
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: none;
+    /* 애니메이션 효과 제거 */
+  }
+
+  /* Top 버튼 스타일 */
   .top-button {
-    width: 2.5rem;
-    height: 2.5rem;
-    right: 1rem;
+    position: fixed;
+    bottom: 4.75rem;
+    /* 위치 조정 */
+    right: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 30;
+    color: #64748b;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    opacity: 1;
   }
-}
-</style>
+
+  .top-button:hover {
+    background: #f8fafc;
+    color: #475569;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  /* 모바일 기기에서 크기 조정 */
+  @media (max-width: 640px) {
+    .top-button {
+      width: 40px;
+      height: 40px;
+      right: 1rem;
+      bottom: 5.5rem;
+    }
+  }
+
+  /* 페이드 트랜지션 효과 */
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.3s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+    /* 사라질 때 투명도 */
+  }</style>
