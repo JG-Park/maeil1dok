@@ -31,8 +31,8 @@
           </div>
         </div> -->
 
-        <!-- 앱 설치 방법 -->
-        <!-- <div class="notice-content" style="margin-top: 0.5rem" @click="navigateTo('/install')">
+      <!-- 앱 설치 방법 -->
+      <!-- <div class="notice-content" style="margin-top: 0.5rem" @click="navigateTo('/install')">
           <div class="notice-icon app-icon disabled">
             APP
           </div>
@@ -191,15 +191,18 @@
           <div class="stat-item">
             <div class="stat-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path
+                  d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z"
+                  stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ visitorStats.daily_visitors.toLocaleString() }}명 / {{ visitorStats.total_visitors.toLocaleString() }}명</div>
+              <div class="stat-value">{{ visitorStats.daily_visitors.toLocaleString() }}명 / {{
+                visitorStats.total_visitors.toLocaleString() }}명</div>
               <div class="stat-label">오늘 / 전체 방문자</div>
             </div>
           </div>
-          
+
           <div class="stat-item">
             <div class="stat-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -403,16 +406,90 @@ const subscriptionStore = useSubscriptionStore()
 const selectedPlanStore = useSelectedPlanStore()
 const isAuthenticated = computed(() => auth.isAuthenticated)
 
+
 const router = useRouter()
 const introTasks = ref([])
 const loadingIntros = ref(false)
 
-// 현재 요일이 일요일인지 체크 (0 = 일요일)
+
+const showSundayModal = ref(false)
+const showPlanDropdown = ref(false)
+const showStatsPlanDropdown = ref(false)
+const showProgressPlanDropdown = ref(false)
+
+const selectedPlanId = computed({
+  get: () => selectedPlanStore.selectedPlanId,
+  set: (value) => selectedPlanStore.setSelectedPlanId(value)
+})
+
+const selectedPlanName = computed(() => {
+  if (!auth.isAuthenticated) return '기본 플랜'
+
+  const selectedPlan = subscriptionStore.subscriptions.find(
+    sub => sub.plan_id === selectedPlanId.value
+  )
+  return selectedPlan ? selectedPlan.plan_name : '플랜 선택'
+})
+
 const isSunday = computed(() => {
   return new Date().getDay() === 0
 })
 
-// 이 아래부터는 기존 코드 그대로...
+const fetchStats = async () => {
+  try {
+    const planId = selectedPlanId.value || 1 // 기본 플랜 ID는 1로 가정
+
+    // 사용자 통계 가져오기
+    const usersResponse = await api.get('/api/v1/todos/stats/users/', {
+      params: { plan_id: planId }
+    })
+    if (usersResponse.data.success) {
+      totalMembers.value = usersResponse.data.total_users
+    }
+
+    const planStatsResponse = await api.get('/api/v1/todos/stats/plan/', {
+      params: { plan_id: planId }
+    })
+
+    if (planStatsResponse.data.success) {
+      todayReaders.value = planStatsResponse.data.today_completed_users
+    }
+
+    const progressResponse = await api.get('/api/v1/todos/stats/progress/', {
+      params: { plan_id: planId }
+    })
+
+    if (progressResponse.data.success) {
+      progressPercentage.value = progressResponse.data.theoretical_progress
+      personalProgressPercentage.value = progressResponse.data.user_progress
+    }
+  } catch (error) {
+    console.error('통계 데이터를 가져오는 중 오류가 발생했습니다:', error)
+  }
+}
+
+  ; (async () => {
+    try {
+      if (auth.isAuthenticated) {
+        await subscriptionStore.fetchSubscriptions()
+
+        selectedPlanStore.initializeFromStorage()
+
+        if (!selectedPlanId.value || !subscriptionStore.subscriptions.find(sub => sub.plan_id === selectedPlanId.value)) {
+          if (subscriptionStore.subscriptions.length > 0) {
+            selectedPlanStore.setSelectedPlanId(subscriptionStore.subscriptions[0].plan_id)
+          }
+        }
+      } else {
+        selectedPlanStore.setSelectedPlanId(1)
+      }
+
+      await fetchStats()
+    } catch (error) {
+      console.error('초기 데이터 로드 실패:', error)
+    }
+  })()
+
 const todayTasks = ref([
   {
     id: 1,
@@ -439,33 +516,11 @@ const initTodayTasks = () => {
   ]
 }
 
-// 일요일 모달 상태 관리
-const showSundayModal = ref(false)
-
 // 모달 닫기
 const closeSundayModal = () => {
   showSundayModal.value = false
 }
 
-// 플랜 관련 상태 추가
-const selectedPlanId = computed({
-  get: () => selectedPlanStore.selectedPlanId,
-  set: (value) => selectedPlanStore.setSelectedPlanId(value)
-})
-const showPlanDropdown = ref(false)
-// 새로운 드롭다운 상태 추가
-const showStatsPlanDropdown = ref(false)
-const showProgressPlanDropdown = ref(false)
-
-// 선택된 플랜 이름 computed 추가
-const selectedPlanName = computed(() => {
-  if (!auth.isAuthenticated) return '기본 플랜'
-
-  const selectedPlan = subscriptionStore.subscriptions.find(
-    sub => sub.plan_id === selectedPlanId.value
-  )
-  return selectedPlan ? selectedPlan.plan_name : '플랜 선택'
-})
 
 // 통계 데이터를 위한 ref 추가
 const totalMembers = ref(0)
@@ -508,7 +563,7 @@ const fetchVisitorStats = async () => {
 const incrementVisitorCount = async () => {
   try {
     const response = await api.post('/api/v1/todos/stats/visitors/increment/')
-    
+
     if (response.data && response.data.success) {
       // 응답에서 직접 데이터를 사용
       visitorStats.value = {
@@ -524,42 +579,6 @@ const incrementVisitorCount = async () => {
     // 실패해도 기존 통계는 표시
     await fetchVisitorStats();
     throw error; // 에러를 다시 던져서 호출자가 처리할 수 있게 함
-  }
-}
-
-// 통계 데이터 가져오기
-const fetchStats = async () => {
-  try {
-    const planId = selectedPlanId.value || 1 // 기본 플랜 ID는 1로 가정
-
-    // 사용자 통계 가져오기
-    const usersResponse = await api.get('/api/v1/todos/stats/users/', {
-      params: { plan_id: planId }
-    })
-    if (usersResponse.data.success) {
-      totalMembers.value = usersResponse.data.total_users
-    }
-
-    // 선택된 플랜의 통계 가져오기
-    const planStatsResponse = await api.get('/api/v1/todos/stats/plan/', {
-      params: { plan_id: planId }
-    })
-
-    if (planStatsResponse.data.success) {
-      todayReaders.value = planStatsResponse.data.today_completed_users
-    }
-
-    // 진행률 통계 가져오기
-    const progressResponse = await api.get('/api/v1/todos/stats/progress/', {
-      params: { plan_id: planId }
-    })
-
-    if (progressResponse.data.success) {
-      progressPercentage.value = progressResponse.data.theoretical_progress
-      personalProgressPercentage.value = progressResponse.data.user_progress
-    }
-  } catch (error) {
-    console.error('통계 데이터를 가져오는 중 오류가 발생했습니다:', error)
   }
 }
 
@@ -605,65 +624,31 @@ const closeDropdownOnOutsideClick = (event) => {
 onMounted(() => {
   document.addEventListener('click', closeDropdownOnOutsideClick)
 
-  // 비동기 함수로 래핑
-  const initData = async () => {
-    if (auth.isAuthenticated) {
-      try {
-        // 구독 정보를 먼저 로드
-        await subscriptionStore.fetchSubscriptions()
-
-        // 저장된 플랜 ID 복원
-        selectedPlanStore.initializeFromStorage()
-
-        // 저장된 플랜 ID가 없거나 유효하지 않은 경우 첫 번째 구독의 플랜 ID 사용
-        if (!selectedPlanId.value || !subscriptionStore.subscriptions.find(sub => sub.plan_id === selectedPlanId.value)) {
-          if (subscriptionStore.subscriptions.length > 0) {
-            selectedPlanStore.setSelectedPlanId(subscriptionStore.subscriptions[0].plan_id)
-          }
-        }
-
-        // 통계 데이터 로드
-        await fetchStats()
-
-      } catch (error) {
-        console.error('데이터를 가져오는데 실패했습니다:', error)
-      }
-    } else {
-      // 미로그인 사용자를 위한 기본 통계
-      selectedPlanStore.setSelectedPlanId(1) // 기본 플랜 ID
-      await fetchStats()
-    }
-  }
-
-  // 방문자 카운트 관련 로직을 별도의 비동기 함수로 분리
+  // 방문자 카운트 관련 로직 실행
   const initVisitorCount = async () => {
-    // 세션 ID를 포함한 더 강력한 방문 체크 (날짜도 포함)
-    const today = new Date().toDateString();
-    const visitKey = `visited_${today}`;
-    
+    const today = new Date().toDateString()
+    const visitKey = `visited_${today}`
+
     if (!sessionStorage.getItem(visitKey)) {
       try {
-        await incrementVisitorCount();
+        await incrementVisitorCount()
       } catch (error) {
-        console.error('방문자 카운터 증가 실패, 통계만 로드합니다:', error);
-        await fetchVisitorStats();
+        console.error('방문자 카운터 증가 실패, 통계만 로드합니다:', error)
+        await fetchVisitorStats()
       }
       sessionStorage.setItem(visitKey, 'true')
     } else {
-      await fetchVisitorStats();
+      await fetchVisitorStats()
     }
   }
 
-  // 비동기 함수들 실행
-  initData()
+  // 페이지 데이터 로드 및 이벤트 리스너 등록
   initVisitorCount()
-  
-  // 영상 개론 목록 가져오기
   fetchVideoIntros()
-
   initTodayTasks()
+  fetchHasenaStatus()
 
-  // 하세나 상태 변경 이벤트 리스너 추가
+  // 이벤트 리스너 등록
   window.addEventListener('hasenaStatusUpdated', refreshHasenaStatus)
 })
 
@@ -709,14 +694,14 @@ const toggleTask = async (task) => {
     }
     return
   }
-  
+
   // 성경통독표 버튼 - 일정 체크 없이 바로 이동
   if (task.id === 2 || task.title === '성경통독표') {
     const planId = auth.isAuthenticated && selectedPlanId.value ? selectedPlanId.value : 1
     router.push(`/reading-plan?plan=${planId}`)
     return
   }
-  
+
   // 하세나하시조 버튼 - 완료 상태 반영
   if (task.id === 3 || task.title === '하세나하시조') {
     router.push('/hasena')
@@ -732,15 +717,15 @@ const handleTodayReading = async () => {
 
     // 오늘의 스케줄 조회
     const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${planId}`)
-    
+
     if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
       // 첫 번째 스케줄 정보 가져오기
       const schedule = response.data.schedules[0]
-      
+
       // reading 페이지로 이동
       router.push({
         path: '/reading',
-        query: { 
+        query: {
           plan: planId,
           book: schedule.book_code,
           chapter: schedule.start_chapter
@@ -762,16 +747,16 @@ const handleTodayReading = async () => {
 const navigateToReading = async () => {
   closeSundayModal()
   const planId = selectedPlanId.value || 1
-  
+
   try {
     // 내일 일정 가져오기
     const response = await api.get(`/api/v1/todos/schedules/tomorrow/?plan_id=${planId}`)
-    
+
     if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
       const schedule = response.data.schedules[0]
       const bookCode = schedule.book_code
       const startChapter = schedule.start_chapter || 1
-      
+
       router.push(`/reading?plan=${planId}&book=${bookCode}&chapter=${startChapter}`)
     } else {
       ('내일 일정이 없습니다')
@@ -915,7 +900,7 @@ const fetchHasenaStatus = async () => {
       // 로그인하지 않은 경우 API 호출하지 않음
       return;
     }
-    
+
     const response = await useApi().get('/api/v1/todos/hasena/status/');
     hasenaStatus.value = response.data;
   } catch (error) {
@@ -923,20 +908,6 @@ const fetchHasenaStatus = async () => {
     // 오류 처리 로직
   }
 }
-
-// 페이지 로드 시 하세나 상태도 함께 조회
-onMounted(async () => {
-  initTodayTasks()
-  
-  // 이벤트 리스너 등록
-  window.addEventListener('hasenaStatusUpdated', refreshHasenaStatus)
-  
-  // 초기 데이터 로드
-  await Promise.all([
-    fetchVideoIntros(),
-    fetchHasenaStatus()
-  ])
-})
 
 // 컴포넌트 언마운트 시 이벤트 리스너 제거
 onBeforeUnmount(() => {
@@ -971,7 +942,8 @@ const refreshHasenaStatus = async () => {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 50; /* z-index 감소 */
+  z-index: 50;
+  /* z-index 감소 */
   background: var(--background-color);
 }
 
@@ -1960,7 +1932,7 @@ h2 {
   background: #f8f9fa;
 }
 
-.notice-content + .notice-content {
+.notice-content+.notice-content {
   margin-top: 0.75rem;
 }
 </style>
