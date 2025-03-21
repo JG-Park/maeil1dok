@@ -256,40 +256,6 @@ const toggleSubscription = async (subscription) => {
   }
 }
 
-// 오늘의 읽기 일정 확인
-const checkTodayReading = async (subscription) => {
-  if (!subscription.is_active) {
-    toast.error('비활성화된 플랜입니다. 먼저 플랜을 다시 구독해주세요.')
-    return
-  }
-
-  try {
-    const response = await api.get(`/api/v1/todos/plans/${subscription.plan_id}/today/`)
-
-    if (response.data && response.data.has_reading) {
-      // 오늘 읽을 내용이 있는 경우
-      modalTitle.value = '오늘의 성경 읽기'
-      modalMessage.value = `오늘 읽을 내용: ${response.data.reading_content}`
-      hasReadingData.value = true
-      currentReadingData.value = {
-        planId: subscription.plan_id,
-        readingId: response.data.reading_id
-      }
-    } else {
-      // 오늘 읽을 내용이 없는 경우
-      modalTitle.value = '알림'
-      modalMessage.value = '오늘은 이 플랜에 예정된 읽기 일정이 없습니다.'
-      hasReadingData.value = false
-      currentReadingData.value = null
-    }
-
-    showModal.value = true
-  } catch (err) {
-    console.error('API 오류:', err)
-    toast.error('오늘의 읽기 일정을 불러오는데 실패했습니다.')
-  }
-}
-
 // 읽기 페이지로 이동
 const goToReading = () => {
   if (currentReadingData.value) {
@@ -508,14 +474,14 @@ onMounted(async () => {
 }
 
 /* 플랜 카드 내부 레이아웃 수정 */
-.plan-card-content > div {
+.plan-card-content>div {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
 }
 
-.plan-card-content > div > div:first-child {
+.plan-card-content>div>div:first-child {
   flex: 1;
 }
 
@@ -526,7 +492,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap; /* 긴 제목 처리 */
+  flex-wrap: wrap;
+  /* 긴 제목 처리 */
 }
 
 .default-badge {
@@ -544,7 +511,8 @@ onMounted(async () => {
   color: var(--text-secondary);
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  word-break: break-word; /* 긴 설명 텍스트 처리 */
+  word-break: break-word;
+  /* 긴 설명 텍스트 처리 */
 }
 
 .subscriber-count {
