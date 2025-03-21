@@ -94,7 +94,7 @@
     </div>
 
     <!-- 일정 목록 -->
-    <div class="schedule-body fade-in" style="animation-delay: 0.2s" :data-is-modal="props.isModal">
+    <div class="schedule-body fade-in" style="animation-delay: 0.2s" :data-is-modal="props.isModal" ref="scheduleBodyRef">
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
         <span>일정을 불러오는 중...</span>
@@ -146,7 +146,7 @@
                 <div class="schedule-reading">
                   <span v-if="isCurrentLocation(schedule)" class="current-location-badge">현재 위치</span>
                   <span class="bible-text">
-                    {{ schedule.book }} {{ schedule.start_chapter === schedule.end_chapter ? 
+                    {{ schedule.book }} {{ schedule.start_chapter === schedule.end_chapter ?
                       schedule.start_chapter : `${schedule.start_chapter}-${schedule.end_chapter}` }}장
                   </span>
                 </div>
@@ -284,12 +284,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch, onBeforeUnmount } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useApi } from '@/composables/useApi'
-import { useToast } from '@/composables/useToast'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
+import { useApi } from '~/composables/useApi'
+import { useToast } from '~/composables/useToast'
+import { useScrollToElement } from '~/composables/useScrollToElement'
 
-// 타입 정의 추가
+// 타입 정의
 interface Schedule {
   id: number;
   date: string;
@@ -320,11 +321,13 @@ interface RangeSelectPayload {
   planId: string | null;
 }
 
+// Vue Router & Store
 const authStore = useAuthStore()
 const api = useApi()
 const router = useRouter()
 const route = useRoute()
 
+// Props & Emits
 const props = defineProps({
   isModal: {
     type: Boolean,
@@ -350,29 +353,25 @@ const props = defineProps({
 
 const emit = defineEmits(['schedule-select', 'range-select'])
 
-// 상태 변수들
+// UI 상태 변수
+const isLoading = ref(true)
+const showModal = ref(false)
+const showLoginModal = ref(false)
+const showPlanModal = ref(false)
+const showScrollTop = ref(false)
+const showDefaultPlanMessage = ref(false)
+
+// 데이터 상태 변수
 const selectedMonth = ref(new Date().getMonth() + 1)
 const months = Array.from({ length: 12 }, (_, i) => i + 1)
 const schedules = ref<Schedule[]>([])
-const readingHistory = ref<any[]>([])
-const isLoading = ref(true)
-const isInitialized = ref(false)
-
-// 모달 관련 상태와 함수들
-const showModal = ref(false)
-const selectedSchedule = ref<Schedule | null>(null)
-
-// 로그인 모달 관련 상태와 함수들
-const showLoginModal = ref(false)
-
-// 구독 관련 상태
 const subscriptions = ref<Subscription[]>([])
 const selectedSubscriptionId = ref<string | null>(null)
+const selectedSchedule = ref<Schedule | null>(null)
+const defaultPlanName = ref('')
+const isInitialized = ref(false)
 
-// 플랜 선택 모달 관련 상태
-const showPlanModal = ref(false)
-
-// 일괄 수정 관련 상태 수정
+// 일괄 수정 상태 변수
 const bulkEditState = ref<BulkEditState>({
   firstSchedule: null,
   secondSchedule: null,
@@ -380,82 +379,36 @@ const bulkEditState = ref<BulkEditState>({
   showActions: false
 })
 
-// 스크롤 관련 상태
-const showScrollTop = ref(false)
+// 스크롤 컨테이너 ref 추가
+const scheduleBodyRef = ref<HTMLElement | null>(null)
 
-// ref 선언 부분에 추가
-const showDefaultPlanMessage = ref(false)
-const defaultPlanName = ref('')
+// Toast & Scroll 컴포저블
+const { success, error: showError, warning } = useToast()
+const { scrollToElement, setScrollContainer } = useScrollToElement()
 
-// ref 선언 추가
-const toastRef = ref(null)
-
-// 스크롤 이벤트 핸들러
-const handleScroll = (event: Event) => {
-  const target = event.target as HTMLElement
-  const scrollY = target.scrollTop
-  showScrollTop.value = scrollY > 200 // 200px 이상 스크롤되면 버튼 표시
-}
-
-// 최상단으로 스크롤
-const scrollToTop = () => {
-  const scheduleBody = document.querySelector('.schedule-body')
-  if (scheduleBody) {
-    scheduleBody.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
-  }
-}
-
-// 스크롤 이벤트 리스너 등록/해제
-onMounted(() => {
-  const scheduleBody = document.querySelector('.schedule-body')
-  if (scheduleBody) {
-    scheduleBody.addEventListener('scroll', handleScroll)
-  }
-})
-
-onBeforeUnmount(() => {
-  const scheduleBody = document.querySelector('.schedule-body')
-  if (scheduleBody) {
-    scheduleBody.removeEventListener('scroll', handleScroll)
-  }
-})
-
-// 상단에 computed 추가
+// Computed 속성
+// 선택된 플랜 이름
 const selectedPlanName = computed(() => {
-  // URL에 plan 파라미터가 있는지 확인
-  if (route.query.plan) {
-    // 해당 plan_id와 일치하는 구독 찾기
     const planId = route.query.plan as string
-    const selectedPlan = subscriptions.value.find(
-      sub => String(sub.plan_id) === String(planId)
-    )
 
-    // 구독이 있으면 해당 플랜 이름 반환
+  if (planId) {
+    const selectedPlan = subscriptions.value.find(sub => String(sub.plan_id) === String(planId))
     if (selectedPlan) {
       return selectedPlan.plan_name
     }
   }
 
-  // 선택된 구독 ID가 있으면 해당 플랜 이름 반환
   if (selectedSubscriptionId.value) {
-    const selectedPlan = subscriptions.value.find(
-      sub => String(sub.plan_id) === String(selectedSubscriptionId.value)
-    )
-
+    const selectedPlan = subscriptions.value.find(sub => String(sub.plan_id) === String(selectedSubscriptionId.value))
     if (selectedPlan) {
       return selectedPlan.plan_name
     }
   }
 
-  // 모달이 아니고 useDefaultPlan이 false인 경우 '플랜 선택' 표시
   if (!props.useDefaultPlan) {
     return '플랜 선택'
   }
 
-  // 구독이 있으면 첫 번째 구독의 플랜 이름 반환
   if (subscriptions.value.length > 0) {
     return subscriptions.value[0].plan_name
   }
@@ -463,97 +416,78 @@ const selectedPlanName = computed(() => {
   return '플랜 선택'
 })
 
-// 플랜 선택 모달이 열릴 때 초기 선택 상태 설정 수정
-watch(showPlanModal, (newValue) => {
-  if (newValue && !props.useDefaultPlan) {
-    // 모달이 열릴 때 현재 선택된 플랜 유지 (URL 파라미터 기반)
-    if (route.query.plan) {
-      const planId = route.query.plan as string
-      const planExists = subscriptions.value.some(sub => sub.plan_id === planId)
-
-      if (planExists) {
-        selectedSubscriptionId.value = planId
-      }
-    }
-  }
-})
-
-// 플랜 선택 핸들러
-const selectPlan = (subscription: Subscription) => {
-  // 선택된 구독 ID 직접 업데이트
-  selectedSubscriptionId.value = subscription.plan_id
-  
-  router.push({
-    query: { ...route.query, plan: subscription.plan_id }
-  })
-  showPlanModal.value = false
-}
-
-// Toast 설정
-const { success, error: showError, warning } = useToast()
-
-// 스케줄을 날짜별로 그룹화하는 함수
-const groupSchedulesByDate = (scheduleList: Schedule[]) => {
-  if (!scheduleList) return {}
-
-  const grouped: Record<string, Schedule[]> = {}
-  scheduleList.forEach(schedule => {
-    if (!grouped[schedule.date]) {
-      grouped[schedule.date] = []
-    }
-    grouped[schedule.date].push(schedule)
-  })
-
-  return grouped
-}
-
-// 그룹화된 필터링된 스케줄
+// 날짜별로 그룹화된 스케줄
 const filteredGroupedSchedules = computed(() => {
   if (!isInitialized.value) return null
   if (!schedules.value) return {}
 
-  // 월별 필터링
   const monthlySchedules = schedules.value.filter(schedule => {
     const scheduleDate = new Date(schedule.date)
     return scheduleDate.getMonth() + 1 === selectedMonth.value
   })
 
-  // 날짜별 그룹화
   return groupSchedulesByDate(monthlySchedules)
 })
 
-// 성경책 그룹을 자연스럽게 표시하는 함수
+// 스크롤 핸들러
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  const scrollY = target.scrollTop
+  showScrollTop.value = scrollY > 200
+}
+
+// 최상단으로 스크롤
+const scrollToTop = () => {
+  scrollToElement(document.querySelector('.schedule-item') as HTMLElement, { behavior: 'smooth' })
+}
+
+// 날짜 포맷팅
+const formatScheduleDate = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const days = ['일', '월', '화', '수', '목', '금', '토']
+  const isMobile = window.innerWidth <= 640
+
+  if (isMobile) {
+    return `${date.getMonth() + 1}/${date.getDate()}(${days[date.getDay()]})`
+  }
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
+}
+
+// 오늘 날짜 확인
+const isToday = (dateString: string) => {
+  const today = new Date()
+  const scheduleDate = new Date(dateString)
+
+  return today.getFullYear() === scheduleDate.getFullYear() &&
+    today.getMonth() === scheduleDate.getMonth() &&
+    today.getDate() === scheduleDate.getDate()
+}
+
+// 성경책 그룹 포맷팅
 const formatScheduleGroup = (scheduleGroup: Schedule[]) => {
   if (!scheduleGroup || scheduleGroup.length === 0) return ''
 
   if (scheduleGroup.length === 1) {
-    // 단일 성경책인 경우
     const schedule = scheduleGroup[0]
-    // 시작 장과 끝 장이 같으면 한 번만 표시
     if (schedule.start_chapter === schedule.end_chapter) {
       return `${schedule.book} ${schedule.start_chapter}장`
     } else {
       return `${schedule.book} ${schedule.start_chapter}-${schedule.end_chapter}장`
     }
   } else {
-    // 여러 성경책인 경우 (첫 번째 책의 시작장부터 마지막 책의 끝장까지)
     const firstBook = scheduleGroup[0]
     const lastBook = scheduleGroup[scheduleGroup.length - 1]
-
-    // 같은 책이 여러 개일 수 있으므로 중복 제거
-    const uniqueBooks = [...new Set(scheduleGroup.map(s => s.book))].join(', ')
-
-    // 시작 장과 끝 장의 표시 방식 개선
     const startChapterText = `${firstBook.start_chapter}장`
-    const endChapterText = firstBook.book === lastBook.book && 
-                           firstBook.start_chapter === lastBook.end_chapter ? 
-                           '' : `-${lastBook.book} ${lastBook.end_chapter}장`
+    const endChapterText = firstBook.book === lastBook.book &&
+      firstBook.start_chapter === lastBook.end_chapter ?
+      '' : `-${lastBook.book} ${lastBook.end_chapter}장`
 
     return `${firstBook.book} ${startChapterText}${endChapterText}`
   }
 }
 
-// 그룹에 대한 읽기 상태 확인
+// 그룹 읽기 상태 확인
 const getReadingStatusForGroup = (scheduleGroup: Schedule[]) => {
   if (!scheduleGroup || scheduleGroup.length === 0) return 'upcoming'
 
@@ -564,7 +498,6 @@ const getReadingStatusForGroup = (scheduleGroup: Schedule[]) => {
   today.setHours(0, 0, 0, 0)
   scheduleDate.setHours(0, 0, 0, 0)
 
-  // 모든 책이 읽음 상태인지 확인 (BE에서 반환된 is_completed 값 사용)
   const allCompleted = scheduleGroup.every(schedule => schedule.is_completed === true)
 
   if (allCompleted) return 'completed'
@@ -580,7 +513,7 @@ const getReadingStatusForGroup = (scheduleGroup: Schedule[]) => {
   return 'upcoming'
 }
 
-// 그룹에 대한 상태 텍스트
+// 그룹 상태 텍스트
 const getStatusTextForGroup = (scheduleGroup: Schedule[]) => {
   const status = getReadingStatusForGroup(scheduleGroup)
 
@@ -607,256 +540,40 @@ const isCurrentLocationInGroup = (scheduleGroup: Schedule[]) => {
   )
 }
 
-// 그룹 체크박스 클릭 핸들러 수정
-const handleGroupCheckboxClick = async (scheduleGroup: Schedule[]) => {
-  if (!authStore.isAuthenticated) {
-    showLoginModal.value = true
-    return
+// 선택된 구간에 있는지 확인
+const isInSelectedRange = (scheduleGroup: Schedule | null) => {
+  if (!props.isBulkEditMode ||
+    !bulkEditState.value.firstSchedule ||
+    !scheduleGroup) return false
+
+  const firstDate = new Date(bulkEditState.value.firstSchedule.date)
+  const currentDate = new Date(scheduleGroup.date)
+  const secondDate = bulkEditState.value.secondSchedule
+    ? new Date(bulkEditState.value.secondSchedule.date)
+    : null
+
+  if (!secondDate) {
+    return firstDate.getTime() === currentDate.getTime()
   }
 
-  try {
-    const currentStatus = getReadingStatusForGroup(scheduleGroup)
-    const isCompleted = currentStatus !== 'completed'
-    const action = isCompleted ? 'complete' : 'cancel'
+  const startDate = firstDate < secondDate ? firstDate : secondDate
+  const endDate = firstDate < secondDate ? secondDate : firstDate
 
-    // 낙관적 업데이트: 로컬 상태 먼저 변경
-    scheduleGroup.forEach(schedule => {
-      schedule.is_completed = isCompleted
-    })
-
-    // API 호출로 상태 업데이트
-    await api.post('/api/v1/todos/reading/update/', {
-      plan_id: selectedSubscriptionId.value,
-      schedule_ids: scheduleGroup.map(schedule => schedule.id),
-      action: action
-    })
-
-    // 성공 메시지 표시
-    const message = isCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
-    success(message)
-  } catch (err) {
-    console.error('읽기 상태 업데이트 실패:', err)
-
-    // 실패 시 롤백
-    scheduleGroup.forEach(schedule => {
-      schedule.is_completed = !isCompleted
-    })
-
-    showError('상태 변경에 실패했습니다. 다시 시도해주세요.')
-  }
+  return currentDate >= startDate && currentDate <= endDate
 }
 
-// 개별 체크박스 클릭 핸들러 수정
-const handleCheckboxClick = async (schedule: Schedule) => {
-  if (!authStore.isAuthenticated) {
-    showLoginModal.value = true
-    return
-  }
-
-  try {
-    // schedule.is_completed 값으로 isCompleted 변수 초기화
-    const isCompleted = !schedule.is_completed
-    const action = isCompleted ? 'complete' : 'cancel'
-
-    // 낙관적 업데이트: 로컬 상태 먼저 변경
-    schedule.is_completed = isCompleted
-
-    // API 호출로 상태 업데이트
-    await api.post('/api/v1/todos/reading/update/', {
-      plan_id: selectedSubscriptionId.value,
-      schedule_ids: [schedule.id],
-      action: action
-    })
-
-    // 성공 메시지 표시
-    const message = isCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
-    success(message)
-  } catch (err) {
-    console.error('읽기 상태 업데이트 실패:', err)
-
-    // 실패 시 롤백
-    schedule.is_completed = !schedule.is_completed
-
-    showError('상태 변경에 실패했습니다. 다시 시도해주세요.')
-  }
-}
-
-// 날짜 포맷팅 함수
-const formatScheduleDate = (dateString: string) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  const days = ['일', '월', '화', '수', '목', '금', '토']
-
-  const isMobile = window.innerWidth <= 640
-
-  if (isMobile) {
-    return `${date.getMonth() + 1}/${date.getDate()}(${days[date.getDay()]})`
-  }
-  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
-}
-
-// 오늘 날짜인지 확인
-const isToday = (dateString: string) => {
-  const today = new Date()
-  const scheduleDate = new Date(dateString)
-
-  return today.getFullYear() === scheduleDate.getFullYear() &&
-    today.getMonth() === scheduleDate.getMonth() &&
-    today.getDate() === scheduleDate.getDate()
-}
-
-// 일정 클릭 핸들러 수정
-const handleScheduleClick = (scheduleGroup: Schedule[]) => {
-  if (!scheduleGroup || !scheduleGroup.length) return
-
-  if (props.isBulkEditMode) {
-    if (!bulkEditState.value.firstSchedule) {
-      // 첫 번째 일정 선택
-      bulkEditState.value.firstSchedule = scheduleGroup[0]
-      bulkEditState.value.message = '마지막 일정을 선택해주세요'
-      return
-    }
-
-    if (!bulkEditState.value.secondSchedule) {
-      // 두 번째 일정 선택
-      bulkEditState.value.secondSchedule = scheduleGroup[0]
-      // 선택 완료 후 상태 변경
-      bulkEditState.value.message = '선택한 일정을'
-      bulkEditState.value.showActions = true
-      return
-    }
-  }
-
-  // 기존 일반 클릭 로직
-  if (scheduleGroup.length === 1) {
-    if (props.isModal) {
-      emit('schedule-select', scheduleGroup[0])
-    } else {
-      selectedSchedule.value = scheduleGroup[0]
-      showModal.value = true
-    }
-  }
-}
-
-const initializeComponent = async () => {
-  try {
-    await fetchSubscriptions()
-
-    // 선택된 구독 ID가 있으면 스케줄 조회
-    if (selectedSubscriptionId.value) {
-      await fetchSchedules()
-    }
-
-    isInitialized.value = true
-  } catch (err) {
-    console.error('Error initializing component:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-onMounted(async () => {
-  await initializeComponent()
-
-  // 데이터 로딩 후 약간 지연시킨 후 스크롤 실행 (타이밍 문제 해결)
-  if (props.isModal && props.currentBook && props.currentChapter) {
-    setTimeout(async () => {
-      await scrollToCurrentLocation()
-    }, 300) // 약간의 지연 추가
-  }
-})
-
-// fetchSubscriptions 함수 수정
+// API 호출 함수
+// 구독 정보 가져오기
 const fetchSubscriptions = async () => {
   try {
     const response = await api.get('/api/v1/todos/plan/')
 
     if (Array.isArray(response.data)) {
       subscriptions.value = response.data as Subscription[]
-
-      // URL에 plan 파라미터가 있는지 확인
-      if (route.query.plan) {
-        const planId = route.query.plan as string
-
-        // 타입 변환 문제를 해결하기 위해 문자열 비교 대신 느슨한 비교 사용
-        const planExists = subscriptions.value.some(sub => {
-          return String(sub.plan_id) === String(planId)
-        })
-
-        if (planExists) {
-          selectedSubscriptionId.value = planId
-        } else if (subscriptions.value.length > 0) {
-          // 구독 중이 아니면 첫 번째 플랜 선택
-          selectedSubscriptionId.value = subscriptions.value[0].plan_id
-          // URL 파라미터 업데이트 추가
-          updateUrlPlanId(subscriptions.value[0].plan_id)
-        }
-      } else if (subscriptions.value.length > 0 && !selectedSubscriptionId.value) {
-        // 비로그인 사용자도 기본 플랜 자동 선택
-        if (props.useDefaultPlan || !authStore.isAuthenticated) {
-          selectedSubscriptionId.value = subscriptions.value[0].plan_id
-          // URL 파라미터 업데이트 추가
-          updateUrlPlanId(subscriptions.value[0].plan_id)
-
-          // 비로그인 사용자일 경우 안내 메시지 표시
-          if (!authStore.isAuthenticated) {
-            defaultPlanName.value = subscriptions.value[0].plan_name
-            // 초기에는 메시지 숨김 상태 유지
-            showDefaultPlanMessage.value = false
-
-            // 0.5초 후에 메시지 표시
-            setTimeout(() => {
-              showDefaultPlanMessage.value = true
-
-              // 메시지가 표시된 후 5초 뒤에 숨김
-              setTimeout(() => {
-                showDefaultPlanMessage.value = false
-              }, 5000)
-            }, 500)
-          }
-        }
-      }
+      handleSubscriptionSelection(response.data)
     } else if (response.data && response.data.plan_id) {
-      // 단일 객체인 경우 배열로 변환
       subscriptions.value = [response.data as Subscription]
-
-      // URL에 plan 파라미터가 있는지 확인
-      if (route.query.plan) {
-        const planId = route.query.plan as string
-
-        // 타입 변환 문제를 해결하기 위해 문자열 비교
-        if (String(response.data.plan_id) === String(planId)) {
-          selectedSubscriptionId.value = planId
-        } else {
-          // URL의 plan_id가 유효하지 않은 경우 첫 번째 플랜 선택 및 URL 업데이트
-          selectedSubscriptionId.value = response.data.plan_id
-          updateUrlPlanId(response.data.plan_id)
-        }
-      } else if (!selectedSubscriptionId.value) {
-        // 비로그인 사용자도 기본 플랜 자동 선택
-        if (props.useDefaultPlan || !authStore.isAuthenticated) {
-          selectedSubscriptionId.value = response.data.plan_id
-          // URL 파라미터 업데이트 추가
-          updateUrlPlanId(response.data.plan_id)
-
-          // 비로그인 사용자일 경우 안내 메시지 표시
-          if (!authStore.isAuthenticated) {
-            defaultPlanName.value = response.data.plan_name
-            // 초기에는 메시지 숨김 상태 유지
-            showDefaultPlanMessage.value = false
-
-            // 0.5초 후에 메시지 표시
-            setTimeout(() => {
-              showDefaultPlanMessage.value = true
-
-              // 메시지가 표시된 후 5초 뒤에 숨김
-              setTimeout(() => {
-                showDefaultPlanMessage.value = false
-              }, 5000)
-            }, 500)
-          }
-        }
-      }
+      handleSubscriptionSelection([response.data])
     } else {
       console.warn('구독 정보가 없거나 예상치 못한 형식입니다.')
       subscriptions.value = []
@@ -864,13 +581,6 @@ const fetchSubscriptions = async () => {
   } catch (err) {
     console.error('구독 정보 가져오기 실패:', err)
   }
-}
-
-// URL 파라미터 업데이트
-const updateUrlPlanId = (planId: string) => {
-  router.push({
-    query: { ...route.query, plan: planId }
-  })
 }
 
 // 월별 스케줄 조회
@@ -891,41 +601,178 @@ const fetchSchedules = async () => {
   }
 }
 
-// 월 또는 구독 ID 변경 시 스케줄 다시 조회
-watch(
-  [selectedMonth, selectedSubscriptionId],
-  async ([newMonth, newSubscriptionId], [oldMonth, oldSubscriptionId]) => {
-    if (newMonth === oldMonth && newSubscriptionId === oldSubscriptionId) {
+// 다음 위치 정보 가져오기
+const fetchNextPosition = async () => {
+  try {
+    const { data } = await api.get('/api/v1/todos/next-position/', {
+      params: { plan_id: selectedSubscriptionId.value },
+    })
+    return data
+  } catch (error) {
+    console.error('다음 위치 정보 가져오기 실패:', error)
+    showError('다음 위치를 불러오는 데 실패했습니다.')
+    return null
+  }
+}
+
+// 현재 위치 정보 가져오기
+const fetchCurrentPosition = async () => {
+  try {
+    const response = await api.get('/api/v1/todos/detail/', {
+      params: {
+        plan_id: selectedSubscriptionId.value,
+        book: props.currentBook,
+        chapter: props.currentChapter,
+      },
+    })
+    return response.data
+  } catch (error) {
+    console.error('현재 위치 정보 가져오기 실패:', error)
+    showError('현재 위치를 불러오는 데 실패했습니다.')
+    return null
+  }
+}
+
+// 읽기 상태 업데이트
+const updateReadingStatus = async (scheduleIds: number[], action: 'complete' | 'cancel') => {
+  try {
+    await api.post('/api/v1/todos/reading/update/', {
+      plan_id: selectedSubscriptionId.value,
+      schedule_ids: scheduleIds,
+      action: action
+    })
+    return true
+  } catch (err) {
+    console.error('읽기 상태 업데이트 실패:', err)
+    showError('상태 변경에 실패했습니다. 다시 시도해주세요.')
+    return false
+  }
+}
+
+// 이벤트 핸들러
+// 그룹 체크박스 클릭
+const handleGroupCheckboxClick = async (scheduleGroup: Schedule[]) => {
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true
+    return
+  }
+
+    const currentStatus = getReadingStatusForGroup(scheduleGroup)
+    const isCompleted = currentStatus !== 'completed'
+    const action = isCompleted ? 'complete' : 'cancel'
+  const scheduleIds = scheduleGroup.map(schedule => schedule.id)
+
+  // 낙관적 업데이트
+    scheduleGroup.forEach(schedule => {
+      schedule.is_completed = isCompleted
+    })
+
+  const successMessage = isCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
+
+  const isSuccess = await updateReadingStatus(scheduleIds, action)
+
+  if (isSuccess) {
+    success(successMessage)
+  } else {
+    // 롤백
+    scheduleGroup.forEach(schedule => {
+      schedule.is_completed = !isCompleted
+    })
+  }
+}
+
+// 개별 체크박스 클릭
+const handleCheckboxClick = async (schedule: Schedule) => {
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true
+    return
+  }
+
+    const isCompleted = !schedule.is_completed
+    const action = isCompleted ? 'complete' : 'cancel'
+
+  // 낙관적 업데이트
+    schedule.is_completed = isCompleted
+
+  const successMessage = isCompleted ? '읽음 처리되었습니다.' : '읽지 않음으로 변경되었습니다.'
+
+  const isSuccess = await updateReadingStatus([schedule.id], action)
+
+  if (isSuccess) {
+    success(successMessage)
+  } else {
+    // 롤백
+    schedule.is_completed = !schedule.is_completed
+  }
+}
+
+// 개별 일정 클릭
+const handleIndividualScheduleClick = (schedule: Schedule) => {
+  if (props.isBulkEditMode) {
+    handleScheduleClick([schedule])
+    return
+  }
+
+  if (props.isModal) {
+    emit('schedule-select', schedule)
+  } else {
+    selectedSchedule.value = schedule
+    showModal.value = true
+  }
+}
+
+// 일정 클릭
+const handleScheduleClick = (scheduleGroup: Schedule[]) => {
+  if (!scheduleGroup || !scheduleGroup.length) return
+
+  if (props.isBulkEditMode) {
+    if (!bulkEditState.value.firstSchedule) {
+      bulkEditState.value.firstSchedule = scheduleGroup[0]
+      bulkEditState.value.message = '마지막 일정을 선택해주세요'
       return
     }
-    
-    // 초기화가 완료된 경우에만 스케줄을 다시 로드
-    if (isInitialized.value) {
-      try {
-        await fetchSchedules()
-      } catch (error) {
-        console.error('스케줄 다시 불러오기 실패:', error)
-      }
+
+    if (!bulkEditState.value.secondSchedule) {
+      bulkEditState.value.secondSchedule = scheduleGroup[0]
+      bulkEditState.value.message = '선택한 일정을'
+      bulkEditState.value.showActions = true
+      return
+    }
+  } else {
+  // 기존 일반 클릭 로직
+  if (scheduleGroup.length === 1) {
+    if (props.isModal) {
+      emit('schedule-select', scheduleGroup[0])
+    } else {
+      selectedSchedule.value = scheduleGroup[0]
+      showModal.value = true
     }
   }
-)
+}
+}
 
-// 일괄 수정 핸들러 수정
+// 플랜 선택
+const selectPlan = (subscription: Subscription) => {
+  selectedSubscriptionId.value = subscription.plan_id
+
+  router.push({
+    query: { ...route.query, plan: subscription.plan_id }
+    })
+  showPlanModal.value = false
+}
+
+// 일괄 수정 액션
 const handleBulkAction = (action: 'complete' | 'cancel') => {
   if (!bulkEditState.value.firstSchedule || !bulkEditState.value.secondSchedule) {
     return
   }
 
-  // 시작일과 종료일 사이의 모든 스케줄 찾기
   const startDate = new Date(bulkEditState.value.firstSchedule.date)
   const endDate = new Date(bulkEditState.value.secondSchedule.date)
-
-  // 날짜순으로 정렬
   const [fromDate, toDate] = startDate <= endDate
     ? [startDate, endDate]
     : [endDate, startDate]
 
-  // 선택된 구간의 모든 스케줄 찾기
   const groupedSchedules = filteredGroupedSchedules.value
   if (!groupedSchedules) return
 
@@ -940,10 +787,8 @@ const handleBulkAction = (action: 'complete' | 'cancel') => {
     })
   })
 
-  // 선택된 스케줄들의 ID 추출
   const selectedScheduleIds = selectedSchedules.map(schedule => schedule.id)
 
-  // 부모 컴포넌트에 선택된 구간과 액션 전달
   const payload: RangeSelectPayload = {
     action,
     startSchedule: bulkEditState.value.firstSchedule,
@@ -954,13 +799,11 @@ const handleBulkAction = (action: 'complete' | 'cancel') => {
 
   emit('range-select', payload)
 
-  // 낙관적 UI 업데이트: 선택된 스케줄들의 상태 변경
   const isCompleted = action === 'complete'
   selectedSchedules.forEach(schedule => {
     schedule.is_completed = isCompleted
   })
 
-  // 상태 초기화
   bulkEditState.value = {
     firstSchedule: null,
     secondSchedule: null,
@@ -969,34 +812,7 @@ const handleBulkAction = (action: 'complete' | 'cancel') => {
   }
 }
 
-// 개별 일정 클릭 핸들러 추가
-const handleIndividualScheduleClick = (schedule: Schedule) => {
-  if (props.isBulkEditMode) {
-    // 일괄 수정 모드에서는 부모의 handleScheduleClick을 호출
-    handleScheduleClick([schedule])
-    return
-  }
-
-  if (props.isModal) {
-    emit('schedule-select', schedule)
-  } else {
-    selectedSchedule.value = schedule
-    showModal.value = true
-  }
-}
-
-// 일괄 수정 모드가 비활성화될 때 상태 초기화
-watch(() => props.isBulkEditMode, (newValue) => {
-  if (!newValue) {
-    bulkEditState.value = {
-      firstSchedule: null,
-      secondSchedule: null,
-      message: '첫번째 일정을 선택해주세요',
-      showActions: false
-    }
-  }
-})
-
+// 모달 닫기
 const closeModal = () => {
   showModal.value = false
   document.body.style.overflow = ''
@@ -1007,7 +823,6 @@ const confirmGoToSchedule = () => {
   if (selectedSchedule.value) {
     const queryParams = new URLSearchParams()
 
-    // route.query 객체를 순회하며 안전하게 파라미터 설정
     Object.entries(route.query).forEach(([key, value]) => {
       if (typeof value === 'string') {
         queryParams.append(key, value)
@@ -1020,14 +835,12 @@ const confirmGoToSchedule = () => {
       }
     })
 
-    // 선택된 구독 ID가 있을 때만 plan 파라미터 설정
     if (selectedSubscriptionId.value) {
       queryParams.set('plan', selectedSubscriptionId.value)
     }
 
-    queryParams.set('from', 'reading-plan') // from 파라미터 추가
+    queryParams.set('from', 'reading-plan')
 
-    // 선택된 일정의 책과 장 정보 추가
     if (selectedSchedule.value.book) {
       const bookCode = findBookCode(selectedSchedule.value.book)
       if (bookCode) {
@@ -1045,86 +858,7 @@ const confirmGoToSchedule = () => {
   }
 }
 
-// 한글 성경 이름을 코드로 변환하는 함수
-const findBookCode = (koreanName: string) => {
-  const bibleBooks = {
-    old: [
-      { id: 'gen', name: '창세기' },
-      { id: 'exo', name: '출애굽기' },
-      { id: 'lev', name: '레위기' },
-      { id: 'num', name: '민수기' },
-      { id: 'deu', name: '신명기' },
-      { id: 'jos', name: '여호수아' },
-      { id: 'jdg', name: '사사기' },
-      { id: 'rut', name: '룻기' },
-      { id: '1sa', name: '사무엘상' },
-      { id: '2sa', name: '사무엘하' },
-      { id: '1ki', name: '열왕기상' },
-      { id: '2ki', name: '열왕기하' },
-      { id: '1ch', name: '역대상' },
-      { id: '2ch', name: '역대하' },
-      { id: 'ezr', name: '에스라' },
-      { id: 'neh', name: '느헤미야' },
-      { id: 'est', name: '에스더' },
-      { id: 'job', name: '욥기' },
-      { id: 'psa', name: '시편' },
-      { id: 'pro', name: '잠언' },
-      { id: 'ecc', name: '전도서' },
-      { id: 'sng', name: '아가' },
-      { id: 'isa', name: '이사야' },
-      { id: 'jer', name: '예레미야' },
-      { id: 'lam', name: '예레미야애가' },
-      { id: 'ezk', name: '에스겔' },
-      { id: 'dan', name: '다니엘' },
-      { id: 'hos', name: '호세아' },
-      { id: 'jol', name: '요엘' },
-      { id: 'amo', name: '아모스' },
-      { id: 'oba', name: '오바댜' },
-      { id: 'jon', name: '요나' },
-      { id: 'mic', name: '미가' },
-      { id: 'nam', name: '나훔' },
-      { id: 'hab', name: '하박국' },
-      { id: 'zep', name: '스바냐' },
-      { id: 'hag', name: '학개' },
-      { id: 'zec', name: '스가랴' },
-      { id: 'mal', name: '말라기' }
-    ],
-    new: [
-      { id: 'mat', name: '마태복음' },
-      { id: 'mrk', name: '마가복음' },
-      { id: 'luk', name: '누가복음' },
-      { id: 'jhn', name: '요한복음' },
-      { id: 'act', name: '사도행전' },
-      { id: 'rom', name: '로마서' },
-      { id: '1co', name: '고린도전서' },
-      { id: '2co', name: '고린도후서' },
-      { id: 'gal', name: '갈라디아서' },
-      { id: 'eph', name: '에베소서' },
-      { id: 'php', name: '빌립보서' },
-      { id: 'col', name: '골로새서' },
-      { id: '1th', name: '데살로니가전서' },
-      { id: '2th', name: '데살로니가후서' },
-      { id: '1ti', name: '디모데전서' },
-      { id: '2ti', name: '디모데후서' },
-      { id: 'tit', name: '디도서' },
-      { id: 'phm', name: '빌레몬서' },
-      { id: 'heb', name: '히브리서' },
-      { id: 'jas', name: '야고보서' },
-      { id: '1pe', name: '베드로전서' },
-      { id: '2pe', name: '베드로후서' },
-      { id: '1jn', name: '요한일서' },
-      { id: '2jn', name: '요한이서' },
-      { id: '3jn', name: '요한삼서' },
-      { id: 'jud', name: '유다서' },
-      { id: 'rev', name: '요한계시록' }
-    ]
-  }
-
-  const allBooks = [...bibleBooks.old, ...bibleBooks.new]
-  const book = allBooks.find(b => b.name === koreanName)
-  return book?.id
-}
-
+// 로그인 모달 닫기 & 로그인 페이지로 이동
 const closeLoginModal = () => {
   showLoginModal.value = false
   document.body.style.overflow = ''
@@ -1134,7 +868,6 @@ const goToLogin = () => {
   const currentQuery = { ...route.query }
   const queryParams = new URLSearchParams()
 
-  // 객체를 URLSearchParams로 변환
   Object.entries(currentQuery).forEach(([key, value]) => {
     if (typeof value === 'string') {
       queryParams.append(key, value)
@@ -1146,7 +879,6 @@ const goToLogin = () => {
   const queryString = queryParams.toString()
   const currentPath = `${route.path}${queryString ? '?' + queryString : ''}`
 
-  // navigateTo 대신 router.push 사용
   router.push({
     path: '/login',
     query: {
@@ -1157,7 +889,83 @@ const goToLogin = () => {
   showLoginModal.value = false
 }
 
-// 현재 위치 확인 함수
+// 플랜 관리 페이지로 이동
+const goToPlanManagement = () => {
+  showPlanModal.value = false
+  router.push('/plans')
+  }
+
+// 스크롤 함수
+// 오늘 날짜로 스크롤
+const scrollToToday = async () => {
+  const today = new Date()
+  const todayMonth = today.getMonth() + 1
+  const todayString = today.toISOString().split('T')[0]
+
+  if (selectedMonth.value !== todayMonth) {
+    selectedMonth.value = todayMonth
+    await fetchSchedules()
+  }
+
+  await nextTick()
+  const todayElement = document.querySelector(`[data-date="${todayString}"]`)
+  scrollToElement(todayElement as HTMLElement)
+}
+
+// 마지막 미완료 항목으로 스크롤
+const scrollToLastIncomplete = async () => {
+  const data = await fetchNextPosition()
+
+  if (data && data.success) {
+      if (selectedMonth.value !== data.month) {
+        selectedMonth.value = data.month
+        await fetchSchedules()
+        await nextTick()
+      }
+
+      const element = document.querySelector(`[data-date="${data.date}"]`)
+      scrollToElement(element as HTMLElement)
+    } else {
+      warning('다음 읽을 위치를 찾을 수 없습니다.')
+    }
+}
+
+// 현재 위치로 스크롤
+const scrollToCurrentLocation = async () => {
+  if (!props.currentBook || !props.currentChapter) return
+
+  const data = await fetchCurrentPosition()
+
+    if (data && data.plan_date) {
+      const targetMonth = new Date(data.plan_date).getMonth() + 1
+      if (selectedMonth.value !== targetMonth) {
+        selectedMonth.value = targetMonth
+        await fetchSchedules()
+      await nextTick()
+      }
+
+      const targetElement = document.querySelector(`[data-date="${data.plan_date}"]`)
+      scrollToElement(targetElement as HTMLElement)
+    }
+}
+
+// 유틸리티 함수
+// 스케줄 그룹을 날짜별로 그룹화
+const groupSchedulesByDate = (scheduleList: Schedule[]) => {
+  if (!scheduleList) return {}
+
+  const grouped: Record<string, Schedule[]> = {}
+  scheduleList.forEach(schedule => {
+    if (!grouped[schedule.date]) {
+      grouped[schedule.date] = []
+    }
+    grouped[schedule.date].push(schedule)
+  })
+
+  return grouped
+}
+
+// 현재 위치 확인
 const isCurrentLocation = (schedule: Schedule) => {
   if (!props.isModal || !props.currentBook || !props.currentChapter) return false
 
@@ -1167,227 +975,177 @@ const isCurrentLocation = (schedule: Schedule) => {
     props.currentChapter <= schedule.end_chapter
 }
 
-// 선택된 구간에 있는지 확인하는 함수 수정
-const isInSelectedRange = (scheduleGroup: Schedule | null) => {
-  if (!props.isBulkEditMode ||
-    !bulkEditState.value.firstSchedule ||
-    !scheduleGroup) return false
-
-  const firstDate = new Date(bulkEditState.value.firstSchedule.date)
-  const currentDate = new Date(scheduleGroup.date)
-  const secondDate = bulkEditState.value.secondSchedule
-    ? new Date(bulkEditState.value.secondSchedule.date)
-    : null
-
-  if (!secondDate) {
-    return firstDate.getTime() === currentDate.getTime()
+// 한글 성경 이름을 코드로 변환
+const findBookCode = (koreanName: string) => {
+  const bibleBooks = {
+    old: [{ id: 'gen', name: '창세기' }, { id: 'exo', name: '출애굽기' }, { id: 'lev', name: '레위기' }, { id: 'num', name: '민수기' }, { id: 'deu', name: '신명기' }, { id: 'jos', name: '여호수아' }, { id: 'jdg', name: '사사기' }, { id: 'rut', name: '룻기' }, { id: '1sa', name: '사무엘상' }, { id: '2sa', name: '사무엘하' }, { id: '1ki', name: '열왕기상' }, { id: '2ki', name: '열왕기하' }, { id: '1ch', name: '역대상' }, { id: '2ch', name: '역대하' }, { id: 'ezr', name: '에스라' }, { id: 'neh', name: '느헤미야' }, { id: 'est', name: '에스더' }, { id: 'job', name: '욥기' }, { id: 'psa', name: '시편' }, { id: 'pro', name: '잠언' }, { id: 'ecc', name: '전도서' }, { id: 'sng', name: '아가' }, { id: 'isa', name: '이사야' }, { id: 'jer', name: '예레미야' }, { id: 'lam', name: '예레미야애가' }, { id: 'ezk', name: '에스겔' }, { id: 'dan', name: '다니엘' }, { id: 'hos', name: '호세아' }, { id: 'jol', name: '요엘' }, { id: 'amo', name: '아모스' }, { id: 'oba', name: '오바댜' }, { id: 'jon', name: '요나' }, { id: 'mic', name: '미가' }, { id: 'nam', name: '나훔' }, { id: 'hab', name: '하박국' }, { id: 'zep', name: '스바냐' }, { id: 'hag', name: '학개' }, { id: 'zec', name: '스가랴' }, { id: 'mal', name: '말라기' }],
+    new: [{ id: 'mat', name: '마태복음' }, { id: 'mrk', name: '마가복음' }, { id: 'luk', name: '누가복음' }, { id: 'jhn', name: '요한복음' }, { id: 'act', name: '사도행전' }, { id: 'rom', name: '로마서' }, { id: '1co', name: '고린도전서' }, { id: '2co', name: '고린도후서' }, { id: 'gal', name: '갈라디아서' }, { id: 'eph', name: '에베소서' }, { id: 'php', name: '빌립보서' }, { id: 'col', name: '골로새서' }, { id: '1th', name: '데살로니가전서' }, { id: '2th', name: '데살로니가후서' }, { id: '1ti', name: '디모데전서' }, { id: '2ti', name: '디모데후서' }, { id: 'tit', name: '디도서' }, { id: 'phm', name: '빌레몬서' }, { id: 'heb', name: '히브리서' }, { id: 'jas', name: '야고보서' }, { id: '1pe', name: '베드로전서' }, { id: '2pe', name: '베드로후서' }, { id: '1jn', name: '요한일서' }, { id: '2jn', name: '요한이서' }, { id: '3jn', name: '요한삼서' }, { id: 'jud', name: '유다서' }, { id: 'rev', name: '요한계시록' }]
   }
 
-  // 시작일과 종료일 사이에 있는지 확인
-  const startDate = firstDate < secondDate ? firstDate : secondDate
-  const endDate = firstDate < secondDate ? secondDate : firstDate
-
-  return currentDate >= startDate && currentDate <= endDate
+  const allBooks = [...bibleBooks.old, ...bibleBooks.new]
+  const book = allBooks.find(b => b.name === koreanName)
+  return book?.id
 }
 
-// 오늘 날짜로 스크롤 함수 수정
-const scrollToToday = async () => {
-  const today = new Date();
-  const todayMonth = today.getMonth() + 1;
-  const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD 형식
-
-  // 현재 달이 다르면 달 변경 및 데이터 새로 가져오기
-  if (selectedMonth.value !== todayMonth) {
-    selectedMonth.value = todayMonth;
-    await fetchSchedules();
-  }
-
-  // 약간 지연 후 스크롤 실행
-  setTimeout(() => {
-    const todayElement = document.querySelector(`[data-date="${todayString}"]`);
-    if (todayElement) {
-      const scheduleBody = document.querySelector('.schedule-body');
-      if (scheduleBody) {
-        try {
-          // 타입 단언으로 오류 방지
-          const todayHTMLElement = todayElement as HTMLElement;
-          const targetTop = todayHTMLElement.offsetTop;
-          const containerHeight = scheduleBody.clientHeight;
-          const targetHeight = todayHTMLElement.clientHeight;
-          
-          scheduleBody.scrollTo({
-            top: targetTop - (containerHeight / 2) + (targetHeight / 2),
-            behavior: 'smooth'
-          });
-        } catch (err) {
-          // 스크롤 실패 시 기본 방식으로 폴백
-          todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    } else {
-      console.warn('오늘 날짜의 일정을 찾을 수 없습니다');
-    }
-  }, 300);
-};
-
-// 마지막 미완료 항목으로 스크롤도 동일하게 개선
-const scrollToLastIncomplete = async () => {
+// 초기화 및 Watch
+// 컴포넌트 초기화
+const initializeComponent = async () => {
   try {
-    // API 호출하여 다음 읽을 위치 가져오기
-    const { data } = await api.get('/api/v1/todos/next-position/', {
-      params: {
-        plan_id: selectedSubscriptionId.value
-      }
+    await fetchSubscriptions()
+
+    if (selectedSubscriptionId.value) {
+      await fetchSchedules()
+    }
+
+    isInitialized.value = true
+  } catch (err) {
+    console.error('Error initializing component:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 플랜 선택 후 처리 로직
+const handleSubscriptionSelection = (subscriptionData: Subscription[]) => {
+  // URL에 plan 파라미터가 있는지 확인
+  if (route.query.plan) {
+    const planId = route.query.plan as string
+
+    const planExists = subscriptionData.some(sub => {
+      return String(sub.plan_id) === String(planId)
     })
 
-    if (data.success) {
-      // 월 변경이 필요한 경우
-      if (selectedMonth.value !== data.month) {
-        selectedMonth.value = data.month
-        await fetchSchedules() // 스케줄 데이터 새로 가져오기
-        await nextTick() // DOM 업데이트 대기
-      }
-
-      // 약간 지연 후 스크롤 실행
-      setTimeout(() => {
-        const element = document.querySelector(`[data-date="${data.date}"]`)
-        if (element) {
-          const scheduleBody = document.querySelector('.schedule-body')
-          if (props.isModal && scheduleBody) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          } else {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          }
-        }
-      }, 100)
-    } else {
-      warning('다음 읽을 위치를 찾을 수 없습니다.')
+    if (planExists) {
+      selectedSubscriptionId.value = planId
+    } else if (subscriptionData.length > 0) {
+      selectedSubscriptionId.value = subscriptionData[0].plan_id
+      updateUrlPlanId(subscriptionData[0].plan_id)
     }
-  } catch (error) {
-    console.error('Error finding next position:', error)
-    showError('다음 읽을 위치를 찾는 중 오류가 발생했습니다.')
+  } else if (subscriptionData.length > 0 && !selectedSubscriptionId.value) {
+    if (props.useDefaultPlan || !authStore.isAuthenticated) {
+      selectedSubscriptionId.value = subscriptionData[0].plan_id
+      updateUrlPlanId(subscriptionData[0].plan_id)
+
+      if (!authStore.isAuthenticated) {
+        defaultPlanName.value = subscriptionData[0].plan_name
+        showDefaultPlanMessage.value = false
+
+        setTimeout(() => {
+          showDefaultPlanMessage.value = true
+
+          setTimeout(() => {
+            showDefaultPlanMessage.value = false
+          }, 5000)
+        }, 500)
+      }
+    }
   }
 }
 
-// 모달이 열릴 때 초기화되는 watch 수정
+// URL 파라미터 업데이트
+const updateUrlPlanId = (planId: string) => {
+  router.push({
+    query: { ...route.query, plan: planId }
+  })
+}
+
+// Lifecycle Hooks
+onMounted(() => {
+  // 스크롤 컨테이너 설정
+  if (scheduleBodyRef.value) {
+    setScrollContainer(scheduleBodyRef.value)
+  }
+
+  initializeComponent().then(() => {
+    // 컴포넌트 초기화가 완료된 후에 scrollToLastIncomplete 호출
+    if (props.isModal && props.currentBook && props.currentChapter) {
+      setTimeout(async () => {
+        await scrollToCurrentLocation()
+      }, 800)
+    } else {
+      // 모달이 아닌 경우, 마지막 미완료 위치로 스크롤
+      scrollToLastIncomplete()
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  const scheduleBody = document.querySelector('.schedule-body')
+  if (scheduleBody) {
+    scheduleBody.removeEventListener('scroll', handleScroll)
+  }
+})
+
+// Watchers
+// 모달이 열릴 때 초기화
 watch(() => props.isModal, async (newVal) => {
   if (newVal) {
-    isInitialized.value = false;
-    isLoading.value = true;
+    isInitialized.value = false
+    isLoading.value = true
 
-    // 모달이 열릴 때마다 초기화 다시 실행
-    await initializeComponent();
+    await initializeComponent()
 
-    // DOM이 완전히 렌더링된 후 스크롤 실행
     if (props.currentBook && props.currentChapter) {
-      // 더 긴 지연 시간으로 안정성 향상
       setTimeout(async () => {
-        await nextTick();
-        await nextTick();
+        await nextTick()
+        await nextTick()
         try {
-          await scrollToCurrentLocation();
+          await scrollToCurrentLocation()
         } catch (err) {
-          console.error('현재 위치로 스크롤 실패:', err);
+          console.error('현재 위치로 스크롤 실패:', err)
         }
-      }, 800); // 지연 시간 증가
+      }, 800)
     }
-  }
-}, { immediate: true });
-
-// scrollToCurrentLocation 함수 전체 개선
-const scrollToCurrentLocation = async () => {
-  if (!props.currentBook || !props.currentChapter) return;
-
-  try {
-    // 현재 위치의 일정 정보 가져오기
-    const { data } = await api.get('/api/v1/todos/detail/', {
-      params: {
-        plan_id: selectedSubscriptionId.value,
-        book: props.currentBook,
-        chapter: props.currentChapter
-      }
-    });
-
-    if (data && data.plan_date) {
-      // 월 변경이 필요한 경우 처리
-      const targetMonth = new Date(data.plan_date).getMonth() + 1;
-      if (selectedMonth.value !== targetMonth) {
-        selectedMonth.value = targetMonth;
-        await fetchSchedules(); // 데이터 새로 가져오기
-        await nextTick(); // DOM 업데이트 대기
-        await nextTick(); // 추가 대기로 안정성 향상
-      }
-
-      // 충분한 지연 시간 제공으로 DOM 렌더링 완료 보장
-      setTimeout(() => {
-        // 대상 요소 찾기
-        const targetElement = document.querySelector(`[data-date="${data.plan_date}"]`);
-        if (!targetElement) {
-          console.warn('현재 위치의 대상 요소를 찾을 수 없습니다:', data.plan_date);
-          return;
-        }
-
-        // 스크롤 컨테이너 찾기
-        const scheduleBody = document.querySelector('.schedule-body');
-        if (!scheduleBody) {
-          console.warn('스크롤 컨테이너를 찾을 수 없습니다');
-          return;
-        }
-
-        // 타입 단언을 사용하여 TypeScript 오류 해결
-        const targetHTMLElement = targetElement as HTMLElement;
-        
-        // 스크롤 위치 계산
-        const targetTop = targetHTMLElement.offsetTop;
-        const containerHeight = scheduleBody.clientHeight;
-        const targetHeight = targetHTMLElement.clientHeight;
-
-        // 직접 스크롤 처리 - 컨테이너의 중앙에 타겟 위치시키기
-        scheduleBody.scrollTo({
-          top: targetTop - (containerHeight / 2) + (targetHeight / 2),
-          behavior: 'smooth'
-        });
-      }, 500); // 지연 시간 증가
-    }
-  } catch (error) {
-    console.error('현재 위치 조회 실패:', error);
-    showError('현재 위치를 찾을 수 없습니다.');
-  }
-};
-
-// 모달이 처음 표시될 때 현재 위치로 스크롤
-watch(() => props.isModal, async (newVal) => {
-  if (newVal && props.currentBook && props.currentChapter) {
-    // 충분한 지연 시간으로 DOM 렌더링 보장
-    setTimeout(async () => {
-      await scrollToCurrentLocation()
-    }, 500)
   }
 }, { immediate: true })
 
-// script 섹션에 함수 추가
-const goToPlanManagement = () => {
-  showPlanModal.value = false
-  router.push('/plans')
-}
+// 월 또는 구독 ID 변경 시 스케줄 다시 조회
+watch(
+  [selectedMonth, selectedSubscriptionId],
+  async ([newMonth, newSubscriptionId], [oldMonth, oldSubscriptionId]) => {
+    if (newMonth === oldMonth && newSubscriptionId === oldSubscriptionId) {
+      return
+    }
 
-// URL의 plan 파라미터 변경 감지를 위한 watch 추가
+    if (isInitialized.value) {
+      try {
+        await fetchSchedules()
+      } catch (error) {
+        console.error('스케줄 다시 불러오기 실패:', error)
+      }
+    }
+  }
+)
+
+// 일괄 수정 모드가 비활성화될 때 상태 초기화
+watch(() => props.isBulkEditMode, (newValue) => {
+  if (!newValue) {
+    bulkEditState.value = {
+      firstSchedule: null,
+      secondSchedule: null,
+      message: '첫번째 일정을 선택해주세요',
+      showActions: false
+    }
+  }
+})
+
+// URL의 plan 파라미터 변경 감지
 watch(() => route.query.plan, async (newPlanId, oldPlanId) => {
   if (newPlanId && newPlanId !== oldPlanId && String(newPlanId) !== String(selectedSubscriptionId.value)) {
-    // URL 파라미터가 변경되면 selectedSubscriptionId 업데이트
     selectedSubscriptionId.value = String(newPlanId)
-    
-    // 이미 initializeComponent가 완료된 경우에만 스케줄을 다시 로드
+
     if (isInitialized.value) {
       try {
         await fetchSchedules()
       } catch (error) {
         console.error('플랜 변경 후 스케줄 로딩 실패:', error)
+      } finally {
+        // 플랜 변경 후 스케줄 로딩이 완료되면 마지막 미완료 위치로 스크롤
+        scrollToLastIncomplete()
       }
     }
   }
 }, { immediate: true })
-
 </script>
 
 <style scoped>
