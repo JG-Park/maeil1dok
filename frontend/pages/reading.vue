@@ -3917,7 +3917,7 @@ html.touch-device .nav-button.next:hover svg {
 .version-select-button.active {
   background: var(--primary-light);
   color: var(--primary-color);
-  border-color: var(--primary-color);
+  border: 1px solid var(--primary-color);
   font-weight: 600;
 }
 
