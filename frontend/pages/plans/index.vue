@@ -192,35 +192,20 @@ const fetchUserPlans = async () => {
   if (!authStore.isAuthenticated) return
 
   try {
-    console.log('API 호출 시작: /api/v1/todos/plans/user/')
     const response = await api.get('/api/v1/todos/plans/user/')
-
-    // 전체 API 응답 로깅
-    console.log('API 원본 응답:', response)
-
-    // API 응답 구조 확인 및 처리
     const responseData = response.data || response
-    console.log('처리할 응답 데이터:', responseData)
 
     if (responseData.subscriptions) {
-      console.log('구독 중인 플랜 데이터:', responseData.subscriptions)
       subscriptions.value = responseData.subscriptions
     } else {
-      console.log('구독 정보가 없습니다')
       subscriptions.value = []
     }
 
     if (responseData.available_plans) {
-      console.log('구독 가능한 플랜 데이터:', responseData.available_plans)
       availablePlans.value = responseData.available_plans
     } else {
-      console.log('구독 가능한 플랜 정보가 없습니다')
       availablePlans.value = []
     }
-
-    console.log('처리 후 상태 - 구독 중인 플랜:', subscriptions.value)
-    console.log('처리 후 상태 - 구독 가능한 플랜:', availablePlans.value)
-
   } catch (err) {
     console.error('API 오류 상세 정보:', err)
     console.error('API 오류 응답:', err.response)

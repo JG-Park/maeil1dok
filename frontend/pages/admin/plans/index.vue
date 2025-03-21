@@ -542,16 +542,6 @@ const isStaff = computed(() => {
   return false;
 })
 
-// 로그인 상태 디버깅 함수 추가
-const debugAuth = () => {
-  console.log('Auth State:', {
-    isAuthenticated: authStore.isAuthenticated,
-    userData: authStore.userData,
-    user: authStore.user,
-    computed_isStaff: isStaff.value
-  });
-}
-
 // 마운트 시 디버깅 정보 출력
 onMounted(() => {
   debugAuth();
@@ -773,7 +763,6 @@ const filteredSchedules = computed(() => {
 
 // 일정 관리 모달 열기
 const managePlanSchedules = async (plan) => {
-  console.log('Managing schedules for plan:', plan)
   selectedPlan.value = plan
   showScheduleModal.value = true
   scheduleTab.value = 'list'
@@ -862,33 +851,23 @@ const fetchSchedules = async (planId) => {
   try {
     loadingSchedules.value = true
     const url = `/api/v1/todos/schedules/?plan_id=${planId}`
-    console.log('Fetching schedules from:', url)
     
     const response = await api.get(url)
-    console.log('API Response:', response)
     
     // 응답 형식 검사 및 변환 수정
     if (response && response.data && Array.isArray(response.data)) {
       // 데이터가 response.data에 있는 경우
       schedules.value = response.data
-      console.log('response.data에서 데이터 추출:', schedules.value.length)
     } else if (Array.isArray(response)) {
       // 데이터가 response 자체인 경우
       schedules.value = response
-      console.log('response에서 직접 데이터 추출:', schedules.value.length)
     } else if (response && typeof response === 'object') {
       // 다른 형태의 객체인 경우 (results 필드에 배열이 있을 수 있음)
       schedules.value = response.results || []
-      console.log('response.results에서 데이터 추출:', schedules.value.length)
     } else {
       // 기타 경우
       schedules.value = []
-      console.log('일치하는 데이터 구조 없음')
     }
-    
-    // 결과 로깅
-    console.log('최종 처리된 일정 데이터:', schedules.value.length)
-    
   } catch (err) {
     console.error('세부 일정 목록 조회 오류:', err)
     showToastMessage('세부 일정 목록을 불러오는 중 오류가 발생했습니다.', 'error')
