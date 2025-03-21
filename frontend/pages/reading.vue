@@ -985,9 +985,9 @@ const toggleBodyScroll = (isModalOpen) => {
 
 // 모든 모달 상태를 감시하는 watch
 watch(
-  [showLoginModal, showModal, showScheduleModal],
-  ([newLoginModal, newShowModal, newScheduleModal]) => {
-    toggleBodyScroll(newLoginModal || newShowModal || newScheduleModal)
+  [showLoginModal, showModal, showScheduleModal, showVersionModal],
+  ([newLoginModal, newShowModal, newScheduleModal, newVersionModal]) => {
+    toggleBodyScroll(newLoginModal || newShowModal || newScheduleModal || newVersionModal)
   }
 )
 
