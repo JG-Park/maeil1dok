@@ -38,6 +38,13 @@ export default defineNuxtConfig({
           name: 'viewport', 
           content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' 
         }
+      ],
+      script: [
+        {
+          src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8742107706365412',
+          async: true,
+          crossorigin: 'anonymous'
+        }
       ]
     }
   },
