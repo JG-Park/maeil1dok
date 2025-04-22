@@ -544,9 +544,7 @@ const isStaff = computed(() => {
 
 // 마운트 시 디버깅 정보 출력
 onMounted(() => {
-  debugAuth();
-  
-  // 기존 데이터 로드 로직 유지
+    // 기존 데이터 로드 로직 유지
   if (authStore.isAuthenticated) {
     fetchPlans();
   }
