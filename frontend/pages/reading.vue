@@ -449,7 +449,7 @@ const handleKntContentNotFound = (book, chapter) => {
           대한성서공회에서 보기
         </a>
       </div>
-  `
+    `
 }
 
 // 새한글성경 구절 추출 함수
@@ -498,6 +498,7 @@ const extractKntVerses = (bibleElement) => {
     bibleContent.value = verses.join('')
   }
 }
+
 // DOM 요소 정리 함수
 const cleanupBibleElement = (bibleElement) => {
   // smallTitle 내부의 a 태그는 href만 제거하고 유지
@@ -921,7 +922,6 @@ const goToLogin = () => {
   showLoginModal.value = false
 }
 
-
 // 터치 디바이스 감지 함수 추가
 const detectTouchDevice = () => {
   if (!process.client) return false; // SSR 체크
@@ -1044,7 +1044,6 @@ const closeScheduleModal = () => {
   showScheduleModal.value = false
   scheduleModalMounted.value = false
 }
-
 
 // 글자 크기 조절 함수
 const adjustFontSize = (delta) => {
@@ -1314,7 +1313,6 @@ const isToday = computed(() => {
     today.getDate() === targetDate.getDate()
 })
 
-
 // 미래 날짜인지 확인하는 computed 속성
 const isFutureDate = computed(() => {
   if (!currentScheduleDate.value) return false
@@ -1461,12 +1459,12 @@ const changeVersion = (version) => {
 const openVersionModal = () => {
   showVersionModal.value = true
 }
+
 // 스크롤 이벤트 핸들러 추가 - top 버튼 표시 여부만 결정
 const handleScroll = () => {
   // 100px 이상 스크롤 되었을 때 top 버튼 표시
   showTopButton.value = window.scrollY > 100
 }
-
 
 // 컴포넌트 언마운트시 이벤트 리스너 제거
 onUnmounted(() => {
@@ -1480,6 +1478,190 @@ const scrollToTop = () => {
     behavior: 'smooth'
   })
 }
+
+// 구절 선택 상태
+const selectedVerses = ref([]) // [{ number, text }]
+const showCopyMenu = ref(false)
+const menuPosition = reactive({ x: 0 })
+const selectedStart = ref(null)
+const selectedEnd = ref(null)
+
+// verse 강조 해제
+function clearVerseHighlight() {
+  document.querySelectorAll('.verse.selected-verse').forEach(el => el.classList.remove('selected-verse'))
+}
+// 선택 초기화
+const clearSelection = () => {
+  showCopyMenu.value = false
+  clearVerseHighlight()
+  selectedVerses.value = []
+  selectedStart.value = null
+  selectedEnd.value = null
+}
+
+// 복사 옵션별 텍스트 생성
+function getCopyText(type) {
+  if (!selectedVerses.value.length) return ''
+  const bookName = bookNames[currentBook.value] || currentBook.value
+  const chapter = currentChapter.value
+  if (selectedVerses.value.length === 1) {
+    const { number, text } = selectedVerses.value[0]
+    if (type === 'includeLocation') {
+      return `[${bookName}${chapter}:${number}] ${text}`
+    } else if (type === 'numOnly') {
+      return `${number} ${text}`
+    } else if (type === 'textOnly') {
+      return text
+    }
+  } else {
+    const start = selectedVerses.value[0].number
+    const end = selectedVerses.value[selectedVerses.value.length - 1].number
+    const versesTexts = selectedVerses.value.map(v => `${v.number} ${v.text}`)
+    if (type === 'includeLocationRange') {
+      return `[${bookName}${chapter}:${start}-${end}]\n${versesTexts.join('\n')}`
+    } else if (type === 'excludeLocationRange') {
+      return versesTexts.join('\n')
+    }
+  }
+  return ''
+}
+// 복사 기능
+const handleCopy = (type = 'includeLocation') => {
+  let text = ''
+  if (selectedVerses.value.length === 1) {
+    if (type === 'includeLocation') text = getCopyText('includeLocation')
+    else if (type === 'numOnly') text = getCopyText('numOnly')
+    else if (type === 'textOnly') text = getCopyText('textOnly')
+    else text = getCopyText('includeLocation')
+  } else if (selectedVerses.value.length > 1) {
+    if (type === 'includeLocationRange') text = getCopyText('includeLocationRange')
+    else if (type === 'excludeLocationRange') text = getCopyText('excludeLocationRange')
+    else text = getCopyText('includeLocationRange')
+  }
+  if (!text) return
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.value?.show('복사 완료', 'success')
+      clearSelection()
+    })
+  } else {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    toast.value?.show('복사 완료', 'success')
+    clearSelection()
+  }
+}
+
+// verse 강조 함수
+function highlightVerses(start, end) {
+  document.querySelectorAll('.verse').forEach(el => {
+    const n = parseInt(el.querySelector('.verse-number').textContent.trim(), 10)
+    if (n >= start && n <= end) {
+      el.classList.add('selected-verse')
+    } else {
+      el.classList.remove('selected-verse')
+    }
+  })
+}
+// 본문 클릭 핸들러 (구간 선택)
+const onBibleClick = event => {
+  const verseEl = event.target.closest('.verse')
+  if (!verseEl) return
+  event.stopPropagation()
+  const numEl = verseEl.querySelector('.verse-number')
+  const textEl = verseEl.querySelector('.verse-text')
+  if (!numEl || !textEl) return
+  const num = parseInt(numEl.textContent.trim(), 10)
+  const txt = textEl.textContent.trim()
+
+  // 단일 절 선택 상태에서 같은 절을 다시 클릭하면 해제
+  if (
+    selectedStart.value !== null &&
+    selectedEnd.value === null &&
+    selectedStart.value === num &&
+    selectedVerses.value.length === 1
+  ) {
+    clearSelection()
+    return
+  }
+
+  if (selectedStart.value === null) {
+    // 시작점 설정
+    clearSelection()
+    selectedStart.value = num
+    selectedVerses.value = [{ number: num, text: txt }]
+    highlightVerses(num, num)
+    showCopyMenu.value = true
+  } else if (selectedEnd.value === null) {
+    // 끝점 설정 및 범위 선택
+    selectedEnd.value = num
+    const start = Math.min(selectedStart.value, selectedEnd.value)
+    const end = Math.max(selectedStart.value, selectedEnd.value)
+    highlightVerses(start, end)
+    // 선택 구간의 number/text만 저장
+    const versesArray = []
+    document.querySelectorAll('.verse').forEach(el => {
+      const n = parseInt(el.querySelector('.verse-number').textContent.trim(), 10)
+      if (n >= start && n <= end) {
+        versesArray.push({ number: n, text: el.querySelector('.verse-text').textContent.trim() })
+      }
+    })
+    selectedVerses.value = versesArray
+    menuPosition.x = event.clientX
+    showCopyMenu.value = true
+  } else {
+    // 재선택 UX 개선: 메뉴를 완전히 닫은 뒤 새로 열기
+    clearSelection()
+    showCopyMenu.value = false
+    setTimeout(() => {
+      selectedStart.value = num
+      selectedVerses.value = [{ number: num, text: txt }]
+      highlightVerses(num, num)
+      showCopyMenu.value = true
+    }, 250) // transition-duration과 맞춤
+  }
+}
+
+// copy menu
+const copyMenu = ref(null)
+
+// copy menu position
+const copyMenuPosition = reactive({ x: 0, y: 0 })
+
+// copy menu hide
+const hideCopyMenu = () => {
+  showCopyMenu.value = false
+}
+
+// copy menu show
+const showCopyMenuHandler = (event) => {
+  if (event.type === 'touchend') {
+    event.preventDefault()
+  }
+  const rect = event.target.getBoundingClientRect()
+  copyMenuPosition.x = rect.left + rect.width / 2
+  copyMenuPosition.y = rect.top + rect.height / 2
+  showCopyMenu.value = true
+}
+
+// copy menu hide on click outside
+const hideCopyMenuOnOutsideClick = (event) => {
+  if (!copyMenu.value.contains(event.target)) {
+    hideCopyMenu()
+  }
+}
+
+// 브라우저 환경에서만 이벤트 리스너 등록
+onMounted(() => {
+  document.addEventListener('click', hideCopyMenuOnOutsideClick)
+})
+onUnmounted(() => {
+  document.removeEventListener('click', hideCopyMenuOnOutsideClick)
+})
 
 </script>
 
@@ -1500,8 +1682,9 @@ const scrollToTop = () => {
         <div class="reading-meta">
           <button class="reading-meta-btn schedule-button" @click="openScheduleModal">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path
+                d="M8 7V3m8 4V3m-9 8h10M5.07 19h13.86a2 2 0 001.83-2.83L13.83 4.44a2 2 0 00-3.66 0L3.24 16.17A2 2 0 005.07 19z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <span>성경통독표</span>
           </button>
@@ -1560,7 +1743,7 @@ const scrollToTop = () => {
           title="오디오">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
-              d="M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 4a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2z"
+              d="M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 4a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2z"
               fill="currentColor" />
           </svg>
           <span class="link-text">오디오</span>
@@ -1575,6 +1758,26 @@ const scrollToTop = () => {
           <span class="link-text">해설</span>
         </a>
       </div>
+      <transition name="copy-menu-fade">
+        <div v-show="showCopyMenu" class="copy-menu">
+          <span class="copy-menu-label">
+            {{ selectedVerses.length === 1 ? '복사' : '구간 복사' }}&nbsp;<span class="copy-menu-divider">|</span>
+          </span>
+          <div class="copy-menu-buttons">
+            <template v-if="selectedVerses.length === 1">
+              <button class="copy-button" @click="handleCopy('includeLocation')">위치 포함</button>
+              <button class="copy-button" @click="handleCopy('numOnly')">절만</button>
+              <button class="copy-button" @click="handleCopy('textOnly')">내용만</button>
+            </template>
+            <template v-else>
+              <button class="copy-button" @click="handleCopy('includeLocationRange')">위치 포함</button>
+              <button class="copy-button" @click="handleCopy('excludeLocationRange')">절만</button>
+            </template>
+            <button class="copy-button" @click="clearSelection">취소</button>
+          </div>
+        </div>
+      </transition>
+
     </div>
 
     <div class="content-section-wrapper">
@@ -1629,7 +1832,8 @@ const scrollToTop = () => {
           </p>
         </div>
 
-        <div v-else class="bible-content text-adjustable" :style="{ fontSize: `${fontSize}px` }" v-html="bibleContent">
+        <div v-else class="bible-content text-adjustable" :style="{ fontSize: `${fontSize}px` }" v-html="bibleContent"
+          @click="onBibleClick">
         </div>
       </div>
     </div>
@@ -1653,13 +1857,13 @@ const scrollToTop = () => {
             'upcoming': !authStore.isAuthenticated && isFutureDate
           }">
             <div class="status-icon" v-if="readingStatus === 'completed'">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
               </svg>
             </div>
             <div class="status-icon" v-else-if="readingStatus === 'not-completed'">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
               </svg>
@@ -1805,6 +2009,8 @@ const scrollToTop = () => {
       </div>
     </Teleport>
 
+    <Toast ref="toast" />
+
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="showScheduleModal" class="modal-overlay" @click="closeScheduleModal">
@@ -1862,8 +2068,6 @@ const scrollToTop = () => {
         </div>
       </div>
     </Teleport>
-
-    <Toast ref="toast" />
 
     <Teleport to="body">
       <div v-if="showCompleteConfirmModal" class="modal-overlay" @click="showCompleteConfirmModal = false">
@@ -2126,8 +2330,8 @@ const scrollToTop = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  color: var(--text-secondary);
+  padding: 2rem 1rem;
+  color: #64748B;
   gap: 1rem;
 }
 
@@ -2173,6 +2377,7 @@ const scrollToTop = () => {
   align-items: flex-start;
   font-weight: normal;
   letter-spacing: -0.02em;
+  transition: background-color 0.3s ease-in-out;
 }
 
 :deep(.verse-number) {
@@ -2195,6 +2400,87 @@ const scrollToTop = () => {
 :deep(td),
 :deep(.num) {
   all: unset;
+}
+
+:deep(.verse.selected-verse) {
+  background-color: #e2e1e1;
+  transition: background-color 0.2s ease;
+  border-radius: 8px;
+}
+
+:deep(.verse:hover) {
+  background-color: #f3f3f3;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 8px;
+}
+
+.copy-menu {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(100% + 8px);
+  background: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 5;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid #E2E8F0;
+  min-width: 200px;
+  width: max-content;
+  max-width: 95vw;
+  gap: 0.5rem;
+  transition: box-shadow 0.2s;
+}
+.copy-menu-fade-enter-active,
+.copy-menu-fade-leave-active {
+  transition: opacity 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+.copy-menu-fade-enter-from,
+.copy-menu-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-16px) scale(0.98);
+}
+.copy-menu-fade-enter-to,
+.copy-menu-fade-leave-from {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+.copy-menu-label {
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+}
+.copy-menu-divider {
+  color: #bdbdbd;
+  margin-left: 0.25rem;
+  margin-right: 0.5rem;
+  font-weight: normal;
+}
+.copy-menu-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.copy-button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: none;
+  color: var(--primary-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .navigation-controls {
@@ -2395,7 +2681,6 @@ const scrollToTop = () => {
   }
 
   @supports (-webkit-touch-callout: none) {
-
     .reading-meta {
       gap: 0.35rem;
     }
@@ -2617,7 +2902,7 @@ const scrollToTop = () => {
   border: 1px solid #eee;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   width: 100%;
   min-width: 44px;
   height: 44px;
@@ -2648,7 +2933,6 @@ const scrollToTop = () => {
     transform: scale(1);
   }
 }
-
 
 .schedule-modal {
   display: flex;
@@ -2728,7 +3012,6 @@ const scrollToTop = () => {
   -webkit-tap-highlight-color: transparent;
 }
 
-
 .login-modal {
   max-width: 320px;
   max-height: 320px;
@@ -2742,7 +3025,6 @@ const scrollToTop = () => {
   padding: 1rem;
   animation: slideUp 0.3s ease-out;
 }
-
 
 .modal-icon {
   width: 48px;
@@ -2812,6 +3094,7 @@ const scrollToTop = () => {
   background: #e9ecef;
   color: var(--text-primary);
 }
+
 
 .absolute-close {
   position: absolute;
@@ -2938,6 +3221,35 @@ const scrollToTop = () => {
   .current-page {
     font-size: 0.875rem;
   }
+}
+
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chapter-indicator {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .link-text {
@@ -3868,7 +4180,6 @@ html.touch-device .nav-button.next:hover svg {
   margin: 0.5rem 0;
   line-height: 1.8;
 }
-
 
 .new-badge {
   display: inline-flex;
