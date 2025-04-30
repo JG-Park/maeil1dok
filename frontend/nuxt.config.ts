@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.maeil1dok.app',
       KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID,
+      kakaoJsKey: process.env.KAKAO_JS_KEY,
       KAKAO_REDIRECT_URI: process.env.KAKAO_REDIRECT_URI,
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
       GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
