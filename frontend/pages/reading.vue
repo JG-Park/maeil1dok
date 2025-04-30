@@ -1585,7 +1585,10 @@ const onBibleClick = event => {
     selectedStart.value === num &&
     selectedVerses.value.length === 1
   ) {
-    clearSelection()
+    showCopyMenu.value = false
+    setTimeout(() => {
+      clearSelection()
+    }, 250) // transition-duration과 맞춤
     return
   }
 
@@ -2403,7 +2406,7 @@ onUnmounted(() => {
 }
 
 :deep(.verse.selected-verse) {
-  background-color: #e2e1e1;
+  background-color: #e2e1e1 !important;
   transition: background-color 0.2s ease;
   border-radius: 8px;
 }
@@ -2414,6 +2417,21 @@ onUnmounted(() => {
   transition: background-color 0.2s ease;
   border-radius: 8px;
 }
+
+/* 터치 디바이스(모바일/태블릿)에서는 hover 배경색 비활성화 */
+@media (hover: none) and (pointer: coarse) {
+  :deep(.verse:hover):not(.selected-verse) {
+    background-color: inherit !important;
+  }
+}
+@supports (-webkit-touch-callout: none) {
+  @media (hover: none) {
+    :deep(.verse:hover):not(.selected-verse) {
+      background-color: inherit !important;
+    }
+  }
+}
+
 
 .copy-menu {
   position: absolute;
