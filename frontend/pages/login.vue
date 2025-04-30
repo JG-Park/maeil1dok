@@ -92,9 +92,87 @@ const handleSubmit = async () => {
 }
 
 const handleKakaoLogin = () => {
+  const ua = navigator.userAgent || ''
+
+  // 1. React Native WebView 환경 최우선 분기
+  if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'KAKAO_LOGIN' }))
+    return
+  }
+
+  // 2. 기타 앱(WebView) 환경 분기 (UA 기반)
+  const isApp = /maeil1dok|MyAppName|WebView/i.test(ua) // 필요시 UA 패턴 보강
+  if (isApp) {
+    // iOS (WKWebView)
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.kakaoLogin) {
+      window.webkit.messageHandlers.kakaoLogin.postMessage({})
+    }
+    // Android (WebView)
+    else if (window.AndroidBridge && window.AndroidBridge.kakaoLogin) {
+      window.AndroidBridge.kakaoLogin()
+    }
+    else {
+      alert('앱에서 카카오 로그인을 지원하지 않는 환경입니다.')
+    }
+    return
+  }
+
+  // 3. 웹 환경: 기존 방식
   const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${config.public.KAKAO_REDIRECT_URI}&response_type=code`
   window.location.href = kakaoAuthUrl
 }
+
+
+import { onMounted, onBeforeUnmount } from 'vue'
+
+onMounted(() => {
+  // 네이티브에서 injectJavaScript로 Pinia 스토어 접근 가능하도록 window에 노출
+  if (process.client) {
+    window.__pinia = window.__pinia || {}
+    window.__pinia.getAuth = () => useAuthStore()
+  }
+  // 네이티브 카카오 로그인 성공 시 콜백
+  window.onKakaoLoginSuccess = async function(token) {
+    loading.value = true
+    try {
+      const success = await auth.loginWithKakaoToken(token)
+      if (success) {
+        const redirectPath = String(route.query.redirect || '')
+        navigateTo(redirectPath || '/')
+      } else {
+        alert('카카오 로그인에 실패했습니다.')
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // React Native WebView에서 postMessage로 전달받은 토큰 처리
+  function handleNativeMessage(event) {
+    try {
+      const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+      if (data && data.type === 'KAKAO_LOGIN_RESULT' && data.token) {
+        window.onKakaoLoginSuccess(data.token)
+      }
+    } catch (e) {}
+  }
+
+  // RN WebView 환경에서만 리스너 등록
+  if (window.ReactNativeWebView) {
+    document.addEventListener('message', handleNativeMessage)
+    window.addEventListener('message', handleNativeMessage)
+  }
+
+  // 클린업
+  onBeforeUnmount(() => {
+    if (window.ReactNativeWebView) {
+      document.removeEventListener('message', handleNativeMessage)
+      window.removeEventListener('message', handleNativeMessage)
+    }
+    window.onKakaoLoginSuccess = null
+  })
+})
+
 </script>
 
 <style scoped>
