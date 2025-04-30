@@ -360,7 +360,7 @@
     <div v-if="showSundayModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>오늘은 일독이 없는 날이에요 🙏</h3>
+          <h3>오늘은 일독이 없는 날이에요</h3>
         </div>
         <div class="modal-body">
           <div class="modal-buttons">
@@ -391,6 +391,23 @@
 </template>
 
 <script setup>
+import { useHead } from '#imports'
+
+useHead({
+  title: '매일일독',
+  meta: [
+    { name: 'description', content: '' },
+    { property: 'og:title', content: '매일일독' },
+    { property: 'og:description', content: '' },
+    { property: 'og:image', content: '/og-image.png' },
+    { property: 'og:url', content: 'https://maeil1dok.app/' },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: '매일일독' },
+    { name: 'twitter:description', content: '' },
+    { name: 'twitter:image', content: '/og-image.png' }
+  ]
+})
+
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '~/composables/useApi'

@@ -37,7 +37,17 @@ export default defineNuxtConfig({
         { 
           name: 'viewport', 
           content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' 
-        }
+        },
+        { name: 'description', content: '' },
+        { property: 'og:title', content: '매일일독' },
+        { property: 'og:description', content: '' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:image', content: '/og-image.png' },
+        { property: 'og:url', content: 'https://maeil1dok.app' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: '매일일독' },
+        { name: 'twitter:description', content: '' },
+        { name: 'twitter:image', content: '/og-image.png' }
       ],
       script: [
         {
