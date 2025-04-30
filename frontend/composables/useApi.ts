@@ -1,30 +1,18 @@
 import { useRuntimeConfig } from '#app'
-import { useNuxtApp } from '#app'
 import { useAuthStore } from '../stores/auth'
-import axios, { AxiosRequestConfig } from 'axios'
+import axios from 'axios'
 
-// API 응답 타입 정의
-interface ApiResponse {
-  data: any
-  message?: string
-  error?: string
+type AxiosConfig = {
+  headers?: Record<string, string>
+  params?: Record<string, any>
 }
 
-// API 인스턴스 타입 정의
-interface ApiInstance {
-  get: (url: string, config?: any) => Promise<ApiResponse>
-  post: (url: string, data?: any) => Promise<ApiResponse>
-  delete: (url: string) => Promise<ApiResponse>
-}
+type AxiosRequestConfig = AxiosConfig;
+
 
 export const useApi = () => {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBaseUrl
-
-  const api = axios.create({
-    baseURL,
-    withCredentials: true
-  })
 
   const auth = useAuthStore()
 
@@ -61,11 +49,9 @@ export const useApi = () => {
         fullUrl += `?${searchParams.toString()}`
       }
       
-      // 인증이 필요한 API 경로인지 확인
       const requiresAuth = url.includes('/api/v1/todos/hasena/status/') || 
                            url.includes('/api/v1/todos/user/');
       
-      // 인증이 필요하지만 로그인되지 않은 경우 즉시 반환
       const authStore = useAuthStore();
       if (requiresAuth && !authStore.isAuthenticated) {
         return { data: { success: false, message: 'Authentication required' } };
@@ -104,12 +90,9 @@ export const useApi = () => {
     const fullUrl = `${getBaseUrl()}${url}`
     
     try {
-      // FormData인 경우와 일반 데이터인 경우 분리 처리
       const isFormData = data instanceof FormData;
-      
       const headers = getHeaders();
       
-      // FormData인 경우 Content-Type 헤더 제거 (브라우저가 자동으로 설정)
       if (isFormData) {
         delete headers['Content-Type'];
       }

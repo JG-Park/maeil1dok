@@ -23,6 +23,15 @@ interface KakaoLoginResponse {
   user?: User
 }
 
+// 전역 window 타입 확장
+declare global {
+  interface Window {
+    __pinia?: {
+      auth?: any;
+    };
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
@@ -65,6 +74,17 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    async fetchUser() {
+      const api = useApi()
+      try {
+        const userData = await api.get('/api/v1/auth/user/')
+        this.setUser(userData)
+      } catch (error) {
+        console.error('[auth store] fetchUser error', error)
+        throw error
+      }
+    },
+
     async login(username: string, password: string) {
       const api = useApi()
       try {
@@ -103,13 +123,45 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async fetchUser() {
+    async loginWithKakao(accessToken: string) {
       const api = useApi()
       try {
-        const userData = await api.get('/api/v1/auth/user/')
-        this.setUser(userData)
+        const response = await api.post('/api/v1/auth/social-login/', { provider: 'kakao', access_token: accessToken })
+        
+        if (!response) {
+          throw new Error('Empty response from API')
+        }
+        
+        const data = response.data || response
+        
+        if (data.access) {
+          this.setTokens(data.access, data.refresh)
+          this.setUser(data.user)
+          return true
+        } else if (data.needsSignup) {
+          return data
+        }
+        
+        throw new Error(data.message || 'Kakao login failed')
+      } catch (err) {
+        throw err
+      }
+    },
+
+    async socialLogin(provider: string, code: string): Promise<KakaoLoginResponse> {
+      const api = useApi()
+      try {
+        const response = await api.post('/api/v1/auth/social-login/', {
+          provider,
+          code
+        })
+        if (response.access) {
+          this.setTokens(response.access, response.refresh)
+          this.setUser(response.user)
+        }
+        return response
       } catch (error) {
-        console.error('Error fetching user:', error)
+        console.error('[auth store] socialLogin error', error)
         throw error
       }
     },
@@ -142,24 +194,6 @@ export const useAuthStore = defineStore('auth', {
         this.logout()
         return false
       }
-    },
-
-    async socialLogin(provider: string, code: string): Promise<KakaoLoginResponse> {
-      const api = useApi()
-      try {
-        const response = await api.post('/api/v1/auth/social-login/', {
-          provider,
-          code
-        })
-        if (response.access) {
-          this.setTokens(response.access, response.refresh)
-          this.setUser(response.user)
-        }
-        return response
-      } catch (error) {
-        console.error('Social login failed:', error)
-        throw error
-      }
     }
   },
 
@@ -168,3 +202,26 @@ export const useAuthStore = defineStore('auth', {
     paths: ['token', 'refreshToken']
   }
 }) 
+
+// 전역 타입 선언 추가
+declare global {
+  interface Window {
+    __pinia?: {
+      auth?: any;
+      getAuth?: () => ReturnType<typeof useAuthStore>;
+    };
+  }
+}
+
+// 브라우저 환경에서 스토어를 전역 window 객체에 노출
+// 안전한 방식으로 수정 - 하이드레이션 후 실행되도록 변경
+export function exposeStore() {
+  if (process.client && typeof window !== 'undefined') {
+    // 프로토타입이 있는 일반 객체 사용
+    if (!window.__pinia) {
+      window.__pinia = Object.create(Object.prototype);
+    }
+    // 스토어 인스턴스를 함수로 노출
+    window.__pinia.getAuth = () => useAuthStore();
+  }
+}
