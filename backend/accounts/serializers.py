@@ -44,7 +44,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class SocialLoginSerializer(serializers.Serializer):
     provider = serializers.CharField()  # 'kakao' or 'google'
-    code = serializers.CharField()  # OAuth 인증 코드
+    code = serializers.CharField(required=False, allow_blank=True)  # OAuth 인증 코드
+    access_token = serializers.CharField(required=False, allow_blank=True)  # Native Kakao access token
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod

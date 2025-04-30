@@ -58,22 +58,24 @@ def social_login(request):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        provider = serializer.validated_data['provider']
-        code = serializer.validated_data['code']
-        
+        provider = serializer.validated_data.get('provider')
+        code = serializer.validated_data.get('code')
+        access_token = serializer.validated_data.get('access_token')
+
         if provider == 'kakao':
-            user_info = get_kakao_user_info(code)
+            if access_token:
+                user_info = get_kakao_user_info_by_token(access_token)
+            elif code:
+                user_info = get_kakao_user_info(code)
+            else:
+                return Response({'error': 'code or access_token required'}, status=400)
             
             if 'id' not in user_info:
-                return Response({'error': 'Invalid user info from Kakao'}, status=400)
+                return Response(user_info, status=400)
             
             social_id = f"kakao_{user_info['id']}"
-            
-            # 기존 사용자 확인
             user = User.objects.filter(username=social_id).first()
-            
             if user:
-                # 기존 사용자는 바로 로그인
                 refresh = RefreshToken.for_user(user)
                 return Response({
                     'refresh': str(refresh),
@@ -81,7 +83,6 @@ def social_login(request):
                     'user': UserSerializer(user).data
                 })
             else:
-                # 새로운 사용자는 닉네임 설정 페이지로
                 suggested_nickname = user_info.get('properties', {}).get('nickname', '')
                 return Response({
                     'needsSignup': True,
@@ -91,6 +92,8 @@ def social_login(request):
                 }, status=200)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response({'error': str(e)}, status=400)
 
 def get_kakao_user_info(code):
@@ -137,6 +140,22 @@ def get_kakao_user_info(code):
         user_info['profile_image'] = profile_image
         
     return user_info
+
+def get_kakao_user_info_by_token(access_token):
+    """
+    Fetch Kakao user info using native access_token without exchanging code.
+    """
+    print(f"[views] get_kakao_user_info_by_token with token: {access_token}")
+    response = requests.get(
+        'https://kapi.kakao.com/v2/user/me',
+        headers={'Authorization': f'Bearer {access_token}'}
+    )
+    print(f"[views] user info by token response: {response.text}")
+    data = response.json()
+    if 'id' not in data:
+        print("[views] get_kakao_user_info_by_token error data:", data)
+        return data
+    return data
 
 def get_google_user_info(code):
     # Google 토큰 받기
