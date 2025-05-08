@@ -1063,21 +1063,44 @@ def get_next_reading_position(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
 def video_intro_list(request):
-    """영상 개론 목록 조회 및 생성"""
+    """영상 개론 목록 조회 및 생성
+    GET: 비로그인 사용자도 접근 가능
+    POST: 관리자만 접근 가능
+    """
     if request.method == 'GET':
+        logger.info(f"[디버그] 영상 개론 목록 조회 - 인증상태: {request.user.is_authenticated}")
         plan_id = request.query_params.get('plan_id')
         
-        if plan_id:
-            video_intros = VideoBibleIntro.objects.filter(plan_id=plan_id)
-        else:
-            video_intros = VideoBibleIntro.objects.all()
-            
-        serializer = VideoBibleIntroSerializer(video_intros, many=True)
-        return Response(serializer.data)
+        try:
+            if plan_id:
+                # plan_id를 정수로 변환
+                plan_id = int(plan_id) if plan_id else None
+                if plan_id:
+                    video_intros = VideoBibleIntro.objects.filter(plan_id=plan_id)
+                else:
+                    video_intros = VideoBibleIntro.objects.all()
+            else:
+                video_intros = VideoBibleIntro.objects.all()
+                
+            logger.info(f"[디버그] 조회된 영상 개론 개수: {video_intros.count()}, plan_id: {plan_id}")
+            serializer = VideoBibleIntroSerializer(video_intros, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"[디버그] 영상 개론 목록 조회 오류: {str(e)}", exc_info=True)
+            return Response(
+                {"detail": f"영상 개론 목록 조회 중 오류가 발생했습니다: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     elif request.method == 'POST':
+        # 인증 확인
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "인증이 필요합니다."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
         # 관리자 권한 확인
         if not request.user.is_staff:
             return Response(
@@ -1092,21 +1115,31 @@ def video_intro_list(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'DELETE'])
-@permission_classes([IsAuthenticated])
 def video_intro_detail(request, pk):
-    """영상 개론 상세 조회 및 삭제"""
+    """영상 개론 상세 조회 및 삭제
+    GET: 비로그인 사용자도 접근 가능
+    DELETE: 관리자만 접근 가능
+    """
     try:
         video_intro = VideoBibleIntro.objects.get(pk=pk)
     except VideoBibleIntro.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
     
-    # GET 요청은 일반 사용자도 접근 가능
+    # GET 요청은 모든 사용자 접근 가능 (비로그인 포함)
     if request.method == 'GET':
+        logger.info(f"[디버그] 영상 개론 상세 조회 - ID: {pk}, 인증상태: {request.user.is_authenticated}")
         serializer = VideoBibleIntroSerializer(video_intro)
         return Response(serializer.data)
     
     # DELETE 요청은 관리자만 가능
     elif request.method == 'DELETE':
+        # 인증 확인
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "인증이 필요합니다."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
         # 관리자 권한 확인
         if not request.user.is_staff:
             return Response(
@@ -1334,26 +1367,53 @@ def upload_video_intros(request):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_user_video_intros(request):
-    """사용자가 구독 중인 플랜의 영상 개론 목록 조회"""
+    """사용자가 구독 중인 플랜의 영상 개론 목록 조회
+    로그인 정보가 없는 경우 파라미터로 받은 플랜의 전체 일정 반환
+    """
     try:
-        # 사용자가 구독 중인 플랜 ID 목록
-        plan_ids = PlanSubscription.objects.filter(
-            user=request.user,
-            is_active=True
-        ).values_list('plan_id', flat=True)
-        
-        # 해당 플랜의 영상 개론 목록 조회
-        video_intros = VideoBibleIntro.objects.filter(
-            plan_id__in=plan_ids
-        ).order_by('start_date')
-        
-        # 추가: 사용자의 진행 상태 조회
-        progress_records = UserVideoIntroProgress.objects.filter(
-            user=request.user,
-            video_intro__in=video_intros
-        ).select_related('video_intro')
+        # 로그인 여부 확인
+        if request.user.is_authenticated:
+            # 로그인된 경우 - 사용자가 구독 중인 플랜 ID 목록
+            plan_ids = PlanSubscription.objects.filter(
+                user=request.user,
+                is_active=True
+            ).values_list('plan_id', flat=True)
+            
+            # 해당 플랜의 영상 개론 목록 조회
+            video_intros = VideoBibleIntro.objects.filter(
+                plan_id__in=plan_ids
+            ).order_by('start_date')
+            
+            # 추가: 사용자의 진행 상태 조회
+            progress_records = UserVideoIntroProgress.objects.filter(
+                user=request.user,
+                video_intro__in=video_intros
+            ).select_related('video_intro')
+        else:
+            # 비로그인 경우 - 파라미터로 받은 플랜의 전체 일정 반환
+            plan_id = request.GET.get('plan_id')
+            logger.info(f"[디버그] 비로그인 사용자 요청 - 파라미터 plan_id: {plan_id}")
+            
+            try:
+                # plan_id를 정수로 변환
+                plan_id = int(plan_id) if plan_id else 1
+            except (ValueError, TypeError):
+                # 변환 오류 발생 시 기본 플랜 사용
+                logger.warning(f"[디버그] plan_id 변환 오류, 기본값 사용: {plan_id}")
+                plan_id = 1
+            
+            # 해당 플랜의 영상 개론 목록 조회
+            logger.info(f"[디버그] 비로그인 사용자 영상 개론 조회 - plan_id: {plan_id}")
+            video_intros = VideoBibleIntro.objects.filter(
+                plan_id=plan_id
+            ).order_by('start_date')
+            
+            # 조회된 개론 영상 개수 로깅
+            logger.info(f"[디버그] 조회된 개론 영상 개수: {video_intros.count()}")
+            
+            # 비로그인 사용자는 진행 상태가 없음
+            progress_records = []
         
         # video_intro_id를 키로 하는 progress 딕셔너리 생성
         progress_dict = {
@@ -1366,21 +1426,41 @@ def get_user_video_intros(request):
         
         # 응답 데이터 구성
         result = []
-        for intro in video_intros:
-            intro_data = VideoBibleIntroSerializer(intro).data
-            # 사용자 진행 상태 추가
-            if intro.id in progress_dict:
-                intro_data['is_completed'] = progress_dict[intro.id]['is_completed']
-                intro_data['completed_at'] = progress_dict[intro.id]['completed_at']
-            else:
+        
+        # 로그인된 경우에만 진행 상태 딕셔너리 생성
+        if request.user.is_authenticated:
+            # video_intro_id를 키로 하는 progress 딕셔너리 생성
+            progress_dict = {
+                record.video_intro_id: {
+                    'is_completed': record.is_completed,
+                    'completed_at': record.completed_at
+                } 
+                for record in progress_records
+            }
+            
+            for intro in video_intros:
+                intro_data = VideoBibleIntroSerializer(intro).data
+                # 사용자 진행 상태 추가
+                if intro.id in progress_dict:
+                    intro_data['is_completed'] = progress_dict[intro.id]['is_completed']
+                    intro_data['completed_at'] = progress_dict[intro.id]['completed_at']
+                else:
+                    intro_data['is_completed'] = False
+                    intro_data['completed_at'] = None
+                
+                result.append(intro_data)
+        else:
+            # 비로그인 사용자는 모든 항목이 미완료 상태
+            for intro in video_intros:
+                intro_data = VideoBibleIntroSerializer(intro).data
                 intro_data['is_completed'] = False
                 intro_data['completed_at'] = None
-            
-            result.append(intro_data)
+                result.append(intro_data)
         
         return Response(result)
         
     except Exception as e:
+        logger.error(f"[디버그] 영상 개론 목록 조회 오류: {str(e)}", exc_info=True)
         return Response(
             {'detail': f'영상 개론 목록을 조회하는 중 오류가 발생했습니다: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

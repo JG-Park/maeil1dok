@@ -33,6 +33,7 @@ urlpatterns = [
     path('video/intro/', views.video_intro_list, name='video-intro-list'),
     path('video/intro/<int:pk>/', views.video_intro_detail, name='video-intro-detail'),
     path('video/intro/upload/', views.upload_video_intros, name='upload-video-intros'),
+    path('video/intro/progress/', views.update_video_intro_progress, name='update-video-intro-progress'),
     path('user/video/intro/', views.get_user_video_intros, name='user-video-intros'),
     
     # 하세나 관련 URL
@@ -40,10 +41,7 @@ urlpatterns = [
     path('hasena/<int:pk>/', views.hasena_record_detail, name='hasena-record-detail'),
     path('hasena/update/', views.hasena_record_update, name='hasena-record-update'),
     path('hasena/status/', views.get_user_hasena_status, name='hasena-user-status'),
-    
-    # 영상 개론 진행 상황 관련 URL
-    path('video/intro/progress/', views.update_video_intro_progress, name='update-video-intro-progress'),
-    
+        
     # 통계 관련 URL
     path('stats/users/', views.get_total_users, name='total-users'),
     path('stats/plan/', views.get_plan_stats, name='plan-stats'),
