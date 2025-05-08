@@ -7,6 +7,9 @@
     </div>
     <div class="content-wrapper">
       <DailyStatus class="fade-in" style="animation-delay: 0.2s" />
+      <!-- <client-only
+        ><WeeklyCalendar :week-status="weekStatus.value"
+      /></client-only> -->
 
       <!-- 공지사항 -->
       <!-- <div class="section notice-section fade-in" style="animation-delay: 0.25s">
@@ -52,21 +55,47 @@
         <div class="section flex-1">
           <div class="section-header">
             <h2>오늘일독</h2>
-            <div v-if="auth.isAuthenticated && subscriptionStore.subscriptions.length > 1" class="plan-selector">
-              <button class="plan-select-button" @click="showPlanDropdown = !showPlanDropdown">
+            <div
+              v-if="
+                auth.isAuthenticated &&
+                subscriptionStore.subscriptions.length > 1
+              "
+              class="plan-selector"
+            >
+              <button
+                class="plan-select-button"
+                @click="showPlanDropdown = !showPlanDropdown"
+              >
                 <span>{{ selectedPlanName }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
               </button>
 
               <!-- 드롭다운 메뉴 -->
               <div v-if="showPlanDropdown" class="plan-dropdown">
-                <button v-for="subscription in subscriptionStore.subscriptions" :key="subscription.plan_id"
-                  class="dropdown-item" :class="{ active: subscription.plan_id === selectedPlanId }"
-                  @click="selectPlan(subscription)">
-                  <span class="dropdown-item-text">{{ subscription.plan_name }}</span>
+                <button
+                  v-for="subscription in subscriptionStore.subscriptions"
+                  :key="subscription.plan_id"
+                  class="dropdown-item"
+                  :class="{ active: subscription.plan_id === selectedPlanId }"
+                  @click="selectPlan(subscription)"
+                >
+                  <span class="dropdown-item-text">{{
+                    subscription.plan_name
+                  }}</span>
                 </button>
               </div>
             </div>
@@ -74,39 +103,77 @@
           <div class="tasks">
             <div v-for="(task, index) in todayTasks" :key="index">
               <template v-if="task.title === '오늘일독'">
-                <div class="task split-task reading-task" @click="toggleTask({ ...task, id: 1, title: '오늘일독' })">
+                <div
+                  class="task split-task reading-task"
+                  @click="toggleTask({ ...task, id: 1, title: '오늘일독' })"
+                >
                   <div class="task-content">
                     <template v-if="task.completed">
                       <span class="check-mark">✓</span>
                     </template>
                     <template v-else>
-                      <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        xmlns="http://www.w3.org/2000/svg">
+                      <svg
+                        class="check-icon"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
                         <path
                           d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528"
-                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
                       </svg>
                     </template>
-                    <span class="task-text" :class="{ 'completed': task.completed }">
+                    <span
+                      class="task-text"
+                      :class="{ completed: task.completed }"
+                    >
                       <span class="task-title">오늘일독</span>
-                      <span class="task-subtitle">오늘의 말씀을 읽어보세요</span>
+                      <span class="task-subtitle"
+                        >오늘의 말씀을 읽어보세요</span
+                      >
                     </span>
                   </div>
                 </div>
 
-                <div class="task split-task plan-task" @click="toggleTask({ id: 2, title: '성경통독표' })">
+                <div
+                  class="task split-task plan-task"
+                  @click="toggleTask({ id: 2, title: '성경통독표' })"
+                >
                   <div class="task-content">
-                    <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                      class="check-icon"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <path
                         d="M9 5H7C6.46957 5 5.96086 5.21071 5.58579 5.58579C5.21071 5.96086 5 6.46957 5 7V19C5 19.5304 5.21071 20.0391 5.58579 20.4142C5.96086 20.7893 6.46957 21 7 21H17C17.5304 21 18.0391 20.7893 18.4142 20.4142C18.7893 20.0391 19 19.5304 19 19V7C19 6.46957 18.7893 5.96086 18.4142 5.58579C18.0391 5.21071 17.5304 5 17 5H15M9 5C9 5.53043 9.21071 6.03914 9.58579 6.41421C9.96086 6.78929 10.4696 7 11 7H13C13.5304 7 14.0391 6.78929 14.4142 6.41421C14.7893 6.03914 15 5.53043 15 5M9 5C9 4.46957 9.21071 3.96086 9.58579 3.58579C9.96086 3.21071 10.4696 3 11 3H13C13.5304 3 14.0391 3.21071 14.4142 3.58579C14.7893 3.96086 15 4.46957 15 5"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                      <path d="M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M9 12H15M9 16H15"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
                     </svg>
                     <span class="task-text">
                       <span class="task-title">성경통독표</span>
-                      <span class="task-subtitle">전체 통독 계획을 확인하세요</span>
+                      <span class="task-subtitle"
+                        >전체 통독 계획을 확인하세요</span
+                      >
                     </span>
                   </div>
                 </div>
@@ -120,20 +187,46 @@
           <h2>영상</h2>
           <div class="tasks">
             <!-- 하세나하시조 (월~토에만 표시) -->
-            <div v-if="!isSunday" class="task video-task" @click="toggleTask({ id: 3, title: '하세나하시조' })">
+            <div
+              v-if="!isSunday"
+              class="task video-task"
+              @click="toggleTask({ id: 3, title: '하세나하시조' })"
+            >
               <div class="task-content">
-                <template v-if="todayTasks.find(t => t.title === '하세나하시조')?.completed">
+                <template
+                  v-if="
+                    todayTasks.find((t) => t.title === '하세나하시조')
+                      ?.completed
+                  "
+                >
                   <span class="check-mark">✓</span>
                 </template>
                 <template v-else>
-                  <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    class="check-icon"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <path
                       d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </template>
-                <span class="task-text" :class="{ 'completed': todayTasks.find(t => t.title === '하세나하시조')?.completed }">
+                <span
+                  class="task-text"
+                  :class="{
+                    completed: todayTasks.find(
+                      (t) => t.title === '하세나하시조'
+                    )?.completed,
+                  }"
+                >
                   <span class="task-title">하세나하시조</span>
                   <span class="task-subtitle">함께 하시조!</span>
                 </span>
@@ -141,20 +234,41 @@
             </div>
 
             <!-- 개론 영상 목록 -->
-            <div v-if="loadingIntros" class="loading-state">
-            </div>
-            <div v-else class="task" v-for="(task, index) in introTasks" :key="index" @click="navigateToIntro(task)">
+            <div v-if="loadingIntros" class="loading-state"></div>
+            <div
+              v-else
+              class="task"
+              v-for="(task, index) in introTasks"
+              :key="index"
+              @click="navigateToIntro(task)"
+            >
               <div class="task-content">
-                <span class="check" :class="{ 'check-active': task.is_completed }">
+                <span
+                  class="check"
+                  :class="{ 'check-active': task.is_completed }"
+                >
                   <span class="check-mark" v-if="task.is_completed">✓</span>
                 </span>
-                <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
+                <svg
+                  class="check-icon"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <path
                     d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
-                <span class="task-text" :class="{ 'completed': task.is_completed }">
+                <span
+                  class="task-text"
+                  :class="{ completed: task.is_completed }"
+                >
                   <span class="task-title">{{ task.book }}</span>
                   <span class="task-subtitle">개론 영상을 시청해보세요</span>
                 </span>
@@ -167,21 +281,49 @@
       <div class="section fade-in" style="animation-delay: 0.7s">
         <div class="section-header">
           <h2>참여 현황</h2>
-          <div v-if="auth.isAuthenticated && subscriptionStore.subscriptions.length > 1" class="plan-selector">
-            <button class="plan-select-button" @click="showStatsPlanDropdown = !showStatsPlanDropdown">
+          <div
+            v-if="
+              auth.isAuthenticated && subscriptionStore.subscriptions.length > 1
+            "
+            class="plan-selector"
+          >
+            <button
+              class="plan-select-button"
+              @click="showStatsPlanDropdown = !showStatsPlanDropdown"
+            >
               <span>{{ selectedPlanName }}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 9l6 6 6-6"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
 
             <!-- 드롭다운 메뉴 -->
             <div v-if="showStatsPlanDropdown" class="plan-dropdown">
-              <button v-for="subscription in subscriptionStore.subscriptions" :key="subscription.plan_id"
-                class="dropdown-item" :class="{ active: subscription.plan_id === selectedPlanId }"
-                @click="selectPlan(subscription); showStatsPlanDropdown = false;">
-                <span class="dropdown-item-text">{{ subscription.plan_name }}</span>
+              <button
+                v-for="subscription in subscriptionStore.subscriptions"
+                :key="subscription.plan_id"
+                class="dropdown-item"
+                :class="{ active: subscription.plan_id === selectedPlanId }"
+                @click="
+                  selectPlan(subscription);
+                  showStatsPlanDropdown = false;
+                "
+              >
+                <span class="dropdown-item-text">{{
+                  subscription.plan_name
+                }}</span>
               </button>
             </div>
           </div>
@@ -190,43 +332,79 @@
           <!-- 방문자 통계 (통합) -->
           <div class="stat-item">
             <div class="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z"
-                  stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  stroke="var(--primary-dark)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ visitorStats.daily_visitors.toLocaleString() }}명 / {{
-                visitorStats.total_visitors.toLocaleString() }}명</div>
+              <div class="stat-value">
+                {{ visitorStats.daily_visitors.toLocaleString() }}명 /
+                {{ visitorStats.total_visitors.toLocaleString() }}명
+              </div>
               <div class="stat-label">오늘 / 전체 방문자</div>
             </div>
           </div>
 
           <div class="stat-item">
             <div class="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z"
-                  stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  stroke="var(--primary-dark)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ totalMembers.toLocaleString() }}명</div>
+              <div class="stat-value">
+                {{ totalMembers.toLocaleString() }}명
+              </div>
               <div class="stat-label">전체 참여자</div>
             </div>
           </div>
 
           <div class="stat-item">
             <div class="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                  stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  stroke="var(--primary-dark)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ todayReaders.toLocaleString() }}명</div>
+              <div class="stat-value">
+                {{ todayReaders.toLocaleString() }}명
+              </div>
               <div class="stat-label">오늘 일독 완료</div>
             </div>
           </div>
@@ -236,21 +414,49 @@
       <div class="section fade-in" style="animation-delay: 0.8s">
         <div class="section-header">
           <h2>진행률</h2>
-          <div v-if="auth.isAuthenticated && subscriptionStore.subscriptions.length > 1" class="plan-selector">
-            <button class="plan-select-button" @click="showProgressPlanDropdown = !showProgressPlanDropdown">
+          <div
+            v-if="
+              auth.isAuthenticated && subscriptionStore.subscriptions.length > 1
+            "
+            class="plan-selector"
+          >
+            <button
+              class="plan-select-button"
+              @click="showProgressPlanDropdown = !showProgressPlanDropdown"
+            >
               <span>{{ selectedPlanName }}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 9l6 6 6-6"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
 
             <!-- 드롭다운 메뉴 -->
             <div v-if="showProgressPlanDropdown" class="plan-dropdown">
-              <button v-for="subscription in subscriptionStore.subscriptions" :key="subscription.plan_id"
-                class="dropdown-item" :class="{ active: subscription.plan_id === selectedPlanId }"
-                @click="selectPlan(subscription); showProgressPlanDropdown = false;">
-                <span class="dropdown-item-text">{{ subscription.plan_name }}</span>
+              <button
+                v-for="subscription in subscriptionStore.subscriptions"
+                :key="subscription.plan_id"
+                class="dropdown-item"
+                :class="{ active: subscription.plan_id === selectedPlanId }"
+                @click="
+                  selectPlan(subscription);
+                  showProgressPlanDropdown = false;
+                "
+              >
+                <span class="dropdown-item-text">{{
+                  subscription.plan_name
+                }}</span>
               </button>
             </div>
           </div>
@@ -258,10 +464,17 @@
         <div class="progress-container">
           <div class="progress-item">
             <div class="progress-icon">
-              <img src="@/assets/images/높은뜻 푸른교회 아이콘.png" alt="교회 아이콘" class="church-icon">
+              <img
+                src="@/assets/images/높은뜻 푸른교회 아이콘.png"
+                alt="교회 아이콘"
+                class="church-icon"
+              />
             </div>
             <div class="progress-bar">
-              <div class="progress" :style="{ width: `${progressPercentage}%` }"></div>
+              <div
+                class="progress"
+                :style="{ width: `${progressPercentage}%` }"
+              ></div>
             </div>
             <div class="progress-text">{{ progressPercentage }}% / 100%</div>
           </div>
@@ -269,35 +482,71 @@
             <template v-if="isAuthenticated">
               <div class="progress-content">
                 <div class="progress-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <path
                       d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
-                      stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      stroke="var(--primary-dark)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                     <path
                       d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21"
-                      stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      stroke="var(--primary-dark)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </div>
                 <div class="progress-bar">
-                  <div class="progress progress-green" :style="{ width: `${personalProgressPercentage}%` }"></div>
+                  <div
+                    class="progress progress-green"
+                    :style="{ width: `${personalProgressPercentage}%` }"
+                  ></div>
                 </div>
-                <div class="progress-text">{{ personalProgressPercentage }}% / 100%</div>
+                <div class="progress-text">
+                  {{ personalProgressPercentage }}% / 100%
+                </div>
               </div>
             </template>
             <template v-else>
               <div class="progress-content blur-content">
                 <div class="progress-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <path
                       d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
-                      stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      stroke="var(--primary-dark)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                     <path
                       d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21"
-                      stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      stroke="var(--primary-dark)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </div>
                 <div class="progress-bar">
-                  <div class="progress progress-green" style="width: 20.8%"></div>
+                  <div
+                    class="progress progress-green"
+                    style="width: 20.8%"
+                  ></div>
                 </div>
                 <div class="progress-text">20.8% / 100%</div>
               </div>
@@ -315,29 +564,54 @@
         <div class="coming-soon-features">
           <div class="feature">
             <div class="feature-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M8 7V17M8 7L4 8.5V18.5L8 17M8 7L12 8.5M8 17L12 18.5M12 8.5V18.5M12 8.5L16 7M12 18.5L16 17M16 7V17M16 7L20 8.5V18.5L16 17"
-                  stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  stroke="var(--primary-dark)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <div class="feature-content">
               <h3>스코어보드</h3>
-              <p>진행 현황을 공유하도록 설정하면, 매일일독에 참여 중인 사람들이 함께 볼 수 있도록 준비중이예요</p>
+              <p>
+                진행 현황을 공유하도록 설정하면, 매일일독에 참여 중인 사람들이
+                함께 볼 수 있도록 준비중이예요
+              </p>
             </div>
           </div>
 
           <div class="feature">
             <div class="feature-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M13 14L14.586 12.414C14.9611 12.0391 15.4697 11.8284 16 11.8284C16.5303 11.8284 17.0389 12.0391 17.414 12.414L20 15M14 8C14 8.53043 13.7893 9.03914 13.4142 9.41421C13.0391 9.78929 12.5304 10 12 10C11.4696 10 10.9609 9.78929 10.5858 9.41421C10.2107 9.03914 10 8.53043 10 8C10 7.46957 10.2107 6.96086 10.5858 6.58579C10.9609 6.21071 11.4696 6 12 6C12.5304 6 13.0391 6.21071 13.4142 6.58579C13.7893 6.96086 14 7.46957 14 8ZM3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19Z"
-                  stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  stroke="var(--primary-dark)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <div class="feature-content">
               <h3>SNS 공유하기</h3>
-              <p>오늘 일독을 스토리로 공유하여 인증할 수 있는 기능을 준비중이예요</p>
+              <p>
+                오늘 일독을 스토리로 공유하여 인증할 수 있는 기능을 준비중이예요
+              </p>
             </div>
           </div>
         </div>
@@ -346,11 +620,23 @@
 
     <!-- GitHub 링크 추가 -->
     <div class="github-link-container">
-      <a href="https://github.com/JG-Park/maeil1dok/" target="_blank" rel="noopener noreferrer" class="github-link">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
-          class="github-icon">
+      <a
+        href="https://github.com/JG-Park/maeil1dok/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="github-link"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+          class="github-icon"
+        >
           <path
-            d="M12 2C6.477 2 2 6.477 2 12C2 16.418 4.865 20.166 8.84 21.489C9.34 21.581 9.52 21.276 9.52 21.012C9.52 20.775 9.512 20.143 9.508 19.308C6.726 19.91 6.139 17.96 6.139 17.96C5.685 16.811 5.028 16.508 5.028 16.508C4.128 15.927 5.095 15.939 5.095 15.939C6.092 16.01 6.626 16.929 6.626 16.929C7.521 18.452 8.969 18.007 9.54 17.752C9.631 17.09 9.889 16.646 10.175 16.419C7.955 16.189 5.62 15.367 5.62 11.613C5.62 10.546 6.01 9.678 6.646 9.003C6.545 8.75 6.197 7.797 6.746 6.602C6.746 6.602 7.586 6.335 9.497 7.78C10.3 7.559 11.15 7.449 12 7.444C12.85 7.449 13.7 7.559 14.504 7.78C16.414 6.335 17.253 6.602 17.253 6.602C17.803 7.797 17.455 8.75 17.354 9.003C17.991 9.678 18.379 10.546 18.379 11.613C18.379 15.376 16.04 16.185 13.813 16.411C14.172 16.692 14.492 17.253 14.492 18.105C14.492 19.308 14.479 20.683 14.479 21.012C14.479 21.278 14.657 21.586 15.165 21.487C19.137 20.161 22 16.416 22 12C22 6.477 17.523 2 12 2Z" />
+            d="M12 2C6.477 2 2 6.477 2 12C2 16.418 4.865 20.166 8.84 21.489C9.34 21.581 9.52 21.276 9.52 21.012C9.52 20.775 9.512 20.143 9.508 19.308C6.726 19.91 6.139 17.96 6.139 17.96C5.685 16.811 5.028 16.508 5.028 16.508C4.128 15.927 5.095 15.939 5.095 15.939C6.092 16.01 6.626 16.929 6.626 16.929C7.521 18.452 8.969 18.007 9.54 17.752C9.631 17.09 9.889 16.646 10.175 16.419C7.955 16.189 5.62 15.367 5.62 11.613C5.62 10.546 6.01 9.678 6.646 9.003C6.545 8.75 6.197 7.797 6.746 6.602C6.746 6.602 7.586 6.335 9.497 7.78C10.3 7.559 11.15 7.449 12 7.444C12.85 7.449 13.7 7.559 14.504 7.78C16.414 6.335 17.253 6.602 17.253 6.602C17.803 7.797 17.455 8.75 17.354 9.003C17.991 9.678 18.379 10.546 18.379 11.613C18.379 15.376 16.04 16.185 13.813 16.411C14.172 16.692 14.492 17.253 14.492 18.105C14.492 19.308 14.479 20.683 14.479 21.012C14.479 21.278 14.657 21.586 15.165 21.487C19.137 20.161 22 16.416 22 12C22 6.477 17.523 2 12 2Z"
+          />
         </svg>
         GitHub
       </a>
@@ -365,509 +651,632 @@
         <div class="modal-body">
           <div class="modal-buttons">
             <button @click="navigateToIntro" class="modal-button intro-button">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
               이번 주 개론 시청
             </button>
-            <button @click="navigateToReading" class="modal-button reading-button">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <button
+              @click="navigateToReading"
+              class="modal-button reading-button"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
               내일 본문부터 읽기
             </button>
           </div>
         </div>
-        <button @click="closeSundayModal" class="modal-close">
-          닫기
-        </button>
+        <button @click="closeSundayModal" class="modal-close">닫기</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { useHead } from '#imports'
+import { useHead } from "#imports";
 
 useHead({
-  title: '매일일독',
+  title: "매일일독",
   meta: [
-    { name: 'description', content: '' },
-    { property: 'og:title', content: '매일일독' },
-    { property: 'og:description', content: '' },
-    { property: 'og:image', content: '/og-image.png' },
-    { property: 'og:url', content: 'https://maeil1dok.app/' },
-    { name: 'twitter:card', content: 'summary_large_image' },
-    { name: 'twitter:title', content: '매일일독' },
-    { name: 'twitter:description', content: '' },
-    { name: 'twitter:image', content: '/og-image.png' }
-  ]
-})
+    { name: "description", content: "" },
+    { property: "og:title", content: "매일일독" },
+    { property: "og:description", content: "" },
+    { property: "og:image", content: "/og-image.png" },
+    { property: "og:url", content: "https://maeil1dok.app/" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: "매일일독" },
+    { name: "twitter:description", content: "" },
+    { name: "twitter:image", content: "/og-image.png" },
+  ],
+});
 
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
-import { useSubscriptionStore } from '~/stores/subscription'
-import { useSelectedPlanStore } from '~/stores/selectedPlan'
-import Header from '~/components/Header.vue'
-import DailyStatus from '~/components/DailyStatus.vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useApi } from "~/composables/useApi";
+import { useAuthStore } from "~/stores/auth";
+import { useSubscriptionStore } from "~/stores/subscription";
+import { useSelectedPlanStore } from "~/stores/selectedPlan";
+import Header from "~/components/Header.vue";
+import DailyStatus from "~/components/DailyStatus.vue";
+import WeeklyCalendar from "~/components/WeeklyCalendar.vue";
 
-const auth = useAuthStore()
-const api = useApi()
-const subscriptionStore = useSubscriptionStore()
-const selectedPlanStore = useSelectedPlanStore()
-const isAuthenticated = computed(() => auth.isAuthenticated)
+const auth = useAuthStore();
+const api = useApi();
+const subscriptionStore = useSubscriptionStore();
+const selectedPlanStore = useSelectedPlanStore();
+const isAuthenticated = computed(() => auth.isAuthenticated);
 
+const router = useRouter();
+const introTasks = ref([]);
+const loadingIntros = ref(false);
 
-const router = useRouter()
-const introTasks = ref([])
-const loadingIntros = ref(false)
+const showSundayModal = ref(false);
+const showPlanDropdown = ref(false);
+const showStatsPlanDropdown = ref(false);
 
+// MOCK: 주간 통독 현황 데이터 (나중에 API 연동)
+const weekStatus = ref([
+  {
+    date: "2025-04-28",
+    plans: [
+      { planId: 1, planName: "기본 플랜", completed: true },
+      { planId: 2, planName: "청년부", completed: false },
+    ],
+  },
+  {
+    date: "2025-04-29",
+    plans: [
+      { planId: 1, planName: "기본 플랜", completed: true },
+      { planId: 2, planName: "청년부", completed: true },
+    ],
+  },
+  {
+    date: "2025-04-30",
+    plans: [
+      { planId: 1, planName: "기본 플랜", completed: false },
+      { planId: 2, planName: "청년부", completed: false },
+    ],
+  },
+  {
+    date: "2025-05-01",
+    plans: [
+      { planId: 1, planName: "기본 플랜", completed: true },
+      { planId: 2, planName: "청년부", completed: true },
+    ],
+  },
+  {
+    date: "2025-05-02",
+    plans: [
+      { planId: 1, planName: "기본 플랜", completed: false },
+      { planId: 2, planName: "청년부", completed: true },
+    ],
+  },
+  {
+    date: "2025-05-03",
+    plans: [
+      { planId: 1, planName: "기본 플랜", completed: true },
+      { planId: 2, planName: "청년부", completed: false },
+    ],
+  },
+  {
+    date: "2025-05-04",
+    plans: [
+      { planId: 1, planName: "기본 플랜", completed: false },
+      { planId: 2, planName: "청년부", completed: false },
+    ],
+  },
+]);
 
-const showSundayModal = ref(false)
-const showPlanDropdown = ref(false)
-const showStatsPlanDropdown = ref(false)
-const showProgressPlanDropdown = ref(false)
+const showProgressPlanDropdown = ref(false);
 
 const selectedPlanId = computed({
   get: () => selectedPlanStore.selectedPlanId,
-  set: (value) => selectedPlanStore.setSelectedPlanId(value)
-})
+  set: (value) => selectedPlanStore.setSelectedPlanId(value),
+});
 
 const selectedPlanName = computed(() => {
-  if (!auth.isAuthenticated) return '기본 플랜'
+  if (!auth.isAuthenticated) return "기본 플랜";
 
   const selectedPlan = subscriptionStore.subscriptions.find(
-    sub => sub.plan_id === selectedPlanId.value
-  )
-  return selectedPlan ? selectedPlan.plan_name : '플랜 선택'
-})
+    (sub) => sub.plan_id === selectedPlanId.value
+  );
+  return selectedPlan ? selectedPlan.plan_name : "플랜 선택";
+});
 
 const isSunday = computed(() => {
-  return new Date().getDay() === 0
-})
+  return new Date().getDay() === 0;
+});
 
 const fetchStats = async () => {
   try {
-    const planId = selectedPlanId.value || 1 // 기본 플랜 ID는 1로 가정
+    const planId = selectedPlanId.value || 1; // 기본 플랜 ID는 1로 가정
 
     // 사용자 통계 가져오기
-    const usersResponse = await api.get('/api/v1/todos/stats/users/', {
-      params: { plan_id: planId }
-    })
+    const usersResponse = await api.get("/api/v1/todos/stats/users/", {
+      params: { plan_id: planId },
+    });
     if (usersResponse.data.success) {
-      totalMembers.value = usersResponse.data.total_users
+      totalMembers.value = usersResponse.data.total_users;
     }
 
-    const planStatsResponse = await api.get('/api/v1/todos/stats/plan/', {
-      params: { plan_id: planId }
-    })
+    const planStatsResponse = await api.get("/api/v1/todos/stats/plan/", {
+      params: { plan_id: planId },
+    });
 
     if (planStatsResponse.data.success) {
-      todayReaders.value = planStatsResponse.data.today_completed_users
+      todayReaders.value = planStatsResponse.data.today_completed_users;
     }
 
-    const progressResponse = await api.get('/api/v1/todos/stats/progress/', {
-      params: { plan_id: planId }
-    })
+    const progressResponse = await api.get("/api/v1/todos/stats/progress/", {
+      params: { plan_id: planId },
+    });
 
     if (progressResponse.data.success) {
-      progressPercentage.value = progressResponse.data.theoretical_progress
-      personalProgressPercentage.value = progressResponse.data.user_progress
+      progressPercentage.value = progressResponse.data.theoretical_progress;
+      personalProgressPercentage.value = progressResponse.data.user_progress;
     }
   } catch (error) {
-    console.error('통계 데이터를 가져오는 중 오류가 발생했습니다:', error)
+    console.error("통계 데이터를 가져오는 중 오류가 발생했습니다:", error);
   }
-}
+};
 
-  ; (async () => {
-    try {
-      if (auth.isAuthenticated) {
-        await subscriptionStore.fetchSubscriptions()
+(async () => {
+  try {
+    if (auth.isAuthenticated) {
+      await subscriptionStore.fetchSubscriptions();
 
-        selectedPlanStore.initializeFromStorage()
+      selectedPlanStore.initializeFromStorage();
 
-        if (!selectedPlanId.value || !subscriptionStore.subscriptions.find(sub => sub.plan_id === selectedPlanId.value)) {
-          if (subscriptionStore.subscriptions.length > 0) {
-            selectedPlanStore.setSelectedPlanId(subscriptionStore.subscriptions[0].plan_id)
-          }
+      if (
+        !selectedPlanId.value ||
+        !subscriptionStore.subscriptions.find(
+          (sub) => sub.plan_id === selectedPlanId.value
+        )
+      ) {
+        if (subscriptionStore.subscriptions.length > 0) {
+          selectedPlanStore.setSelectedPlanId(
+            subscriptionStore.subscriptions[0].plan_id
+          );
         }
-      } else {
-        selectedPlanStore.setSelectedPlanId(1)
       }
-
-      await fetchStats()
-    } catch (error) {
-      console.error('초기 데이터 로드 실패:', error)
+    } else {
+      selectedPlanStore.setSelectedPlanId(1);
     }
-  })()
+
+    await fetchStats();
+  } catch (error) {
+    console.error("초기 데이터 로드 실패:", error);
+  }
+})();
 
 const todayTasks = ref([
   {
     id: 1,
-    title: '오늘일독',
-    completed: false
+    title: "오늘일독",
+    completed: false,
   },
   {
     id: 2,
-    title: '성경통독표',
-    completed: false
+    title: "성경통독표",
+    completed: false,
   },
   {
     id: 3,
-    title: '하세나하시조',
-    completed: false
-  }
-])
+    title: "하세나하시조",
+    completed: false,
+  },
+]);
 
 // todayTasks 초기화 시 하세나하시조 항목 추가 방식 변경
 const initTodayTasks = () => {
   todayTasks.value = [
-    { title: '오늘일독', completed: false },
-    { title: '하세나하시조', completed: false }, // 하세나하시조 항목 추가
-  ]
-}
+    { title: "오늘일독", completed: false },
+    { title: "하세나하시조", completed: false }, // 하세나하시조 항목 추가
+  ];
+};
 
 // 모달 닫기
 const closeSundayModal = () => {
-  showSundayModal.value = false
-}
-
+  showSundayModal.value = false;
+};
 
 // 통계 데이터를 위한 ref 추가
-const totalMembers = ref(0)
-const todayReaders = ref(0)
-const progressPercentage = ref(0)
-const personalProgressPercentage = ref(0)
+const totalMembers = ref(0);
+const todayReaders = ref(0);
+const progressPercentage = ref(0);
+const personalProgressPercentage = ref(0);
 
 // 방문자 통계 상태 추가
 const visitorStats = ref({
   daily_visitors: 0,
-  total_visitors: 0
-})
+  total_visitors: 0,
+});
 
 // 방문자 통계 가져오기
 const fetchVisitorStats = async () => {
   try {
-    const response = await api.get('/api/v1/todos/stats/visitors/')
+    const response = await api.get("/api/v1/todos/stats/visitors/");
     if (response.data.success) {
       visitorStats.value = {
         daily_visitors: response.data.daily_visitors,
-        total_visitors: response.data.total_visitors
-      }
+        total_visitors: response.data.total_visitors,
+      };
     } else {
-      console.error('방문자 통계 응답 오류:', response.data)
+      console.error("방문자 통계 응답 오류:", response.data);
       // 오류 응답이지만 이전 값은 유지
     }
   } catch (error) {
-    console.error('방문자 통계를 가져오는데 실패했습니다:', error)
+    console.error("방문자 통계를 가져오는데 실패했습니다:", error);
     // 오류 발생 시 기본값 설정 (빈 화면 방지)
-    if (!visitorStats.value.daily_visitors && !visitorStats.value.total_visitors) {
+    if (
+      !visitorStats.value.daily_visitors &&
+      !visitorStats.value.total_visitors
+    ) {
       visitorStats.value = {
         daily_visitors: 0,
-        total_visitors: 0
-      }
+        total_visitors: 0,
+      };
     }
   }
-}
+};
 
 // 방문자 수 증가
 const incrementVisitorCount = async () => {
   try {
-    const response = await api.post('/api/v1/todos/stats/visitors/increment/')
+    const response = await api.post("/api/v1/todos/stats/visitors/increment/");
 
     if (response.data && response.data.success) {
       // 응답에서 직접 데이터를 사용
       visitorStats.value = {
         daily_visitors: response.data.daily_count || 0,
-        total_visitors: visitorStats.value.total_visitors + (response.data.counted ? 1 : 0)
+        total_visitors:
+          visitorStats.value.total_visitors + (response.data.counted ? 1 : 0),
       };
     } else {
       // 서버에서 실패 응답이 왔을 때 통계만 가져오기
       await fetchVisitorStats();
     }
   } catch (error) {
-    console.error('방문자 수 증가에 실패했습니다:', error);
+    console.error("방문자 수 증가에 실패했습니다:", error);
     // 실패해도 기존 통계는 표시
     await fetchVisitorStats();
     throw error; // 에러를 다시 던져서 호출자가 처리할 수 있게 함
   }
-}
+};
 
 // 플랜 선택 핸들러 수정
 const selectPlan = async (subscription) => {
-  selectedPlanStore.setSelectedPlanId(subscription.plan_id)
-  showPlanDropdown.value = false
-  showStatsPlanDropdown.value = false
-  showProgressPlanDropdown.value = false
+  selectedPlanStore.setSelectedPlanId(subscription.plan_id);
+  showPlanDropdown.value = false;
+  showStatsPlanDropdown.value = false;
+  showProgressPlanDropdown.value = false;
 
   // 플랜 변경 시 통계 다시 로드
-  await fetchStats()
-}
+  await fetchStats();
+};
 
 // 드롭다운 외부 클릭 시 닫기
 const closeDropdownOnOutsideClick = (event) => {
   // 오늘일독 드롭다운
   if (showPlanDropdown.value) {
-    const dropdown = document.querySelector('.horizontal-sections .plan-selector')
+    const dropdown = document.querySelector(
+      ".horizontal-sections .plan-selector"
+    );
     if (dropdown && !dropdown.contains(event.target)) {
-      showPlanDropdown.value = false
+      showPlanDropdown.value = false;
     }
   }
 
   // 참여 현황 드롭다운
   if (showStatsPlanDropdown.value) {
-    const statsDropdown = document.querySelector('.stats-container').previousElementSibling.querySelector('.plan-selector')
+    const statsDropdown = document
+      .querySelector(".stats-container")
+      .previousElementSibling.querySelector(".plan-selector");
     if (statsDropdown && !statsDropdown.contains(event.target)) {
-      showStatsPlanDropdown.value = false
+      showStatsPlanDropdown.value = false;
     }
   }
 
   // 진행률 드롭다운
   if (showProgressPlanDropdown.value) {
-    const progressDropdown = document.querySelector('.progress-container').previousElementSibling.querySelector('.plan-selector')
+    const progressDropdown = document
+      .querySelector(".progress-container")
+      .previousElementSibling.querySelector(".plan-selector");
     if (progressDropdown && !progressDropdown.contains(event.target)) {
-      showProgressPlanDropdown.value = false
+      showProgressPlanDropdown.value = false;
     }
   }
-}
+};
 
 // 이벤트 리스너 등록 및 해제
 onMounted(() => {
-  document.addEventListener('click', closeDropdownOnOutsideClick)
+  document.addEventListener("click", closeDropdownOnOutsideClick);
 
   // 방문자 카운트 관련 로직 실행
   const initVisitorCount = async () => {
-    const today = new Date().toDateString()
-    const visitKey = `visited_${today}`
+    const today = new Date().toDateString();
+    const visitKey = `visited_${today}`;
 
     if (!sessionStorage.getItem(visitKey)) {
       try {
-        await incrementVisitorCount()
+        await incrementVisitorCount();
       } catch (error) {
-        console.error('방문자 카운터 증가 실패, 통계만 로드합니다:', error)
-        await fetchVisitorStats()
+        console.error("방문자 카운터 증가 실패, 통계만 로드합니다:", error);
+        await fetchVisitorStats();
       }
-      sessionStorage.setItem(visitKey, 'true')
+      sessionStorage.setItem(visitKey, "true");
     } else {
-      await fetchVisitorStats()
+      await fetchVisitorStats();
     }
-  }
+  };
 
   // 페이지 데이터 로드 및 이벤트 리스너 등록
-  initVisitorCount()
-  fetchVideoIntros()
-  initTodayTasks()
-  fetchHasenaStatus()
+  initVisitorCount();
+  fetchVideoIntros();
+  initTodayTasks();
+  fetchHasenaStatus();
 
   // 이벤트 리스너 등록
-  window.addEventListener('hasenaStatusUpdated', refreshHasenaStatus)
-})
+  window.addEventListener("hasenaStatusUpdated", refreshHasenaStatus);
+});
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', closeDropdownOnOutsideClick)
+  document.removeEventListener("click", closeDropdownOnOutsideClick);
 
   // 컴포넌트 언마운트 시 이벤트 리스너 제거
-  window.removeEventListener('hasenaStatusUpdated', refreshHasenaStatus)
-})
+  window.removeEventListener("hasenaStatusUpdated", refreshHasenaStatus);
+});
 
 // selectedPlanId가 변경될 때 통계 다시 로드
-watch(() => selectedPlanId.value, async (newValue) => {
-  if (newValue) {
-    await fetchStats()
+watch(
+  () => selectedPlanId.value,
+  async (newValue) => {
+    if (newValue) {
+      await fetchStats();
+    }
   }
-})
+);
 
 // auth 상태 변경 감시 수정
-watch(() => auth.isAuthenticated, async (newValue) => {
-  if (newValue) {
-    await subscriptionStore.fetchSubscriptions()
-    if (subscriptionStore.subscriptions.length > 0) {
-      // 저장된 플랜 ID가 있고 유효한 경우 그대로 사용, 아니면 첫 번째 구독의 플랜 ID 사용
-      const storedPlanId = selectedPlanId.value
-      if (!storedPlanId || !subscriptionStore.subscriptions.find(sub => sub.plan_id === storedPlanId)) {
-        selectedPlanStore.setSelectedPlanId(subscriptionStore.subscriptions[0].plan_id)
+watch(
+  () => auth.isAuthenticated,
+  async (newValue) => {
+    if (newValue) {
+      await subscriptionStore.fetchSubscriptions();
+      if (subscriptionStore.subscriptions.length > 0) {
+        // 저장된 플랜 ID가 있고 유효한 경우 그대로 사용, 아니면 첫 번째 구독의 플랜 ID 사용
+        const storedPlanId = selectedPlanId.value;
+        if (
+          !storedPlanId ||
+          !subscriptionStore.subscriptions.find(
+            (sub) => sub.plan_id === storedPlanId
+          )
+        ) {
+          selectedPlanStore.setSelectedPlanId(
+            subscriptionStore.subscriptions[0].plan_id
+          );
+        }
       }
+    } else {
+      // 로그아웃 시 기본 플랜으로 초기화
+      selectedPlanStore.setSelectedPlanId(1);
     }
-  } else {
-    // 로그아웃 시 기본 플랜으로 초기화
-    selectedPlanStore.setSelectedPlanId(1)
   }
-})
+);
 
 // toggleTask 함수에서 디버깅 추가
 const toggleTask = async (task) => {
   // 오늘일독 버튼
-  if (task.id === 1 || task.title === '오늘일독') {
+  if (task.id === 1 || task.title === "오늘일독") {
     if (isSunday.value) {
-      showSundayModal.value = true
+      showSundayModal.value = true;
     } else {
-      await handleTodayReading()
+      await handleTodayReading();
     }
-    return
+    return;
   }
 
   // 성경통독표 버튼 - 일정 체크 없이 바로 이동
-  if (task.id === 2 || task.title === '성경통독표') {
-    const planId = auth.isAuthenticated && selectedPlanId.value ? selectedPlanId.value : 1
-    router.push(`/reading-plan?plan=${planId}`)
-    return
+  if (task.id === 2 || task.title === "성경통독표") {
+    const planId =
+      auth.isAuthenticated && selectedPlanId.value ? selectedPlanId.value : 1;
+    router.push(`/reading-plan?plan=${planId}`);
+    return;
   }
 
   // 하세나하시조 버튼 - 완료 상태 반영
-  if (task.id === 3 || task.title === '하세나하시조') {
-    router.push('/hasena')
-    return
+  if (task.id === 3 || task.title === "하세나하시조") {
+    router.push("/hasena");
+    return;
   }
-}
+};
 
 // 오늘일독 버튼 클릭 시 실행되는 함수를 단순화
 const handleTodayReading = async () => {
   try {
     // 선택된 플랜 ID 확인 (비로그인 사용자는 기본 플랜 ID 1 사용)
-    const planId = selectedPlanId.value || 1
+    const planId = selectedPlanId.value || 1;
 
     // 오늘의 스케줄 조회
-    const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${planId}`)
+    const response = await api.get(
+      `/api/v1/todos/schedules/today/?plan_id=${planId}`
+    );
 
-    if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
+    if (
+      response.data.success &&
+      response.data.schedules &&
+      response.data.schedules.length > 0
+    ) {
       // 첫 번째 스케줄 정보 가져오기
-      const schedule = response.data.schedules[0]
+      const schedule = response.data.schedules[0];
 
       // reading 페이지로 이동
       router.push({
-        path: '/reading',
+        path: "/reading",
         query: {
           plan: planId,
           book: schedule.book_code,
-          chapter: schedule.start_chapter
-        }
-      })
+          chapter: schedule.start_chapter,
+        },
+      });
     } else {
       // 일정이 없는 경우에도 reading 페이지로 이동
       router.push({
-        path: '/reading',
-        query: { plan: planId }
-      })
+        path: "/reading",
+        query: { plan: planId },
+      });
     }
   } catch (error) {
-    console.error('오늘 일정 조회 오류:', error)
+    console.error("오늘 일정 조회 오류:", error);
   }
-}
+};
 
 // 모달에서 독서 페이지로 이동하는 함수 - 단순화
 const navigateToReading = async () => {
-  closeSundayModal()
-  const planId = selectedPlanId.value || 1
+  closeSundayModal();
+  const planId = selectedPlanId.value || 1;
 
   try {
     // 내일 일정 가져오기
-    const response = await api.get(`/api/v1/todos/schedules/tomorrow/?plan_id=${planId}`)
+    const response = await api.get(
+      `/api/v1/todos/schedules/tomorrow/?plan_id=${planId}`
+    );
 
-    if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
-      const schedule = response.data.schedules[0]
-      const bookCode = schedule.book_code
-      const startChapter = schedule.start_chapter || 1
+    if (
+      response.data.success &&
+      response.data.schedules &&
+      response.data.schedules.length > 0
+    ) {
+      const schedule = response.data.schedules[0];
+      const bookCode = schedule.book_code;
+      const startChapter = schedule.start_chapter || 1;
 
-      router.push(`/reading?plan=${planId}&book=${bookCode}&chapter=${startChapter}`)
+      router.push(
+        `/reading?plan=${planId}&book=${bookCode}&chapter=${startChapter}`
+      );
     } else {
-      ('내일 일정이 없습니다')
-      router.push(`/reading?plan=${planId}`)
+      ("내일 일정이 없습니다");
+      router.push(`/reading?plan=${planId}`);
     }
   } catch (error) {
-    console.error('내일 일정 조회 오류:', error)
-    router.push(`/reading?plan=${planId}`)
+    console.error("내일 일정 조회 오류:", error);
+    router.push(`/reading?plan=${planId}`);
   }
-}
+};
 
 // 모달에서 개론 영상으로 이동하는 함수 - 단순화
 const navigateToIntro = (task) => {
   if (task) {
-    router.push(`/intro/${task.id}`)
+    router.push(`/intro/${task.id}`);
   } else {
-    closeSundayModal()
-    router.push('/intro')
+    closeSundayModal();
+    router.push("/intro");
   }
-}
+};
 
 // 영상 개론 목록 가져오기
 const fetchVideoIntros = async () => {
-  if (!auth.isAuthenticated && subscriptionStore.subscriptions.length === 0) {
-    introTasks.value = []
-    return
+  // 비로그인 사용자도 기본 플랜(id:1)의 개론 영상을 볼 수 있도록 수정
+  if (!auth.isAuthenticated) {
+    // 비로그인 사용자는 기본 플랜(id:1)을 사용
+    selectedPlanStore.setSelectedPlanId(1);
   }
 
-  loadingIntros.value = true
+  loadingIntros.value = true;
 
   try {
     // 선택된 플랜 ID를 쿼리 파라미터로 전달
     const url = selectedPlanId.value
       ? `/api/v1/todos/user/video/intro/?plan_id=${selectedPlanId.value}`
-      : '/api/v1/todos/user/video/intro/'
+      : "/api/v1/todos/user/video/intro/";
 
-    const response = await api.get(url)
+    const response = await api.get(url);
     if (!response.data || !Array.isArray(response.data)) {
-      console.error('개론 영상 응답이 배열이 아닙니다:', response.data)
-      introTasks.value = []
-      return
+      console.error("개론 영상 응답이 배열이 아닙니다:", response.data);
+      // 응답이 오류인 경우 상태 코드와 헤더 확인
+      introTasks.value = [];
+      return;
     }
 
     // 현재 날짜
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     // 데이터 구조를 확인하고 안전하게 필터링
     introTasks.value = response.data
-      .filter(item => {
+      .filter((item) => {
         // 데이터 구조 체크
-        if (!item) return false
+        if (!item) return false;
 
         // API 응답 구조에 따라 날짜 정보 추출
-        let startDateStr, endDateStr, bookName, planId
+        let startDateStr, endDateStr, bookName, planId;
 
         if (item.video_intro) {
           // video_intro 구조
-          startDateStr = item.video_intro.start_date
-          endDateStr = item.video_intro.end_date
-          bookName = item.video_intro.book
-          planId = item.video_intro.plan
+          startDateStr = item.video_intro.start_date;
+          endDateStr = item.video_intro.end_date;
+          bookName = item.video_intro.book;
+          planId = item.video_intro.plan;
         } else {
           // 직접 속성
-          startDateStr = item.start_date
-          endDateStr = item.end_date
-          bookName = item.book || '이름 없음'
-          planId = item.plan
+          startDateStr = item.start_date;
+          endDateStr = item.end_date;
+          bookName = item.book || "이름 없음";
+          planId = item.plan;
         }
 
-        if (!startDateStr || !endDateStr) return false
+        if (!startDateStr || !endDateStr) return false;
 
         // 선택된 플랜 ID와 일치하는지 확인 (백엔드 필터링이 이미 적용되었다면 생략 가능)
-        if (selectedPlanId.value && planId && parseInt(planId) !== parseInt(selectedPlanId.value)) {
-          return false
+        if (
+          selectedPlanId.value &&
+          planId &&
+          parseInt(planId) !== parseInt(selectedPlanId.value)
+        ) {
+          return false;
         }
 
         try {
-          const startDate = new Date(startDateStr)
-          const endDate = new Date(endDateStr)
-          startDate.setHours(0, 0, 0, 0)
-          endDate.setHours(23, 59, 59, 999)
+          const startDate = new Date(startDateStr);
+          const endDate = new Date(endDateStr);
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
 
           // 오늘 날짜가 시작일과 종료일 사이에 있는지 확인
-          const isAvailableToday = today >= startDate && today <= endDate
+          const isAvailableToday = today >= startDate && today <= endDate;
 
-          return isAvailableToday
+          return isAvailableToday;
         } catch (err) {
-          console.error('날짜 처리 중 오류:', err)
-          return false
+          console.error("날짜 처리 중 오류:", err);
+          return false;
         }
       })
-      .map(item => {
+      .map((item) => {
         // 데이터 구조에 따라 다르게 매핑
         if (item.video_intro) {
           return {
@@ -875,38 +1284,42 @@ const fetchVideoIntros = async () => {
             book: item.video_intro.book,
             is_completed: item.is_completed,
             url: item.video_intro.url_link,
-            plan_id: item.video_intro.plan
-          }
+            plan_id: item.video_intro.plan,
+          };
         } else {
           return {
             id: item.id,
-            book: item.book || '제목 없음',
+            book: item.book || "제목 없음",
             is_completed: item.is_completed || false,
-            url: item.url_link || '',
-            plan_id: item.plan
-          }
+            url: item.url_link || "",
+            plan_id: item.plan,
+          };
         }
-      })
-
+      });
   } catch (err) {
-    console.error('영상 개론 목록 조회 오류:', err)
-    introTasks.value = []
+    console.error("영상 개론 목록 조회 오류:", err);
+    introTasks.value = [];
   } finally {
-    loadingIntros.value = false
+    loadingIntros.value = false;
   }
-}
+};
 
 // auth 상태 변화 감지 시 영상 개론 목록 갱신
-watch(() => auth.isAuthenticated, (newValue) => {
-  if (newValue) {
-    fetchVideoIntros()
+watch(
+  () => auth.isAuthenticated,
+  (newValue) => {
+    // 로그인 상태에 관계없이 항상 fetchVideoIntros 호출
+    fetchVideoIntros();
   }
-})
+);
 
 // 선택된 플랜 변경 시 영상 개론 목록 갱신
-watch(() => selectedPlanId.value, () => {
-  fetchVideoIntros()
-})
+watch(
+  () => selectedPlanId.value,
+  () => {
+    fetchVideoIntros();
+  }
+);
 
 // 하세나 완료 상태 조회 함수 수정
 const fetchHasenaStatus = async () => {
@@ -918,34 +1331,34 @@ const fetchHasenaStatus = async () => {
       return;
     }
 
-    const response = await useApi().get('/api/v1/todos/hasena/status/');
+    const response = await useApi().get("/api/v1/todos/hasena/status/");
     hasenaStatus.value = response.data;
   } catch (error) {
-    console.error('하세나 완료 상태 조회 실패:', error);
+    console.error("하세나 완료 상태 조회 실패:", error);
     // 오류 처리 로직
   }
-}
+};
 
 // 컴포넌트 언마운트 시 이벤트 리스너 제거
 onBeforeUnmount(() => {
-  document.removeEventListener('click', closeDropdownOnOutsideClick)
-  window.removeEventListener('hasenaStatusUpdated', refreshHasenaStatus)
-})
+  document.removeEventListener("click", closeDropdownOnOutsideClick);
+  window.removeEventListener("hasenaStatusUpdated", refreshHasenaStatus);
+});
 
 // 하세나 상태 변경 시 재조회
 const refreshHasenaStatus = async () => {
-  await fetchHasenaStatus()
-}
+  await fetchHasenaStatus();
+};
 </script>
 
 <style scoped>
 :root {
   --primary-color: #617475;
-  --primary-light: #E9ECEC;
-  --primary-dark: #4A5A5B;
-  --text-primary: #2C3E50;
+  --primary-light: #e9ecec;
+  --primary-dark: #4a5a5b;
+  --text-primary: #2c3e50;
   --text-secondary: #666666;
-  --background-light: #FAFAFA;
+  --background-light: #fafafa;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
   --radius-sm: 8px;
@@ -984,17 +1397,13 @@ const refreshHasenaStatus = async () => {
   margin: 0.875rem 1rem;
   padding: 1rem;
   border-radius: 16px;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    0 1px 2px rgba(0, 0, 0, 0.04),
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04),
     0 0 0 1px rgba(0, 0, 0, 0.015);
   transition: all 0.3s ease;
 }
 
 .section:hover {
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.03),
-    0 2px 4px rgba(0, 0, 0, 0.05),
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.02);
 }
 
@@ -1015,7 +1424,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #FAFAFA;
+  background: #fafafa;
   border: 1px solid rgba(0, 0, 0, 0.03);
   -webkit-tap-highlight-color: transparent;
 }
@@ -1103,7 +1512,7 @@ h2 {
 }
 
 .completed .task-title::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 50%;
@@ -1167,7 +1576,7 @@ h2 {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: #FAFAFA;
+  background: #fafafa;
   border: 1px solid rgba(0, 0, 0, 0.03);
   transition: all 0.2s ease;
   padding: 0.25rem 0;
@@ -1240,14 +1649,14 @@ h2 {
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: #EEEEEE;
+  background: #eeeeee;
   border-radius: 999px;
   overflow: hidden;
 }
 
 .progress {
   height: 100%;
-  background: #366DAE;
+  background: #366dae;
   border-radius: 999px;
   transition: width 0.3s ease;
 }
@@ -1307,7 +1716,7 @@ h2 {
     /* 하단 마진 제거 */
   }
 
-  .flex-1+.flex-1 {
+  .flex-1 + .flex-1 {
     margin-top: 0.875rem;
     /* 두 번째 카드부터 상단 마진 적용 */
   }
@@ -1373,7 +1782,7 @@ h2 {
 }
 
 /* 블러 처리된 요소의 자식 요소들도 같이 블러되도록 설정 */
-.blur-content>* {
+.blur-content > * {
   filter: blur(4px);
 }
 
@@ -1390,11 +1799,11 @@ h2 {
 
 .reading-task:hover {
   background: #edf4ff !important;
-  border-color: #366DAE !important;
+  border-color: #366dae !important;
 }
 
 .reading-task:hover .check-icon {
-  color: #366DAE !important;
+  color: #366dae !important;
 }
 
 .plan-task {
@@ -1416,23 +1825,22 @@ h2 {
 
 .reading-task .check-icon,
 .reading-task .check-mark {
-  color: #366DAE;
+  color: #366dae;
 }
 
-.task:has(.task-title:contains('하세나하시조')) {
+.task:has(.task-title:contains("하세나하시조")) {
   background: #f5f9ff;
 }
 
-.task:has(.task-title:contains('하세나하시조')):hover {
+.task:has(.task-title:contains("하세나하시조")):hover {
   background: #edf4ff !important;
-  border-color: #366DAE !important;
+  border-color: #366dae !important;
 }
 
-.task:has(.task-title:contains('하세나하시조')) .check-icon,
-.task:has(.task-title:contains('하세나하시조')) .check-mark {
-  color: #366DAE;
+.task:has(.task-title:contains("하세나하시조")) .check-icon,
+.task:has(.task-title:contains("하세나하시조")) .check-mark {
+  color: #366dae;
 }
-
 
 .video-task {
   margin-bottom: 0.5rem;
@@ -1509,7 +1917,7 @@ h2 {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #FAFAFA;
+  background: #fafafa;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.03);
   transition: all 0.2s ease;
@@ -1560,9 +1968,7 @@ h2 {
 
 .notice-section:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 6px 12px rgba(0, 0, 0, 0.04),
-    0 3px 6px rgba(0, 0, 0, 0.06),
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04), 0 3px 6px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(0, 0, 0, 0.03);
 }
 
@@ -1601,7 +2007,7 @@ h2 {
 .notice-content {
   display: flex;
   align-items: center;
-  background: #FAFAFA;
+  background: #fafafa;
   padding: 1rem;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.03);
@@ -1613,7 +2019,7 @@ h2 {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #EBF5FF;
+  background: #ebf5ff;
   border-radius: 10px;
   color: var(--info);
   margin-right: 1rem;
@@ -1761,7 +2167,7 @@ h2 {
 
 .reading-button {
   background: #f5f9ff;
-  color: #366DAE;
+  color: #366dae;
 }
 
 .reading-button:hover {
@@ -1854,7 +2260,7 @@ h2 {
   right: 0;
   width: 160px;
   background: white;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 100;
@@ -1870,7 +2276,7 @@ h2 {
   font-size: 0.75rem;
   color: var(--text-primary);
   transition: all 0.2s ease;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid #f1f5f9;
   overflow: hidden;
 }
 
@@ -1949,7 +2355,7 @@ h2 {
   background: #f8f9fa;
 }
 
-.notice-content+.notice-content {
+.notice-content + .notice-content {
   margin-top: 0.75rem;
 }
 </style>
