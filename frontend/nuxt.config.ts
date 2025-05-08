@@ -104,5 +104,8 @@ export default defineNuxtConfig({
   // 개발/운영 환경 설정
   nitro: {
     preset: process.env.NODE_ENV === 'production' ? 'node-server' : 'dev'
+  },
+  build: {
+    transpile: ['vue-cal']
   }
 })
