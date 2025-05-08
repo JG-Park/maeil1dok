@@ -49,11 +49,19 @@ export const useApi = () => {
         fullUrl += `?${searchParams.toString()}`
       }
       
+      // 인증이 필요한 URL 경로 정의
+      // 비로그인 사용자도 영상 개론 목록과 개별 영상 정보를 조회할 수 있도록 예외 처리
+      const isVideoIntroAPI = url.includes('/api/v1/todos/user/video/intro/') || // 목록 조회 API
+                             url.includes('/api/v1/todos/video/intro/');         // 개별 영상 조회 API
+      
       const requiresAuth = url.includes('/api/v1/todos/hasena/status/') || 
-                           url.includes('/api/v1/todos/user/');
+                           (url.includes('/api/v1/todos/user/') && !isVideoIntroAPI);
+      
+      ;
       
       const authStore = useAuthStore();
       if (requiresAuth && !authStore.isAuthenticated) {
+        ;
         return { data: { success: false, message: 'Authentication required' } };
       }
       
