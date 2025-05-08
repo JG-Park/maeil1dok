@@ -8,59 +8,69 @@
         </svg>
       </button>
       <h1>개론</h1>
-    </div>
-
-    <div v-if="loading" class="loading-state fade-in" style="animation-delay: 0.2s">
-      <p>영상 정보를 불러오는 중...</p>
-    </div>
-
-    <div v-else-if="error" class="error-state fade-in" style="animation-delay: 0.2s">
-      <p>{{ error }}</p>
-      <button class="retry-button" @click="fetchVideoIntro">다시 시도</button>
-    </div>
-
-    <div v-else-if="videoIntro" class="content-section fade-in" style="animation-delay: 0.2s">
-      <div class="video-info">
-        <h2>{{ videoIntro.book }} 개론</h2>
-        <p class="description">{{ videoIntro.book }}의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
-      </div>
-
-      <div class="video-wrapper">
-        <div class="video-container">
-          <iframe width="100%" height="100%" :src="getEmbedUrl(videoIntro.url_link)" frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen></iframe>
-        </div>
-
-        <a :href="videoIntro.url_link" target="_blank" class="youtube-button">
-          <img src="/youtube-icon.svg" alt="YouTube" class="youtube-icon">
-          YouTube 앱으로 보기
-        </a>
-      </div>
-    </div>
-
-    <div v-if="videoIntro" class="bottom-controls fade-in" style="animation-delay: 0.3s">
-      <button class="complete-button" @click="markAsCompleted" :disabled="isCompleting"
-        :class="{ 'completed': isCompleted }">
-        {{ completionStatus }}
+      <button v-if="videoIntroId" class="list-button-right" @click="goToIntroList">
+        목록
       </button>
     </div>
+
+    <!-- URL에 ID 파라미터가 있는 경우: 특정 영상 개론 표시 -->
+    <template v-if="videoIntroId">
+      <div v-if="isLoading" class="loading-state fade-in" style="animation-delay: 0.2s">
+        <p>영상 정보를 불러오는 중...</p>
+      </div>
+      <div v-else-if="error" class="error-state fade-in" style="animation-delay: 0.2s">
+        <p>{{ error }}</p>
+        <button class="retry-button" @click="fetchVideoIntro">다시 시도</button>
+      </div>
+      <div v-else-if="videoIntro" class="content-section fade-in" style="animation-delay: 0.2s">
+        <div class="video-info">
+          <h2>{{ videoIntro.book }} 개론</h2>
+          <p class="description">{{ videoIntro.book }}의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
+        </div>
+
+        <div class="video-wrapper">
+          <div class="video-container">
+            <iframe width="100%" height="100%" :src="getEmbedUrl(videoIntro.url_link)" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen></iframe>
+          </div>
+
+          <a :href="videoIntro.url_link" target="_blank" class="youtube-button">
+            <img src="/youtube-icon.svg" alt="YouTube" class="youtube-icon">
+            YouTube 앱으로 보기
+          </a>
+        </div>
+      </div>
+      <div v-if="videoIntro" class="bottom-controls fade-in" style="animation-delay: 0.3s">
+        <button class="complete-button" @click="toggleCompletion" :disabled="isLoading"
+          :class="{ 'completed': videoIntro.is_completed }">
+          {{ completionStatus }}
+        </button>
+      </div>
+    </template>
+    <!-- URL에 ID 파라미터가 없는 경우: IntroListContent (개론 목록) 표시 -->
+    <template v-else>
+      <IntroListContent />
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
+import { useToast } from '~/composables/useToast'
+import IntroListContent from '~/components/IntroListContent.vue'
 
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
-const auth = useAuthStore()
+const authStore = useAuthStore()
+const { success, error: showError } = useToast()
 
 const videoIntro = ref(null)
-const loading = ref(true)
+const isLoading = ref(true) // loading을 isLoading으로 변경
 const error = ref(null)
 const isCompleted = ref(false)
 const isCompleting = ref(false)
@@ -98,11 +108,11 @@ const getEmbedUrl = (url) => {
 const fetchVideoIntro = async () => {
   if (!videoIntroId.value) {
     error.value = '영상 정보가 없습니다.'
-    loading.value = false
+    isLoading.value = false
     return
   }
 
-  loading.value = true
+  isLoading.value = true
   error.value = null
 
   try {
@@ -110,31 +120,60 @@ const fetchVideoIntro = async () => {
     videoIntro.value = response.data
 
     // 현재 사용자의 이 영상에 대한 완료 상태 확인
-    if (auth.isAuthenticated) {
+    if (authStore.isAuthenticated) {
       await checkCompletionStatus()
     }
   } catch (err) {
     console.error('영상 개론 정보 조회 오류:', err)
     error.value = '영상 정보를 불러오는데 실패했습니다.'
   } finally {
-    loading.value = false
+    isLoading.value = false
   }
 }
 
 // 사용자의 완료 상태 확인
 const checkCompletionStatus = async () => {
+  if (!authStore.isAuthenticated || !videoIntroId.value) {
+    return;
+  }
+  
   try {
     const userIntrosResponse = await api.get('/api/v1/todos/user/video/intro/')
-    const userIntros = userIntrosResponse.data
-
+    let userIntros = userIntrosResponse.data
+    
+    // API 응답 구조 확인 및 처리
+    if (!userIntros) {
+      console.warn('사용자 영상 진행 상태 데이터가 없습니다.')
+      return
+    }
+    
+    // results 프로퍼티가 있는 경우 (페이지네이션 응답)
+    if (userIntros.results && Array.isArray(userIntros.results)) {
+      userIntros = userIntros.results
+    } else if (!Array.isArray(userIntros)) {
+      console.warn('사용자 영상 진행 상태 데이터가 배열이 아닙니다:', userIntros)
+      return
+    }
+    
     // 현재 영상에 대한 사용자 진행 상태 찾기
-    const currentProgress = userIntros.find(
-      intro => intro.video_intro && intro.video_intro.id === parseInt(videoIntroId.value)
-    )
+    const videoIntroIdNum = parseInt(videoIntroId.value)
+    const currentProgress = userIntros.find(intro => {
+      // 데이터 구조에 따라 ID 위치가 다를 수 있음
+      if (intro.video_intro && intro.video_intro.id === videoIntroIdNum) {
+        return true
+      }
+      // 또는 ID가 직접 객체에 있을 수 있음
+      return intro.id === videoIntroIdNum
+    })
 
     if (currentProgress) {
-      isCompleted.value = currentProgress.is_completed
+      // videoIntro 객체에 완료 상태 직접 설정
+      if (videoIntro.value) {
+        videoIntro.value.is_completed = currentProgress.is_completed
+        isCompleted.value = currentProgress.is_completed // isCompleted 변수도 업데이트
+      }
     } else {
+      // 진행 상태가 없는 경우 기본값으로 설정
       isCompleted.value = false
     }
   } catch (err) {
@@ -143,36 +182,77 @@ const checkCompletionStatus = async () => {
 }
 
 // 영상 시청 완료 표시
-const markAsCompleted = async () => {
-  if (!auth.isAuthenticated) {
-    // 로그인하지 않은 경우 처리
-    router.push('/login?next=' + route.fullPath)
+const toggleCompletion = async () => {
+  if (!authStore.isAuthenticated) {
+    // 로그인이 필요한 경우 로그인 페이지로 이동
+    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`)
     return
   }
-
+  
+  // 완료 처리 중 상태
   isCompleting.value = true
 
   try {
-    const newStatus = !isCompleted.value // 현재 상태의 반대 값 (토글)
+    // 낙관적 업데이트 (UI 즉시 반영)
+    const newCompletionStatus = !videoIntro.value.is_completed
+    videoIntro.value.is_completed = newCompletionStatus
+    isCompleted.value = newCompletionStatus // isCompleted 변수도 함께 업데이트
 
-    await api.post('/api/v1/todos/video/intro/progress/', {
+    // API 호출하여 서버에 상태 업데이트
+    const response = await api.post('/api/v1/todos/video/intro/progress/', {
       video_intro_id: videoIntroId.value,
-      is_completed: newStatus
+      is_completed: newCompletionStatus
     })
 
-    isCompleted.value = newStatus
+    // 응답 데이터에서 완료 상태 가져오기 (서버 상태와 일치시키기)
+    if (response.data && response.data.is_completed !== undefined) {
+      videoIntro.value.is_completed = response.data.is_completed
+      isCompleted.value = response.data.is_completed
+    }
+    
+    // 성공 메시지 표시
+    if (videoIntro.value.is_completed) {
+      success('완료 처리되었습니다.')
+    } else {
+      success('미완료 처리되었습니다.')
+    }
+    isCompleting.value = false // 완료 처리 완료 상태
   } catch (err) {
-    console.error('영상 완료 상태 업데이트 오류:', err)
-    alert('완료 상태를 업데이트하는데 실패했습니다.')
-  } finally {
-    isCompleting.value = false
+    console.error('완료 상태 변경 실패:', err)
+    // 에러 발생 시 상태 롤백
+    videoIntro.value.is_completed = !videoIntro.value.is_completed
+    isCompleted.value = !isCompleted.value
+    showError('완료 상태를 업데이트하는데 오류가 발생했습니다. 다시 시도해주세요.')
   }
+}
+
+const goToIntroList = () => {
+  router.push('/intro');
 }
 
 // 페이지 로드 시 영상 정보 가져오기
 onMounted(() => {
-  fetchVideoIntro()
-})
+  if (videoIntroId.value) { // URL에 ID가 있을 경우에만 영상 정보를 가져옵니다.
+    fetchVideoIntro()
+    checkCompletionStatus() // onMounted에서 최초 완료 상태도 확인
+  } else {
+    // ID가 없는 경우 (목록 페이지)에는 videoIntro를 null로 초기화하거나 다른 처리를 할 수 있습니다.
+    videoIntro.value = null
+    isLoading.value = false // 목록 페이지에서는 이 컴포넌트의 로딩 상태를 false로 설정
+  }
+});
+
+// videoIntroId가 변경될 때마다 데이터를 다시 가져오도록 watch 추가
+watch(videoIntroId, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    fetchVideoIntro();
+    checkCompletionStatus(); // ID 변경 시 완료 상태도 다시 확인
+  } else if (!newId) {
+    // ID가 없어진 경우 (예: 목록으로 돌아가는 경우)
+    videoIntro.value = null;
+    isLoading.value = false;
+  }
+});
 </script>
 
 <style scoped>
@@ -404,4 +484,21 @@ onMounted(() => {
   height: 24px;
 }
 
+.list-button-right {
+  margin-left: auto; /* Pushes the button to the far right */
+  padding: 0.25rem 0.75rem;
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 0.875rem; /* Slightly larger for better readability */
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.list-button-right:hover {
+  background: #E2E8F0;
+  color: #475569;
+}
 </style>
