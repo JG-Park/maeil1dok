@@ -1101,6 +1101,11 @@ onMounted(async () => {
     currentVersion.value = version;
   }
 
+  // 브라우저 환경에서만 실행되도록 조건 추가
+  if (process.client) {
+    document.addEventListener("click", hideCopyMenuOnOutsideClick);
+  }
+
   try {
     // book과 chapter 파라미터가 모두 있는 경우
     if (book && chapter) {
@@ -1378,15 +1383,40 @@ const confirmCompleteReading = async () => {
       return;
     }
 
-    // 현재 구간의 schedule_id만 전송
+    // 현재 액션의 반대 값을 미리 계산 (UI 즉시 업데이트용)
+    const isCompleting = currentAction.value === "complete";
+    
+    // 현재 detail 객체의 복사본 생성
+    const updatedDetails = JSON.parse(JSON.stringify(readingDetailResponse.value.data.plan_detail || []));
+    
+    // 업데이트할 detail 찾기
+    const detailToUpdate = updatedDetails.find(d => 
+      d.schedule_id === currentDetail.schedule_id &&
+      d.book === currentDetail.book
+    );
+    
+    // 로컬 상태 미리 업데이트 (즉시 UI 반영)
+    if (detailToUpdate) {
+      detailToUpdate.is_complete = isCompleting;
+    }
+    
+    // 로컬 데이터로 readingDetailResponse 업데이트
+    if (readingDetailResponse.value && readingDetailResponse.value.data) {
+      readingDetailResponse.value = {
+        ...readingDetailResponse.value,
+        data: {
+          ...readingDetailResponse.value.data,
+          plan_detail: updatedDetails
+        }
+      };
+    }
+
+    // API 호출
     const response = await api.post("/api/v1/todos/reading/update/", {
       plan_id,
       schedule_ids: [currentDetail.schedule_id],
       action: currentAction.value,
     });
-
-    // API 응답 후 상태 업데이트를 위해 detail API 재호출
-    await loadBibleContent(currentBook.value, currentChapter.value);
 
     // 다음 버튼에서 왔고 완료 액션이었으면 다음 장으로 이동
     if (
@@ -1428,11 +1458,17 @@ const confirmCompleteReading = async () => {
     }
   } catch (error) {
     console.error(
-      `성경 읽기 ${
-        currentAction.value === "complete" ? "완료" : "취소"
+      `성경 읽기 ${currentAction.value === "complete" ? "완료" : "취소"
       } 처리 중 오류:`,
       error
     );
+    
+    // 에러 발생 시 서버에서 최신 데이터 다시 로드
+    try {
+      await loadUIInfo(currentBook.value, currentChapter.value);
+    } catch (e) {
+      console.error("상태 복구 실패:", e);
+    }
   } finally {
     showCompleteConfirmModal.value = false;
     isUpdatingStatus.value = false;
@@ -1639,7 +1675,13 @@ const handleScroll = () => {
 
 // 컴포넌트 언마운트시 이벤트 리스너 제거
 onUnmounted(() => {
-  window.removeEventListener("scroll", handleScroll);
+  if (process.client) {
+    window.removeEventListener("scroll", handleScroll);
+    document.removeEventListener("click", hideCopyMenuOnOutsideClick);
+    
+    // 혹시 존재할 수 있는 타이머 제거
+    clearSelection();
+  }
 });
 
 // 페이지 상단으로 스크롤하는 함수
@@ -1665,6 +1707,8 @@ function clearVerseHighlight() {
 }
 // 선택 초기화
 const clearSelection = () => {
+  if (!process.client) return;
+  
   showCopyMenu.value = false;
   clearVerseHighlight();
   selectedVerses.value = [];
@@ -1841,7 +1885,14 @@ const showCopyMenuHandler = (event) => {
 
 // copy menu hide on click outside
 const hideCopyMenuOnOutsideClick = (event) => {
-  if (!copyMenu.value.contains(event.target)) {
+  if (!copyMenu.value || !event.target) return;
+  
+  try {
+    if (copyMenu.value && !copyMenu.value.contains(event.target)) {
+      hideCopyMenu();
+    }
+  } catch (err) {
+    console.error('복사 메뉴 이벤트 처리 오류:', err);
     hideCopyMenu();
   }
 };
@@ -1859,115 +1910,48 @@ onUnmounted(() => {
   <div class="container">
     <div class="header fade-in">
       <button class="back-button" @click="handleBackNavigation">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M15 18L9 12L15 6"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" />
         </svg>
       </button>
       <h1>성경일독</h1>
     </div>
 
-    <div
-      class="today-reading fade-in"
-      style="animation-delay: 0.1s"
-      v-if="readingDetailResponse?.data">
+    <div class="today-reading fade-in" style="animation-delay: 0.1s" v-if="readingDetailResponse?.data">
       <div class="today-info">
         <div class="reading-meta">
-          <button
-            class="reading-meta-btn schedule-button"
-            @click="openScheduleModal">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M8 7V3m8 4V3m-9 8h10M5.07 19h13.86a2 2 0 001.83-2.83L13.83 4.44a2 2 0 00-3.66 0L3.24 16.17A2 2 0 005.07 19z"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+          <button class="reading-meta-btn schedule-button" @click="openScheduleModal">
+            <i class="fa-solid fa-list-check"></i>
             <span>성경통독표</span>
           </button>
 
           <!-- 플랜이 선택된 경우에만 완료/취소 버튼 표시 -->
           <template v-if="route.query.plan && showReadingButtons">
-            <transition name="fade" mode="out-in">
-              <button
-                v-if="readingStatus === 'completed'"
-                key="cancel"
-                class="reading-meta-btn complete-button complete-cancel-button"
-                @click="handleCancelReading"
+            <div class="reading-meta-btn-container">
+              <button v-if="readingStatus === 'completed'" key="cancel-button"
+                class="reading-meta-btn complete-button complete-cancel-button" @click="handleCancelReading"
                 :disabled="isLoading || isUpdatingStatus">
-                <span
-                  v-if="isUpdatingStatus"
-                  class="loading-spinner small"></span>
-                <svg
-                  v-else
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none">
-                  <path
-                    d="M6 18L18 6M6 6l12 12"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round" />
-                </svg>
+                <span v-if="isUpdatingStatus" class="loading-spinner small"></span>
+                <i class="fa-solid fa-xmark"></i>
                 <span>읽지 않음으로 기록</span>
               </button>
-              <button
-                v-else-if="readingStatus === 'in_progress'"
-                key="complete"
-                class="reading-meta-btn complete-button"
-                @click="handleCompleteReading"
+              <button v-else key="complete-button"
+                class="reading-meta-btn complete-button" @click="handleCompleteReading"
                 :disabled="isLoading || isUpdatingStatus">
-                <span
-                  v-if="isUpdatingStatus"
-                  class="loading-spinner small"></span>
-                <svg
-                  v-else
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none">
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
+                <span v-if="isUpdatingStatus" class="loading-spinner small"></span>
+                <i class="fa-solid fa-check"></i>
                 <span>읽음으로 기록</span>
               </button>
-            </transition>
+            </div>
           </template>
           <!-- 플랜이 선택되지 않은 경우 경고 메시지 표시 -->
           <template v-else-if="!route.query.plan">
             <div class="plan-warning">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.83-2.83L13.83 4.44a2 2 0 00-3.66 0L3.24 16.17A2 2 0 005.07 19z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round" />
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               <span>플랜 선택되지 않음</span>
             </div>
@@ -1975,18 +1959,10 @@ onUnmounted(() => {
           <!-- 일정이 없는 경우 메시지 표시 -->
           <template v-else-if="readingDetailResponse?.data?.message">
             <div class="plan-warning">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.83-2.83L13.83 4.44a2 2 0 00-3.66 0L3.24 16.17A2 2 0 005.07 19z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round" />
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               <span>{{ readingDetailResponse.data.message }}</span>
             </div>
@@ -1994,44 +1970,22 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="today-links">
-        <a
-          v-if="readingDetailResponse?.data?.audio_link"
-          @click.prevent="
-            handleAudioLink(readingDetailResponse.data.audio_link)
-          "
-          href="#"
-          class="link-button audio"
-          title="오디오">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
+        <a v-if="readingDetailResponse?.data?.audio_link" @click.prevent="
+          handleAudioLink(readingDetailResponse.data.audio_link)
+          " href="#" class="link-button audio" title="오디오">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 4a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2zM5 6a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V8a2 2 0 0 1 2-2z"
               fill="currentColor" />
           </svg>
           <span class="link-text">오디오</span>
         </a>
-        <a
-          v-if="readingDetailResponse?.data?.guide_link"
-          :href="readingDetailResponse.data.guide_link"
-          target="_blank"
-          class="link-button guide"
-          title="가이드">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
+        <a v-if="readingDetailResponse?.data?.guide_link" :href="readingDetailResponse.data.guide_link" target="_blank"
+          class="link-button guide" title="가이드">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round" />
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           <span class="link-text">해설</span>
         </a>
@@ -2043,9 +1997,7 @@ onUnmounted(() => {
           </span>
           <div class="copy-menu-buttons">
             <template v-if="selectedVerses.length === 1">
-              <button
-                class="copy-button"
-                @click="handleCopy('includeLocation')">
+              <button class="copy-button" @click="handleCopy('includeLocation')">
                 위치 포함
               </button>
               <span data-v-b2ff4ce1="" class="action-divider">|</span>
@@ -2058,32 +2010,19 @@ onUnmounted(() => {
               </button>
             </template>
             <template v-else>
-              <button
-                class="copy-button"
-                @click="handleCopy('includeLocationRange')">
+              <button class="copy-button" @click="handleCopy('includeLocationRange')">
                 위치 포함
               </button>
               <span data-v-b2ff4ce1="" class="action-divider">|</span>
-              <button
-                class="copy-button"
-                @click="handleCopy('excludeLocationRange')">
+              <button class="copy-button" @click="handleCopy('excludeLocationRange')">
                 절 번호 포함
               </button>
             </template>
             <button class="copy-button cancel" @click="clearSelection">
-              <svg
-                data-v-b2ff4ce1=""
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none">
-                <path
-                  data-v-b2ff4ce1=""
-                  d="M18 6L6 18M6 6l12 12"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"></path></svg
-              >취소
+              <svg data-v-b2ff4ce1="" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path data-v-b2ff4ce1="" d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round"></path>
+              </svg>취소
             </button>
           </div>
         </div>
@@ -2097,18 +2036,10 @@ onUnmounted(() => {
             <!-- 역본 선택 버튼 추가 -->
             <button class="version-button" @click="openVersionModal">
               <div class="button-content">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"></path>
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                 </svg>
                 <h2>{{ versionNames[currentVersion] }}</h2>
               </div>
@@ -2116,11 +2047,7 @@ onUnmounted(() => {
             <button class="chapter-select-button" @click="showModal = true">
               <div class="button-content">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M6 9l6 6 6-6"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                     stroke-linejoin="round" />
                 </svg>
                 <h2>{{ chapterTitle }}</h2>
@@ -2129,30 +2056,18 @@ onUnmounted(() => {
           </div>
           <div class="chapter-select-button-wrapper right">
             <div class="font-size-controls">
-              <button
-                class="font-button"
-                @click="adjustFontSize(-1)"
-                :disabled="fontSize <= 14">
+              <button class="font-button" @click="adjustFontSize(-1)" :disabled="fontSize <= 14">
                 <span class="font-icon small">가</span>
               </button>
-              <button
-                class="font-button"
-                @click="adjustFontSize(1)"
-                :disabled="fontSize >= 24">
+              <button class="font-button" @click="adjustFontSize(1)" :disabled="fontSize >= 24">
                 <span class="font-icon">가</span>
               </button>
-              <button
-                class="font-button reset"
-                @click="resetFontSize"
-                :disabled="fontSize === DEFAULT_FONT_SIZE"
+              <button class="font-button reset" @click="resetFontSize" :disabled="fontSize === DEFAULT_FONT_SIZE"
                 title="기본 크기로 초기화">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M2 10C2 10 4.00498 7.26822 5.63384 5.63824C7.26269 4.00827 9.5136 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.89691 21 4.43511 18.2543 3.35177 14.5M2 10V4M2 10H8"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round" />
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </button>
             </div>
@@ -2164,11 +2079,7 @@ onUnmounted(() => {
           <p>본문을 불러오는 중입니다...</p>
         </div>
 
-        <div
-          v-else
-          class="bible-content text-adjustable"
-          :style="{ fontSize: `${fontSize}px` }"
-          v-html="bibleContent"
+        <div v-else class="bible-content text-adjustable" :style="{ fontSize: `${fontSize}px` }" v-html="bibleContent"
           @click="onBibleClick"></div>
       </div>
     </div>
@@ -2176,11 +2087,7 @@ onUnmounted(() => {
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
       <button class="nav-button prev" @click="goToPrevChapter($event)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M15 6L9 12L15 18"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
+          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" />
         </svg>
         <span>이전</span>
@@ -2189,54 +2096,22 @@ onUnmounted(() => {
       <div class="center-content">
         <div class="current-page">
           <!-- 날짜 표시 영역 -->
-          <div
-            class="schedule-date"
-            :class="{
-              completed: readingStatus === 'completed',
-              'not-completed': readingStatus === 'not-completed',
-              current: isToday,
-              upcoming: !authStore.isAuthenticated && isFutureDate,
-            }">
+          <div class="schedule-date" :class="{
+            completed: readingStatus === 'completed',
+            'not-completed': readingStatus === 'not-completed',
+            current: isToday,
+            upcoming: !authStore.isAuthenticated && isFutureDate,
+          }">
             <div class="status-icon" v-if="readingStatus === 'completed'">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M9 12l2 2 4-4"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round" />
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="9"
-                  stroke="currentColor"
-                  stroke-width="2" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
               </svg>
             </div>
-            <div
-              class="status-icon"
-              v-else-if="readingStatus === 'not-completed'">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M6 6l12 12M6 18L18 6"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round" />
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="9"
-                  stroke="currentColor"
-                  stroke-width="2" />
+            <div class="status-icon" v-else-if="readingStatus === 'not-completed'">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
               </svg>
             </div>
             <div class="status-icon today" v-else-if="isToday">오늘</div>
@@ -2246,54 +2121,33 @@ onUnmounted(() => {
           </div>
 
           <!-- 구간 표시 영역 -->
-          <div
-            class="reading-sections"
-            v-if="currentSectionChapters.length > 0">
+          <div class="reading-sections" v-if="currentSectionChapters.length > 0">
             <template v-for="(section, index) in currentSectionChapters">
               <!-- 구간 구분선 -->
-              <span
-                v-if="index > 0"
-                class="section-separator"
-                :key="`separator-${index}`"
-                >|</span
-              >
+              <span v-if="index > 0" class="section-separator" :key="`separator-${index}`">|</span>
 
               <!-- 구간 번호 -->
-              <span
-                class="section-number"
-                v-if="currentSectionChapters.length > 1"
-                :class="{ 'current-section': section.book === currentBook }"
-                :key="`section-${index}`">
+              <span class="section-number" v-if="currentSectionChapters.length > 1"
+                :class="{ 'current-section': section.book === currentBook }" :key="`section-${index}`">
                 {{ index + 1 }}
               </span>
 
               <!-- 책 이름 -->
-              <span
-                v-for="(section, index) in currentSectionChapters"
-                :key="`book-${index}`"
-                class="book-name"
-                :class="{
-                  'current-book': section.book === currentBook,
-                  'other-book': section.book !== currentBook,
-                }">
+              <span v-for="(section, index) in currentSectionChapters" :key="`book-${index}`" class="book-name" :class="{
+                'current-book': section.book === currentBook,
+                'other-book': section.book !== currentBook,
+              }">
                 {{ section.book_kor }}
               </span>
 
               <!-- 장 번호들 -->
-              <div
-                class="chapter-numbers"
-                v-if="section.book === currentBook"
-                :key="`chapters-${index}`">
+              <div class="chapter-numbers" v-if="section.book === currentBook" :key="`chapters-${index}`">
                 <!-- 3개 이하일 때는 모든 장 표시 -->
                 <template v-if="section.chapters.length <= 3">
-                  <span
-                    v-for="chapter in section.chapters"
-                    :key="chapter"
-                    class="chapter-box"
-                    :class="{
-                      current: Number(chapter) === Number(currentChapter),
-                      completed: isChapterCompleted(section.book, chapter),
-                    }">
+                  <span v-for="chapter in section.chapters" :key="chapter" class="chapter-box" :class="{
+                    current: Number(chapter) === Number(currentChapter),
+                    completed: isChapterCompleted(section.book, chapter),
+                  }">
                     {{ chapter }}
                   </span>
                 </template>
@@ -2301,37 +2155,32 @@ onUnmounted(() => {
                 <!-- 4개 이상일 때는 생략 부호 사용 -->
                 <template v-else>
                   <!-- 시작 장 -->
-                  <span
-                    class="chapter-box"
-                    :class="{
-                      current:
-                        Number(section.chapters[0]) === Number(currentChapter),
-                      completed: isChapterCompleted(
-                        section.book,
-                        section.chapters[0]
-                      ),
-                    }">
+                  <span class="chapter-box" :class="{
+                    current:
+                      Number(section.chapters[0]) === Number(currentChapter),
+                    completed: isChapterCompleted(
+                      section.book,
+                      section.chapters[0]
+                    ),
+                  }">
                     {{ section.chapters[0] }}
                   </span>
 
                   <!-- 중간 생략 부호와 현재 장 (모바일에서만 표시) -->
-                  <template
-                    v-if="
-                      Number(currentChapter) !== Number(section.chapters[0]) &&
-                      Number(currentChapter) !==
-                        Number(section.chapters[section.chapters.length - 1])
-                    ">
+                  <template v-if="
+                    Number(currentChapter) !== Number(section.chapters[0]) &&
+                    Number(currentChapter) !==
+                    Number(section.chapters[section.chapters.length - 1])
+                  ">
                     <!-- 현재 장이 중간에 있을 때는 점 2개 -->
                     <span class="chapter-ellipsis mobile-only">··</span>
-                    <span
-                      class="chapter-box mobile-only"
-                      :class="{
-                        current: true,
-                        completed: isChapterCompleted(
-                          section.book,
-                          currentChapter
-                        ),
-                      }">
+                    <span class="chapter-box mobile-only" :class="{
+                      current: true,
+                      completed: isChapterCompleted(
+                        section.book,
+                        currentChapter
+                      ),
+                    }">
                       {{ currentChapter }}
                     </span>
                     <span class="chapter-ellipsis mobile-only">··</span>
@@ -2342,18 +2191,16 @@ onUnmounted(() => {
                   </template>
 
                   <!-- 마지막 장 -->
-                  <span
-                    class="chapter-box"
-                    :class="{
-                      current:
-                        Number(
-                          section.chapters[section.chapters.length - 1]
-                        ) === Number(currentChapter),
-                      completed: isChapterCompleted(
-                        section.book,
+                  <span class="chapter-box" :class="{
+                    current:
+                      Number(
                         section.chapters[section.chapters.length - 1]
-                      ),
-                    }">
+                      ) === Number(currentChapter),
+                    completed: isChapterCompleted(
+                      section.book,
+                      section.chapters[section.chapters.length - 1]
+                    ),
+                  }">
                     {{ section.chapters[section.chapters.length - 1] }}
                   </span>
                 </template>
@@ -2373,11 +2220,7 @@ onUnmounted(() => {
       <button class="nav-button next" @click="goToNextChapter($event)">
         <span>다음</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M9 6L15 12L9 18"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
+          <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" />
         </svg>
       </button>
@@ -2389,17 +2232,8 @@ onUnmounted(() => {
           <div class="modal-header">
             <h3>성경 선택</h3>
             <button class="close-button" @click="showModal = false">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M18 6L6 18M6 6l12 12"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                   stroke-linejoin="round" />
               </svg>
             </button>
@@ -2409,15 +2243,10 @@ onUnmounted(() => {
               <div class="testament">
                 <h4>구약</h4>
                 <div class="books-list">
-                  <button
-                    v-for="book in bibleBooks.old"
-                    :key="book.id"
-                    :data-id="book.id"
-                    :class="[
-                      'book-button',
-                      { active: selectedBook === book.id },
-                    ]"
-                    @click="selectBook(book.id)">
+                  <button v-for="book in bibleBooks.old" :key="book.id" :data-id="book.id" :class="[
+                    'book-button',
+                    { active: selectedBook === book.id },
+                  ]" @click="selectBook(book.id)">
                     {{ book.name }}
                   </button>
                 </div>
@@ -2425,15 +2254,10 @@ onUnmounted(() => {
               <div class="testament">
                 <h4>신약</h4>
                 <div class="books-list">
-                  <button
-                    v-for="book in bibleBooks.new"
-                    :key="book.id"
-                    :data-id="book.id"
-                    :class="[
-                      'book-button',
-                      { active: selectedBook === book.id },
-                    ]"
-                    @click="selectBook(book.id)">
+                  <button v-for="book in bibleBooks.new" :key="book.id" :data-id="book.id" :class="[
+                    'book-button',
+                    { active: selectedBook === book.id },
+                  ]" @click="selectBook(book.id)">
                     {{ book.name }}
                   </button>
                 </div>
@@ -2442,15 +2266,10 @@ onUnmounted(() => {
             <div class="chapters-section" ref="chaptersSection">
               <h4>장</h4>
               <div class="chapters-grid">
-                <button
-                  v-for="chapter in chaptersArray"
-                  :key="chapter"
-                  :data-chapter="chapter"
-                  :class="[
-                    'chapter-button',
-                    { active: chapter === currentChapter },
-                  ]"
-                  @click="selectChapter(chapter)">
+                <button v-for="chapter in chaptersArray" :key="chapter" :data-chapter="chapter" :class="[
+                  'chapter-button',
+                  { active: chapter === currentChapter },
+                ]" @click="selectChapter(chapter)">
                   {{ chapter }}
                 </button>
               </div>
@@ -2464,10 +2283,7 @@ onUnmounted(() => {
 
     <Teleport to="body">
       <Transition name="modal-fade">
-        <div
-          v-if="showScheduleModal"
-          class="modal-overlay"
-          @click="closeScheduleModal">
+        <div v-if="showScheduleModal" class="modal-overlay" @click="closeScheduleModal">
           <Transition name="modal-slide">
             <div class="modal-content schedule-modal" @click.stop>
               <div class="modal-header">
@@ -2475,22 +2291,14 @@ onUnmounted(() => {
                 <div class="header-controls">
                   <button class="close-button" @click="closeScheduleModal">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M6 18L18 6M6 6l12 12"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round" />
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                     </svg>
                   </button>
                 </div>
               </div>
 
-              <BibleScheduleContent
-                v-if="showScheduleModal"
-                :is-modal="true"
-                :current-book="currentBook"
-                :current-chapter="currentChapter"
-                @schedule-select="handleScheduleClick" />
+              <BibleScheduleContent v-if="showScheduleModal" :is-modal="true" :current-book="currentBook"
+                :current-chapter="currentChapter" @schedule-select="handleScheduleClick" />
             </div>
           </Transition>
         </div>
@@ -2498,41 +2306,19 @@ onUnmounted(() => {
     </Teleport>
 
     <Teleport to="body">
-      <div
-        v-if="showLoginModal"
-        class="modal-overlay"
-        @click="showLoginModal = false">
+      <div v-if="showLoginModal" class="modal-overlay" @click="showLoginModal = false">
         <div class="modal-content login-modal" @click.stop>
           <div class="modal-body">
-            <button
-              class="close-button absolute-close"
-              @click="showLoginModal = false">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M6 18L18 6M6 6l12 12"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round" />
+            <button class="close-button absolute-close" @click="showLoginModal = false">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </button>
             <div class="modal-content-wrapper">
               <div class="modal-icon">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 15V12M12 9h.01M5.07 19H19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h.07z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round" />
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 15V12M12 9h.01M5.07 19H19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h.07z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 </svg>
               </div>
               <div class="modal-text">
@@ -2557,54 +2343,23 @@ onUnmounted(() => {
     </Teleport>
 
     <Teleport to="body">
-      <div
-        v-if="showCompleteConfirmModal"
-        class="modal-overlay"
-        @click="showCompleteConfirmModal = false">
+      <div v-if="showCompleteConfirmModal" class="modal-overlay" @click="showCompleteConfirmModal = false">
         <div class="modal-content confirm-modal" @click.stop>
           <div class="modal-body">
-            <button
-              class="close-button absolute-close"
-              @click="showCompleteConfirmModal = false">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M6 18L18 6M6 6l12 12"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round" />
+            <button class="close-button absolute-close" @click="showCompleteConfirmModal = false">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </button>
             <div class="modal-content-wrapper">
               <div class="modal-icon">
-                <svg
-                  v-if="currentAction === 'complete'"
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
+                <svg v-if="currentAction === 'complete'" width="48" height="48" viewBox="0 0 24 24" fill="none"
                   xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    stroke="currentColor"
-                    stroke-width="2"
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" />
                 </svg>
-                <svg
-                  v-else
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    stroke="currentColor"
-                    stroke-width="2"
+                <svg v-else width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" />
                 </svg>
               </div>
@@ -2643,66 +2398,33 @@ onUnmounted(() => {
 
     <!-- BibleScheduleContent 컴포넌트를 숨김 처리 -->
     <div class="hidden-schedule-content">
-      <BibleScheduleContent
-        v-if="readingDetailResponse?.data"
-        ref="scheduleContentRef"
-        :current-book="route.params.book"
-        :current-chapter="Number(route.params.chapter)"
-        :use-default-plan="true"
+      <BibleScheduleContent v-if="readingDetailResponse?.data" ref="scheduleContentRef"
+        :current-book="route.params.book" :current-chapter="Number(route.params.chapter)" :use-default-plan="true"
         :key="route.query.plan" />
     </div>
 
     <!-- 역본 선택 모달 추가 -->
     <Teleport to="body">
-      <div
-        v-if="showVersionModal"
-        class="modal-overlay"
-        @click="showVersionModal = false">
+      <div v-if="showVersionModal" class="modal-overlay" @click="showVersionModal = false">
         <div class="modal-content version-modal" @click.stop>
           <div class="modal-header">
             <h3>역본 선택</h3>
             <button class="close-button" @click="showVersionModal = false">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M18 6L6 18M6 6l12 12"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                   stroke-linejoin="round" />
               </svg>
             </button>
           </div>
           <div class="modal-body">
             <div class="versions-list">
-              <button
-                v-for="(name, code) in versionNames"
-                :key="code"
-                class="version-select-button"
-                :class="{ active: currentVersion === code }"
-                @click="changeVersion(code)">
+              <button v-for="(name, code) in versionNames" :key="code" class="version-select-button"
+                :class="{ active: currentVersion === code }" @click="changeVersion(code)">
                 <div class="button-content">
-                  <span
-                    >{{ name
-                    }}<span class="new-badge" v-if="name === '새한글'"
-                      >N</span
-                    ></span
-                  >
-                  <svg
-                    v-if="currentVersion === code"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none">
-                    <path
-                      d="M5 12l5 5L20 7"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
+                  <span>{{ name
+                  }}<span class="new-badge" v-if="name === '새한글'">N</span></span>
+                  <svg v-if="currentVersion === code" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                       stroke-linejoin="round" />
                   </svg>
                 </div>
@@ -2715,22 +2437,9 @@ onUnmounted(() => {
 
     <!-- Top 버튼 (트랜지션 추가) -->
     <Transition name="fade">
-      <button
-        v-show="showTopButton"
-        @click="scrollToTop"
-        class="top-button"
-        aria-label="페이지 상단으로 이동">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M12 19V5M5 12L12 5L19 12"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
+      <button v-show="showTopButton" @click="scrollToTop" class="top-button" aria-label="페이지 상단으로 이동">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 19V5M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" />
         </svg>
       </button>
@@ -2741,8 +2450,7 @@ onUnmounted(() => {
 <style scoped>
 @font-face {
   font-family: "RIDIBatang";
-  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff")
-    format("woff");
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff") format("woff");
   font-weight: normal;
   font-style: normal;
 }
@@ -2999,6 +2707,7 @@ onUnmounted(() => {
     background-color: inherit !important;
   }
 }
+
 @supports (-webkit-touch-callout: none) {
   @media (hover: none) {
     :deep(.verse:hover):not(.selected-verse) {
@@ -3027,33 +2736,39 @@ onUnmounted(() => {
   gap: 0.75rem;
   transition: box-shadow 0.2s;
 }
+
 .copy-menu-fade-enter-active,
 .copy-menu-fade-leave-active {
   transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .copy-menu-fade-enter-from,
 .copy-menu-fade-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(-16px) scale(0.98);
 }
+
 .copy-menu-fade-enter-to,
 .copy-menu-fade-leave-from {
   opacity: 1;
   transform: translateX(-50%) translateY(0) scale(1);
 }
+
 .copy-menu-label {
   font-size: 0.95rem;
   color: var(--primary-color);
   font-weight: 600;
   white-space: nowrap;
 }
+
 .copy-menu-divider {
   color: #bdbdbd;
   margin-left: 0.25rem;
   margin-right: 0.5rem;
   font-weight: normal;
 }
+
 .copy-menu-buttons {
   display: flex;
   align-items: center;
@@ -3106,8 +2821,7 @@ onUnmounted(() => {
 
   @media (display-mode: standalone) {
     .navigation-controls {
-      padding: 0.5rem 0.35rem calc(env(safe-area-inset-bottom) - 0.35rem)
-        0.35rem;
+      padding: 0.5rem 0.35rem calc(env(safe-area-inset-bottom) - 0.35rem) 0.35rem;
     }
   }
 }
@@ -3188,7 +2902,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
+  gap: 0.2rem;
   padding: 0.25rem 0.5rem;
   border-radius: 8px;
   font-size: 0.75rem;
@@ -4424,11 +4138,6 @@ html.touch-device .nav-button.next:hover svg {
   opacity: 0;
 }
 
-.complete-button span,
-.complete-cancel-button span {
-  margin: 0 0.15rem;
-}
-
 @keyframes spinner {
   to {
     transform: rotate(360deg);
@@ -4860,5 +4569,29 @@ html.touch-device .nav-button.next:hover svg {
 .fade-leave-to {
   opacity: 0;
   /* 사라질 때 투명도 */
+}
+
+.reading-meta-btn-container {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+}
+
+.reading-meta-btn-container button {
+  transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+  position: relative;
+  animation: btnFadeIn 0.3s ease-in-out;
+}
+
+@keyframes btnFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>
