@@ -55,6 +55,10 @@ export default defineNuxtConfig({
           src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8742107706365412',
           async: true,
           crossorigin: 'anonymous'
+        },
+        {
+          src: 'https://kit.fontawesome.com/addd9ad2f2.js',
+          crossorigin: 'anonymous'
         }
       ]
     }
