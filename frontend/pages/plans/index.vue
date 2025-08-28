@@ -345,6 +345,9 @@ watch(() => authStore.isAuthenticated, async (newValue) => {
 
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
+  // 인증 상태 초기화 대기
+  await authStore.initializeAuth().catch(() => {})
+  
   if (authStore.isAuthenticated) {
     await fetchUserPlans()
   }

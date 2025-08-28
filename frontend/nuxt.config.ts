@@ -91,9 +91,10 @@ export default defineNuxtConfig({
     }
   },
   // 페이지 미들웨어 설정
-  router: {
-    middleware: ['auth']
-  },
+  // 전역 auth 미들웨어 비활성화 - 필요한 페이지에서만 개별 설정
+  // router: {
+  //   middleware: ['auth']
+  // },
   // Vite 설정 추가
   vite: {
     server: {
