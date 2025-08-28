@@ -14,14 +14,20 @@
 
     <!-- 스크롤 영역 -->
     <div class="scroll-area">
-      <div v-if="!authStore.isAuthenticated" class="login-prompt fade-in" style="animation-delay: 0.2s">
+      <div v-if="isLoading" class="login-prompt fade-in" style="animation-delay: 0.2s">
+        <p class="text-lg text-gray-600 mb-4">
+          로딩 중...
+        </p>
+      </div>
+      
+      <div v-else-if="!authStore.isAuthenticated" class="login-prompt fade-in" style="animation-delay: 0.2s">
         <p class="text-lg text-gray-600 mb-4">
           플랜을 구독하려면 로그인이 필요합니다.
         </p>
         <button @click="$router.push('/login')" class="login-button">로그인하기</button>
       </div>
 
-      <div v-else class="content-section fade-in" style="animation-delay: 0.2s">
+      <div v-else-if="authStore.isAuthenticated" class="content-section fade-in" style="animation-delay: 0.2s">
         <!-- 구독 중인 플랜 -->
         <section class="plan-section">
           <h2 class="section-title">
@@ -100,7 +106,7 @@
     </div>
 
     <!-- 토스트 -->
-    <Toast ref="toast" />
+    <Toast />
 
     <!-- 모달 -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
@@ -150,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
@@ -161,10 +167,10 @@ const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
 const api = useApi()
-const toastRef = ref(null)
 
 const subscriptions = ref([])
 const availablePlans = ref([])
+const isLoading = ref(true)
 
 // 모달 관련 상태
 const showModal = ref(false)
@@ -241,7 +247,7 @@ const toggleSubscription = async (subscription) => {
   }
 
   try {
-    const response = await api.post(`/api/v1/todos/plan/${subscription.id}/toggle_active/`)
+    await api.post(`/api/v1/todos/plan/${subscription.id}/toggle_active/`)
 
     toast.success(`${subscription.plan_name} 플랜 구독을 재개했습니다.`)
 
@@ -333,23 +339,33 @@ const goToReadingPlan = (subscription) => {
   })
 }
 
-// authStore의 인증 상태 변경 감시
-watch(() => authStore.isAuthenticated, async (newValue) => {
-  if (newValue) {
-    await fetchUserPlans()
-  } else {
-    subscriptions.value = []
-    availablePlans.value = []
-  }
-})
-
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
-  // 인증 상태 초기화 대기
-  await authStore.initializeAuth().catch(() => {})
+  // 인증 상태 확인 및 플랜 정보 로드
+  isLoading.value = true
   
-  if (authStore.isAuthenticated) {
-    await fetchUserPlans()
+  try {
+    // authStore가 이미 초기화되었는지 확인
+    if (!authStore.user && typeof window !== 'undefined') {
+      const token = localStorage.getItem('access_token')
+      if (token) {
+        // 토큰이 있으면 사용자 정보 가져오기 시도
+        await authStore.fetchUser().catch(() => {
+          // 실패하면 토큰이 유효하지 않음
+          authStore.logout()
+        })
+      }
+    }
+    
+    // 인증된 경우에만 플랜 정보 로드
+    if (authStore.isAuthenticated) {
+      await fetchUserPlans()
+    }
+  } catch (error) {
+    console.error('Error loading plans:', error)
+  } finally {
+    // 항상 로딩 상태를 false로 설정
+    isLoading.value = false
   }
 })
 </script>
