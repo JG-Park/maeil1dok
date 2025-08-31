@@ -199,7 +199,6 @@ const loadBibleContent = async (book, chapter) => {
       behavior: "instant", // 즉시 이동
     });
   } catch (error) {
-    console.error("Failed to load bible content:", error);
     handleBibleContentError(book, chapter);
   } finally {
     isLoading.value = false;
@@ -240,7 +239,6 @@ const loadKntBibleContent = async (book, chapter) => {
       handleKntContentNotFound(book, chapter);
     }
   } catch (error) {
-    console.error("새한글성경 로드 실패:", error);
 
     // 에러 발생 시 북 제목 및 장 설정
     if (!chapterTitle.value) {
@@ -401,19 +399,56 @@ const parseKntVersion = (jsonData, book, chapter) => {
 
       // 2. 요소들 순서대로 처리하여 HTML 생성
       const processedSubtitles = new Set();
-      allElements.forEach((element) => {
+      const verseMap = new Map(); // 구절 번호별로 텍스트와 클래스 저장
+      const verseOrder = []; // 구절 순서 유지
+      const nonVerseElements = []; // 섹션 제목 등 구절이 아닌 요소들 저장
+      
+      allElements.forEach((element, elementIndex) => {
         if (element.type === "section") {
-          // 섹션 제목 처리
-          verses.push(`<h3 class="section-title">${element.content}</h3>`);
+          // 섹션 제목을 원본 인덱스와 함께 저장
+          nonVerseElements.push({
+            index: element.index,
+            html: `<h3 class="section-title">${element.content}</h3>`,
+            order: elementIndex
+          });
         } else if (element.type === "subtitle") {
           // 부제목 중복 확인 후 처리
           if (!processedSubtitles.has(element.content)) {
-            verses.push(`<p class="sub-title">${element.content}</p>`);
+            nonVerseElements.push({
+              index: element.index,
+              html: `<p class="sub-title">${element.content}</p>`,
+              order: elementIndex
+            });
             processedSubtitles.add(element.content);
           }
         } else if (element.type === "paragraph") {
-          // 일반 p 태그 내용은 특수 클래스(q1, nb 등)를 가진 경우에만 표시
-          // 구절 단락 처리 - 구절 번호와 내용 추출
+          // data-vid로 구절 번호 확인 (연속된 시적 구조 처리)
+          const vidMatch = element.fullMatch.match(/data-vid="[^:]+:(\d+)"/);
+          if (vidMatch) {
+            const verseNum = vidMatch[1];
+            const plainText = element.content
+              .replace(/&nbsp;/g, " ")
+              .replace(/&amp;/g, "&")
+              .replace(/&lt;/g, "<")
+              .replace(/&gt;/g, ">")
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/<\/?[^>]+(>|$)/g, "")
+              .trim();
+            
+            if (plainText && verseMap.has(verseNum)) {
+              // 같은 구절 번호에 텍스트 추가
+              const existing = verseMap.get(verseNum);
+              existing.text += "\n" + plainText;
+              // 시적 구조 클래스가 있으면 업데이트
+              if (element.class && element.class !== 'p') {
+                existing.class = element.class;
+              }
+              return; // forEach에서 다음 요소로
+            }
+          }
+          
+          // 일반 구절 처리
           const verseSpans =
             element.content.match(
               /<span class="verse-span"[^>]*>.*?<\/span>/gs
@@ -432,13 +467,22 @@ const parseKntVersion = (jsonData, book, chapter) => {
               );
 
               if (numMatch) {
-                // 이전 구절 데이터가 있으면 먼저 처리
+                // 이전 구절 데이터가 있으면 Map에 저장
                 if (currentVerseNum && verseText) {
-                  // 시적 구조 클래스 추가
                   const poeticClass = element.class || 'p';
-                  verses.push(
-                    `<div class="verse ${poeticClass}"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`
-                  );
+                  if (verseMap.has(currentVerseNum)) {
+                    // 같은 구절 번호가 이미 있으면 텍스트 추가
+                    const existing = verseMap.get(currentVerseNum);
+                    existing.text += "\n" + verseText;
+                  } else {
+                    // 새로운 구절 번호면 추가
+                    verseMap.set(currentVerseNum, {
+                      text: verseText,
+                      class: poeticClass,
+                      order: elementIndex
+                    });
+                    verseOrder.push(currentVerseNum);
+                  }
                 }
 
                 // 새 구절 시작
@@ -483,11 +527,20 @@ const parseKntVersion = (jsonData, book, chapter) => {
 
             // 마지막 구절 처리
             if (currentVerseNum && verseText) {
-              // 시적 구조 클래스 추가
               const poeticClass = element.class || 'p';
-              verses.push(
-                `<div class="verse ${poeticClass}"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`
-              );
+              if (verseMap.has(currentVerseNum)) {
+                // 같은 구절 번호가 이미 있으면 텍스트 추가
+                const existing = verseMap.get(currentVerseNum);
+                existing.text += "\n" + verseText;
+              } else {
+                // 새로운 구절 번호면 추가
+                verseMap.set(currentVerseNum, {
+                  text: verseText,
+                  class: poeticClass,
+                  order: elementIndex
+                });
+                verseOrder.push(currentVerseNum);
+              }
             }
           } else {
             // verseSpans이 없을 경우 - 직접 내용에서 구절 찾기 시도
@@ -517,9 +570,19 @@ const parseKntVersion = (jsonData, book, chapter) => {
 
               // 시적 구조 클래스 추가
               const poeticClass = element.class || 'p';
-              verses.push(
-                `<div class="verse ${poeticClass}"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseContent}</span></div>`
-              );
+              if (verseMap.has(verseNum)) {
+                // 같은 구절 번호가 이미 있으면 텍스트 추가
+                const existing = verseMap.get(verseNum);
+                existing.text += "\n" + verseContent;
+              } else {
+                // 새로운 구절 번호면 추가
+                verseMap.set(verseNum, {
+                  text: verseContent,
+                  class: poeticClass,
+                  order: elementIndex
+                });
+                verseOrder.push(verseNum);
+              }
             } else {
               // 구절 번호 패턴이 없는 경우
               // p 태그가 특수 클래스를 가진 경우에만 처리 (단순 p 태그는 무시)
@@ -539,19 +602,47 @@ const parseKntVersion = (jsonData, book, chapter) => {
                 plainText &&
                 poeticClasses.includes(element.class)
               ) {
-                verses.push(`<div class="paragraph ${element.class}">${plainText}</div>`);
+                nonVerseElements.push({
+                  index: element.index,
+                  html: `<div class="paragraph ${element.class}">${plainText}</div>`,
+                  order: elementIndex
+                });
               }
               // 일반 p 태그는 렌더링하지 않음 (중복 방지)
             }
           }
         }
       });
+      
+      // 모든 요소를 원본 순서대로 정렬하여 verses 배열 구성
+      const allContentElements = [];
+      
+      // 구절들을 원본 인덱스와 함께 저장
+      verseOrder.forEach(verseNum => {
+        const verseData = verseMap.get(verseNum);
+        if (verseData) {
+          allContentElements.push({
+            order: verseData.order,
+            html: `<div class="verse ${verseData.class}"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseData.text}</span></div>`
+          });
+        }
+      });
+      
+      // 구절이 아닌 요소들 추가
+      allContentElements.push(...nonVerseElements);
+      
+      // order 기준으로 정렬
+      allContentElements.sort((a, b) => a.order - b.order);
+      
+      // HTML 배열 생성
+      allContentElements.forEach(element => {
+        verses.push(element.html);
+      });
 
       // 최종 HTML 설정
       if (verses.length > 0) {
         bibleContent.value = verses.join("");
       } else {
-        console.error("추출된 내용이 없음");
         handleKntContentNotFound(book, chapter);
       }
     } else {
@@ -572,7 +663,6 @@ const parseKntVersion = (jsonData, book, chapter) => {
       }
     }
   } catch (error) {
-    console.error("새한글성경 파싱 실패:", error, error.stack);
     handleKntContentNotFound(book, chapter);
   }
 };
@@ -853,7 +943,6 @@ const loadUIInfo = async (book, chapter) => {
       },
     });
   } catch (error) {
-    console.error("UI 정보 로드 실패:", error);
   }
 };
 
@@ -1197,7 +1286,6 @@ onMounted(async () => {
     currentChapter.value = Number(defaultChapter);
     await loadBibleContent(defaultBook, Number(defaultChapter));
   } catch (error) {
-    console.error("API 요청 중 오류 발생:", error);
 
     // 오류 시 기본값으로 설정
     const defaultBook = "gen";
@@ -1313,7 +1401,6 @@ const handleScheduleClick = (schedule) => {
   const bookCode = allBooks.find((b) => b.name === book)?.id;
 
   if (!bookCode) {
-    console.error("Book not found:", book);
     return;
   }
 
@@ -1412,7 +1499,6 @@ const confirmCompleteReading = async () => {
     const currentDetail = currentPlanDetail.value;
 
     if (!plan_id || !currentDetail?.schedule_id) {
-      console.warn("필요한 정보가 없습니다. 페이지를 새로고침해 주세요.");
       return;
     }
 
@@ -1490,17 +1576,10 @@ const confirmCompleteReading = async () => {
       }
     }
   } catch (error) {
-    console.error(
-      `성경 읽기 ${currentAction.value === "complete" ? "완료" : "취소"
-      } 처리 중 오류:`,
-      error
-    );
-    
     // 에러 발생 시 서버에서 최신 데이터 다시 로드
     try {
       await loadUIInfo(currentBook.value, currentChapter.value);
     } catch (e) {
-      console.error("상태 복구 실패:", e);
     }
   } finally {
     showCompleteConfirmModal.value = false;
@@ -1520,7 +1599,7 @@ const getDayOfWeek = (dateString) => {
 const currentSectionChapters = computed(() => {
   if (!readingDetailResponse.value?.data?.plan_detail) return [];
 
-  return readingDetailResponse.value.data.plan_detail.map((detail) => ({
+  const sections = readingDetailResponse.value.data.plan_detail.map((detail) => ({
     book: detail.book,
     book_kor: detail.book_kor,
     chapters: Array.from(
@@ -1529,6 +1608,13 @@ const currentSectionChapters = computed(() => {
     ),
     is_complete: detail.is_complete,
   }));
+  
+  // Debug logging
+  console.log('Current sections:', sections);
+  console.log('Current book:', currentBook.value);
+  console.log('Current chapter:', currentChapter.value);
+  
+  return sections;
 });
 
 // 오늘 날짜인지 확인하는 computed 속성
@@ -1925,7 +2011,6 @@ const hideCopyMenuOnOutsideClick = (event) => {
       hideCopyMenu();
     }
   } catch (err) {
-    console.error('복사 메뉴 이벤트 처리 오류:', err);
     hideCopyMenu();
   }
 };
@@ -2178,7 +2263,7 @@ onUnmounted(() => {
                 <!-- 3개 이하일 때는 모든 장 표시 -->
                 <template v-if="section.chapters.length <= 3">
                   <span v-for="chapter in section.chapters" :key="chapter" class="chapter-box" :class="{
-                    current: Number(chapter) === Number(currentChapter),
+                    current: section.book === currentBook && Number(chapter) === Number(currentChapter),
                     completed: isChapterCompleted(section.book, chapter),
                   }">
                     {{ chapter }}
@@ -2190,7 +2275,7 @@ onUnmounted(() => {
                   <!-- 시작 장 -->
                   <span class="chapter-box" :class="{
                     current:
-                      Number(section.chapters[0]) === Number(currentChapter),
+                      section.book === currentBook && Number(section.chapters[0]) === Number(currentChapter),
                     completed: isChapterCompleted(
                       section.book,
                       section.chapters[0]
@@ -2201,6 +2286,7 @@ onUnmounted(() => {
 
                   <!-- 중간 생략 부호와 현재 장 (모바일에서만 표시) -->
                   <template v-if="
+                    section.book === currentBook &&
                     Number(currentChapter) !== Number(section.chapters[0]) &&
                     Number(currentChapter) !==
                     Number(section.chapters[section.chapters.length - 1])
@@ -2226,6 +2312,7 @@ onUnmounted(() => {
                   <!-- 마지막 장 -->
                   <span class="chapter-box" :class="{
                     current:
+                      section.book === currentBook &&
                       Number(
                         section.chapters[section.chapters.length - 1]
                       ) === Number(currentChapter),
@@ -4221,11 +4308,11 @@ html.touch-device .nav-button.next:hover svg {
 .book-name.current-book {
   color: var(--primary-color);
   font-weight: 600;
-  margin-right: 0.5rem;
 }
 
 .book-name.other-book {
-  margin-right: 0;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .chapter-numbers {
@@ -4519,26 +4606,30 @@ html.touch-device .nav-button.next:hover svg {
 /* 시적 구조 들여쓰기 스타일 - 대한성서공회 스타일 적용 */
 :deep(.verse.q1),
 :deep(.paragraph.q1) {
-  padding-left: 54px !important;
-  text-indent: -18px !important;
+  padding-left: 40px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important; /* 줄바꿈 보존 */
 }
 
 :deep(.verse.q2),
 :deep(.paragraph.q2) {
-  padding-left: 72px !important;
-  text-indent: -18px !important;
+  padding-left: 60px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important;
 }
 
 :deep(.verse.q3),
 :deep(.paragraph.q3) {
-  padding-left: 90px !important;
-  text-indent: -18px !important;
+  padding-left: 80px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important;
 }
 
 :deep(.verse.q4),
 :deep(.paragraph.q4) {
-  padding-left: 108px !important;
-  text-indent: -18px !important;
+  padding-left: 100px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important;
 }
 
 /* 계속되는 행 (margin continuation) */

@@ -194,7 +194,6 @@ const showToastMessage = (message, type = 'info') => {
   if (toast.value) {
     toast.value.show(message, type);
   } else {
-    console.error('Toast 컴포넌트를 찾을 수 없습니다:', message);
     alert(message);
   }
 }
@@ -234,7 +233,6 @@ const checkAccess = () => {
     try {
       showToastMessage('관리자 권한이 필요합니다.', 'error');
     } catch (e) {
-      console.error('Toast error:', e);
       alert('관리자 권한이 필요합니다.');
     }
     return false;
@@ -259,11 +257,9 @@ const fetchPlans = async () => {
     } else if (response.results && Array.isArray(response.results)) {
       plans.value = response.results
     } else {
-      console.error('예상치 못한 응답 형식:', response)
       showToastMessage('플랜 목록 형식이 올바르지 않습니다.', 'error')
     }
   } catch (error) {
-    console.error('플랜 목록 조회 오류:', error)
     showToastMessage('플랜 목록을 불러오는데 실패했습니다.', 'error')
   } finally {
     loading.value = false
@@ -291,11 +287,9 @@ const fetchVideoIntros = async () => {
     } else if (response.results && Array.isArray(response.results)) {
       videoIntros.value = response.results
     } else {
-      console.error('예상치 못한 응답 형식:', response)
       showToastMessage('영상 개론 목록 형식이 올바르지 않습니다.', 'error')
     }
   } catch (error) {
-    console.error('영상 개론 목록 조회 오류:', error)
     showToastMessage('영상 개론 목록을 불러오는데 실패했습니다.', 'error')
   } finally {
     loading.value = false
@@ -400,7 +394,6 @@ const uploadExcel = async () => {
 
     // 에러가 있는 경우 표시하되 모달은 닫지 않음
     if (response.errors && response.errors.length > 0) {
-      console.warn('Upload errors:', response.errors)
       uploadErrors.value = response.errors
       showToastMessage(`일부 데이터에 오류가 있습니다. 오류 내용을 확인해주세요.`, 'warning')
       // 모달은 유지하고 오류만 표시
@@ -412,8 +405,6 @@ const uploadExcel = async () => {
     }
 
   } catch (error) {
-    console.error('업로드 오류:', error)
-
     // API 오류 응답 처리
     let errorMessage = '업로드에 실패했습니다.';
 

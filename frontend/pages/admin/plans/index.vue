@@ -584,7 +584,6 @@ const fetchPlans = async () => {
     }
 
   } catch (error) {
-    console.error('플랜 목록 조회 오류:', error);
     plans.value = [];
     error.value = '플랜 목록을 불러오는데 실패했습니다.';
     showToastMessage('플랜 목록을 불러오는데 실패했습니다.', 'error');
@@ -619,7 +618,6 @@ const savePlan = async () => {
     planForm.value = { name: '', description: '' }
     await fetchPlans()
   } catch (error) {
-    console.error('플랜 저장 오류:', error);
     // 에러 메시지 표시 개선
     let errorMessage = '플랜 저장에 실패했습니다.';
     if (error.message.includes('500')) {
@@ -653,7 +651,6 @@ const setAsDefault = async (plan) => {
     showToastMessage(`${plan.name}이(가) 기본 플랜으로 설정되었습니다.`);
     await fetchPlans();
   } catch (error) {
-    console.error('기본 플랜 설정 오류:', error);
     let errorMessage = '기본 플랜 설정에 실패했습니다.';
     if (error.message.includes('500')) {
       errorMessage = '서버에서 오류가 발생했습니다. 관리자에게 문의하세요.';
@@ -678,7 +675,6 @@ const toggleActive = async (plan) => {
     showToastMessage(`${plan.name}이(가) ${statusText}되었습니다.`);
     await fetchPlans();
   } catch (error) {
-    console.error('플랜 상태 변경 오류:', error);
     let errorMessage = '플랜 상태 변경에 실패했습니다.';
     if (error.message.includes('500')) {
       errorMessage = '서버에서 오류가 발생했습니다. 관리자에게 문의하세요.';
@@ -692,7 +688,6 @@ const toggleActive = async (plan) => {
 // 플랜 수정 모달 열기 - 데이터 유효성 검사 추가
 const editPlan = (plan) => {
   if (!plan || !plan.id) {
-    console.error('유효하지 않은 플랜 데이터:', plan);
     showToastMessage('유효하지 않은 플랜 데이터입니다.', 'error');
     return;
   }
@@ -768,7 +763,6 @@ const managePlanSchedules = async (plan) => {
   if (plan && plan.id) {
     await fetchSchedules(plan.id)
   } else {
-    console.error('Invalid plan object or missing ID')
     showToastMessage('플랜 정보가 올바르지 않습니다.', 'error')
   }
 }
@@ -867,7 +861,6 @@ const fetchSchedules = async (planId) => {
       schedules.value = []
     }
   } catch (err) {
-    console.error('세부 일정 목록 조회 오류:', err)
     showToastMessage('세부 일정 목록을 불러오는 중 오류가 발생했습니다.', 'error')
     schedules.value = []
   } finally {
@@ -921,8 +914,7 @@ const uploadScheduleExcel = async () => {
     
     // 오류가 있는 경우 상세 오류 표시
     if (response.errors && response.errors.length > 0) {
-      console.error('일부 오류 발생:', response.errors)
-      showToastMessage(`일부 행에서 오류가 발생했습니다. 자세한 내용은 콘솔을 확인하세요.`, 'warning')
+      showToastMessage(`일부 행에서 오류가 발생했습니다.`, 'warning')
     }
     
     // 목록 새로고침
@@ -934,15 +926,12 @@ const uploadScheduleExcel = async () => {
       this.$refs.scheduleFileInput.value = null
     }
   } catch (error) {
-    console.error('엑셀 업로드 오류:', error)
-    
     // 상세 오류 메시지 표시
     let errorMessage = '파일 업로드 중 오류가 발생했습니다.'
     if (error.response?.data?.detail) {
       errorMessage = error.response.data.detail
     } else if (error.response?.data?.errors) {
       errorMessage = '데이터 형식 오류가 발생했습니다.'
-      console.error('오류 상세:', error.response.data.errors)
     }
     
     showToastMessage(errorMessage, 'error')
@@ -975,7 +964,6 @@ const deleteSchedule = async (scheduleId) => {
     // 목록 새로고침
     await fetchSchedules(selectedPlan.value.id)
   } catch (error) {
-    console.error('일정 삭제 오류:', error)
     let errorMessage = '일정 삭제에 실패했습니다.'
     if (error.message.includes('500')) {
       errorMessage = '서버 오류가 발생했습니다. 관리자에게 문의하세요.'
@@ -1015,7 +1003,6 @@ const saveSchedule = async () => {
     closeAddScheduleModal()
     await fetchSchedules(selectedPlan.value.id)
   } catch (error) {
-    console.error('일정 저장 오류:', error)
     let errorMessage = '일정 저장에 실패했습니다.'
     if (error.message.includes('500')) {
       errorMessage = '서버 오류가 발생했습니다. 관리자에게 문의하세요.'
@@ -1032,26 +1019,6 @@ watch(showScheduleModal, (newVal) => {
     schedules.value = []
   }
 })
-
-// 테스트 데이터 생성 함수
-const generateTestSchedules = async (count) => {
-  if (!selectedPlan.value || !selectedPlan.value.id) return
-  
-  try {
-    loadingSchedules.value = true
-    const response = await api.post(
-      `/api/v1/todos/bible-plans/${selectedPlan.value.id}/generate_test_schedules/`, 
-      { count }
-    )
-    showToastMessage(response.detail || '테스트 데이터가 생성되었습니다.')
-    await fetchSchedules(selectedPlan.value.id)
-  } catch (error) {
-    console.error('테스트 데이터 생성 오류:', error)
-    showToastMessage('테스트 데이터 생성에 실패했습니다.', 'error')
-  } finally {
-    loadingSchedules.value = false
-  }
-}
 </script>
 
 <style scoped>

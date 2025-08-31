@@ -57,11 +57,8 @@ export const useApi = () => {
       const requiresAuth = url.includes('/api/v1/todos/hasena/status/') || 
                            (url.includes('/api/v1/todos/user/') && !isVideoIntroAPI);
       
-      ;
-      
       const authStore = useAuthStore();
       if (requiresAuth && !authStore.isAuthenticated) {
-        ;
         return { data: { success: false, message: 'Authentication required' } };
       }
       
@@ -141,7 +138,6 @@ export const useApi = () => {
       
       return await response.json();
     } catch (error) {
-      console.error('API error:', error);
       throw error;
     }
   }
@@ -165,7 +161,6 @@ export const useApi = () => {
       
       return await response.json();
     } catch (error) {
-      console.error('API error:', error);
       throw error;
     }
   }

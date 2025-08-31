@@ -80,7 +80,6 @@ export const useAuthStore = defineStore('auth', {
         const userData = await api.get('/api/v1/auth/user/')
         this.setUser(userData)
       } catch (error) {
-        console.error('[auth store] fetchUser error', error)
         throw error
       }
     },
@@ -118,7 +117,6 @@ export const useAuthStore = defineStore('auth', {
         const response = await api.post('/api/v1/auth/register/', userData)
         return true
       } catch (error) {
-        console.error('Registration error:', error)
         return false
       }
     },
@@ -161,9 +159,17 @@ export const useAuthStore = defineStore('auth', {
         }
         return response
       } catch (error) {
-        console.error('[auth store] socialLogin error', error)
         throw error
       }
+    },
+
+    async loginWithKakaoResponse(response: any) {
+      if (response.access) {
+        this.setTokens(response.access, response.refresh)
+        this.setUser(response.user)
+        return true
+      }
+      return false
     },
 
     logout() {
@@ -190,7 +196,6 @@ export const useAuthStore = defineStore('auth', {
         this.setTokens(response.access, response.refresh)
         return true
       } catch (error) {
-        console.error('Token refresh failed:', error)
         this.logout()
         return false
       }

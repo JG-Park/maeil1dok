@@ -213,8 +213,6 @@ const fetchUserPlans = async () => {
       availablePlans.value = []
     }
   } catch (err) {
-    console.error('API 오류 상세 정보:', err)
-    console.error('API 오류 응답:', err.response)
     toast.error('플랜 정보를 불러오는데 실패했습니다.')
   }
 }
@@ -362,7 +360,6 @@ onMounted(async () => {
       await fetchUserPlans()
     }
   } catch (error) {
-    console.error('Error loading plans:', error)
   } finally {
     // 항상 로딩 상태를 false로 설정
     isLoading.value = false

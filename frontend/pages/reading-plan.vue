@@ -72,7 +72,6 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
       success(action === 'complete' ? '읽음으로 저장되었습니다.' : '읽지 않음으로 저장되었습니다.')
     }
   } catch (err) {
-    console.error('Error updating progress:', err)
     error('일괄 수정 중 오류가 발생했습니다.')
   } finally {
     // 일괄 수정 모드 종료

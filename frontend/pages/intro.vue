@@ -124,7 +124,6 @@ const fetchVideoIntro = async () => {
       await checkCompletionStatus()
     }
   } catch (err) {
-    console.error('영상 개론 정보 조회 오류:', err)
     error.value = '영상 정보를 불러오는데 실패했습니다.'
   } finally {
     isLoading.value = false
@@ -143,7 +142,6 @@ const checkCompletionStatus = async () => {
     
     // API 응답 구조 확인 및 처리
     if (!userIntros) {
-      console.warn('사용자 영상 진행 상태 데이터가 없습니다.')
       return
     }
     
@@ -151,7 +149,6 @@ const checkCompletionStatus = async () => {
     if (userIntros.results && Array.isArray(userIntros.results)) {
       userIntros = userIntros.results
     } else if (!Array.isArray(userIntros)) {
-      console.warn('사용자 영상 진행 상태 데이터가 배열이 아닙니다:', userIntros)
       return
     }
     
@@ -177,7 +174,7 @@ const checkCompletionStatus = async () => {
       isCompleted.value = false
     }
   } catch (err) {
-    console.error('사용자 영상 진행 상태 조회 오류:', err)
+    // Error handled silently
   }
 }
 
@@ -218,7 +215,6 @@ const toggleCompletion = async () => {
     }
     isCompleting.value = false // 완료 처리 완료 상태
   } catch (err) {
-    console.error('완료 상태 변경 실패:', err)
     // 에러 발생 시 상태 롤백
     videoIntro.value.is_completed = !videoIntro.value.is_completed
     isCompleted.value = !isCompleted.value

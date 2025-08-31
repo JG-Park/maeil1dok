@@ -43,7 +43,6 @@ export const useHasenaStore = defineStore('hasena', () => {
       }
       return data
     } catch (err: any) {
-      console.error('하세나 완료 상태 조회 실패:', err)
       error.value = err.message || '완료 상태를 불러오는데 실패했습니다'
       throw err
     } finally {
@@ -81,7 +80,6 @@ export const useHasenaStore = defineStore('hasena', () => {
       
       return response.data
     } catch (err: any) {
-      console.error('하세나 완료 처리 실패:', err)
       error.value = err.message || '완료 처리에 실패했습니다'
       throw err
     } finally {

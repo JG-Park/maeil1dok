@@ -5,7 +5,6 @@ export function useScrollToElement() {
 
   const scrollToElement = (element: HTMLElement | null, options?: ScrollIntoViewOptions) => {
     if (!element) {
-      console.warn('스크롤할 요소를 찾을 수 없습니다.')
       return
     }
 

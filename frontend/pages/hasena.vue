@@ -166,7 +166,6 @@ const fetchHasenaContent = async () => {
       await fetchHasenaStatus()
     }
   } catch (err) {
-    console.error('하세나 본문 조회 실패:', err)
     error.value = err.message
   } finally {
     isLoading.value = false

@@ -739,58 +739,6 @@ const showSundayModal = ref(false);
 const showPlanDropdown = ref(false);
 const showStatsPlanDropdown = ref(false);
 
-// MOCK: 주간 통독 현황 데이터 (나중에 API 연동)
-const weekStatus = ref([
-  {
-    date: "2025-04-28",
-    plans: [
-      { planId: 1, planName: "기본 플랜", completed: true },
-      { planId: 2, planName: "청년부", completed: false },
-    ],
-  },
-  {
-    date: "2025-04-29",
-    plans: [
-      { planId: 1, planName: "기본 플랜", completed: true },
-      { planId: 2, planName: "청년부", completed: true },
-    ],
-  },
-  {
-    date: "2025-04-30",
-    plans: [
-      { planId: 1, planName: "기본 플랜", completed: false },
-      { planId: 2, planName: "청년부", completed: false },
-    ],
-  },
-  {
-    date: "2025-05-01",
-    plans: [
-      { planId: 1, planName: "기본 플랜", completed: true },
-      { planId: 2, planName: "청년부", completed: true },
-    ],
-  },
-  {
-    date: "2025-05-02",
-    plans: [
-      { planId: 1, planName: "기본 플랜", completed: false },
-      { planId: 2, planName: "청년부", completed: true },
-    ],
-  },
-  {
-    date: "2025-05-03",
-    plans: [
-      { planId: 1, planName: "기본 플랜", completed: true },
-      { planId: 2, planName: "청년부", completed: false },
-    ],
-  },
-  {
-    date: "2025-05-04",
-    plans: [
-      { planId: 1, planName: "기본 플랜", completed: false },
-      { planId: 2, planName: "청년부", completed: false },
-    ],
-  },
-]);
 
 const showProgressPlanDropdown = ref(false);
 
@@ -841,7 +789,6 @@ const fetchStats = async () => {
       personalProgressPercentage.value = progressResponse.data.user_progress;
     }
   } catch (error) {
-    console.error("통계 데이터를 가져오는 중 오류가 발생했습니다:", error);
   }
 };
 
@@ -870,7 +817,6 @@ const fetchStats = async () => {
 
     await fetchStats();
   } catch (error) {
-    console.error("초기 데이터 로드 실패:", error);
   }
 })();
 
@@ -927,11 +873,9 @@ const fetchVisitorStats = async () => {
         total_visitors: response.data.total_visitors,
       };
     } else {
-      console.error("방문자 통계 응답 오류:", response.data);
       // 오류 응답이지만 이전 값은 유지
     }
   } catch (error) {
-    console.error("방문자 통계를 가져오는데 실패했습니다:", error);
     // 오류 발생 시 기본값 설정 (빈 화면 방지)
     if (
       !visitorStats.value.daily_visitors &&
@@ -962,7 +906,6 @@ const incrementVisitorCount = async () => {
       await fetchVisitorStats();
     }
   } catch (error) {
-    console.error("방문자 수 증가에 실패했습니다:", error);
     // 실패해도 기존 통계는 표시
     await fetchVisitorStats();
     throw error; // 에러를 다시 던져서 호출자가 처리할 수 있게 함
@@ -1026,7 +969,6 @@ onMounted(() => {
       try {
         await incrementVisitorCount();
       } catch (error) {
-        console.error("방문자 카운터 증가 실패, 통계만 로드합니다:", error);
         await fetchVisitorStats();
       }
       sessionStorage.setItem(visitKey, "true");
@@ -1152,7 +1094,6 @@ const handleTodayReading = async () => {
       });
     }
   } catch (error) {
-    console.error("오늘 일정 조회 오류:", error);
   }
 };
 
@@ -1184,7 +1125,6 @@ const navigateToReading = async () => {
       router.push(`/reading?plan=${planId}`);
     }
   } catch (error) {
-    console.error("내일 일정 조회 오류:", error);
     router.push(`/reading?plan=${planId}`);
   }
 };
@@ -1217,7 +1157,6 @@ const fetchVideoIntros = async () => {
 
     const response = await api.get(url);
     if (!response.data || !Array.isArray(response.data)) {
-      console.error("개론 영상 응답이 배열이 아닙니다:", response.data);
       // 응답이 오류인 경우 상태 코드와 헤더 확인
       introTasks.value = [];
       return;
@@ -1272,7 +1211,6 @@ const fetchVideoIntros = async () => {
 
           return isAvailableToday;
         } catch (err) {
-          console.error("날짜 처리 중 오류:", err);
           return false;
         }
       })
@@ -1297,7 +1235,6 @@ const fetchVideoIntros = async () => {
         }
       });
   } catch (err) {
-    console.error("영상 개론 목록 조회 오류:", err);
     introTasks.value = [];
   } finally {
     loadingIntros.value = false;
@@ -1334,7 +1271,6 @@ const fetchHasenaStatus = async () => {
     const response = await useApi().get("/api/v1/todos/hasena/status/");
     hasenaStatus.value = response.data;
   } catch (error) {
-    console.error("하세나 완료 상태 조회 실패:", error);
     // 오류 처리 로직
   }
 };

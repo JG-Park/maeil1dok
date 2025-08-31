@@ -33,7 +33,6 @@ export const useSubscriptionStore = defineStore('subscription', {
         const response = await api.get('/api/v1/todos/plans/user/')
         this.subscriptions = response.data.subscriptions || []
       } catch (error) {
-        console.error('Failed to fetch subscriptions:', error)
         this.error = '구독 정보를 불러오는데 실패했습니다'
         this.subscriptions = []
       } finally {
@@ -55,7 +54,6 @@ export const useSubscriptionStore = defineStore('subscription', {
 
         return response.data
       } catch (error) {
-        console.error('Failed to toggle subscription:', error)
         throw error
       }
     },
@@ -73,7 +71,6 @@ export const useSubscriptionStore = defineStore('subscription', {
         
         return response.data
       } catch (error) {
-        console.error('Failed to subscribe to plan:', error)
         throw error
       }
     },

@@ -17,7 +17,6 @@ onMounted(async () => {
   if (provider === 'kakao' && code) {
     await handleKakaoCallback(code as string)
   } else {
-    console.error('Invalid provider or code')
     navigateTo('/login')
   }
 })
@@ -45,7 +44,6 @@ const handleKakaoCallback = async (code: string) => {
       navigateTo('/')
     }
   } catch (error) {
-    console.error('Kakao login failed:', error)
     navigateTo('/login')
   }
 }

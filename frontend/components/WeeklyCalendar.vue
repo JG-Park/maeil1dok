@@ -293,13 +293,11 @@ async function loadMonthlySchedules(forceReload = false) {
       fetch(`${baseUrl}/api/v1/todos/schedules/month/?month=${m}&plan_id=${planId}&year=${years[i]}`)
         .then(res => res.json())
         .catch(err => {
-          console.error(`${m}월 데이터 가져오기 오류:`, err)
           return [] // 오류 발생 시 빈 배열 반환
         })
     )
 
     const results = await Promise.all(promises)
-    // console.log('가져온 데이터:', results)
 
     // 모든 월의 데이터를 하나로 합치기
     const allSchedulesByDate = {}
@@ -323,9 +321,6 @@ async function loadMonthlySchedules(forceReload = false) {
             title: schedule.title || schedule.content || schedule.book_name,
             is_completed: isCompleted
           })
-          
-          // 디버깅 로그
-          // console.log(`일정 발견: ${date}, ID: ${schedule.id}, 완료여부: ${isCompleted}`)
         })
       } else if (data && data.success && data.schedules) {
         // success 필드가 있는 경우
@@ -338,10 +333,6 @@ async function loadMonthlySchedules(forceReload = false) {
             // 완료 여부 확인 (is_completed 필드가 있는지 확인)
             const isCompleted = schedule.is_completed === true
 
-            // 디버깅 로그
-            if (isCompleted) {
-              // console.log(`완료된 일정 발견: ${date}, ID: ${schedule.id}`)
-            }
 
             return {
               id: schedule.id,
@@ -373,18 +364,7 @@ async function loadMonthlySchedules(forceReload = false) {
         is_completed: hasCompletedSchedule
       }
     })
-
-    // 로그 추가 - 일정 데이터 상세 정보
-    // console.log('로드된 일정 데이터:', scheduleData.value.length, '개의 날짜')
-    
-    // 완료된 일정이 있는 날짜 확인
-    const completedDates = scheduleData.value
-      .filter(item => item.is_completed)
-      .map(item => item.date)
-    
-    // console.log('완료된 일정이 있는 날짜:', completedDates)
   } catch (error) {
-    console.error('API 호출 오류:', error)
     alert('서버 연결에 문제가 있습니다.')
   } finally {
     isLoading.value = false

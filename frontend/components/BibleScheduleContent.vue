@@ -575,11 +575,10 @@ const fetchSubscriptions = async () => {
       subscriptions.value = [response.data as Subscription]
       handleSubscriptionSelection([response.data])
     } else {
-      console.warn('구독 정보가 없거나 예상치 못한 형식입니다.')
       subscriptions.value = []
     }
   } catch (err) {
-    console.error('구독 정보 가져오기 실패:', err)
+    // Error handled silently
   }
 }
 
@@ -595,7 +594,7 @@ const fetchSchedules = async () => {
     })
     schedules.value = response.data
   } catch (error) {
-    console.error('Error fetching schedules:', error)
+    // Error handled silently
   } finally {
     isLoading.value = false
   }
@@ -609,7 +608,6 @@ const fetchNextPosition = async () => {
     })
     return data
   } catch (error) {
-    console.error('다음 위치 정보 가져오기 실패:', error)
     showError('다음 위치를 불러오는 데 실패했습니다.')
     return null
   }
@@ -627,7 +625,6 @@ const fetchCurrentPosition = async () => {
     })
     return response.data
   } catch (error) {
-    console.error('현재 위치 정보 가져오기 실패:', error)
     showError('현재 위치를 불러오는 데 실패했습니다.')
     return null
   }
@@ -643,7 +640,6 @@ const updateReadingStatus = async (scheduleIds: number[], action: 'complete' | '
     })
     return true
   } catch (err) {
-    console.error('읽기 상태 업데이트 실패:', err)
     showError('상태 변경에 실패했습니다. 다시 시도해주세요.')
     return false
   }
@@ -999,7 +995,7 @@ const initializeComponent = async () => {
 
     isInitialized.value = true
   } catch (err) {
-    console.error('Error initializing component:', err)
+    // Error handled silently
   } finally {
     isLoading.value = false
   }
@@ -1092,7 +1088,7 @@ watch(() => props.isModal, async (newVal) => {
         try {
           await scrollToCurrentLocation()
         } catch (err) {
-          console.error('현재 위치로 스크롤 실패:', err)
+          // Error handled silently
         }
       }, 800)
     }
@@ -1111,7 +1107,7 @@ watch(
       try {
         await fetchSchedules()
       } catch (error) {
-        console.error('스케줄 다시 불러오기 실패:', error)
+        // Error handled silently
       }
     }
   }
@@ -1138,7 +1134,7 @@ watch(() => route.query.plan, async (newPlanId, oldPlanId) => {
       try {
         await fetchSchedules()
       } catch (error) {
-        console.error('플랜 변경 후 스케줄 로딩 실패:', error)
+        // Error handled silently
       } finally {
         // 플랜 변경 후 스케줄 로딩이 완료되면 마지막 미완료 위치로 스크롤
         scrollToLastIncomplete()

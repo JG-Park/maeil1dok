@@ -131,14 +131,9 @@ const fetchIntroductions = async () => {
       introductions.value = response.data;
     } else {
       introductions.value = [];
-      console.warn(
-        "Unexpected API response structure for introductions:",
-        response.data
-      );
       error.value = "데이터 형식이 올바르지 않습니다.";
     }
   } catch (err) {
-    console.error("Error fetching introductions:", err);
     error.value =
       "소개 목록을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.";
   } finally {
@@ -255,7 +250,6 @@ const toggleCompletion = async (intro) => {
       success("미완료 처리되었습니다.");
     }
   } catch (err) {
-    console.error("완료 상태 변경 실패:", err);
     // 에러 발생 시 상태 롤백
     intro.is_completed = !intro.is_completed;
     showError("상태 변경에 실패했습니다. 다시 시도해주세요.");
