@@ -434,8 +434,10 @@ const parseKntVersion = (jsonData, book, chapter) => {
               if (numMatch) {
                 // 이전 구절 데이터가 있으면 먼저 처리
                 if (currentVerseNum && verseText) {
+                  // 시적 구조 클래스 추가
+                  const poeticClass = element.class || 'p';
                   verses.push(
-                    `<div class="verse"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`
+                    `<div class="verse ${poeticClass}"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`
                   );
                 }
 
@@ -448,6 +450,13 @@ const parseKntVersion = (jsonData, book, chapter) => {
                   .replace(/<span[^>]*class="verse-span"[^>]*>/, "") // 여는 태그 제거
                   .replace(/<\/span>$/, "") // 닫는 태그 제거
                   .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "") // 각주 제거
+                  // HTML 엔티티 디코딩
+                  .replace(/&nbsp;/g, " ")
+                  .replace(/&amp;/g, "&")
+                  .replace(/&lt;/g, "<")
+                  .replace(/&gt;/g, ">")
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#39;/g, "'")
                   .replace(/<\/?[^>]+(>|$)/g, "")
                   .trim(); // 기타 HTML 태그 제거
               } else {
@@ -456,6 +465,13 @@ const parseKntVersion = (jsonData, book, chapter) => {
                   .replace(/<span[^>]*class="verse-span"[^>]*>/, "")
                   .replace(/<\/span>$/, "")
                   .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "")
+                  // HTML 엔티티 디코딩
+                  .replace(/&nbsp;/g, " ")
+                  .replace(/&amp;/g, "&")
+                  .replace(/&lt;/g, "<")
+                  .replace(/&gt;/g, ">")
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#39;/g, "'")
                   .replace(/<\/?[^>]+(>|$)/g, "")
                   .trim();
 
@@ -467,8 +483,10 @@ const parseKntVersion = (jsonData, book, chapter) => {
 
             // 마지막 구절 처리
             if (currentVerseNum && verseText) {
+              // 시적 구조 클래스 추가
+              const poeticClass = element.class || 'p';
               verses.push(
-                `<div class="verse"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`
+                `<div class="verse ${poeticClass}"><span class="verse-number">${currentVerseNum}</span><span class="verse-text">${verseText}</span></div>`
               );
             }
           } else {
@@ -484,29 +502,44 @@ const parseKntVersion = (jsonData, book, chapter) => {
               const verseNum = directVerseMatch[1];
               let verseContent = directVerseMatch[2];
 
-              // HTML 태그 제거
-              verseContent = verseContent.replace(/<\/?[^>]+(>|$)/g, "").trim();
+              // HTML 태그 제거 및 엔티티 디코딩
+              verseContent = verseContent
+                .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "") // 각주 제거
+                // HTML 엔티티 디코딩
+                .replace(/&nbsp;/g, " ")
+                .replace(/&amp;/g, "&")
+                .replace(/&lt;/g, "<")
+                .replace(/&gt;/g, ">")
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/<\/?[^>]+(>|$)/g, "")
+                .trim();
 
-              // 각주 제거
-              verseContent = verseContent.replace(
-                /<span[^>]*data-caller[^>]*>.*?<\/span>/gs,
-                ""
-              );
-
+              // 시적 구조 클래스 추가
+              const poeticClass = element.class || 'p';
               verses.push(
-                `<div class="verse"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseContent}</span></div>`
+                `<div class="verse ${poeticClass}"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseContent}</span></div>`
               );
             } else {
               // 구절 번호 패턴이 없는 경우
               // p 태그가 특수 클래스를 가진 경우에만 처리 (단순 p 태그는 무시)
               const plainText = element.content
+                // HTML 엔티티 디코딩
+                .replace(/&nbsp;/g, " ")
+                .replace(/&amp;/g, "&")
+                .replace(/&lt;/g, "<")
+                .replace(/&gt;/g, ">")
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
                 .replace(/<\/?[^>]+(>|$)/g, "")
                 .trim();
+              // 시적 구조나 특수 형식을 가진 클래스들 처리
+              const poeticClasses = ['q1', 'q2', 'q3', 'q4', 'm', 'pi1', 'pi2', 'nb', 'pc', 'pm', 'pmo', 'pmc'];
               if (
                 plainText &&
-                (element.class === "q1" || element.class === "nb")
+                poeticClasses.includes(element.class)
               ) {
-                verses.push(`<div class="paragraph">${plainText}</div>`);
+                verses.push(`<div class="paragraph ${element.class}">${plainText}</div>`);
               }
               // 일반 p 태그는 렌더링하지 않음 (중복 방지)
             }
@@ -4481,6 +4514,73 @@ html.touch-device .nav-button.next:hover svg {
 :deep(.paragraph) {
   margin: 0.5rem 0;
   line-height: 1.8;
+}
+
+/* 시적 구조 들여쓰기 스타일 - 대한성서공회 스타일 적용 */
+:deep(.verse.q1),
+:deep(.paragraph.q1) {
+  padding-left: 54px !important;
+  text-indent: -18px !important;
+}
+
+:deep(.verse.q2),
+:deep(.paragraph.q2) {
+  padding-left: 72px !important;
+  text-indent: -18px !important;
+}
+
+:deep(.verse.q3),
+:deep(.paragraph.q3) {
+  padding-left: 90px !important;
+  text-indent: -18px !important;
+}
+
+:deep(.verse.q4),
+:deep(.paragraph.q4) {
+  padding-left: 108px !important;
+  text-indent: -18px !important;
+}
+
+/* 계속되는 행 (margin continuation) */
+:deep(.verse.m),
+:deep(.paragraph.m) {
+  padding-left: 1.5rem !important;
+  margin-top: 0;
+}
+
+/* 들여쓰기가 있는 단락 */
+:deep(.verse.pi1),
+:deep(.paragraph.pi1) {
+  padding-left: 2rem !important;
+}
+
+:deep(.verse.pi2),
+:deep(.paragraph.pi2) {
+  padding-left: 4rem !important;
+}
+
+/* 가운데 정렬 (시편 제목 등) */
+:deep(.verse.pc),
+:deep(.paragraph.pc) {
+  text-align: center;
+}
+
+/* 오른쪽 정렬 */
+:deep(.verse.pm),
+:deep(.paragraph.pm),
+:deep(.verse.pmo),
+:deep(.paragraph.pmo),
+:deep(.verse.pmc),
+:deep(.paragraph.pmc) {
+  text-align: right;
+  margin-right: 1rem;
+}
+
+/* nb - no break (줄바꿈 없음) */
+:deep(.verse.nb),
+:deep(.paragraph.nb) {
+  display: inline;
+  margin: 0;
 }
 
 .new-badge {
