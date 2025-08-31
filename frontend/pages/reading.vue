@@ -2122,18 +2122,18 @@ onUnmounted(() => {
 
           <!-- 구간 표시 영역 -->
           <div class="reading-sections" v-if="currentSectionChapters.length > 0">
-            <template v-for="(section, index) in currentSectionChapters">
+            <template v-for="(section, index) in currentSectionChapters" :key="`section-group-${index}`">
               <!-- 구간 구분선 -->
-              <span v-if="index > 0" class="section-separator" :key="`separator-${index}`">|</span>
+              <span v-if="index > 0" class="section-separator">|</span>
 
-              <!-- 구간 번호 -->
+              <!-- 구간 번호 (여러 구간일 때만 표시) -->
               <span class="section-number" v-if="currentSectionChapters.length > 1"
-                :class="{ 'current-section': section.book === currentBook }" :key="`section-${index}`">
+                :class="{ 'current-section': section.book === currentBook }">
                 {{ index + 1 }}
               </span>
 
               <!-- 책 이름 -->
-              <span v-for="(section, index) in currentSectionChapters" :key="`book-${index}`" class="book-name" :class="{
+              <span class="book-name" :class="{
                 'current-book': section.book === currentBook,
                 'other-book': section.book !== currentBook,
               }">
@@ -2141,7 +2141,7 @@ onUnmounted(() => {
               </span>
 
               <!-- 장 번호들 -->
-              <div class="chapter-numbers" v-if="section.book === currentBook" :key="`chapters-${index}`">
+              <span class="chapter-numbers">
                 <!-- 3개 이하일 때는 모든 장 표시 -->
                 <template v-if="section.chapters.length <= 3">
                   <span v-for="chapter in section.chapters" :key="chapter" class="chapter-box" :class="{
@@ -2204,7 +2204,7 @@ onUnmounted(() => {
                     {{ section.chapters[section.chapters.length - 1] }}
                   </span>
                 </template>
-              </div>
+              </span>
             </template>
           </div>
           <!-- 구간 정보가 없을 때 기본 표시 -->
