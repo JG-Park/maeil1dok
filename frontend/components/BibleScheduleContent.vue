@@ -185,8 +185,11 @@
               <h3>본문 페이지로 이동하시겠어요?</h3>
               <p class="reading-info">
                 <span class="date">{{ selectedSchedule?.date ? formatScheduleDate(selectedSchedule.date) : '' }}</span>
-                <span class="content">{{ selectedSchedule?.book }} {{ selectedSchedule?.start_chapter }}-{{
-                  selectedSchedule?.end_chapter }}장</span>
+                <span class="content">{{ selectedSchedule?.book }} {{ 
+                  selectedSchedule?.start_chapter === selectedSchedule?.end_chapter 
+                    ? selectedSchedule?.start_chapter 
+                    : `${selectedSchedule?.start_chapter}-${selectedSchedule?.end_chapter}` 
+                }}장</span>
               </p>
               <p class="guide-text">
                 <span class="sub-text">혹시 읽음 상태를 변경하려고 하셨나요?<br>왼쪽 체크박스를 직접 클릭하거나,<br>우측 상단 일괄수정 버튼을 누른 후 변경할 수
