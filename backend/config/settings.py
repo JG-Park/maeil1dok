@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',  # Token blacklist for rotation
     'corsheaders',
     'todos',
     
@@ -187,9 +188,10 @@ REST_FRAMEWORK = {
 
 # JWT 토큰 설정
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
-    'ROTATE_REFRESH_TOKENS': False,
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),  # 1시간으로 단축 (보안 강화)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # 7일로 단축 (보안 강화)
+    'ROTATE_REFRESH_TOKENS': True,  # Token refresh 시 새로운 refresh token 발급
+    'BLACKLIST_AFTER_ROTATION': True,  # 이전 refresh token 블랙리스트 처리
     'AUTH_HEADER_TYPES': ('Bearer',),
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
