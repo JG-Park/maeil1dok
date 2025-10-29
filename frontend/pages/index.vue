@@ -558,12 +558,12 @@
         </div>
       </div>
 
-      <!-- 새로운 Coming Soon 섹션 추가 -->
-      <div class="section fade-in coming-soon" style="animation-delay: 1s">
-        <h2>Coming Soon 🎉</h2>
-        <div class="coming-soon-features">
-          <div class="feature">
-            <div class="feature-icon">
+      <!-- 소셜 기능 섹션 -->
+      <div class="section fade-in" style="animation-delay: 1s">
+        <h2>커뮤니티</h2>
+        <div class="social-features">
+          <NuxtLink to="/scoreboard" class="social-card">
+            <div class="social-icon scoreboard-icon">
               <svg
                 width="24"
                 height="24"
@@ -571,26 +571,25 @@
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M8 7V17M8 7L4 8.5V18.5L8 17M8 7L12 8.5M8 17L12 18.5M12 8.5V18.5M12 8.5L16 7M12 18.5L16 17M16 7V17M16 7L20 8.5V18.5L16 17"
-                  stroke="var(--primary-dark)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+                <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="3" y1="6" x2="3" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="3" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="3" y1="18" x2="3" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
               </svg>
             </div>
-            <div class="feature-content">
-              <h3>스코어보드</h3>
-              <p>
-                진행 현황을 공유하도록 설정하면, 매일일독에 참여 중인 사람들이
-                함께 볼 수 있도록 준비중이예요
-              </p>
+            <div class="social-content">
+              <h3>리더보드</h3>
+              <p>다른 참여자들과 진행률을 비교해보세요</p>
             </div>
-          </div>
+            <svg class="arrow-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </NuxtLink>
 
-          <div class="feature">
-            <div class="feature-icon">
+          <NuxtLink to="/groups" class="social-card">
+            <div class="social-icon groups-icon">
               <svg
                 width="24"
                 height="24"
@@ -598,22 +597,42 @@
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M13 14L14.586 12.414C14.9611 12.0391 15.4697 11.8284 16 11.8284C16.5303 11.8284 17.0389 12.0391 17.414 12.414L20 15M14 8C14 8.53043 13.7893 9.03914 13.4142 9.41421C13.0391 9.78929 12.5304 10 12 10C11.4696 10 10.9609 9.78929 10.5858 9.41421C10.2107 9.03914 10 8.53043 10 8C10 7.46957 10.2107 6.96086 10.5858 6.58579C10.9609 6.21071 11.4696 6 12 6C12.5304 6 13.0391 6.21071 13.4142 6.58579C13.7893 6.96086 14 7.46957 14 8ZM3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19Z"
-                  stroke="var(--primary-dark)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
               </svg>
             </div>
-            <div class="feature-content">
-              <h3>SNS 공유하기</h3>
-              <p>
-                오늘 일독을 스토리로 공유하여 인증할 수 있는 기능을 준비중이예요
-              </p>
+            <div class="social-content">
+              <h3>그룹</h3>
+              <p>함께 성경을 읽는 그룹에 참여하세요</p>
             </div>
-          </div>
+            <svg class="arrow-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </NuxtLink>
+
+          <NuxtLink v-if="auth.isAuthenticated" :to="`/profile/${auth.user?.id}`" class="social-card">
+            <div class="social-icon profile-icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"></circle>
+              </svg>
+            </div>
+            <div class="social-content">
+              <h3>내 프로필</h3>
+              <p>나의 통독 기록과 업적을 확인하세요</p>
+            </div>
+            <svg class="arrow-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </NuxtLink>
         </div>
       </div>
     </div>
@@ -1995,6 +2014,89 @@ h2 {
 }
 
 .notice-section:hover .notice-arrow {
+  color: var(--primary-color);
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* 소셜 기능 섹션 스타일 */
+.social-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.social-card {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.social-card:hover {
+  background: white;
+  border-color: var(--primary-color);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(97, 163, 117, 0.1);
+}
+
+.social-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.scoreboard-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.groups-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.profile-icon {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.social-content {
+  flex: 1;
+}
+
+.social-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-primary);
+}
+
+.social-content p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.arrow-icon {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.social-card:hover .arrow-icon {
   color: var(--primary-color);
   opacity: 1;
   transform: translateX(2px);

@@ -17,10 +17,15 @@ export const useApi = () => {
   const auth = useAuthStore()
 
   const getBaseUrl = () => {
+    // Docker Compose 환경에서 SSR 시 컨테이너 간 통신
     if (process.server) {
-      return 'http://localhost:8000'
+      // Docker 환경에서는 서비스명으로 접근
+      // 로컬 개발 시에는 포트 8019 사용
+      return process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8019'
     }
     
+    // 클라이언트에서는 설정된 apiBase 사용
+    // 개발 환경: localhost:8019, 프로덕션: api.maeil1dok.app
     return config.public.apiBase
   }
 

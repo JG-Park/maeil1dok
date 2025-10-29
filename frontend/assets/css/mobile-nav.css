@@ -1,0 +1,25 @@
+/* 모바일 하단 네비게이션 관련 전역 스타일 */
+@media (max-width: 768px) {
+  /* 페이지 컨텐츠가 하단 네비게이션과 겹치지 않도록 패딩 추가 */
+  .container,
+  .content-wrapper,
+  .page-container {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  
+  /* 고정된 하단 버튼이 있는 경우 추가 여백 */
+  .fixed-bottom-button {
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* iOS 안전 영역 지원 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 768px) {
+    .container,
+    .content-wrapper,
+    .page-container {
+      padding-bottom: calc(60px + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}

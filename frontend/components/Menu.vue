@@ -55,6 +55,55 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     <span>플랜 관리</span>
                   </NuxtLink>
+
+                  <!-- 구분선 -->
+                  <div class="menu-divider"></div>
+
+                  <!-- 소셜 기능 메뉴들 -->
+                  <NuxtLink 
+                    v-if="user"
+                    :to="`/profile/${user.id}`" 
+                    class="menu-item" 
+                    @click="$emit('close')"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>내 프로필</span>
+                  </NuxtLink>
+
+                  <NuxtLink to="/scoreboard" class="menu-item" @click="$emit('close')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="8" y1="6" x2="21" y2="6"></line>
+                      <line x1="8" y1="12" x2="21" y2="12"></line>
+                      <line x1="8" y1="18" x2="21" y2="18"></line>
+                      <line x1="3" y1="6" x2="3" y2="6"></line>
+                      <line x1="3" y1="12" x2="3" y2="12"></line>
+                      <line x1="3" y1="18" x2="3" y2="18"></line>
+                    </svg>
+                    <span>리더보드</span>
+                  </NuxtLink>
+
+                  <NuxtLink to="/groups" class="menu-item" @click="$emit('close')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>그룹</span>
+                  </NuxtLink>
+
+                  <NuxtLink to="/friends" class="menu-item" @click="$emit('close')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="8.5" cy="7" r="4"></circle>
+                      <line x1="20" y1="8" x2="20" y2="14"></line>
+                      <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    <span>친구</span>
+                  </NuxtLink>
                 </nav>
 
                 <!-- 하단 정보 영역 추가 -->
@@ -84,11 +133,16 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '@/stores/auth'
+import { computed } from 'vue'
+
 const props = defineProps({
   isOpen: Boolean
 })
 
 const emit = defineEmits(['close'])
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
 
 const close = () => {
   emit('close')
@@ -201,6 +255,12 @@ const close = () => {
 .menu-item:hover svg {
   color: var(--primary-color);
   transform: scale(1.1);
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 0.75rem 0;
 }
 
 .menu-footer {

@@ -60,6 +60,8 @@ services:
     environment:
       - HOST=0.0.0.0
       - NODE_ENV=${NODE_ENV:-development}
+      - DOCKER_ENV=true
+      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-http://localhost:8019}
     command: >
       sh -c "if [ \"$${NODE_ENV}\" = \"production\" ]; then 
                npm run build && npm run start; 

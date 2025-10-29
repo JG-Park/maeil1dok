@@ -232,3 +232,120 @@ class VisitorCount(models.Model):
     def get_total_visitors(cls):
         """전체 누적 방문자 수 조회"""
         return cls.objects.aggregate(total=models.Sum('daily_count'))['total'] or 0
+
+
+class ReadingGroup(models.Model):
+    """성경 읽기 그룹/커뮤니티"""
+    name = models.CharField(max_length=100, help_text="그룹 이름")
+    description = models.TextField(blank=True, help_text="그룹 설명")
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='created_groups'
+    )
+    plan = models.ForeignKey(
+        BibleReadingPlan,
+        on_delete=models.CASCADE,
+        related_name='groups',
+        help_text="그룹이 따르는 읽기 플랜"
+    )
+    is_public = models.BooleanField(default=False, help_text="공개 그룹 여부")
+    max_members = models.IntegerField(default=50, help_text="최대 멤버 수")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['plan', 'is_public']),
+            models.Index(fields=['creator', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} ({self.plan.name})"
+    
+    @property
+    def member_count(self):
+        return self.memberships.filter(is_active=True).count()
+    
+    @property
+    def is_full(self):
+        return self.member_count >= self.max_members
+
+
+class GroupMembership(models.Model):
+    """그룹 멤버십"""
+    ROLE_CHOICES = [
+        ('admin', '관리자'),
+        ('member', '멤버'),
+    ]
+    
+    group = models.ForeignKey(
+        ReadingGroup,
+        on_delete=models.CASCADE,
+        related_name='memberships'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='group_memberships'
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='member'
+    )
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ['group', 'user']
+        ordering = ['-joined_at']
+        indexes = [
+            models.Index(fields=['group', 'is_active']),
+            models.Index(fields=['user', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.nickname} in {self.group.name} as {self.get_role_display()}"
+
+
+class GroupInvitation(models.Model):
+    """그룹 초대"""
+    STATUS_CHOICES = [
+        ('pending', '대기중'),
+        ('accepted', '수락'),
+        ('declined', '거절'),
+        ('expired', '만료'),
+    ]
+    
+    group = models.ForeignKey(
+        ReadingGroup,
+        on_delete=models.CASCADE,
+        related_name='invitations'
+    )
+    inviter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sent_invitations'
+    )
+    invitee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='received_invitations'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    message = models.TextField(blank=True, help_text="초대 메시지")
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['group', 'invitee']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Invitation to {self.invitee.nickname} for {self.group.name}"

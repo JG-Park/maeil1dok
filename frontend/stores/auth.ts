@@ -55,20 +55,38 @@ export const useAuthStore = defineStore('auth', {
 
     setUser(user: User) {
       this.user = user
+      if (process.client && user) {
+        localStorage.setItem('user', JSON.stringify(user))
+      }
     },
 
     async initializeAuth() {
       if (process.client) {
         const access = localStorage.getItem('access_token')
         const refresh = localStorage.getItem('refresh_token')
+        const userStr = localStorage.getItem('user')
         
         if (access && refresh) {
           this.token = access
           this.refreshToken = refresh
+          
+          // First try to load user from localStorage
+          if (userStr) {
+            try {
+              this.user = JSON.parse(userStr)
+            } catch (e) {
+              console.error('Failed to parse user data from localStorage')
+            }
+          }
+          
+          // Then fetch fresh user data from server
           try {
             await this.fetchUser()
           } catch (error) {
-            this.logout()
+            // If fetch fails but we have cached user data, keep it
+            if (!this.user) {
+              this.logout()
+            }
           }
         }
       }
@@ -77,7 +95,9 @@ export const useAuthStore = defineStore('auth', {
     async fetchUser() {
       const api = useApi()
       try {
-        const userData = await api.get('/api/v1/auth/user/')
+        const response = await api.get('/api/v1/auth/user/')
+        // Handle both wrapped and unwrapped responses
+        const userData = response.data || response
         this.setUser(userData)
       } catch (error) {
         throw error
@@ -179,6 +199,7 @@ export const useAuthStore = defineStore('auth', {
       if (process.client) {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user')
       }
     },
 

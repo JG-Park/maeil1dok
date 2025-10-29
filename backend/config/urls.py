@@ -20,5 +20,6 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('accounts.urls')),
+    path('api/v1/accounts/', include('accounts.urls')),  # 프로필, 팔로우 등 계정 관련 API
     path('api/v1/todos/', include('todos.urls')),
 ]

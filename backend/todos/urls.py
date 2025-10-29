@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views
+from . import views, scoreboard_views, group_views
 
 router = DefaultRouter()
 router.register(r'bible-plans', views.BibleReadingPlanViewSet)
@@ -48,4 +48,21 @@ urlpatterns = [
     path('stats/progress/', views.get_progress_stats, name='progress-stats'),
     path('stats/visitors/', views.get_visitor_stats, name='visitor-stats'),
     path('stats/visitors/increment/', views.increment_visitor_count, name='increment-visitor-count'),
+    
+    # 스코어보드/리더보드 관련 URL
+    path('scoreboard/', scoreboard_views.get_scoreboard, name='scoreboard'),
+    path('scoreboard/friends/', scoreboard_views.get_friends_scoreboard, name='friends-scoreboard'),
+    path('scoreboard/group/<int:group_id>/', scoreboard_views.get_group_scoreboard, name='group-scoreboard'),
+    path('scoreboard/my-ranking/', scoreboard_views.get_my_ranking, name='my-ranking'),
+    
+    # 그룹 관련 URL
+    path('groups/', group_views.get_groups, name='groups-list'),
+    path('groups/create/', group_views.create_group, name='create-group'),
+    path('groups/<int:group_id>/', group_views.get_group_detail, name='group-detail'),
+    path('groups/<int:group_id>/join/', group_views.join_group, name='join-group'),
+    path('groups/<int:group_id>/leave/', group_views.leave_group, name='leave-group'),
+    path('groups/<int:group_id>/members/', group_views.get_group_members, name='group-members'),
+    path('groups/<int:group_id>/invite/', group_views.invite_to_group, name='invite-to-group'),
+    path('invitations/', group_views.get_my_invitations, name='my-invitations'),
+    path('invitations/<int:invitation_id>/respond/', group_views.respond_to_invitation, name='respond-invitation'),
 ] 
