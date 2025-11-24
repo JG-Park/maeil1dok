@@ -16,9 +16,9 @@
         </div>
 
         <!-- 월 선택기 -->
-        <div class="month-scroll fade-in" style="animation-delay: 0.1s">
+        <div class="month-scroll fade-in" style="animation-delay: 0.1s" ref="monthScrollRef">
           <button v-for="month in months" :key="month" :class="['month-button', { active: month === selectedMonth }]"
-            @click="selectedMonth = month">
+            @click="selectedMonth = month" :ref="el => { if (month === selectedMonth) currentMonthButtonRef = el }">
             {{ month }}월
           </button>
         </div>
@@ -384,6 +384,8 @@ const bulkEditState = ref<BulkEditState>({
 
 // 스크롤 컨테이너 ref 추가
 const scheduleBodyRef = ref<HTMLElement | null>(null)
+const monthScrollRef = ref<HTMLElement | null>(null)
+const currentMonthButtonRef = ref<any>(null)
 
 // Toast & Scroll 컴포저블
 const { success, error: showError, warning } = useToast()
@@ -442,6 +444,25 @@ const handleScroll = (event: Event) => {
 // 최상단으로 스크롤
 const scrollToTop = () => {
   scrollToElement(document.querySelector('.schedule-item') as HTMLElement, { behavior: 'smooth' })
+}
+
+// 월 선택기를 현재 월로 스크롤
+const scrollMonthSelectorToCurrentMonth = () => {
+  if (monthScrollRef.value && currentMonthButtonRef.value) {
+    const container = monthScrollRef.value
+    const button = currentMonthButtonRef.value as HTMLElement
+
+    // 버튼이 컨테이너의 중앙에 오도록 스크롤 위치 계산
+    const containerWidth = container.offsetWidth
+    const buttonLeft = button.offsetLeft
+    const buttonWidth = button.offsetWidth
+    const scrollLeft = buttonLeft - (containerWidth / 2) + (buttonWidth / 2)
+
+    container.scrollTo({
+      left: scrollLeft,
+      behavior: 'smooth'
+    })
+  }
 }
 
 // 날짜 포맷팅
@@ -1082,6 +1103,11 @@ onMounted(() => {
     setScrollContainer(scheduleBodyRef.value)
   }
 
+  // 월 선택기를 현재 월로 스크롤
+  nextTick(() => {
+    scrollMonthSelectorToCurrentMonth()
+  })
+
   initializeComponent().then(() => {
     // 컴포넌트 초기화가 완료된 후에 scrollToLastIncomplete 호출
     if (props.isModal && props.currentBook && props.currentChapter) {
@@ -1172,6 +1198,13 @@ watch(() => route.query.plan, async (newPlanId, oldPlanId) => {
     }
   }
 }, { immediate: true })
+
+// 선택된 월이 변경될 때 월 선택기 스크롤
+watch(selectedMonth, () => {
+  nextTick(() => {
+    scrollMonthSelectorToCurrentMonth()
+  })
+})
 </script>
 
 <style scoped src="./BibleScheduleContent.style.css"></style>
