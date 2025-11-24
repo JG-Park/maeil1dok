@@ -12,6 +12,8 @@ interface AuthState {
   token: string | null
   refreshToken: string | null
   refreshInterval: NodeJS.Timeout | null
+  storageListenerAttached: boolean
+  isRefreshing: boolean
 }
 
 // JWT 디코딩 유틸리티
@@ -65,7 +67,9 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     token: null,
     refreshToken: null,
-    refreshInterval: null
+    refreshInterval: null,
+    storageListenerAttached: false,
+    isRefreshing: false
   }),
 
   getters: {
@@ -89,22 +93,100 @@ export const useAuthStore = defineStore('auth', {
       // We only need to validate and refresh user data if we have a token
       if (this.token && this.refreshToken) {
         try {
-          // Fetch fresh user data from server to ensure it's up-to-date
+          // 1. 토큰 만료 시간 확인
+          const timeLeft = getTokenExpiryTime(this.token)
+
+          // 토큰이 이미 만료되었으면 refresh 시도
+          if (timeLeft !== null && timeLeft <= 0) {
+            console.log('Access token expired, attempting refresh...')
+            const refreshSuccess = await this.refreshAccessToken()
+            if (!refreshSuccess) {
+              console.log('Refresh failed, logging out')
+              this.logout()
+              return
+            }
+          }
+
+          // 2. 서버에서 사용자 정보를 가져와 토큰 유효성 확인
           await this.fetchUser()
 
-          // Start automatic token refresh timer
+          // 3. 자동 토큰 갱신 타이머 시작
           this.startTokenRefreshTimer()
         } catch (error) {
-          // If fetch fails but we have cached user data, keep it
-          // Otherwise logout (token might be invalid)
-          if (!this.user) {
-            this.logout()
-          } else {
-            // Still start refresh timer even if fetch failed but we have cached user
+          console.error('Auth initialization failed:', error)
+          // 토큰이 블랙리스트 처리되었거나 유효하지 않은 경우 로그아웃
+          this.logout()
+        }
+      }
+
+      // 4. 다중 탭 동기화 설정
+      this.setupStorageSync()
+
+      // 5. Visibility API 설정 (백그라운드 탭 처리)
+      this.setupVisibilityHandler()
+    },
+
+    // 다중 탭 간 인증 상태 동기화
+    setupStorageSync() {
+      if (!process.client || this.storageListenerAttached) return
+
+      const handleStorageChange = (event: StorageEvent) => {
+        // auth 관련 localStorage 변경만 처리
+        if (event.key === 'auth') {
+          try {
+            const newValue = event.newValue ? JSON.parse(event.newValue) : null
+
+            if (newValue) {
+              // 다른 탭에서 로그인 또는 토큰 갱신
+              if (newValue.token && newValue.token !== this.token) {
+                console.log('Token updated in another tab, syncing...')
+                this.token = newValue.token
+                this.refreshToken = newValue.refreshToken
+                this.user = newValue.user
+
+                // 타이머 재시작
+                this.startTokenRefreshTimer()
+              }
+            } else {
+              // 다른 탭에서 로그아웃
+              if (this.token) {
+                console.log('Logged out in another tab, syncing...')
+                this.logout()
+              }
+            }
+          } catch (error) {
+            console.error('Failed to sync storage:', error)
+          }
+        }
+      }
+
+      window.addEventListener('storage', handleStorageChange)
+      this.storageListenerAttached = true
+    },
+
+    // Visibility API로 백그라운드 탭 처리
+    setupVisibilityHandler() {
+      if (!process.client) return
+
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          // 탭이 백그라운드로 갈 때 타이머 중지 (브라우저 throttle 방지)
+          console.log('Tab hidden, pausing token refresh')
+        } else {
+          // 탭이 다시 활성화될 때
+          console.log('Tab visible, checking token status')
+
+          if (this.token && this.refreshToken) {
+            // 즉시 토큰 상태 체크
+            this.checkAndRefreshToken()
+
+            // 타이머 재시작
             this.startTokenRefreshTimer()
           }
         }
       }
+
+      document.addEventListener('visibilitychange', handleVisibilityChange)
     },
 
     async fetchUser() {
@@ -237,10 +319,10 @@ export const useAuthStore = defineStore('auth', {
 
       if (!process.client || !this.token) return
 
-      // 1분마다 토큰 만료 시간 체크
+      // 5분마다 토큰 만료 시간 체크 (서버 부하 감소 및 배터리 절약)
       this.refreshInterval = setInterval(() => {
         this.checkAndRefreshToken()
-      }, 60 * 1000) // 1분
+      }, 5 * 60 * 1000) // 5분
 
       // 초기 실행
       this.checkAndRefreshToken()
@@ -268,7 +350,15 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async refreshAccessToken() {
+      // 이미 갱신 중이면 중복 요청 방지
+      if (this.isRefreshing) {
+        console.log('Token refresh already in progress')
+        return false
+      }
+
       const api = useApi()
+      this.isRefreshing = true
+
       try {
         const response = await api.post('/api/v1/auth/token/refresh/', {
           refresh: this.refreshToken
@@ -282,11 +372,14 @@ export const useAuthStore = defineStore('auth', {
         // Update both tokens (or keep existing refresh token if not provided)
         const newRefreshToken = response.refresh || this.refreshToken
         this.setTokens(response.access, newRefreshToken)
+        console.log('Token refreshed successfully')
         return true
       } catch (error) {
         console.error('Token refresh failed:', error)
         this.logout()
         return false
+      } finally {
+        this.isRefreshing = false
       }
     }
   },

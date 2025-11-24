@@ -77,6 +77,7 @@ def social_login(request):
             user = User.objects.filter(username=social_id).first()
             if user:
                 refresh = RefreshToken.for_user(user)
+                logger.info(f"카카오 소셜 로그인 성공: user_id={user.id}, username={user.username}")
                 return Response({
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
@@ -229,6 +230,7 @@ def complete_kakao_signup(request):
             logger.warning("기본 플랜이 설정되어 있지 않아 구독을 생성할 수 없습니다.")
         
         refresh = RefreshToken.for_user(user)
+        logger.info(f"카카오 회원가입 및 토큰 발급 성공: user_id={user.id}, username={user.username}")
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),

@@ -3,6 +3,9 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, UserProfile, Follow, UserAchievement
 from todos.models import UserBibleProgress
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -54,7 +57,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token['nickname'] = user.nickname
         token['is_social'] = user.is_social
-        return token 
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        logger.info(f"일반 로그인 성공: user_id={self.user.id}, username={self.user.username}")
+        return data 
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

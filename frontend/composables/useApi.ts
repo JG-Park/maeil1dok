@@ -41,6 +41,40 @@ export const useApi = () => {
     return headers
   }
 
+  // 401 에러 시 토큰 갱신 후 재시도하는 공통 함수
+  const fetchWithRetry = async (
+    url: string,
+    options: RequestInit,
+    requiresAuth: boolean = true
+  ) => {
+    const authStore = useAuthStore()
+
+    if (requiresAuth && !authStore.isAuthenticated) {
+      throw new Error('Authentication required')
+    }
+
+    let response = await fetch(url, options)
+
+    // 401 에러 발생 시 토큰 갱신 후 재시도
+    if (response.status === 401) {
+      const refreshSuccess = await auth.refreshAccessToken()
+      if (refreshSuccess) {
+        // 갱신된 헤더로 재시도
+        options.headers = getHeaders()
+        response = await fetch(url, options)
+      } else {
+        auth.logout()
+        throw new Error('Authentication failed')
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`)
+    }
+
+    return response
+  }
+
   const get = async (url: string, config?: AxiosRequestConfig) => {
     try {
       let fullUrl = `${getBaseUrl()}${url}`
@@ -53,41 +87,24 @@ export const useApi = () => {
         })
         fullUrl += `?${searchParams.toString()}`
       }
-      
+
       // 인증이 필요한 URL 경로 정의
       // 비로그인 사용자도 영상 개론 목록과 개별 영상 정보를 조회할 수 있도록 예외 처리
       const isVideoIntroAPI = url.includes('/api/v1/todos/user/video/intro/') || // 목록 조회 API
                              url.includes('/api/v1/todos/video/intro/');         // 개별 영상 조회 API
-      
-      const requiresAuth = url.includes('/api/v1/todos/hasena/status/') || 
+
+      const requiresAuth = url.includes('/api/v1/todos/hasena/status/') ||
                            (url.includes('/api/v1/todos/user/') && !isVideoIntroAPI);
-      
+
       const authStore = useAuthStore();
       if (requiresAuth && !authStore.isAuthenticated) {
         return { data: { success: false, message: 'Authentication required' } };
       }
-      
-      let response = await fetch(fullUrl, {
+
+      const response = await fetchWithRetry(fullUrl, {
         headers: getHeaders(),
         credentials: 'include'
-      })
-
-      if (response.status === 401) {
-        const refreshSuccess = await auth.refreshAccessToken()
-        if (refreshSuccess) {
-          response = await fetch(fullUrl, {
-            headers: getHeaders(),
-            credentials: 'include'
-          })
-        } else {
-          auth.logout()
-          throw new Error('Authentication failed')
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`)
-      }
+      }, requiresAuth)
 
       const data = await response.json()
       return { data }
@@ -98,25 +115,21 @@ export const useApi = () => {
 
   const post = async (url: string, data?: any, config?: AxiosRequestConfig) => {
     const fullUrl = `${getBaseUrl()}${url}`
-    
+
     try {
       const isFormData = data instanceof FormData;
       const headers = getHeaders();
-      
+
       if (isFormData) {
         delete headers['Content-Type'];
       }
-      
-      const response = await fetch(fullUrl, {
+
+      const response = await fetchWithRetry(fullUrl, {
         method: 'POST',
         headers: headers,
         body: isFormData ? data : JSON.stringify(data),
         credentials: 'include'
       })
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`)
-      }
 
       return response.json()
     } catch (error) {
@@ -126,21 +139,15 @@ export const useApi = () => {
 
   const put = async (url: string, data: any) => {
     const fullUrl = `${getBaseUrl()}${url}`
-    
+
     try {
-      const headers = getHeaders();
-      
-      const response = await fetch(fullUrl, {
+      const response = await fetchWithRetry(fullUrl, {
         method: 'PUT',
-        headers: headers,
+        headers: getHeaders(),
         body: JSON.stringify(data),
         credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-      
+      })
+
       return await response.json();
     } catch (error) {
       throw error;
@@ -149,21 +156,15 @@ export const useApi = () => {
 
   const patch = async (url: string, data: any) => {
     const fullUrl = `${getBaseUrl()}${url}`
-    
+
     try {
-      const headers = getHeaders();
-      
-      const response = await fetch(fullUrl, {
+      const response = await fetchWithRetry(fullUrl, {
         method: 'PATCH',
-        headers: headers,
+        headers: getHeaders(),
         body: JSON.stringify(data),
         credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-      
+      })
+
       return await response.json();
     } catch (error) {
       throw error;
@@ -177,11 +178,11 @@ export const useApi = () => {
     patch,
     async delete(url: string) {
       try {
-        const response = await fetch(`${getBaseUrl()}${url}`, {
+        const response = await fetchWithRetry(`${getBaseUrl()}${url}`, {
           method: 'DELETE',
-          headers: getHeaders()
+          headers: getHeaders(),
+          credentials: 'include'
         })
-        if (!response.ok) throw new Error('API request failed')
         return response.json()
       } catch (error) {
         throw error
@@ -190,13 +191,13 @@ export const useApi = () => {
     async upload(url: string, formData: FormData) {
       try {
         const headers = auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {}
-        
-        const response = await fetch(`${getBaseUrl()}${url}`, {
+
+        const response = await fetchWithRetry(`${getBaseUrl()}${url}`, {
           method: 'POST',
           headers,
           body: formData,
+          credentials: 'include'
         })
-        if (!response.ok) throw new Error('API request failed')
         return response.json()
       } catch (error) {
         throw error
