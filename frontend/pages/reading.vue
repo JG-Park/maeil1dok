@@ -1353,6 +1353,23 @@ const handleBackNavigation = () => {
   }
 };
 
+// URL 복사 함수
+const copyCurrentUrl = async () => {
+  try {
+    const currentUrl = window.location.href;
+    await navigator.clipboard.writeText(currentUrl);
+
+    if (toast.value) {
+      toast.value.show("링크가 클립보드에 복사되었습니다", "success");
+    }
+  } catch (error) {
+    console.error("URL 복사 실패:", error);
+    if (toast.value) {
+      toast.value.show("링크 복사에 실패했습니다", "error");
+    }
+  }
+};
+
 // 오디오 링크 처리 함수 추가
 const handleAudioLink = (audioLink) => {
   // 유튜브 URL에서 비디오 ID 추출
@@ -2034,6 +2051,11 @@ onUnmounted(() => {
         </svg>
       </button>
       <h1>성경일독</h1>
+      <button class="share-button" @click="copyCurrentUrl" title="링크 공유">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13.544 10.456a4.368 4.368 0 0 0-6.176 0l-3.089 3.088a4.367 4.367 0 1 0 6.177 6.177L12 18.177m1.544-7.633a4.368 4.368 0 0 0 6.176 0l3.089-3.088a4.367 4.367 0 1 0-6.177-6.177L15 2.823" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
 
     <div class="today-reading fade-in" style="animation-delay: 0.1s" v-if="readingDetailResponse?.data">
@@ -2608,13 +2630,34 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+.share-button {
+  background: none;
+  border: none;
+  padding: 0.375rem;
+  margin: -0.375rem;
+  margin-left: auto;
+  color: var(--primary-color, #ff6b35);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0.25rem;
+}
+
+.share-button:hover {
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.share-button:active {
+  transform: scale(0.95);
+}
+
 .header h1 {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.back-button svg {
+.back-button svg,
+.share-button svg {
   width: 20px;
   height: 20px;
 }
