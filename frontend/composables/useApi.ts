@@ -124,12 +124,24 @@ export const useApi = () => {
         delete headers['Content-Type'];
       }
 
+      // 인증이 필요 없는 공개 엔드포인트 정의
+      const publicEndpoints = [
+        '/api/v1/auth/register/',
+        '/api/v1/auth/token/',
+        '/api/v1/auth/social-login/',
+        '/api/v1/auth/complete-kakao-signup/',
+        '/api/v1/auth/check-username/',
+        '/api/v1/auth/check-nickname/'
+      ];
+
+      const requiresAuth = !publicEndpoints.some(endpoint => url.includes(endpoint));
+
       const response = await fetchWithRetry(fullUrl, {
         method: 'POST',
         headers: headers,
         body: isFormData ? data : JSON.stringify(data),
         credentials: 'include'
-      })
+      }, requiresAuth)
 
       return response.json()
     } catch (error) {
