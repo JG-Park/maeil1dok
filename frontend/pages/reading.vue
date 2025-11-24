@@ -2052,9 +2052,7 @@ onUnmounted(() => {
       </button>
       <h1>성경일독</h1>
       <button class="share-button" @click="copyCurrentUrl" title="링크 공유">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.544 10.456a4.368 4.368 0 0 0-6.176 0l-3.089 3.088a4.367 4.367 0 1 0 6.177 6.177L12 18.177m1.544-7.633a4.368 4.368 0 0 0 6.176 0l3.089-3.088a4.367 4.367 0 1 0-6.177-6.177L15 2.823" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <i class="fa-solid fa-share-nodes"></i>
       </button>
     </div>
 
@@ -2636,18 +2634,21 @@ onUnmounted(() => {
   padding: 0.375rem;
   margin: -0.375rem;
   margin-left: auto;
-  color: var(--primary-color, #ff6b35);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 0.25rem;
+  opacity: 0.7;
 }
 
 .share-button:hover {
-  background: rgba(255, 107, 53, 0.1);
+  background: rgba(0, 0, 0, 0.05);
+  opacity: 1;
 }
 
 .share-button:active {
   transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
@@ -2656,10 +2657,13 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
-.back-button svg,
-.share-button svg {
+.back-button svg {
   width: 20px;
   height: 20px;
+}
+
+.share-button i {
+  font-size: 18px;
 }
 
 .today-reading {
