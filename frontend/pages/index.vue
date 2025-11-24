@@ -742,7 +742,6 @@ import { useSubscriptionStore } from "~/stores/subscription";
 import { useSelectedPlanStore } from "~/stores/selectedPlan";
 import Header from "~/components/Header.vue";
 import DailyStatus from "~/components/DailyStatus.vue";
-import WeeklyCalendar from "~/components/WeeklyCalendar.vue";
 
 const auth = useAuthStore();
 const api = useApi();
@@ -753,6 +752,7 @@ const isAuthenticated = computed(() => auth.isAuthenticated);
 const router = useRouter();
 const introTasks = ref([]);
 const loadingIntros = ref(false);
+const hasenaStatus = ref(null);
 
 const showSundayModal = ref(false);
 const showPlanDropdown = ref(false);
