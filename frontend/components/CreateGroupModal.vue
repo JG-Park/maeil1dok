@@ -35,13 +35,19 @@
         </div>
         
         <div class="form-group">
-          <label for="plan">성경 읽기 플랜</label>
-          <select id="plan" v-model="form.planId" required>
-            <option value="">플랜 선택</option>
-            <option v-for="plan in availablePlans" :key="plan.id" :value="plan.id">
-              {{ plan.name }}
-            </option>
-          </select>
+          <label>성경 읽기 플랜 (복수 선택 가능)</label>
+          <div class="plans-checkbox-list">
+            <label v-for="plan in availablePlans" :key="plan.id" class="plan-checkbox-label">
+              <input
+                type="checkbox"
+                :value="plan.id"
+                v-model="form.planIds"
+              >
+              <span>{{ plan.name }}</span>
+              <span v-if="plan.description" class="plan-description">{{ plan.description }}</span>
+            </label>
+          </div>
+          <p v-if="form.planIds.length === 0" class="help-text error">최소 1개 이상의 플랜을 선택해주세요.</p>
         </div>
         
         <div class="form-group">
@@ -92,7 +98,7 @@ const api = useApi()
 const form = reactive({
   name: '',
   description: '',
-  planId: '',
+  planIds: [] as number[],
   maxMembers: 20,
   isPublic: true
 })
@@ -104,29 +110,37 @@ const availablePlans = ref([])
 onMounted(async () => {
   try {
     const response = await api.get('/api/v1/todos/plans/')
-    availablePlans.value = response.data || response
+    // response.data.plans 또는 response.plans 확인
+    if (response.data?.success) {
+      availablePlans.value = response.data.plans || []
+    } else if (response.data?.plans) {
+      availablePlans.value = response.data.plans
+    } else {
+      availablePlans.value = response.data || response
+    }
   } catch (error) {
     console.error('Failed to load plans:', error)
+    alert('플랜 목록을 불러오는데 실패했습니다.')
   }
 })
 
 const createGroup = async () => {
-  if (!form.name || !form.planId || !form.maxMembers) {
-    alert('필수 항목을 모두 입력해주세요.')
+  if (!form.name || form.planIds.length === 0 || !form.maxMembers) {
+    alert('필수 항목을 모두 입력해주세요.\n최소 1개 이상의 플랜을 선택해야 합니다.')
     return
   }
-  
+
   isCreating.value = true
-  
+
   try {
     const result = await groupsStore.createGroup({
       name: form.name,
       description: form.description,
-      plan_id: form.planId,
+      plan_ids: form.planIds,
       max_members: form.maxMembers,
       is_public: form.isPublic
     })
-    
+
     if (result.success && result.data) {
       emit('created', result.data)
     } else {
@@ -243,6 +257,55 @@ const createGroup = async () => {
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin-top: 0.25rem;
+}
+
+.help-text.error {
+  color: #EF4444;
+}
+
+.plans-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.75rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.375rem;
+  background-color: #F9FAFB;
+}
+
+.plan-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.plan-checkbox-label:hover {
+  background-color: #F3F4F6;
+}
+
+.plan-checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.plan-checkbox-label span:first-of-type {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.plan-description {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+  margin-left: 1.25rem;
 }
 
 .modal-footer {

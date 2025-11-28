@@ -1,150 +1,82 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- 헤더 -->
-      <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h1 class="text-2xl font-bold text-gray-900">그룹</h1>
+  <div class="container">
+    <!-- 고정 영역 -->
+    <div class="fixed-area">
+      <PageHeader title="그룹">
+        <template #action>
           <button
             v-if="isAuthenticated"
             @click="showCreateModal = true"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            class="action-button"
           >
-            그룹 만들기
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
           </button>
-        </div>
-        
+        </template>
+      </PageHeader>
+    </div>
+
+    <!-- 스크롤 영역 -->
+    <div class="scroll-area">
+      <div class="content-wrapper">
         <!-- 검색 및 필터 -->
-        <div class="flex flex-col sm:flex-row gap-3">
+      <Card class="mb-6 fade-in">
+        <div class="flex flex-col sm:flex-row gap-3 mb-4">
           <div class="flex-1">
             <input
               v-model="searchQuery"
               type="text"
               placeholder="그룹 검색..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="input-field"
               @input="debouncedSearch"
             >
           </div>
-          
-          <div class="flex gap-2">
-            <button
-              v-for="filter in filters"
-              :key="filter.value"
-              @click="activeFilter = filter.value"
-              :class="[
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                activeFilter === filter.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              ]"
-            >
-              {{ filter.label }}
-            </button>
-          </div>
         </div>
-      </div>
-      
+
+        <FilterButtonGroup
+          v-model="activeFilter"
+          :options="filters"
+          label="필터"
+        />
+      </Card>
+
+      <!-- 로딩 상태 -->
+      <LoadingState v-if="isLoading" message="그룹을 불러오는 중..." />
+
       <!-- 그룹 목록 -->
-      <div v-if="isLoading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p class="mt-2 text-gray-600">그룹을 불러오는 중...</p>
-      </div>
-      
-      <div v-else-if="currentGroups.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div
+      <div v-else-if="currentGroups.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in delay-100">
+        <GroupCard
           v-for="group in currentGroups"
           :key="group.id"
-          class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-        >
-          <div class="p-6">
-            <div class="flex justify-between items-start mb-3">
-              <h3 class="text-lg font-semibold text-gray-900">
-                {{ group.name }}
-              </h3>
-              <span
-                :class="[
-                  'px-2 py-1 text-xs rounded-full',
-                  group.is_public
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                ]"
-              >
-                {{ group.is_public ? '공개' : '비공개' }}
-              </span>
-            </div>
-            
-            <p class="text-sm text-gray-600 mb-4 line-clamp-2">
-              {{ group.description || '설명이 없습니다.' }}
-            </p>
-            
-            <div class="space-y-2 text-sm text-gray-500 mb-4">
-              <div class="flex items-center">
-                <Icon name="mdi:book-open-variant" class="w-4 h-4 mr-2" />
-                {{ group.plan.name }}
-              </div>
-              <div class="flex items-center">
-                <Icon name="mdi:account-group" class="w-4 h-4 mr-2" />
-                {{ group.member_count }}/{{ group.max_members }}명
-              </div>
-              <div class="flex items-center">
-                <Icon name="mdi:account" class="w-4 h-4 mr-2" />
-                {{ group.creator.nickname }}
-              </div>
-            </div>
-            
-            <div class="flex gap-2">
-              <NuxtLink
-                :to="`/groups/${group.id}`"
-                class="flex-1 text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-              >
-                상세보기
-              </NuxtLink>
-              
-              <button
-                v-if="isAuthenticated && !group.is_member && !group.is_full"
-                @click="joinGroup(group.id)"
-                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                가입하기
-              </button>
-              
-              <button
-                v-else-if="group.is_member"
-                disabled
-                class="flex-1 px-4 py-2 bg-green-100 text-green-800 rounded-lg cursor-default"
-              >
-                가입됨
-              </button>
-              
-              <button
-                v-else-if="group.is_full"
-                disabled
-                class="flex-1 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed"
-              >
-                정원 초과
-              </button>
-            </div>
-          </div>
-        </div>
+          :group="group"
+          :is-authenticated="isAuthenticated"
+          @join="joinGroup"
+        />
       </div>
-      
-      <div v-else class="bg-white rounded-lg shadow-sm p-12 text-center">
-        <Icon name="mdi:account-group-outline" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
-        <p class="text-gray-500">
-          {{ searchQuery ? '검색 결과가 없습니다.' : '아직 그룹이 없습니다.' }}
-        </p>
-        <button
-          v-if="isAuthenticated && !searchQuery"
-          @click="showCreateModal = true"
-          class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          첫 그룹 만들기
-        </button>
+
+      <!-- 빈 상태 -->
+      <EmptyState
+        v-else
+        :title="searchQuery ? '검색 결과가 없습니다' : '아직 그룹이 없습니다'"
+        :description="searchQuery ? '다른 검색어로 시도해보세요.' : '다른 사용자들과 함께 성경을 읽어보세요!'"
+        :action-text="isAuthenticated && !searchQuery ? '첫 그룹 만들기' : ''"
+        @action="showCreateModal = true"
+      >
+        <template #icon>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </template>
+      </EmptyState>
       </div>
     </div>
-    
+
     <!-- 그룹 생성 모달 -->
-    <CreateGroupModal 
+    <CreateGroupModal
       v-if="showCreateModal"
       @close="showCreateModal = false"
       @created="onGroupCreated"
@@ -156,6 +88,12 @@
 import { useGroupsStore } from '~/stores/groups'
 import { useAuthStore } from '~/stores/auth'
 import { debounce } from 'lodash-es'
+import PageHeader from '~/components/common/PageHeader.vue'
+import Card from '~/components/common/Card.vue'
+import FilterButtonGroup from '~/components/common/FilterButtonGroup.vue'
+import EmptyState from '~/components/common/EmptyState.vue'
+import LoadingState from '~/components/LoadingState.vue'
+import GroupCard from '~/components/groups/GroupCard.vue'
 
 const groupsStore = useGroupsStore()
 const authStore = useAuthStore()
@@ -190,13 +128,13 @@ onMounted(() => {
 // 그룹 로드
 const loadGroups = () => {
   const filters: any = { search: searchQuery.value }
-  
+
   if (activeFilter.value === 'public') {
     filters.only_public = true
   } else if (activeFilter.value === 'mine') {
     filters.only_mine = true
   }
-  
+
   groupsStore.fetchGroups(filters)
 }
 
@@ -232,3 +170,65 @@ onUnmounted(() => {
   groupsStore.clearGroupData()
 })
 </script>
+
+<style scoped>
+.container {
+  max-width: 768px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh; /* 동적 뷰포트 높이 */
+  display: flex;
+  flex-direction: column;
+  background: var(--background-color);
+  position: relative;
+  width: 100%;
+}
+
+.fixed-area {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+}
+
+.scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS 안전영역 대응 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .scroll-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+.content-wrapper {
+  padding: 1rem;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  margin: -0.5rem;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-button:hover {
+  background: var(--primary-light);
+}
+
+.action-button:active {
+  transform: scale(0.95);
+}
+</style>
