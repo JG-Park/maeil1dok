@@ -92,7 +92,9 @@ const handleSubmit = async () => {
 }
 
 const handleKakaoLogin = () => {
-  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${config.public.KAKAO_REDIRECT_URI}&response_type=code`
+  // URL encode redirect_uri to comply with OAuth 2.0 spec and fix mobile browser issues
+  const redirectUri = encodeURIComponent(config.public.KAKAO_REDIRECT_URI)
+  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
   window.location.href = kakaoAuthUrl
 }
 </script>
@@ -311,6 +313,66 @@ const handleKakaoLogin = () => {
 
   .login-box {
     gap: 1.5rem;
+  }
+}
+
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .login-container {
+    padding: 3rem 2rem;
+  }
+
+  .login-box {
+    max-width: 480px;
+    gap: 2rem;
+    padding: 2.5rem;
+  }
+
+  .logo {
+    width: 200px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .social-buttons {
+    gap: 1rem;
+  }
+
+  .social-button {
+    font-size: 1rem;
+    padding: 0.875rem;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .login-container {
+    padding: 4rem 3rem;
+  }
+
+  .login-box {
+    max-width: 560px;
+    gap: 2.5rem;
+    padding: 3rem;
+  }
+
+  .logo {
+    width: 240px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  .social-buttons {
+    gap: 1.25rem;
+  }
+
+  .social-button {
+    font-size: 1.125rem;
+    padding: 1rem;
   }
 }
 </style>

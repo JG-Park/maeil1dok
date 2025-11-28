@@ -13,20 +13,25 @@ const auth = useAuthStore()
 onMounted(async () => {
   const { provider } = route.params
   const { code } = route.query
-  
+
+  console.log('[Kakao Callback] Provider:', provider, 'Code:', code ? 'received' : 'MISSING')
+
   if (provider === 'kakao' && code) {
     await handleKakaoCallback(code as string)
   } else {
+    console.error('[Kakao Callback] Failed - provider or code missing')
     navigateTo('/login')
   }
 })
 
 const handleKakaoCallback = async (code: string) => {
   try {
+    console.log('[Kakao Callback] Calling socialLogin API...')
     const response = await auth.socialLogin('kakao', code)
-    
+
     if (response.needsSignup) {
       // 회원가입이 필요한 경우 닉네임 설정 페이지로
+      console.log('[Kakao Callback] New user - redirecting to signup')
       navigateTo({
         path: '/auth/kakao/setup',
         query: {
@@ -38,6 +43,7 @@ const handleKakaoCallback = async (code: string) => {
     } else {
       // 기존 회원은 토큰 저장 후 홈으로
       if (response.access) {
+        console.log('[Kakao Callback] Existing user - logging in')
         auth.setTokens(response.access, response.refresh)
         auth.setUser(response.user)
         // Timer is automatically started by setTokens()
@@ -45,6 +51,7 @@ const handleKakaoCallback = async (code: string) => {
       navigateTo('/')
     }
   } catch (error) {
+    console.error('[Kakao Callback] Error during login:', error)
     navigateTo('/login')
   }
 }
