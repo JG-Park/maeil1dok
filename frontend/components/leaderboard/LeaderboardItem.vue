@@ -1,0 +1,275 @@
+<template>
+  <tr :class="{ 'highlight-row': isHighlighted }">
+    <td class="rank-cell">
+      <span :class="rankClass">
+        {{ rank }}
+      </span>
+    </td>
+    <td class="user-cell">
+      <div class="user-info">
+        <img
+          :src="user.profile_image || '/default-profile.png'"
+          :alt="user.nickname"
+          class="user-avatar"
+          @error="handleImageError"
+        >
+        <div>
+          <NuxtLink
+            :to="`/profile/${user.id}`"
+            class="user-name"
+          >
+            {{ user.nickname }}
+          </NuxtLink>
+          <span v-if="user.is_me" class="me-badge">나</span>
+          <p v-if="user.role" class="user-role">{{ user.role }}</p>
+        </div>
+      </div>
+    </td>
+    <td class="text-center">
+      <span class="days-count">{{ completedDays }}</span>
+    </td>
+    <td class="text-center">
+      <div class="progress-wrapper">
+        <div class="progress-bar">
+          <div
+            class="progress-fill"
+            :style="`width: ${Math.min(progressRate, 100)}%`"
+          ></div>
+        </div>
+        <span class="progress-text">{{ progressRate }}%</span>
+      </div>
+    </td>
+    <td class="text-center">
+      <span class="streak current">{{ currentStreak }}일</span>
+    </td>
+    <td class="text-center">
+      <span class="streak longest">{{ longestStreak }}일</span>
+    </td>
+  </tr>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  rank: {
+    type: Number,
+    required: true
+  },
+  user: {
+    type: Object,
+    required: true,
+    validator: (value) => value.id && value.nickname
+  },
+  completedDays: {
+    type: Number,
+    default: 0
+  },
+  progressRate: {
+    type: Number,
+    default: 0
+  },
+  currentStreak: {
+    type: Number,
+    default: 0
+  },
+  longestStreak: {
+    type: Number,
+    default: 0
+  },
+  isHighlighted: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const rankClass = computed(() => {
+  const classes = ['rank-number']
+  if (props.rank === 1) classes.push('gold')
+  else if (props.rank === 2) classes.push('silver')
+  else if (props.rank === 3) classes.push('bronze')
+  return classes
+})
+
+const handleImageError = (event) => {
+  event.target.src = '/default-profile.png'
+}
+</script>
+
+<style scoped>
+tr {
+  transition: background-color var(--transition-fast);
+}
+
+tr:hover {
+  background: var(--gray-50);
+}
+
+.highlight-row {
+  background: var(--primary-light) !important;
+}
+
+.rank-cell {
+  padding: 1rem;
+  font-weight: 600;
+}
+
+.rank-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.rank-number.gold {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #8B4513;
+  font-weight: 700;
+}
+
+.rank-number.silver {
+  background: linear-gradient(135deg, #E8E8E8 0%, #C0C0C0 100%);
+  color: #4A5568;
+  font-weight: 700;
+}
+
+.rank-number.bronze {
+  background: linear-gradient(135deg, #CD7F32 0%, #B87333 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.user-cell {
+  padding: 1rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gray-200);
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.user-name:hover {
+  color: var(--primary-color);
+}
+
+.me-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  background: var(--primary-color);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.25rem;
+}
+
+.user-role {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.text-center {
+  text-align: center;
+  padding: 1rem;
+}
+
+.days-count {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.progress-bar {
+  width: 80px;
+  height: 6px;
+  background: var(--gray-200);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  transition: width var(--transition-normal);
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 42px;
+}
+
+.streak {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.streak.current {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.streak.longest {
+  background: var(--gray-100);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .rank-cell,
+  .user-cell,
+  .text-center {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .rank-number {
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.8125rem;
+  }
+
+  .progress-bar {
+    width: 60px;
+  }
+
+  .progress-text {
+    font-size: 0.8125rem;
+  }
+}
+</style>
