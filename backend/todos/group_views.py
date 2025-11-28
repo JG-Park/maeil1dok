@@ -27,7 +27,7 @@ class ReadingGroupSerializer:
                 'nickname': group.creator.nickname,
                 'profile_image': group.creator.profile_image
             },
-            'plan': BibleReadingPlanSerializer(group.plan).data,
+            'plans': BibleReadingPlanSerializer(group.plans.all(), many=True).data,
             'is_public': group.is_public,
             'max_members': group.max_members,
             'member_count': group.member_count,
@@ -35,7 +35,7 @@ class ReadingGroupSerializer:
             'created_at': group.created_at,
             'updated_at': group.updated_at
         }
-        
+
         # 로그인한 사용자의 멤버십 상태
         if request and request.user.is_authenticated:
             membership = GroupMembership.objects.filter(
@@ -48,7 +48,7 @@ class ReadingGroupSerializer:
         else:
             data['is_member'] = False
             data['my_role'] = None
-        
+
         return data
 
 
@@ -59,30 +59,43 @@ def create_group(request):
     try:
         name = request.data.get('name')
         description = request.data.get('description', '')
-        plan_id = request.data.get('plan_id')
+        plan_ids = request.data.get('plan_ids', [])
         is_public = request.data.get('is_public', False)
         max_members = request.data.get('max_members', 50)
-        
+
         # 필수 필드 검증
-        if not name or not plan_id:
+        if not name:
             return Response({
                 'success': False,
-                'error': '그룹 이름과 플랜 ID는 필수입니다.'
+                'error': '그룹 이름은 필수입니다.'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        if not plan_ids or not isinstance(plan_ids, list) or len(plan_ids) == 0:
+            return Response({
+                'success': False,
+                'error': '최소 1개 이상의 플랜을 선택해야 합니다.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # 플랜 확인
-        plan = get_object_or_404(BibleReadingPlan, id=plan_id)
-        
+        plans = BibleReadingPlan.objects.filter(id__in=plan_ids, is_active=True)
+        if plans.count() != len(plan_ids):
+            return Response({
+                'success': False,
+                'error': '유효하지 않은 플랜 ID가 포함되어 있습니다.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # 그룹 생성
         group = ReadingGroup.objects.create(
             name=name,
             description=description,
             creator=request.user,
-            plan=plan,
             is_public=is_public,
             max_members=max_members
         )
-        
+
+        # ManyToMany 관계 설정
+        group.plans.set(plans)
+
         # 생성자를 관리자로 추가
         GroupMembership.objects.create(
             group=group,
@@ -90,7 +103,7 @@ def create_group(request):
             role='admin',
             is_active=True
         )
-        
+
         return Response({
             'success': True,
             'group': ReadingGroupSerializer.to_dict(group, request)
@@ -137,9 +150,9 @@ def get_groups(request):
                 memberships__user=request.user,
                 memberships__is_active=True
             ).distinct()
-        
-        # 정렬
-        groups = groups.order_by('-created_at')[:50]
+
+        # 정렬 (distinct 이후에 정렬)
+        groups = groups.distinct().order_by('-created_at')[:50]
         
         # 시리얼라이즈
         groups_data = [ReadingGroupSerializer.to_dict(group, request) for group in groups]

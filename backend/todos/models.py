@@ -243,31 +243,33 @@ class ReadingGroup(models.Model):
         on_delete=models.CASCADE,
         related_name='created_groups'
     )
-    plan = models.ForeignKey(
+    plans = models.ManyToManyField(
         BibleReadingPlan,
-        on_delete=models.CASCADE,
-        related_name='groups',
-        help_text="그룹이 따르는 읽기 플랜"
+        related_name='reading_groups',
+        help_text="그룹이 따르는 읽기 플랜들 (복수 선택 가능)"
     )
     is_public = models.BooleanField(default=False, help_text="공개 그룹 여부")
     max_members = models.IntegerField(default=50, help_text="최대 멤버 수")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['plan', 'is_public']),
+            models.Index(fields=['is_public']),
             models.Index(fields=['creator', '-created_at']),
         ]
-    
+
     def __str__(self):
-        return f"{self.name} ({self.plan.name})"
-    
+        plan_names = ", ".join([plan.name for plan in self.plans.all()[:2]])
+        if self.plans.count() > 2:
+            plan_names += f" 외 {self.plans.count() - 2}개"
+        return f"{self.name} ({plan_names})" if plan_names else self.name
+
     @property
     def member_count(self):
         return self.memberships.filter(is_active=True).count()
-    
+
     @property
     def is_full(self):
         return self.member_count >= self.max_members

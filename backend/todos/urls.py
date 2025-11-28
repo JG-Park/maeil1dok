@@ -17,9 +17,10 @@ urlpatterns = [
     path('reading/', views.update_bible_progress, name='update_bible_progress'),
     path('reading/update/', views.update_bible_progress, name='update_bible_progress'),
     path('reading/history/', views.get_reading_history, name='progress-history'),
-    
+
+    path('plans/', views.get_available_plans, name='available-plans'),
     path('plans/user/', views.get_user_plans, name='user-plans'),
-    
+
     path('plan/', views.plan_subscription_list, name='plan-subscription-list'),
     path('plan/<int:pk>/', views.plan_subscription_detail, name='plan-subscription-detail'),
     path('plan/<int:pk>/toggle-active/', views.plan_subscription_toggle_active, name='plan-subscription-toggle-active'),
