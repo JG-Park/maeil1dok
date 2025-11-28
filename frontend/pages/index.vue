@@ -1311,15 +1311,17 @@ const refreshHasenaStatus = async () => {
   --primary-color: #617475;
   --primary-light: #e9ecec;
   --primary-dark: #4a5a5b;
-  --text-primary: #2c3e50;
+  --text-primary: #1a1a1a;
   --text-secondary: #666666;
-  --background-light: #fafafa;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --background-color: #efece8;
+  --background-light: #ffffff;
+  --background-color: #F5F7FA; /* Cleaner off-white */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.5);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 24px;
 }
 
 .header-wrapper {
@@ -1328,8 +1330,10 @@ const refreshHasenaStatus = async () => {
   left: 0;
   right: 0;
   z-index: 50;
-  /* z-index 감소 */
-  background: var(--background-color);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .content-wrapper {
@@ -1349,17 +1353,17 @@ const refreshHasenaStatus = async () => {
 
 .section {
   background: white;
-  margin: 0.875rem 1rem;
-  padding: 1rem;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(0, 0, 0, 0.015);
-  transition: all 0.3s ease;
+  margin: 1rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .section:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(0, 0, 0, 0.02);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 h2 {
@@ -1371,16 +1375,17 @@ h2 {
 
 .task {
   cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 0.875rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 1rem;
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fafafa;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1603,8 +1608,8 @@ h2 {
 
 .progress-bar {
   flex: 1;
-  height: 6px;
-  background: #eeeeee;
+  height: 8px;
+  background: #f1f3f5;
   border-radius: 999px;
   overflow: hidden;
 }
@@ -1613,7 +1618,7 @@ h2 {
   height: 100%;
   background: #366dae;
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .progress-green {
@@ -1742,19 +1747,19 @@ h2 {
 }
 
 .split-task {
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .reading-task {
-  background: #f5f9ff;
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
-  border-radius: 12px 12px 0 0;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
 }
 
 .reading-task:hover {
-  background: #edf4ff !important;
-  border-color: #366dae !important;
+  background: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .reading-task:hover .check-icon {
@@ -1762,16 +1767,15 @@ h2 {
 }
 
 .plan-task {
-  background: var(--primary-light);
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  background: #ffffff;
   margin-bottom: 1rem;
-  border-radius: 0 0 12px 12px;
+  border-radius: var(--radius-md);
 }
 
 .plan-task:hover {
-  background: #e5efeb !important;
-  border-color: var(--primary-color) !important;
+  background: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .plan-task .check-icon {
@@ -1871,16 +1875,17 @@ h2 {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  background: #fafafa;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
-  transition: all 0.2s ease;
+  padding: 1.25rem;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stat-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
@@ -2029,21 +2034,22 @@ h2 {
 .social-card {
   display: flex;
   align-items: center;
-  padding: 1rem;
-  background: #fafafa;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
   text-decoration: none;
   color: var(--text-primary);
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
 .social-card:hover {
   background: white;
-  border-color: var(--primary-color);
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(97, 163, 117, 0.1);
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .social-icon {
@@ -2060,16 +2066,19 @@ h2 {
 .scoreboard-icon {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .groups-icon {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
 }
 
 .profile-icon {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
 }
 
 .social-content {

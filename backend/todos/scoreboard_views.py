@@ -24,7 +24,7 @@ def get_scoreboard(request):
         limit = int(request.query_params.get('limit', 100))
         
         # 기본 쿼리셋 - select_related로 성능 최적화
-        users_query = User.objects.filter(is_active=True).select_related('userprofile')
+        users_query = User.objects.filter(is_active=True).select_related('profile')
         
         # 플랜 필터링
         if plan_id:
@@ -47,7 +47,7 @@ def get_scoreboard(request):
         for user in users_query:
             # 사용자 프로필 가져오기 (select_related로 이미 로드됨)
             try:
-                profile = user.userprofile
+                profile = user.profile
             except UserProfile.DoesNotExist:
                 profile = UserProfile.objects.create(user=user)
             
@@ -139,7 +139,7 @@ def get_friends_scoreboard(request):
         friends = User.objects.filter(
             followers__follower=request.user,
             following__following=request.user
-        ).distinct().select_related('userprofile')
+        ).distinct().select_related('profile')
         
         # 본인 포함
         users = list(friends) + [request.user]
@@ -148,7 +148,7 @@ def get_friends_scoreboard(request):
         for user in users:
             # 프로필 가져오기 (select_related로 최적화)
             try:
-                profile = user.userprofile if hasattr(user, 'userprofile') else UserProfile.objects.get(user=user)
+                profile = user.profile if hasattr(user, 'profile') else UserProfile.objects.get(user=user)
             except UserProfile.DoesNotExist:
                 profile = UserProfile.objects.create(user=user)
             
@@ -279,7 +279,7 @@ def get_group_scoreboard(request, group_id):
         members = User.objects.filter(
             group_memberships__group=group,
             group_memberships__is_active=True
-        ).distinct().select_related('userprofile').prefetch_related('group_memberships')
+        ).distinct().select_related('profile').prefetch_related('group_memberships')
         
         leaderboard = []
         for user in members:

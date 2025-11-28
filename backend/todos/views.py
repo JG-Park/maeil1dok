@@ -987,6 +987,21 @@ def get_user_plans(request):
         return Response({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
+def get_available_plans(request):
+    """모든 활성화된 읽기 플랜 목록 반환 (그룹 생성 등에 사용)"""
+    try:
+        plans = BibleReadingPlan.objects.filter(is_active=True).order_by('-is_default', 'name')
+        serializer = BibleReadingPlanSerializer(plans, many=True)
+        return Response({
+            'success': True,
+            'plans': serializer.data
+        })
+    except Exception as e:
+        logger.error(f"Error in get_available_plans: {str(e)}", exc_info=True)
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_next_reading_position(request):
     """
