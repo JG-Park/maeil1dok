@@ -80,7 +80,11 @@ export const useAuthStore = defineStore('auth', {
     setTokens(access: string, refresh: string) {
       this.token = access
       this.refreshToken = refresh
-      // Pinia persistence plugin will automatically save to localStorage
+
+      // Manually save to localStorage since pinia-plugin-persistedstate doesn't work properly
+      if (process.client && typeof window !== 'undefined') {
+        this.saveToLocalStorage()
+      }
 
       // Automatically start token refresh timer when tokens are set
       if (process.client) {
@@ -90,14 +94,47 @@ export const useAuthStore = defineStore('auth', {
 
     setUser(user: User) {
       this.user = user
-      // Pinia persistence plugin will automatically save to localStorage
+      // Manually save to localStorage
+      if (process.client && typeof window !== 'undefined') {
+        this.saveToLocalStorage()
+      }
+    },
+
+    saveToLocalStorage() {
+      try {
+        const authData = {
+          token: this.token,
+          refreshToken: this.refreshToken,
+          user: this.user
+        }
+        localStorage.setItem('auth', JSON.stringify(authData))
+      } catch (error) {
+        console.error('Failed to save auth to localStorage:', error)
+      }
+    },
+
+    loadFromLocalStorage() {
+      try {
+        const authData = localStorage.getItem('auth')
+        if (authData) {
+          const parsed = JSON.parse(authData)
+          this.token = parsed.token
+          this.refreshToken = parsed.refreshToken
+          this.user = parsed.user
+        }
+      } catch (error) {
+        console.error('Failed to load auth from localStorage:', error)
+      }
     },
 
     async initializeAuth() {
-      // Pinia persistence plugin automatically restores state from localStorage
+      // Load auth data from localStorage
+      if (process.client && typeof window !== 'undefined') {
+        this.loadFromLocalStorage()
+      }
+
       // We only need to validate and refresh user data if we have a token
       if (!this.token || !this.refreshToken) {
-        console.log('No tokens found, skipping auth initialization')
         return
       }
 
@@ -107,16 +144,13 @@ export const useAuthStore = defineStore('auth', {
 
         // 토큰이 이미 만료되었으면 refresh 시도
         if (timeLeft !== null && timeLeft <= 0) {
-          console.log('Access token expired, attempting refresh...')
           const refreshSuccess = await this.refreshAccessToken()
           if (!refreshSuccess) {
             // Refresh failed - try one more time after a short delay
-            console.log('First refresh attempt failed, retrying in 2s...')
             await new Promise(resolve => setTimeout(resolve, 2000))
 
             const retrySuccess = await this.refreshAccessToken()
             if (!retrySuccess) {
-              console.log('Refresh retry failed, logging out')
               this.logout()
               return
             }
@@ -130,22 +164,17 @@ export const useAuthStore = defineStore('auth', {
           // Only logout if it's a permanent auth error (401/403)
           // Network errors, 500s, etc should NOT logout
           if (error?.response?.status === 401 || error?.response?.status === 403) {
-            console.log('Token is invalid (401/403), logging out')
             this.logout()
             return
           }
-          // Otherwise, just log and continue - we have cached user data
-          console.warn('Failed to fetch fresh user data, using cached data:', error.message || error)
+          // Otherwise, continue - we have cached user data
         }
 
         // 3. Timer is automatically started by setTokens(), but ensure it's running
         if (!this.refreshInterval) {
           this.startTokenRefreshTimer()
         }
-
-        console.log('Auth initialization completed successfully')
       } catch (error) {
-        console.error('Unexpected error during auth initialization:', error)
         // Don't logout on unexpected errors - keep existing session
       }
     },
@@ -340,7 +369,15 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.token = null
       this.refreshToken = null
-      // Pinia persistence plugin will automatically clear from localStorage
+
+      // Clear from localStorage
+      if (process.client && typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('auth')
+        } catch (error) {
+          console.error('Failed to clear auth from localStorage:', error)
+        }
+      }
     },
 
     // 토큰 자동 갱신 타이머 시작
@@ -413,13 +450,10 @@ export const useAuthStore = defineStore('auth', {
         this.isRefreshing = false
       }
     }
-  },
-
-  persist: {
-    key: 'auth',
-    paths: ['token', 'refreshToken', 'user'],
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   }
+
+  // Note: We're manually handling localStorage persistence
+  // instead of using pinia-plugin-persistedstate which doesn't work properly with Nuxt 3
 }) 
 
 // 전역 타입 선언 추가
