@@ -93,7 +93,8 @@ export const useApi = () => {
       const isVideoIntroAPI = url.includes('/api/v1/todos/user/video/intro/') || // 목록 조회 API
                              url.includes('/api/v1/todos/video/intro/');         // 개별 영상 조회 API
 
-      const requiresAuth = url.includes('/api/v1/todos/hasena/status/') ||
+      const requiresAuth = url.includes('/api/v1/auth/user/') ||  // User info endpoint needs auto-retry on 401
+                           url.includes('/api/v1/todos/hasena/status/') ||
                            (url.includes('/api/v1/todos/user/') && !isVideoIntroAPI);
 
       const authStore = useAuthStore();

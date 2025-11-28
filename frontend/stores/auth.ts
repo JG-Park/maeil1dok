@@ -81,6 +81,11 @@ export const useAuthStore = defineStore('auth', {
       this.token = access
       this.refreshToken = refresh
       // Pinia persistence plugin will automatically save to localStorage
+
+      // Automatically start token refresh timer when tokens are set
+      if (process.client) {
+        this.startTokenRefreshTimer()
+      }
     },
 
     setUser(user: User) {
@@ -91,38 +96,68 @@ export const useAuthStore = defineStore('auth', {
     async initializeAuth() {
       // Pinia persistence plugin automatically restores state from localStorage
       // We only need to validate and refresh user data if we have a token
-      if (this.token && this.refreshToken) {
-        try {
-          // 1. 토큰 만료 시간 확인
-          const timeLeft = getTokenExpiryTime(this.token)
+      if (!this.token || !this.refreshToken) {
+        console.log('No tokens found, skipping auth initialization')
+        return
+      }
 
-          // 토큰이 이미 만료되었으면 refresh 시도
-          if (timeLeft !== null && timeLeft <= 0) {
-            console.log('Access token expired, attempting refresh...')
-            const refreshSuccess = await this.refreshAccessToken()
-            if (!refreshSuccess) {
-              console.log('Refresh failed, logging out')
+      try {
+        // 1. 토큰 만료 시간 확인
+        const timeLeft = getTokenExpiryTime(this.token)
+
+        // 토큰이 이미 만료되었으면 refresh 시도
+        if (timeLeft !== null && timeLeft <= 0) {
+          console.log('Access token expired, attempting refresh...')
+          const refreshSuccess = await this.refreshAccessToken()
+          if (!refreshSuccess) {
+            // Refresh failed - try one more time after a short delay
+            console.log('First refresh attempt failed, retrying in 2s...')
+            await new Promise(resolve => setTimeout(resolve, 2000))
+
+            const retrySuccess = await this.refreshAccessToken()
+            if (!retrySuccess) {
+              console.log('Refresh retry failed, logging out')
               this.logout()
               return
             }
           }
-
-          // 2. 서버에서 사용자 정보를 가져와 토큰 유효성 확인
-          await this.fetchUser()
-
-          // 3. 자동 토큰 갱신 타이머 시작
-          this.startTokenRefreshTimer()
-        } catch (error) {
-          console.error('Auth initialization failed:', error)
-          // 토큰이 블랙리스트 처리되었거나 유효하지 않은 경우 로그아웃
-          this.logout()
         }
-      }
 
-      // 4. 다중 탭 동기화 설정
+        // 2. 서버에서 사용자 정보를 가져와 토큰 유효성 확인
+        try {
+          await this.fetchUser()
+        } catch (error: any) {
+          // Only logout if it's a permanent auth error (401/403)
+          // Network errors, 500s, etc should NOT logout
+          if (error?.response?.status === 401 || error?.response?.status === 403) {
+            console.log('Token is invalid (401/403), logging out')
+            this.logout()
+            return
+          }
+          // Otherwise, just log and continue - we have cached user data
+          console.warn('Failed to fetch fresh user data, using cached data:', error.message || error)
+        }
+
+        // 3. Timer is automatically started by setTokens(), but ensure it's running
+        if (!this.refreshInterval) {
+          this.startTokenRefreshTimer()
+        }
+
+        console.log('Auth initialization completed successfully')
+      } catch (error) {
+        console.error('Unexpected error during auth initialization:', error)
+        // Don't logout on unexpected errors - keep existing session
+      }
+    },
+
+    // Initialize listeners (should be called once from plugin)
+    initializeListeners() {
+      if (!process.client) return
+
+      // 다중 탭 동기화 설정
       this.setupStorageSync()
 
-      // 5. Visibility API 설정 (백그라운드 탭 처리)
+      // Visibility API 설정 (백그라운드 탭 처리)
       this.setupVisibilityHandler()
     },
 
@@ -216,8 +251,7 @@ export const useAuthStore = defineStore('auth', {
         this.setTokens(response.access, response.refresh)
         await this.fetchUser()
 
-        // Start automatic token refresh timer
-        this.startTokenRefreshTimer()
+        // Timer is automatically started by setTokens()
 
         return true
       } catch (error) {
@@ -257,8 +291,7 @@ export const useAuthStore = defineStore('auth', {
           this.setTokens(data.access, data.refresh)
           this.setUser(data.user)
 
-          // Start automatic token refresh timer
-          this.startTokenRefreshTimer()
+          // Timer is automatically started by setTokens()
 
           return true
         } else if (data.needsSignup) {
@@ -282,8 +315,7 @@ export const useAuthStore = defineStore('auth', {
           this.setTokens(response.access, response.refresh)
           this.setUser(response.user)
 
-          // Start automatic token refresh timer
-          this.startTokenRefreshTimer()
+          // Timer is automatically started by setTokens()
         }
         return response
       } catch (error) {
@@ -296,8 +328,7 @@ export const useAuthStore = defineStore('auth', {
         this.setTokens(response.access, response.refresh)
         this.setUser(response.user)
 
-        // Start automatic token refresh timer
-        this.startTokenRefreshTimer()
+        // Timer is automatically started by setTokens()
 
         return true
       }

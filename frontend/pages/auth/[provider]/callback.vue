@@ -40,7 +40,7 @@ const handleKakaoCallback = async (code: string) => {
       if (response.access) {
         auth.setTokens(response.access, response.refresh)
         auth.setUser(response.user)
-        auth.startTokenRefreshTimer()
+        // Timer is automatically started by setTokens()
       }
       navigateTo('/')
     }
