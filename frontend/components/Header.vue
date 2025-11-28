@@ -280,22 +280,18 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 240px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  width: 220px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #E5E7EB;
   z-index: 100;
   overflow: hidden;
-  padding: 0.5rem;
 }
 
 .dropdown-header {
   padding: 12px 16px;
-  background: transparent;
-  margin-bottom: 0.5rem;
+  background: #F9FAFB;
 }
 
 .dropdown-nickname {
@@ -323,19 +319,17 @@ onUnmounted(() => {
   padding: 10px 16px;
   color: var(--text-primary);
   text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
   font-size: 0.875rem;
   background: none;
   border: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
-  border-radius: 8px;
 }
 
 .dropdown-item:hover {
-  background: var(--primary-light);
-  color: var(--primary-dark);
+  background: #F3F4F6;
 }
 
 .dropdown-item.text-red {

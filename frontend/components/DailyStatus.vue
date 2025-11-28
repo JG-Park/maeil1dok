@@ -100,29 +100,29 @@ const updateProgress = computed(() => {
 
 <style scoped>
 .daily-status {
-  /* Inherits .section styles */
+  background: white;
+  margin: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
 }
 
 .date {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  font-weight: 500;
-  letter-spacing: -0.01em;
 }
 
 .message {
   margin-top: 0.5rem;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: var(--text-primary);
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.4;
-  letter-spacing: -0.02em;
 }
 
 .progress-text {
   margin-top: 1rem;
   font-size: 0.9rem;
   color: var(--text-secondary);
-  display: none;
+  display: none; /* 상단의 진도율 텍스트 숨김 */
 }
 </style> 
