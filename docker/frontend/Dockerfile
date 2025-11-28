@@ -7,7 +7,9 @@ ENV NODE_ENV=development
 
 # Install dependencies
 COPY package*.json ./
-RUN npm install
+
+# npm ci를 사용하여 더 안정적인 의존성 설치
+RUN npm ci
 
 # Copy project files
 COPY . .
