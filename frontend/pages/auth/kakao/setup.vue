@@ -151,6 +151,7 @@ const handleSubmit = async () => {
     if (response.access) {
       auth.setTokens(response.access, response.refresh)
       auth.setUser(response.user)
+      auth.startTokenRefreshTimer()
       navigateTo('/')
     }
   } catch (error) {
