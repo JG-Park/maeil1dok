@@ -39,6 +39,19 @@ interface GroupMember {
   joined_at: string
 }
 
+interface DailySchedule {
+  id: number
+  plan: number
+  plan_name: string
+  date: string
+  book: string
+  start_chapter: number
+  end_chapter: number
+  audio_link?: string
+  guide_link?: string
+  is_completed?: boolean
+}
+
 interface GroupInvitation {
   id: number
   group: ReadingGroup
@@ -57,6 +70,7 @@ export const useGroupsStore = defineStore('groups', {
     myGroups: [] as ReadingGroup[],
     currentGroup: null as ReadingGroup | null,
     currentGroupMembers: [] as GroupMember[],
+    currentPlanSchedules: [] as DailySchedule[],
     invitations: [] as GroupInvitation[],
     isLoading: false,
     error: null as string | null
@@ -250,11 +264,34 @@ export const useGroupsStore = defineStore('groups', {
       }
     },
 
+    async fetchGroupPlanSchedule(planId: number, month: number, year?: number) {
+      try {
+        const currentYear = year || new Date().getFullYear()
+        const { data } = await useApi().get('/api/v1/todos/schedules/month/', {
+          params: {
+            plan_id: planId,
+            month: month,
+            year: currentYear
+          }
+        })
+
+        if (data && Array.isArray(data)) {
+          this.currentPlanSchedules = data
+          return { success: true }
+        } else {
+          return { success: false, error: '일정을 불러올 수 없습니다.' }
+        }
+      } catch (error: any) {
+        return { success: false, error: error.message || '일정을 불러올 수 없습니다.' }
+      }
+    },
+
     clearGroupData() {
       this.groups = []
       this.myGroups = []
       this.currentGroup = null
       this.currentGroupMembers = []
+      this.currentPlanSchedules = []
       this.invitations = []
       this.error = null
     }

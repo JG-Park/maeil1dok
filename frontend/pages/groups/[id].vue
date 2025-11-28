@@ -119,8 +119,39 @@
             </div>
           </Card>
 
+          <!-- 플랜 선택 및 일정 캘린더 -->
+          <Card v-if="currentGroup.plans && currentGroup.plans.length > 0" class="mb-4 fade-in delay-100">
+            <div class="section-header">
+              <h3 class="section-title">읽기 계획 일정</h3>
+            </div>
+
+            <!-- 플랜 선택 탭 -->
+            <div v-if="currentGroup.plans.length > 1" class="plan-tabs">
+              <button
+                v-for="plan in currentGroup.plans"
+                :key="plan.id"
+                @click="selectedPlanId = plan.id"
+                :class="['plan-tab', { 'active': selectedPlanId === plan.id }]"
+              >
+                {{ plan.name }}
+              </button>
+            </div>
+
+            <!-- 단일 플랜일 경우 이름만 표시 -->
+            <div v-else class="single-plan-name">
+              {{ currentGroup.plans[0].name }}
+            </div>
+
+            <!-- 캘린더 -->
+            <GroupPlanCalendar
+              v-if="selectedPlanId"
+              :plan-id="selectedPlanId"
+              class="mt-4"
+            />
+          </Card>
+
           <!-- 멤버 목록 -->
-          <Card class="mb-4 fade-in delay-100">
+          <Card class="mb-4 fade-in delay-200">
             <div class="section-header">
               <h3 class="section-title">멤버 목록</h3>
               <span class="member-count-badge">{{ currentGroupMembers.length }}명</span>
@@ -198,6 +229,7 @@ import PageHeader from '~/components/common/PageHeader.vue'
 import Card from '~/components/common/Card.vue'
 import LoadingState from '~/components/LoadingState.vue'
 import EmptyState from '~/components/common/EmptyState.vue'
+import GroupPlanCalendar from '~/components/groups/GroupPlanCalendar.vue'
 
 const route = useRoute()
 const groupsStore = useGroupsStore()
@@ -212,6 +244,7 @@ const isLoading = ref(true)
 const isMembersLoading = ref(true)
 const isActionLoading = ref(false)
 const error = ref<string | null>(null)
+const selectedPlanId = ref<number | null>(null)
 
 // 그룹 정보 로드
 onMounted(async () => {
@@ -230,6 +263,11 @@ const loadGroupData = async () => {
     if (!result.success) {
       error.value = result.error || '그룹 정보를 불러올 수 없습니다.'
       return
+    }
+
+    // 첫 번째 플랜을 기본 선택
+    if (currentGroup.value?.plans && currentGroup.value.plans.length > 0) {
+      selectedPlanId.value = currentGroup.value.plans[0].id
     }
 
     // 멤버 목록 가져오기
@@ -559,6 +597,48 @@ onUnmounted(() => {
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+/* 플랜 선택 탭 */
+.plan-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.plan-tab {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-300);
+  background: white;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.plan-tab:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.plan-tab.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.single-plan-name {
+  padding: 0.75rem 1rem;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 1rem;
 }
 
 /* 섹션 헤더 */

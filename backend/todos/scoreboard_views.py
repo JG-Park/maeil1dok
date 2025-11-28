@@ -274,22 +274,40 @@ def get_group_scoreboard(request, group_id):
         
         # 쿼리 파라미터
         period = request.query_params.get('period', 'all')
-        
+        plan_id = request.query_params.get('plan_id')
+
+        # 플랜 선택 (plan_id가 주어지면 해당 플랜, 없으면 그룹의 첫 번째 플랜)
+        if plan_id:
+            try:
+                plan = group.plans.get(id=plan_id)
+            except BibleReadingPlan.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'error': '해당 플랜을 찾을 수 없습니다.'
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            plan = group.plans.first()
+            if not plan:
+                return Response({
+                    'success': False,
+                    'error': '그룹에 플랜이 없습니다.'
+                }, status=status.HTTP_404_NOT_FOUND)
+
         # 그룹 멤버 목록 - select_related로 최적화
         members = User.objects.filter(
             group_memberships__group=group,
             group_memberships__is_active=True
         ).distinct().select_related('profile').prefetch_related('group_memberships')
-        
+
         leaderboard = []
         for user in members:
             # 프로필 가져오기
             profile, created = UserProfile.objects.get_or_create(user=user)
-            
-            # 그룹의 플랜에 대한 구독 확인
+
+            # 선택된 플랜에 대한 구독 확인
             subscription = PlanSubscription.objects.filter(
                 user=user,
-                plan=group.plan,
+                plan=plan,
                 is_active=True
             ).first()
             
@@ -308,10 +326,10 @@ def get_group_scoreboard(request, group_id):
                 completed_filter['completed_at__gte'] = timezone.now() - timedelta(days=30)
             
             completed_days = UserBibleProgress.objects.filter(**completed_filter).count()
-            
+
             # 진행률 계산
             total_schedules = DailyBibleSchedule.objects.filter(
-                plan=group.plan,
+                plan=plan,
                 date__lte=timezone.now().date()
             ).count()
             
@@ -354,6 +372,11 @@ def get_group_scoreboard(request, group_id):
                 'name': group.name,
                 'description': group.description,
                 'member_count': group.member_count
+            },
+            'plan': {
+                'id': plan.id,
+                'name': plan.name,
+                'description': plan.description
             },
             'leaderboard': leaderboard,
             'period': period
