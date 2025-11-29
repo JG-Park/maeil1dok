@@ -254,4 +254,38 @@ watch(() => formData.value.nickname, () => {
 .kakao-button:active {
   transform: translateY(0);
 }
+
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .register-form {
+    max-width: 480px;
+    padding: 2.5rem;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .kakao-button {
+    font-size: 1rem;
+    padding: 0.875rem;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .register-form {
+    max-width: 560px;
+    padding: 3rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  .kakao-button {
+    font-size: 1.125rem;
+    padding: 1rem;
+  }
+}
 </style>

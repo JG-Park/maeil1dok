@@ -112,4 +112,72 @@ html {
 
 .success-text {
   @apply text-green-500 text-sm mt-1;
+}
+
+/* Responsive Container Styles */
+.container-responsive {
+  width: 100%;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 768px) {
+  .container-responsive {
+    max-width: 900px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    max-width: 1200px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Responsive Typography */
+@media (min-width: 768px) {
+  .text-responsive-base {
+    font-size: 1.0625rem;
+    line-height: 1.75rem;
+  }
+
+  .text-responsive-lg {
+    font-size: 1.25rem;
+    line-height: 2rem;
+  }
+
+  .text-responsive-xl {
+    font-size: 1.5rem;
+    line-height: 2.25rem;
+  }
+}
+
+/* Responsive Button Styles */
+@media (min-width: 768px) {
+  .btn {
+    @apply px-6 py-3.5 text-lg;
+  }
+}
+
+@media (min-width: 1024px) {
+  .btn {
+    @apply px-8 py-4 text-xl;
+  }
+}
+
+/* Responsive Input Styles */
+@media (min-width: 768px) {
+  .input-field {
+    @apply px-5 py-3.5 text-lg;
+  }
+}
+
+@media (min-width: 1024px) {
+  .input-field {
+    @apply px-6 py-4 text-xl;
+  }
 } 

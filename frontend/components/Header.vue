@@ -161,7 +161,7 @@ onUnmounted(() => {
 }
 
 .header {
-  max-width: 768px;
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -169,6 +169,24 @@ onUnmounted(() => {
   padding: 0.875rem 1rem;
   letter-spacing: -0.05em;
   height: 56px;
+}
+
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .header {
+    max-width: 900px;
+    padding: 1rem 1.5rem;
+    height: 64px;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .header {
+    max-width: 1200px;
+    padding: 1.25rem 2rem;
+    height: 72px;
+  }
 }
 
 .logo-link {
@@ -181,6 +199,20 @@ onUnmounted(() => {
   height: 20px;
   width: auto;
   margin-left: 5px;
+}
+
+/* Tablet: Larger logo */
+@media (min-width: 768px) {
+  .logo {
+    height: 24px;
+  }
+}
+
+/* Tablet Large: Even larger logo */
+@media (min-width: 1024px) {
+  .logo {
+    height: 28px;
+  }
 }
 
 .header-controls {
@@ -221,9 +253,43 @@ onUnmounted(() => {
   .auth-button {
     padding: 0.5rem 0.75rem; /* 패딩 약간 줄임 */
   }
-  
+
   .button-text {
     font-size: 0.8125rem; /* 글자 크기 약간 줄임 */
+  }
+}
+
+/* Tablet: Larger buttons */
+@media (min-width: 768px) {
+  .auth-button {
+    padding: 0.625rem 1.25rem;
+    gap: 0.625rem;
+  }
+
+  .auth-button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .button-text {
+    font-size: 1rem;
+  }
+}
+
+/* Tablet Large: Even larger buttons */
+@media (min-width: 1024px) {
+  .auth-button {
+    padding: 0.75rem 1.5rem;
+    gap: 0.75rem;
+  }
+
+  .auth-button svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .button-text {
+    font-size: 1.0625rem;
   }
 }
 
@@ -372,6 +438,68 @@ onUnmounted(() => {
   .profile-button {
     width: 32px;
     height: 32px;
+  }
+}
+
+/* Tablet: Larger profile button */
+@media (min-width: 768px) {
+  .profile-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .menu-button svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .dropdown-menu {
+    width: 240px;
+  }
+
+  .dropdown-item {
+    padding: 12px 18px;
+    font-size: 0.9375rem;
+  }
+
+  .dropdown-item svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Tablet Large: Even larger profile button */
+@media (min-width: 1024px) {
+  .profile-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .menu-button svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .dropdown-menu {
+    width: 260px;
+  }
+
+  .dropdown-item {
+    padding: 14px 20px;
+    font-size: 1rem;
+  }
+
+  .dropdown-item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .dropdown-nickname {
+    font-size: 1rem;
+  }
+
+  .dropdown-email {
+    font-size: 0.8125rem;
   }
 }
 </style> 

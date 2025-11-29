@@ -368,4 +368,48 @@ const close = () => {
   opacity: 1;
 }
 
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .menu-content {
+    width: 400px;
+  }
+
+  .menu-item {
+    padding: 1rem 1.5rem;
+    font-size: 1.0625rem;
+  }
+
+  .menu-item svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .github-link {
+    padding: 1rem 1.5rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .menu-content {
+    width: 450px;
+  }
+
+  .menu-item {
+    padding: 1.25rem 2rem;
+    font-size: 1.125rem;
+  }
+
+  .menu-item svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .github-link {
+    padding: 1.25rem 2rem;
+    font-size: 1rem;
+  }
+}
+
 </style>

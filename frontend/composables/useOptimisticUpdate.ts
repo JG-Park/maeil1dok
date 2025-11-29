@@ -56,13 +56,11 @@ export function useOptimisticUpdate<T>() {
         
         // Retry logic
         if (attempts <= retryCount) {
-          console.log(`Retrying... Attempt ${attempts}/${retryCount}`)
           await new Promise(resolve => setTimeout(resolve, retryDelay))
           return executeUpdate()
         }
-        
+
         // Rollback on final failure
-        console.error('Optimistic update failed:', err)
         currentValue.value = previousValue
         error.value = err
         isUpdating.value = false

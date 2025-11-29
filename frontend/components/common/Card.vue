@@ -109,4 +109,20 @@ const handleClick = (event) => {
     padding: 1rem;
   }
 }
+
+/* Tablet: Increased padding and border radius */
+@media (min-width: 768px) {
+  .card {
+    padding: 1.75rem;
+    border-radius: 1rem;
+  }
+}
+
+/* Tablet Large: Even more padding */
+@media (min-width: 1024px) {
+  .card {
+    padding: 2rem;
+    border-radius: 1.25rem;
+  }
+}
 </style>

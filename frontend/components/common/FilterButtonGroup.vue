@@ -97,4 +97,46 @@ const handleSelect = (value) => {
     font-size: 0.8125rem;
   }
 }
+
+/* Tablet: Larger buttons and spacing */
+@media (min-width: 768px) {
+  .filter-button-group {
+    gap: 0.75rem;
+  }
+
+  .filter-label {
+    font-size: 1rem;
+  }
+
+  .filter-buttons {
+    gap: 0.75rem;
+  }
+
+  .filter-button {
+    padding: 0.625rem 1.25rem;
+    font-size: 1rem;
+    border-radius: 0.625rem;
+  }
+}
+
+/* Tablet Large: Even larger buttons */
+@media (min-width: 1024px) {
+  .filter-button-group {
+    gap: 1rem;
+  }
+
+  .filter-label {
+    font-size: 1.125rem;
+  }
+
+  .filter-buttons {
+    gap: 1rem;
+  }
+
+  .filter-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.0625rem;
+    border-radius: 0.75rem;
+  }
+}
 </style>

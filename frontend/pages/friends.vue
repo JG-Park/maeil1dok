@@ -464,4 +464,78 @@ onMounted(async () => {
     opacity: 1;
   }
 }
+
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .content-wrapper {
+    padding: 1.5rem;
+  }
+
+  .search-container {
+    padding: 1.25rem;
+  }
+
+  .friends-list {
+    padding: 1.25rem;
+  }
+
+  .friend-item {
+    padding: 1.25rem;
+  }
+
+  .friend-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .friend-name {
+    font-size: 1.125rem;
+  }
+
+  .friend-email {
+    font-size: 0.9375rem;
+  }
+
+  .action-button {
+    font-size: 0.9375rem;
+    padding: 0.625rem 1.125rem;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .content-wrapper {
+    padding: 2rem;
+  }
+
+  .search-container {
+    padding: 1.5rem;
+  }
+
+  .friends-list {
+    padding: 1.5rem;
+  }
+
+  .friend-item {
+    padding: 1.5rem;
+  }
+
+  .friend-avatar {
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .friend-name {
+    font-size: 1.25rem;
+  }
+
+  .friend-email {
+    font-size: 1rem;
+  }
+
+  .action-button {
+    font-size: 1rem;
+    padding: 0.75rem 1.25rem;
+  }
+}
 </style>

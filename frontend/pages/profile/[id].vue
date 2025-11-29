@@ -229,13 +229,11 @@ const toggleFollow = async () => {
 // 팔로워 모달에서 팔로우 토글
 const handleToggleFollow = (follower: any) => {
   // 팔로워 모달에서의 팔로우/언팔로우 처리
-  console.log('Toggle follow:', follower)
 }
 
 // 팔로잉 모달에서 언팔로우
 const handleUnfollow = (user: any) => {
   // 팔로잉 모달에서의 언팔로우 처리
-  console.log('Unfollow:', user)
 }
 
 // 날짜 포맷

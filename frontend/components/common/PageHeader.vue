@@ -111,4 +111,58 @@ const handleBack = () => {
   justify-content: flex-end;
   flex-shrink: 0;
 }
+
+/* Tablet: Larger header sizing */
+@media (min-width: 768px) {
+  .page-header {
+    height: 60px;
+    padding: 1rem 1.5rem;
+    gap: 1rem;
+  }
+
+  .header-title {
+    font-size: 1.3125rem;
+  }
+
+  .back-button svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .header-spacer {
+    width: 24px;
+    height: 24px;
+  }
+
+  .header-button {
+    padding: 0.625rem;
+  }
+}
+
+/* Tablet Large: Even larger header */
+@media (min-width: 1024px) {
+  .page-header {
+    height: 70px;
+    padding: 1.25rem 2rem;
+    gap: 1.25rem;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  .back-button svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .header-spacer {
+    width: 28px;
+    height: 28px;
+  }
+
+  .header-button {
+    padding: 0.75rem;
+  }
+}
 </style>

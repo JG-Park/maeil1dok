@@ -2396,4 +2396,127 @@ h2 {
 .notice-content + .notice-content {
   margin-top: 0.75rem;
 }
+
+/* ============================
+   TABLET RESPONSIVE STYLES
+   ============================ */
+
+/* Tablet: iPad Mini and similar (768px - 1023px) */
+@media (min-width: 768px) {
+  .container {
+    max-width: 900px;
+    padding-bottom: 2rem;
+  }
+
+  .content-wrapper {
+    padding-top: 70px;
+  }
+
+  .section {
+    margin: 1rem 1.5rem;
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .task {
+    padding: 1.125rem;
+    border-radius: 14px;
+  }
+
+  .task-content {
+    gap: 1rem;
+  }
+
+  .check-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 1.375rem;
+    margin-right: 1rem;
+  }
+
+  .task-title {
+    font-size: 1.0625rem;
+  }
+
+  .task-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .notice-icon.plan-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets (1024px+) */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+    padding-bottom: 2.5rem;
+  }
+
+  .content-wrapper {
+    padding-top: 80px;
+  }
+
+  .section {
+    margin: 1.25rem 2rem;
+    padding: 2rem;
+    border-radius: 24px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .task {
+    padding: 1.375rem;
+    border-radius: 16px;
+  }
+
+  .task-content {
+    gap: 1.25rem;
+  }
+
+  .check-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 1.5rem;
+    margin-right: 1.25rem;
+  }
+
+  .task-title {
+    font-size: 1.1875rem;
+  }
+
+  .task-subtitle {
+    font-size: 1rem;
+  }
+
+  .notice-icon.plan-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+  }
+
+  /* Multi-column layout for larger tablets */
+  .horizontal-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
 </style>

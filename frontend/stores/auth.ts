@@ -203,7 +203,6 @@ export const useAuthStore = defineStore('auth', {
             if (newValue) {
               // 다른 탭에서 로그인 또는 토큰 갱신
               if (newValue.token && newValue.token !== this.token) {
-                console.log('Token updated in another tab, syncing...')
                 this.token = newValue.token
                 this.refreshToken = newValue.refreshToken
                 this.user = newValue.user
@@ -214,12 +213,11 @@ export const useAuthStore = defineStore('auth', {
             } else {
               // 다른 탭에서 로그아웃
               if (this.token) {
-                console.log('Logged out in another tab, syncing...')
                 this.logout()
               }
             }
           } catch (error) {
-            console.error('Failed to sync storage:', error)
+            // Silent fail
           }
         }
       }
@@ -235,11 +233,8 @@ export const useAuthStore = defineStore('auth', {
       const handleVisibilityChange = () => {
         if (document.hidden) {
           // 탭이 백그라운드로 갈 때 타이머 중지 (브라우저 throttle 방지)
-          console.log('Tab hidden, pausing token refresh')
         } else {
           // 탭이 다시 활성화될 때
-          console.log('Tab visible, checking token status')
-
           if (this.token && this.refreshToken) {
             // 즉시 토큰 상태 체크
             this.checkAndRefreshToken()
@@ -412,7 +407,6 @@ export const useAuthStore = defineStore('auth', {
 
       // 토큰이 5분 이내에 만료되면 갱신
       if (timeLeft !== null && timeLeft < 5 * 60) {
-        console.log(`Access token expires in ${timeLeft}s, refreshing...`)
         await this.refreshAccessToken()
       }
     },
@@ -420,7 +414,6 @@ export const useAuthStore = defineStore('auth', {
     async refreshAccessToken() {
       // 이미 갱신 중이면 중복 요청 방지
       if (this.isRefreshing) {
-        console.log('Token refresh already in progress')
         return false
       }
 
@@ -440,10 +433,8 @@ export const useAuthStore = defineStore('auth', {
         // Update both tokens (or keep existing refresh token if not provided)
         const newRefreshToken = response.refresh || this.refreshToken
         this.setTokens(response.access, newRefreshToken)
-        console.log('Token refreshed successfully')
         return true
       } catch (error) {
-        console.error('Token refresh failed:', error)
         this.logout()
         return false
       } finally {

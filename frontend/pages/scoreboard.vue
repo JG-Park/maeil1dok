@@ -315,4 +315,94 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
 }
+
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .content-wrapper {
+    padding: 1.5rem;
+  }
+
+  .my-ranking-card {
+    margin-bottom: 1.5rem;
+  }
+
+  .ranking-label {
+    font-size: 0.875rem;
+  }
+
+  .ranking-value {
+    font-size: 2rem;
+  }
+
+  .ranking-sub {
+    font-size: 0.875rem;
+  }
+
+  .top-three {
+    padding: 2rem;
+    gap: 1.5rem;
+  }
+
+  .top-avatar {
+    width: 5rem;
+    height: 5rem;
+  }
+
+  .top-name {
+    font-size: 1.125rem;
+  }
+
+  .top-days {
+    font-size: 1.5rem;
+  }
+
+  .top-progress {
+    font-size: 0.875rem;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .content-wrapper {
+    padding: 2rem;
+  }
+
+  .my-ranking-card {
+    margin-bottom: 2rem;
+  }
+
+  .ranking-label {
+    font-size: 1rem;
+  }
+
+  .ranking-value {
+    font-size: 2.25rem;
+  }
+
+  .ranking-sub {
+    font-size: 1rem;
+  }
+
+  .top-three {
+    padding: 2.5rem;
+    gap: 2rem;
+  }
+
+  .top-avatar {
+    width: 6rem;
+    height: 6rem;
+  }
+
+  .top-name {
+    font-size: 1.25rem;
+  }
+
+  .top-days {
+    font-size: 1.75rem;
+  }
+
+  .top-progress {
+    font-size: 1rem;
+  }
+}
 </style>

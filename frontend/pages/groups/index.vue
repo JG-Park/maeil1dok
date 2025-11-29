@@ -231,4 +231,44 @@ onUnmounted(() => {
 .action-button:active {
   transform: scale(0.95);
 }
+
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .container {
+    max-width: 900px;
+  }
+
+  .content-wrapper {
+    padding: 1.5rem;
+  }
+
+  .action-button {
+    padding: 0.625rem;
+  }
+
+  .action-button svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+  }
+
+  .content-wrapper {
+    padding: 2rem;
+  }
+
+  .action-button {
+    padding: 0.75rem;
+  }
+
+  .action-button svg {
+    width: 26px;
+    height: 26px;
+  }
+}
 </style>

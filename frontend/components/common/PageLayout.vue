@@ -45,7 +45,7 @@ defineProps({
 
 <style scoped>
 .container {
-  max-width: 768px;
+  max-width: 100%;
   margin: 0 auto;
   height: 100vh;
   height: 100dvh; /* 동적 뷰포트 높이 */
@@ -54,6 +54,20 @@ defineProps({
   background: var(--background-color);
   position: relative;
   width: 100%;
+}
+
+/* Tablet: iPad Mini and similar */
+@media (min-width: 768px) {
+  .container {
+    max-width: 900px;
+  }
+}
+
+/* Tablet Large: iPad Pro and larger tablets */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+  }
 }
 
 .fixed-area {

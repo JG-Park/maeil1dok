@@ -94,15 +94,18 @@ const isActive = (path) => {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom);
-  display: none;
+  display: block;
 }
 
-@media (max-width: 768px) {
+/* Desktop: Hide bottom navigation on very large screens */
+@media (min-width: 1367px) {
   .bottom-nav-container {
-    display: block;
+    display: none;
   }
-  
-  /* 하단 네비게이션이 있을 때 페이지 컨텐츠에 여백 추가 */
+}
+
+/* 하단 네비게이션이 있을 때 페이지 컨텐츠에 여백 추가 */
+@media (max-width: 1366px) {
   body {
     padding-bottom: calc(60px + env(safe-area-inset-bottom));
   }
@@ -114,6 +117,26 @@ const isActive = (path) => {
   align-items: center;
   height: 60px;
   padding: 0 0.5rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Tablet: Larger bottom nav with max-width */
+@media (min-width: 768px) {
+  .bottom-nav {
+    height: 70px;
+    padding: 0 1rem;
+    max-width: 900px;
+  }
+}
+
+/* Tablet Large: Even larger with increased max-width */
+@media (min-width: 1024px) {
+  .bottom-nav {
+    height: 80px;
+    padding: 0 1.5rem;
+    max-width: 1200px;
+  }
 }
 
 .nav-item {
@@ -155,6 +178,46 @@ const isActive = (path) => {
 .nav-item span {
   font-size: 0.7rem;
   font-weight: 500;
+}
+
+/* Tablet: Larger icons and text */
+@media (min-width: 768px) {
+  .nav-item svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .nav-item span {
+    font-size: 0.8125rem;
+  }
+
+  .nav-item {
+    gap: 0.375rem;
+  }
+
+  body {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Tablet Large: Even larger icons and text */
+@media (min-width: 1024px) {
+  .nav-item svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .nav-item span {
+    font-size: 0.9375rem;
+  }
+
+  .nav-item {
+    gap: 0.5rem;
+  }
+
+  body {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+  }
 }
 
 @supports (padding-bottom: env(safe-area-inset-bottom)) {

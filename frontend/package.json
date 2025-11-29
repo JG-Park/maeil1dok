@@ -21,5 +21,8 @@
     "vue": "latest",
     "vue-cal": "^4.10.2",
     "vue-router": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0"
   }
 }
