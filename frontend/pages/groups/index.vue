@@ -1,45 +1,44 @@
 <template>
-  <div class="container">
-    <!-- 고정 영역 -->
-    <div class="fixed-area">
-      <PageHeader title="그룹">
-        <template #action>
-          <button
-            v-if="isAuthenticated"
-            @click="showCreateModal = true"
-            class="action-button"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </button>
-        </template>
-      </PageHeader>
-    </div>
+  <PageLayout title="그룹">
+    <template #header-action>
+      <button
+        v-if="isAuthenticated"
+        @click="showCreateModal = true"
+        class="header-create-button"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+    </template>
 
-    <!-- 스크롤 영역 -->
-    <div class="scroll-area">
-      <div class="content-wrapper">
-        <!-- 검색 및 필터 -->
-      <Card class="mb-6 fade-in">
-        <div class="flex flex-col sm:flex-row gap-3 mb-4">
-          <div class="flex-1">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="그룹 검색..."
-              class="input-field"
-              @input="debouncedSearch"
-            >
-          </div>
+    <div class="content-wrapper">
+      <!-- 검색 및 필터 섹션 -->
+      <div class="filter-section fade-in">
+        <div class="search-container">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="그룹 이름으로 검색해보세요"
+            class="search-input"
+            @input="debouncedSearch"
+          >
         </div>
 
-        <FilterButtonGroup
-          v-model="activeFilter"
-          :options="filters"
-          label="필터"
-        />
-      </Card>
+        <div class="filter-tabs">
+          <button
+            v-for="filter in filters"
+            :key="filter.value"
+            @click="activeFilter = filter.value"
+            :class="['filter-tab', { active: activeFilter === filter.value }]"
+          >
+            {{ filter.label }}
+          </button>
+        </div>
+      </div>
 
       <!-- 로딩 상태 -->
       <LoadingState v-if="isLoading" message="그룹을 불러오는 중..." />
@@ -72,7 +71,6 @@
           </svg>
         </template>
       </EmptyState>
-      </div>
     </div>
 
     <!-- 그룹 생성 모달 -->
@@ -81,16 +79,14 @@
       @close="showCreateModal = false"
       @created="onGroupCreated"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
 import { useGroupsStore } from '~/stores/groups'
 import { useAuthStore } from '~/stores/auth'
 import { debounce } from 'lodash-es'
-import PageHeader from '~/components/common/PageHeader.vue'
-import Card from '~/components/common/Card.vue'
-import FilterButtonGroup from '~/components/common/FilterButtonGroup.vue'
+import PageLayout from '~/components/common/PageLayout.vue'
 import EmptyState from '~/components/common/EmptyState.vue'
 import LoadingState from '~/components/LoadingState.vue'
 import GroupCard from '~/components/groups/GroupCard.vue'
@@ -106,8 +102,8 @@ const activeFilter = ref<'all' | 'public' | 'mine'>('all')
 const showCreateModal = ref(false)
 
 const filters = [
-  { value: 'all', label: '모든 그룹' },
-  { value: 'public', label: '공개 그룹' },
+  { value: 'all', label: '전체' },
+  { value: 'public', label: '공개' },
   { value: 'mine', label: '내 그룹' }
 ]
 
@@ -172,45 +168,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.container {
-  max-width: 768px;
-  margin: 0 auto;
-  height: 100vh;
-  height: 100dvh; /* 동적 뷰포트 높이 */
-  display: flex;
-  flex-direction: column;
-  background: var(--background-color);
-  position: relative;
-  width: 100%;
-}
-
-.fixed-area {
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: white;
-}
-
-.scroll-area {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* iOS 안전영역 대응 */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .scroll-area {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
 .content-wrapper {
   padding: 1rem;
+  max-width: 768px;
+  margin: 0 auto;
 }
 
-.action-button {
+.header-create-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -224,12 +188,89 @@ onUnmounted(() => {
   transition: all 0.2s ease;
 }
 
-.action-button:hover {
+.header-create-button:hover {
   background: var(--primary-light);
 }
 
-.action-button:active {
-  transform: scale(0.95);
+.filter-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 2.75rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  color: #1E293B;
+  background: white;
+  transition: all 0.2s ease;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #94A3B8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.1);
+}
+
+.search-input::placeholder {
+  color: #CBD5E1;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem; /* Scrollbar spacing */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-tab {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748B;
+  background: #F8FAFC;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.filter-tab:hover {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.filter-tab.active {
+  background: #1E293B;
+  color: white;
+  border-color: #1E293B;
 }
 
 .groups-grid {

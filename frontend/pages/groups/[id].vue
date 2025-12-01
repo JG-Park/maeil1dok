@@ -1,231 +1,207 @@
 <template>
-  <div class="container">
-    <!-- 고정 영역 -->
-    <div class="fixed-area">
-      <PageHeader :title="currentGroup?.name || '그룹 정보'" />
-    </div>
+  <PageLayout :title="currentGroup?.name || '그룹 정보'">
+    <div class="content-wrapper">
+      <!-- 로딩 상태 -->
+      <LoadingState v-if="isLoading" message="그룹 정보를 불러오는 중..." />
 
-    <!-- 스크롤 영역 -->
-    <div class="scroll-area">
-      <div class="content-wrapper">
-        <!-- 로딩 상태 -->
-        <LoadingState v-if="isLoading" message="그룹 정보를 불러오는 중..." />
+      <!-- 에러 상태 -->
+      <div v-else-if="error" class="error-state">
+        <Card>
+          <div class="error-content">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <h3>그룹을 불러올 수 없습니다</h3>
+            <p>{{ error }}</p>
+            <button @click="navigateTo('/groups')" class="btn-primary">
+              그룹 목록으로 돌아가기
+            </button>
+          </div>
+        </Card>
+      </div>
 
-        <!-- 에러 상태 -->
-        <div v-else-if="error" class="error-state">
-          <Card>
-            <div class="error-content">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <h3>그룹을 불러올 수 없습니다</h3>
-              <p>{{ error }}</p>
-              <button @click="navigateTo('/groups')" class="btn-primary">
-                그룹 목록으로 돌아가기
-              </button>
+      <!-- 그룹 정보 -->
+      <template v-else-if="currentGroup">
+        <!-- 그룹 기본 정보 -->
+        <div class="group-info-card fade-in">
+          <div class="group-header">
+            <div class="header-top">
+              <span
+                :class="[
+                  'status-badge',
+                  currentGroup.is_public ? 'status-public' : 'status-private'
+                ]"
+              >
+                {{ currentGroup.is_public ? '공개' : '비공개' }}
+              </span>
+              <span class="member-count">
+                {{ currentGroup.member_count }}/{{ currentGroup.max_members }}명
+              </span>
             </div>
-          </Card>
+            <h2 class="group-name">{{ currentGroup.name }}</h2>
+          </div>
+
+          <p class="group-description">
+            {{ currentGroup.description || '설명이 없습니다.' }}
+          </p>
+
+          <div class="group-meta">
+            <div class="meta-row">
+              <span class="meta-label">리더</span>
+              <span class="meta-value">{{ currentGroup.creator?.nickname || '알 수 없음' }}</span>
+            </div>
+            <div class="meta-row" v-if="currentGroup.plans && currentGroup.plans.length > 0">
+              <span class="meta-label">읽기표</span>
+              <div class="plans-wrapper">
+                <span class="plan-text" v-if="currentGroup.plans.length === 1">{{ currentGroup.plans[0].name }}</span>
+                <span class="plan-text" v-else>
+                  {{ currentGroup.plans[0].name }} 외 {{ currentGroup.plans.length - 1 }}개
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 액션 버튼 -->
+          <div v-if="isAuthenticated" class="action-buttons">
+            <button
+              v-if="!currentGroup.is_member && !currentGroup.is_full"
+              @click="handleJoinGroup"
+              :disabled="isActionLoading"
+              class="btn-action btn-primary"
+            >
+              {{ isActionLoading ? '처리 중...' : '그룹 가입하기' }}
+            </button>
+
+            <button
+              v-else-if="currentGroup.is_member && currentGroup.my_role !== '관리자'"
+              @click="handleLeaveGroup"
+              :disabled="isActionLoading"
+              class="btn-action btn-danger"
+            >
+              {{ isActionLoading ? '처리 중...' : '그룹 탈퇴하기' }}
+            </button>
+
+            <div v-else-if="currentGroup.is_member && currentGroup.my_role === '관리자'" class="status-box admin-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span>관리자입니다</span>
+            </div>
+
+            <div v-else-if="currentGroup.is_full" class="status-box full-box">
+              정원 초과
+            </div>
+          </div>
         </div>
 
-        <!-- 그룹 정보 -->
-        <template v-else-if="currentGroup">
-          <!-- 그룹 기본 정보 -->
-          <Card class="mb-4 fade-in">
-            <div class="group-header">
-              <div class="group-title-section">
-                <h2 class="group-name">{{ currentGroup.name }}</h2>
-                <span
-                  :class="[
-                    'status-badge',
-                    currentGroup.is_public ? 'status-public' : 'status-private'
-                  ]"
-                >
-                  {{ currentGroup.is_public ? '공개' : '비공개' }}
-                </span>
-              </div>
+        <!-- 플랜 선택 및 일정 캘린더 -->
+        <div v-if="currentGroup.plans && currentGroup.plans.length > 0" class="section-card fade-in delay-100">
+          <div class="section-header">
+            <h3 class="section-title">읽기 계획 일정</h3>
+          </div>
 
-              <p class="group-description">
-                {{ currentGroup.description || '설명이 없습니다.' }}
-              </p>
-
-              <div class="group-meta">
-                <div class="meta-item">
-                  <svg class="meta-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
-                  <span>생성자: {{ currentGroup.creator?.nickname || '알 수 없음' }}</span>
-                </div>
-
-                <div class="meta-item">
-                  <svg class="meta-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                  <span>{{ currentGroup.member_count }}/{{ currentGroup.max_members }}명</span>
-                </div>
-
-                <div v-if="currentGroup.plans && currentGroup.plans.length > 0" class="meta-item plans-item">
-                  <svg class="meta-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                  </svg>
-                  <div class="plans-list">
-                    <span v-if="currentGroup.plans.length === 1">{{ currentGroup.plans[0].name }}</span>
-                    <div v-else class="multiple-plans">
-                      <span class="plan-badge" v-for="plan in currentGroup.plans" :key="plan.id">
-                        {{ plan.name }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 액션 버튼 -->
-            <div v-if="isAuthenticated" class="action-buttons">
-              <button
-                v-if="!currentGroup.is_member && !currentGroup.is_full"
-                @click="handleJoinGroup"
-                :disabled="isActionLoading"
-                class="btn-primary"
-              >
-                {{ isActionLoading ? '처리 중...' : '그룹 가입하기' }}
-              </button>
-
-              <button
-                v-else-if="currentGroup.is_member && currentGroup.my_role !== '관리자'"
-                @click="handleLeaveGroup"
-                :disabled="isActionLoading"
-                class="btn-danger"
-              >
-                {{ isActionLoading ? '처리 중...' : '그룹 탈퇴하기' }}
-              </button>
-
-              <div v-else-if="currentGroup.is_member && currentGroup.my_role === '관리자'" class="admin-badge">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                <span>관리자</span>
-              </div>
-
-              <div v-else-if="currentGroup.is_full" class="full-badge">
-                정원 초과
-              </div>
-            </div>
-          </Card>
-
-          <!-- 플랜 선택 및 일정 캘린더 -->
-          <Card v-if="currentGroup.plans && currentGroup.plans.length > 0" class="mb-4 fade-in delay-100">
-            <div class="section-header">
-              <h3 class="section-title">읽기 계획 일정</h3>
-            </div>
-
-            <!-- 플랜 선택 탭 -->
-            <div v-if="currentGroup.plans.length > 1" class="plan-tabs">
-              <button
-                v-for="plan in currentGroup.plans"
-                :key="plan.id"
-                @click="selectedPlanId = plan.id"
-                :class="['plan-tab', { 'active': selectedPlanId === plan.id }]"
-              >
-                {{ plan.name }}
-              </button>
-            </div>
-
-            <!-- 단일 플랜일 경우 이름만 표시 -->
-            <div v-else class="single-plan-name">
-              {{ currentGroup.plans[0].name }}
-            </div>
-
-            <!-- 캘린더 -->
-            <GroupPlanCalendar
-              v-if="selectedPlanId"
-              :plan-id="selectedPlanId"
-              class="mt-4"
-            />
-          </Card>
-
-          <!-- 멤버 목록 -->
-          <Card class="mb-4 fade-in delay-200">
-            <div class="section-header">
-              <h3 class="section-title">멤버 목록</h3>
-              <span class="member-count-badge">{{ currentGroupMembers.length }}명</span>
-            </div>
-
-            <LoadingState v-if="isMembersLoading" message="멤버 목록을 불러오는 중..." />
-
-            <div v-else-if="currentGroupMembers.length > 0" class="members-list">
-              <div
-                v-for="member in currentGroupMembers"
-                :key="member.user.id"
-                class="member-item"
-              >
-                <div class="member-info">
-                  <div class="member-avatar">
-                    <img
-                      v-if="member.user.profile_image"
-                      :src="member.user.profile_image"
-                      :alt="member.user.nickname"
-                      class="avatar-image"
-                    >
-                    <div v-else class="avatar-placeholder">
-                      {{ member.user.nickname?.charAt(0) || '?' }}
-                    </div>
-                  </div>
-
-                  <div class="member-details">
-                    <div class="member-name">{{ member.user.nickname }}</div>
-                    <div class="member-joined">
-                      {{ formatDate(member.joined_at) }} 가입
-                    </div>
-                  </div>
-                </div>
-
-                <span
-                  v-if="member.role === '관리자'"
-                  class="role-badge role-admin"
-                >
-                  관리자
-                </span>
-                <span
-                  v-else
-                  class="role-badge role-member"
-                >
-                  멤버
-                </span>
-              </div>
-            </div>
-
-            <EmptyState
-              v-else
-              title="멤버가 없습니다"
-              description="아직 가입한 멤버가 없습니다."
+          <!-- 플랜 선택 탭 -->
+          <div v-if="currentGroup.plans.length > 1" class="plan-tabs">
+            <button
+              v-for="plan in currentGroup.plans"
+              :key="plan.id"
+              @click="selectedPlanId = plan.id"
+              :class="['plan-tab', { 'active': selectedPlanId === plan.id }]"
             >
-              <template #icon>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-              </template>
-            </EmptyState>
-          </Card>
-        </template>
-      </div>
+              {{ plan.name }}
+            </button>
+          </div>
+
+          <!-- 단일 플랜일 경우 이름만 표시 -->
+          <div v-else class="single-plan-name">
+            {{ currentGroup.plans[0].name }}
+          </div>
+
+          <!-- 캘린더 -->
+          <GroupPlanCalendar
+            v-if="selectedPlanId"
+            :plan-id="selectedPlanId"
+            class="mt-4"
+          />
+        </div>
+
+        <!-- 멤버 목록 -->
+        <div class="section-card fade-in delay-200">
+          <div class="section-header">
+            <h3 class="section-title">멤버 목록</h3>
+            <span class="member-count-badge">{{ currentGroupMembers.length }}명</span>
+          </div>
+
+          <LoadingState v-if="isMembersLoading" message="멤버 목록을 불러오는 중..." />
+
+          <div v-else-if="currentGroupMembers.length > 0" class="members-list">
+            <div
+              v-for="member in currentGroupMembers"
+              :key="member.user.id"
+              class="member-item"
+            >
+              <div class="member-info">
+                <div class="member-avatar">
+                  <img
+                    v-if="member.user.profile_image"
+                    :src="member.user.profile_image"
+                    :alt="member.user.nickname"
+                    class="avatar-image"
+                  >
+                  <div v-else class="avatar-placeholder">
+                    {{ member.user.nickname?.charAt(0) || '?' }}
+                  </div>
+                </div>
+
+                <div class="member-details">
+                  <div class="member-name">{{ member.user.nickname }}</div>
+                  <div class="member-joined">
+                    {{ formatDate(member.joined_at) }} 가입
+                  </div>
+                </div>
+              </div>
+
+              <span
+                v-if="member.role === '관리자'"
+                class="role-badge role-admin"
+              >
+                관리자
+              </span>
+              <span
+                v-else
+                class="role-badge role-member"
+              >
+                멤버
+              </span>
+            </div>
+          </div>
+
+          <EmptyState
+            v-else
+            title="멤버가 없습니다"
+            description="아직 가입한 멤버가 없습니다."
+          >
+            <template #icon>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </template>
+          </EmptyState>
+        </div>
+      </template>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
 import { useGroupsStore } from '~/stores/groups'
 import { useAuthStore } from '~/stores/auth'
-import PageHeader from '~/components/common/PageHeader.vue'
+import PageLayout from '~/components/common/PageLayout.vue'
 import Card from '~/components/common/Card.vue'
 import LoadingState from '~/components/LoadingState.vue'
 import EmptyState from '~/components/common/EmptyState.vue'
@@ -350,41 +326,23 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.container {
-  max-width: 768px;
-  margin: 0 auto;
-  height: 100vh;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  background: var(--background-color);
-  position: relative;
-  width: 100%;
-}
-
-.fixed-area {
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: white;
-}
-
-.scroll-area {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .scroll-area {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
 .content-wrapper {
   padding: 1rem;
+  max-width: 768px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 카드 공통 스타일 */
+.group-info-card,
+.section-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* 에러 상태 */
@@ -422,48 +380,58 @@ onUnmounted(() => {
 .group-header {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.group-title-section {
+.header-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.75rem;
+  align-items: center;
 }
 
 .group-name {
-  flex: 1;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1E293B;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.3;
+  font-family: 'Pretendard', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .status-public {
-  background: #D1FAE5;
-  color: #065F46;
+  background-color: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #DCFCE7;
 }
 
 .status-private {
-  background: var(--gray-100);
-  color: var(--gray-700);
+  background-color: #F8FAFC;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+
+.member-count {
+  font-size: 0.875rem;
+  color: #64748B;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .group-description {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0;
+  font-size: 0.9375rem;
+  color: #475569;
+  margin: 0 0 1.5rem 0;
   line-height: 1.6;
 }
 
@@ -471,132 +439,96 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--gray-200);
+  padding-top: 1rem;
+  border-top: 1px solid #F1F5F9;
 }
 
-.meta-item {
+.meta-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
   font-size: 0.875rem;
-  color: var(--text-secondary);
 }
 
-.meta-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
+.meta-label {
+  color: #94A3B8;
+  min-width: 3rem;
 }
 
-.plans-item {
-  align-items: flex-start;
-}
-
-.plans-list {
-  flex: 1;
-}
-
-.multiple-plans {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.plan-badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
+.meta-value, .plan-text {
+  color: #334155;
   font-weight: 500;
 }
 
 /* 액션 버튼 */
 .action-buttons {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--gray-200);
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #F1F5F9;
 }
 
-.btn-primary,
-.btn-danger {
+.btn-action {
   flex: 1;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
   text-align: center;
   border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .btn-primary {
-  background: var(--blue-600);
+  background: #1E293B;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--blue-700);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  background: #334155;
+  transform: translateY(-1px);
 }
 
 .btn-danger {
-  background: #EF4444;
-  color: white;
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FEE2E2;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #DC2626;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  background: #FEE2E2;
 }
 
-.btn-danger:disabled {
+.btn-action:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.admin-badge {
+.status-box {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #FEF3C7;
-  color: #92400E;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
   font-weight: 500;
 }
 
-.admin-badge svg {
-  fill: #92400E;
-  stroke: none;
+.admin-box {
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FEF3C7;
 }
 
-.full-badge {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1rem;
-  background: var(--gray-100);
-  color: var(--gray-500);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 500;
+.full-box {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
 }
 
 /* 플랜 선택 탭 */
@@ -609,36 +541,38 @@ onUnmounted(() => {
 
 .plan-tab {
   padding: 0.5rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--gray-300);
+  border-radius: 20px;
+  border: 1px solid #E2E8F0;
   background: white;
-  color: var(--text-secondary);
+  color: #64748B;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .plan-tab:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  background: #F8FAFC;
+  color: #475569;
 }
 
 .plan-tab.active {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: #1E293B;
+  border-color: #1E293B;
   color: white;
 }
 
 .single-plan-name {
   padding: 0.75rem 1rem;
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  background: #F8FAFC;
+  color: #475569;
+  border-radius: 8px;
+  font-size: 0.9375rem;
   font-weight: 500;
   text-align: center;
   margin-bottom: 1rem;
+  border: 1px solid #E2E8F0;
 }
 
 /* 섹션 헤더 */
@@ -646,22 +580,23 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .section-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1E293B;
   margin: 0;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .member-count-badge {
   display: inline-block;
-  padding: 0.25rem 0.5rem;
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-radius: var(--radius-sm);
+  padding: 0.125rem 0.5rem;
+  background: #F1F5F9;
+  color: #64748B;
+  border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
 }
@@ -678,13 +613,14 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: var(--gray-50);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .member-item:hover {
-  background: var(--gray-100);
+  border-color: #E2E8F0;
 }
 
 .member-info {
@@ -705,54 +641,58 @@ onUnmounted(() => {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  border: 1px solid #E2E8F0;
 }
 
 .avatar-placeholder {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: var(--primary-light);
-  color: var(--primary-color);
+  background: #F1F5F9;
+  color: #64748B;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 1.125rem;
+  font-size: 1rem;
+  border: 1px solid #E2E8F0;
 }
 
 .member-details {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.125rem;
 }
 
 .member-name {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #1E293B;
 }
 
 .member-joined {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: #94A3B8;
 }
 
 .role-badge {
   padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .role-admin {
-  background: #FEF3C7;
-  color: #92400E;
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FEF3C7;
 }
 
 .role-member {
-  background: var(--gray-100);
-  color: var(--gray-700);
+  background: white;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
 }
 
 /* 애니메이션 */
@@ -762,6 +702,10 @@ onUnmounted(() => {
 
 .delay-100 {
   animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
 }
 
 @keyframes fadeIn {
@@ -778,17 +722,15 @@ onUnmounted(() => {
 /* 반응형 */
 @media (max-width: 640px) {
   .group-name {
-    font-size: 1rem;
+    font-size: 1.25rem;
   }
 
   .action-buttons {
     flex-direction: column;
   }
 
-  .btn-primary,
-  .btn-danger,
-  .admin-badge,
-  .full-badge {
+  .btn-action,
+  .status-box {
     width: 100%;
   }
 }
