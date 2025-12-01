@@ -57,11 +57,11 @@ services:
       - /app/node_modules
     ports:
       - "${FRONTEND_SERVICE_PORT}:3000"
+    env_file:
+      - ./frontend/.env
     environment:
       - HOST=0.0.0.0
-      - NODE_ENV=${NODE_ENV:-development}
       - DOCKER_ENV=true
-      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-https://api.maeil1dok.app}
     command: >
       sh -c "if [ \"$${NODE_ENV}\" = \"production\" ]; then 
                npm run build && npm run start; 
