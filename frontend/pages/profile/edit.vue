@@ -290,12 +290,6 @@ const saveProfile = async () => {
   gap: 1rem;
 }
 
-@media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 .stat-item {
   text-align: center;
   padding: 0.75rem;
