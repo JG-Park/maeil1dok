@@ -1,59 +1,48 @@
 <template>
-  <Card clickable @click="handleCardClick" class="group-card">
+  <div class="group-card" @click="handleCardClick">
     <div class="card-header">
+      <div class="header-top">
+        <span
+          :class="[
+            'status-badge',
+            group.is_public ? 'status-public' : 'status-private'
+          ]"
+        >
+          {{ group.is_public ? '공개' : '비공개' }}
+        </span>
+        <span class="member-count">
+          {{ group.member_count }}/{{ group.max_members }}명
+        </span>
+      </div>
       <h3 class="group-name">
         {{ group.name }}
       </h3>
-      <span
-        :class="[
-          'status-badge',
-          group.is_public ? 'status-public' : 'status-private'
-        ]"
-      >
-        {{ group.is_public ? '공개' : '비공개' }}
-      </span>
     </div>
 
     <p class="group-description">
       {{ group.description || '설명이 없습니다.' }}
     </p>
 
-    <div class="group-info">
-      <div class="info-item plans-item">
-        <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-        </svg>
-        <div class="plans-list">
-          <span v-if="!group.plans || group.plans.length === 0">계획 없음</span>
-          <span v-else-if="group.plans.length === 1">{{ group.plans[0].name }}</span>
-          <div v-else class="multiple-plans">
-            <span class="plan-badge" v-for="plan in group.plans" :key="plan.id">{{ plan.name }}</span>
-          </div>
+    <div class="group-meta">
+      <div class="meta-row">
+        <span class="meta-label">리더</span>
+        <span class="meta-value">{{ group.creator?.nickname || '관리자' }}</span>
+      </div>
+      <div class="meta-row" v-if="group.plans && group.plans.length > 0">
+        <span class="meta-label">읽기표</span>
+        <div class="plans-wrapper">
+          <span class="plan-text" v-if="group.plans.length === 1">{{ group.plans[0].name }}</span>
+          <span class="plan-text" v-else>
+            {{ group.plans[0].name }} 외 {{ group.plans.length - 1 }}개
+          </span>
         </div>
-      </div>
-      <div class="info-item">
-        <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        <span>{{ group.member_count }}/{{ group.max_members }}명</span>
-      </div>
-      <div class="info-item">
-        <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-        <span>{{ group.creator?.nickname || '관리자' }}</span>
       </div>
     </div>
 
     <div class="card-actions" @click.stop>
       <NuxtLink
         :to="`/groups/${group.id}`"
-        class="btn-secondary"
+        class="btn-action btn-secondary"
       >
         상세보기
       </NuxtLink>
@@ -61,7 +50,7 @@
       <button
         v-if="isAuthenticated && !group.is_member && !group.is_full"
         @click="handleJoin"
-        class="btn-primary"
+        class="btn-action btn-primary"
       >
         가입하기
       </button>
@@ -69,7 +58,7 @@
       <button
         v-else-if="group.is_member"
         disabled
-        class="btn-joined"
+        class="btn-action btn-disabled"
       >
         가입됨
       </button>
@@ -77,17 +66,15 @@
       <button
         v-else-if="group.is_full"
         disabled
-        class="btn-full"
+        class="btn-action btn-disabled"
       >
         정원 초과
       </button>
     </div>
-  </Card>
+  </div>
 </template>
 
 <script setup>
-import Card from '../common/Card.vue'
-
 const props = defineProps({
   group: {
     type: Object,
@@ -112,179 +99,167 @@ const handleJoin = () => {
 
 <style scoped>
 .group-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  min-height: 240px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.group-card:hover {
+  border-color: #CBD5E1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin-bottom: 0.25rem;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.group-name {
-  flex: 1;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  line-height: 1.4;
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .status-public {
-  background: #D1FAE5;
-  color: #065F46;
+  background-color: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #DCFCE7;
 }
 
 .status-private {
-  background: var(--gray-100);
-  color: var(--gray-700);
+  background-color: #F8FAFC;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+
+.member-count {
+  font-size: 0.8125rem;
+  color: #64748B;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.group-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1E293B;
+  margin: 0;
+  line-height: 1.4;
+  font-family: 'Pretendard', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .group-description {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: #475569;
   margin: 0;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.625rem; /* 2 lines height */
 }
 
-.group-info {
+.group-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #F1F5F9;
 }
 
-.info-item {
+.meta-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  gap: 0.75rem;
+  font-size: 0.8125rem;
 }
 
-.info-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
+.meta-label {
+  color: #94A3B8;
+  min-width: 2.5rem;
 }
 
-.plans-item {
-  align-items: flex-start;
-}
-
-.plans-list {
-  flex: 1;
-}
-
-.multiple-plans {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.plan-badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
+.meta-value, .plan-text {
+  color: #334155;
   font-weight: 500;
 }
 
 .card-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: auto;
+  margin-top: 0.5rem;
 }
 
-.btn-secondary,
-.btn-primary,
-.btn-joined,
-.btn-full {
+.btn-action {
   flex: 1;
-  padding: 0.625rem 1rem;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
   font-weight: 500;
   text-align: center;
   text-decoration: none;
-  border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
+  font-family: 'Pretendard', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-secondary {
-  background: var(--gray-100);
-  color: var(--gray-700);
+  background: white;
+  border: 1px solid #E2E8F0;
+  color: #475569;
 }
 
 .btn-secondary:hover {
-  background: var(--gray-200);
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #1E293B;
 }
 
 .btn-primary {
-  background: var(--blue-600);
+  background: #1E293B;
+  border: 1px solid #1E293B;
   color: white;
 }
 
 .btn-primary:hover {
-  background: var(--blue-700);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  background: #334155;
+  border-color: #334155;
 }
 
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-joined {
-  background: #D1FAE5;
-  color: #065F46;
-  cursor: default;
-}
-
-.btn-full {
-  background: var(--gray-100);
-  color: var(--gray-500);
+.btn-disabled {
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #94A3B8;
   cursor: not-allowed;
 }
 
 @media (max-width: 640px) {
   .group-card {
-    min-height: 220px;
-  }
-
-  .group-name {
-    font-size: 1rem;
-  }
-
-  .card-actions {
-    flex-direction: column;
-  }
-
-  .btn-secondary,
-  .btn-primary,
-  .btn-joined,
-  .btn-full {
-    width: 100%;
+    padding: 1rem;
   }
 }
 </style>
