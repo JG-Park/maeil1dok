@@ -559,11 +559,12 @@
       </div>
 
       <!-- 소셜 기능 섹션 -->
+      <!-- 소셜 기능 섹션 -->
       <div class="section fade-in" style="animation-delay: 1s">
         <h2>커뮤니티</h2>
         <div class="social-features">
           <NuxtLink to="/scoreboard" class="social-card">
-            <div class="social-icon scoreboard-icon">
+            <div class="social-icon">
               <svg
                 width="24"
                 height="24"
@@ -581,15 +582,11 @@
             </div>
             <div class="social-content">
               <h3>리더보드</h3>
-              <p>다른 참여자들과 진행률을 비교해보세요</p>
             </div>
-            <svg class="arrow-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
           </NuxtLink>
 
           <NuxtLink to="/groups" class="social-card">
-            <div class="social-icon groups-icon">
+            <div class="social-icon">
               <svg
                 width="24"
                 height="24"
@@ -605,15 +602,11 @@
             </div>
             <div class="social-content">
               <h3>그룹</h3>
-              <p>함께 성경을 읽는 그룹에 참여하세요</p>
             </div>
-            <svg class="arrow-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
           </NuxtLink>
 
           <NuxtLink v-if="auth.isAuthenticated" :to="`/profile/${auth.user?.id}`" class="social-card">
-            <div class="social-icon profile-icon">
+            <div class="social-icon">
               <svg
                 width="24"
                 height="24"
@@ -627,11 +620,7 @@
             </div>
             <div class="social-content">
               <h3>내 프로필</h3>
-              <p>나의 통독 기록과 업적을 확인하세요</p>
             </div>
-            <svg class="arrow-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
           </NuxtLink>
         </div>
       </div>
@@ -2022,17 +2011,19 @@ h2 {
 /* 소셜 기능 섹션 스타일 */
 .social-features {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+  margin-top: 0.5rem;
 }
 
 .social-card {
+  flex: 1;
   display: flex;
   align-items: center;
+  gap: 1rem;
   padding: 1rem;
   background: #fafafa;
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.03);
   text-decoration: none;
   color: var(--text-primary);
   transition: all 0.2s ease;
@@ -2040,36 +2031,22 @@ h2 {
 }
 
 .social-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
   background: white;
   border-color: var(--primary-color);
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(97, 163, 117, 0.1);
 }
 
 .social-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 1rem;
+  width: 40px;
+  height: 40px;
+  background: var(--primary-light);
+  border-radius: 10px;
+  color: var(--primary-dark);
   flex-shrink: 0;
-}
-
-.scoreboard-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.groups-icon {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-}
-
-.profile-icon {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
 }
 
 .social-content {
@@ -2077,29 +2054,10 @@ h2 {
 }
 
 .social-content h3 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 0.25rem 0;
   color: var(--text-primary);
-}
-
-.social-content p {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
   margin: 0;
-}
-
-.arrow-icon {
-  color: var(--text-secondary);
-  opacity: 0.5;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.social-card:hover .arrow-icon {
-  color: var(--primary-color);
-  opacity: 1;
-  transform: translateX(2px);
 }
 
 /* GitHub 링크 스타일 */
