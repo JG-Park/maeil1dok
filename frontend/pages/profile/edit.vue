@@ -15,12 +15,18 @@
           <div>
             <label class="form-label">프로필 이미지</label>
             <div class="flex items-center space-x-4">
-              <img
-                :src="user?.profile_image || '/default-profile.png'"
-                :alt="user?.nickname"
-                class="profile-image"
-                @error="(e) => e.target.src = '/default-profile.png'"
-              >
+              <div class="profile-image-wrapper">
+                <img
+                  v-if="user?.profile_image && !imageError"
+                  :src="user.profile_image"
+                  :alt="user?.nickname"
+                  class="profile-image"
+                  @error="handleImageError"
+                >
+                <div v-else class="profile-placeholder">
+                  <i class="fa-solid fa-user"></i>
+                </div>
+              </div>
               <p class="text-sm text-gray-500">
                 프로필 이미지는 소셜 로그인 계정에서 가져옵니다.
               </p>
@@ -130,6 +136,11 @@ const profile = computed(() => profileStore.currentProfile)
 const bio = ref('')
 const isPublic = ref(true)
 const isSaving = ref(false)
+const imageError = ref(false)
+
+const handleImageError = () => {
+  imageError.value = true
+}
 
 // 프로필 로드
 onMounted(async () => {
@@ -207,12 +218,30 @@ const saveProfile = async () => {
   padding: 1rem;
 }
 
-.profile-image {
+.profile-image-wrapper {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  object-fit: cover;
+  overflow: hidden;
   border: 2px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+.profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-size: 2rem;
 }
 
 .input-field.disabled {

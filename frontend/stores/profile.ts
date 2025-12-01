@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
+import { useAuthStore } from '~/stores/auth'
 
 interface UserProfile {
   id: number
@@ -65,11 +66,11 @@ export const useProfileStore = defineStore('profile', {
     async fetchProfile(userId: number) {
       this.isLoading = true
       this.error = null
-      
+
       try {
         const response = await useApi().get(`/api/v1/accounts/profile/${userId}/`)
         if (response.data?.success) {
-          this.currentProfile = response.data.profile
+          this.currentProfile = response.data.data?.profile || response.data.profile
         } else {
           this.error = response.data?.error || '프로필을 불러올 수 없습니다.'
         }

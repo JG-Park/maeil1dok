@@ -8,11 +8,15 @@
     <td class="user-cell">
       <div class="user-info">
         <img
-          :src="user.profile_image || '/default-profile.png'"
+          v-if="user.profile_image && !imageError"
+          :src="user.profile_image"
           :alt="user.nickname"
           class="user-avatar"
           @error="handleImageError"
         >
+        <div v-else class="user-avatar-placeholder">
+          <i class="fa-solid fa-user"></i>
+        </div>
         <div>
           <NuxtLink
             :to="`/profile/${user.id}`"
@@ -49,7 +53,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+
+const imageError = ref(false)
 
 const props = defineProps({
   rank: {
@@ -91,8 +97,8 @@ const rankClass = computed(() => {
   return classes
 })
 
-const handleImageError = (event) => {
-  event.target.src = '/default-profile.png'
+const handleImageError = () => {
+  imageError.value = true
 }
 </script>
 
@@ -160,6 +166,20 @@ tr:hover {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--gray-200);
+}
+
+.user-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .user-name {
@@ -253,9 +273,14 @@ tr:hover {
     padding: 0.75rem 0.5rem;
   }
 
-  .user-avatar {
+  .user-avatar,
+  .user-avatar-placeholder {
     width: 32px;
     height: 32px;
+  }
+
+  .user-avatar-placeholder {
+    font-size: 0.875rem;
   }
 
   .rank-number {

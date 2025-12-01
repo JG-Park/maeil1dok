@@ -13,7 +13,11 @@
           </div>
 
           <div class="modal-content">
-            <div v-if="following.length > 0" class="following-list">
+            <div v-if="isLoading" class="loading-container">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">로딩 중...</p>
+            </div>
+            <div v-else-if="following.length > 0" class="following-list">
               <div
                 v-for="user in following"
                 :key="user.id"
@@ -21,11 +25,15 @@
                 @click="navigateToProfile(user.id)"
               >
                 <img
-                  :src="user.profile_image || '/default-profile.png'"
+                  v-if="user.profile_image && !avatarErrors[user.id]"
+                  :src="user.profile_image"
                   :alt="user.nickname"
                   class="following-avatar"
-                  @error="handleImageError"
+                  @error="() => handleImageError(user.id)"
                 >
+                <div v-else class="following-avatar-placeholder">
+                  <i class="fa-solid fa-user"></i>
+                </div>
                 <div class="following-info">
                   <div class="following-nickname">{{ user.nickname }}</div>
                   <div v-if="user.bio" class="following-bio">{{ user.bio }}</div>
@@ -52,8 +60,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import EmptyState from '../common/EmptyState.vue'
+
+const avatarErrors = ref({})
 
 const props = defineProps({
   isOpen: {
@@ -63,6 +73,10 @@ const props = defineProps({
   followingData: {
     type: Array,
     default: () => []
+  },
+  isLoading: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -113,8 +127,8 @@ const handleUnfollow = (user) => {
   emit('unfollow', user)
 }
 
-const handleImageError = (event) => {
-  event.target.src = '/default-profile.png'
+const handleImageError = (userId) => {
+  avatarErrors.value[userId] = true
 }
 </script>
 
@@ -184,6 +198,35 @@ const handleImageError = (event) => {
   padding: 1rem 0;
 }
 
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  margin-top: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .following-list {
   display: flex;
   flex-direction: column;
@@ -208,6 +251,20 @@ const handleImageError = (event) => {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+.following-avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-size: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -285,9 +342,14 @@ const handleImageError = (event) => {
     padding: 0.75rem 1rem;
   }
 
-  .following-avatar {
+  .following-avatar,
+  .following-avatar-placeholder {
     width: 40px;
     height: 40px;
+  }
+
+  .following-avatar-placeholder {
+    font-size: 1rem;
   }
 
   .unfollow-button {

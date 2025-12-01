@@ -13,7 +13,11 @@
           </div>
 
           <div class="modal-content">
-            <div v-if="followers.length > 0" class="followers-list">
+            <div v-if="isLoading" class="loading-container">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">로딩 중...</p>
+            </div>
+            <div v-else-if="followers.length > 0" class="followers-list">
               <div
                 v-for="follower in followers"
                 :key="follower.id"
@@ -21,11 +25,15 @@
                 @click="navigateToProfile(follower.id)"
               >
                 <img
-                  :src="follower.profile_image || '/default-profile.png'"
+                  v-if="follower.profile_image && !avatarErrors[follower.id]"
+                  :src="follower.profile_image"
                   :alt="follower.nickname"
                   class="follower-avatar"
-                  @error="handleImageError"
+                  @error="() => handleImageError(follower.id)"
                 >
+                <div v-else class="follower-avatar-placeholder">
+                  <i class="fa-solid fa-user"></i>
+                </div>
                 <div class="follower-info">
                   <div class="follower-nickname">{{ follower.nickname }}</div>
                   <div v-if="follower.bio" class="follower-bio">{{ follower.bio }}</div>
@@ -53,8 +61,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import EmptyState from '../common/EmptyState.vue'
+
+const avatarErrors = ref({})
 
 const props = defineProps({
   isOpen: {
@@ -64,6 +74,10 @@ const props = defineProps({
   followersData: {
     type: Array,
     default: () => []
+  },
+  isLoading: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -114,8 +128,8 @@ const toggleFollow = (follower) => {
   emit('toggleFollow', follower)
 }
 
-const handleImageError = (event) => {
-  event.target.src = '/default-profile.png'
+const handleImageError = (userId) => {
+  avatarErrors.value[userId] = true
 }
 </script>
 
@@ -185,6 +199,35 @@ const handleImageError = (event) => {
   padding: 1rem 0;
 }
 
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  margin-top: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .followers-list {
   display: flex;
   flex-direction: column;
@@ -209,6 +252,20 @@ const handleImageError = (event) => {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+.follower-avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-size: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -296,9 +353,14 @@ const handleImageError = (event) => {
     padding: 0.75rem 1rem;
   }
 
-  .follower-avatar {
+  .follower-avatar,
+  .follower-avatar-placeholder {
     width: 40px;
     height: 40px;
+  }
+
+  .follower-avatar-placeholder {
+    font-size: 1rem;
   }
 
   .follow-button {

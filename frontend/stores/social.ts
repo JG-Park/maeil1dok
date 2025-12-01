@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
+import { useAuthStore } from '~/stores/auth'
 
 interface User {
   id: number
@@ -41,14 +42,17 @@ export const useSocialStore = defineStore('social', {
   actions: {
     async fetchFollowers(userId: number) {
       this.isLoading = true
+      this.error = null
       try {
-        const { data } = await useApi().get(`/api/v1/accounts/followers/${userId}/`)
-        if (data.value?.success) {
-          this.followers = data.value.followers
+        const response = await useApi().get(`/api/v1/accounts/followers/${userId}/`)
+        if (response.data?.success) {
+          this.followers = response.data.followers
+        } else {
+          this.error = response.data?.error || '팔로워를 불러올 수 없습니다.'
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('팔로워 조회 실패:', error)
-        this.error = '팔로워를 불러올 수 없습니다.'
+        this.error = error.message || '팔로워를 불러올 수 없습니다.'
       } finally {
         this.isLoading = false
       }
@@ -56,14 +60,17 @@ export const useSocialStore = defineStore('social', {
 
     async fetchFollowing(userId: number) {
       this.isLoading = true
+      this.error = null
       try {
-        const { data } = await useApi().get(`/api/v1/accounts/following/${userId}/`)
-        if (data.value?.success) {
-          this.following = data.value.following
+        const response = await useApi().get(`/api/v1/accounts/following/${userId}/`)
+        if (response.data?.success) {
+          this.following = response.data.following
+        } else {
+          this.error = response.data?.error || '팔로잉 목록을 불러올 수 없습니다.'
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('팔로잉 조회 실패:', error)
-        this.error = '팔로잉 목록을 불러올 수 없습니다.'
+        this.error = error.message || '팔로잉 목록을 불러올 수 없습니다.'
       } finally {
         this.isLoading = false
       }
@@ -71,17 +78,21 @@ export const useSocialStore = defineStore('social', {
 
     async fetchFriends() {
       this.isLoading = true
+      this.error = null
       try {
-        const { data } = await useApi().get('/api/v1/accounts/friends/')
-        if (data.value?.success) {
-          this.friends = data.value.friends.map((friend: User) => ({
+        const response = await useApi().get('/api/v1/accounts/friends/')
+        if (response.data?.success) {
+          const friendsData = response.data.data?.friends || response.data.friends
+          this.friends = friendsData.map((friend: User) => ({
             ...friend,
             is_mutual: true
           }))
+        } else {
+          this.error = response.data?.error || '친구 목록을 불러올 수 없습니다.'
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('친구 목록 조회 실패:', error)
-        this.error = '친구 목록을 불러올 수 없습니다.'
+        this.error = error.message || '친구 목록을 불러올 수 없습니다.'
       } finally {
         this.isLoading = false
       }
@@ -89,37 +100,40 @@ export const useSocialStore = defineStore('social', {
 
     async followUser(userId: number) {
       try {
-        const { data } = await useApi().post('/api/v1/accounts/follow/', {
+        const response = await useApi().post('/api/v1/accounts/follow/', {
           user_id: userId
         })
-        
-        if (data.value?.success) {
+
+        if (response?.success) {
           // 팔로잉 목록 업데이트
-          await this.fetchFollowing(useAuthStore().user?.id || 0)
+          const authStore = useAuthStore()
+          if (authStore.user?.id) {
+            await this.fetchFollowing(authStore.user.id)
+          }
           return { success: true }
         } else {
-          return { success: false, error: data.value?.error }
+          return { success: false, error: response?.error || '팔로우에 실패했습니다.' }
         }
       } catch (error: any) {
-        return { success: false, error: error.message }
+        return { success: false, error: error.message || '팔로우에 실패했습니다.' }
       }
     },
 
     async unfollowUser(userId: number) {
       try {
-        const { data } = await useApi().delete(`/api/v1/accounts/unfollow/${userId}/`)
-        
-        if (data.value?.success) {
+        const response = await useApi().delete(`/api/v1/accounts/unfollow/${userId}/`)
+
+        if (response?.success) {
           // 팔로잉 목록에서 제거
           this.following = this.following.filter(user => user.id !== userId)
           // 친구 목록에서도 제거 (상호 팔로우가 깨짐)
           this.friends = this.friends.filter(friend => friend.id !== userId)
           return { success: true }
         } else {
-          return { success: false, error: data.value?.error }
+          return { success: false, error: response?.error || '언팔로우에 실패했습니다.' }
         }
       } catch (error: any) {
-        return { success: false, error: error.message }
+        return { success: false, error: error.message || '언팔로우에 실패했습니다.' }
       }
     },
 
@@ -130,15 +144,18 @@ export const useSocialStore = defineStore('social', {
       }
 
       this.isLoading = true
+      this.error = null
       try {
-        const { data } = await useApi().get('/api/v1/accounts/search/', {
+        const response = await useApi().get('/api/v1/accounts/search/', {
           params: { q: query }
         })
-        
-        if (data.value?.success) {
-          this.searchResults = data.value.users
+
+        if (response.data?.success) {
+          this.searchResults = response.data.users
+        } else {
+          this.searchResults = []
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('사용자 검색 실패:', error)
         this.searchResults = []
       } finally {
