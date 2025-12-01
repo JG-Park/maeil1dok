@@ -194,7 +194,7 @@ onUnmounted(() => {
 }
 
 .ranking-value {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 700;
   margin: 0.25rem 0;
 }
@@ -258,7 +258,7 @@ onUnmounted(() => {
 }
 
 .top-days {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0.25rem 0;

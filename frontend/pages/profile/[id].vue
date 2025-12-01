@@ -110,6 +110,7 @@
       <ProfileCalendar
         v-if="activeTab === 'calendar' && profile"
         :calendar-data="calendarData"
+        @month-change="handleMonthChange"
       />
 
       <!-- 업적 탭 -->
@@ -236,6 +237,11 @@ const handleUnfollow = (user: any) => {
   // 팔로잉 모달에서의 언팔로우 처리
 }
 
+// 달력 월 변경
+const handleMonthChange = async (year: number, month: number) => {
+  await profileStore.fetchCalendarData(userId.value, year, month)
+}
+
 // 날짜 포맷
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString('ko-KR', {
@@ -292,7 +298,7 @@ onUnmounted(() => {
 }
 
 .profile-name {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 0.25rem 0;
@@ -352,11 +358,6 @@ onUnmounted(() => {
   gap: 0.75rem;
 }
 
-@media (min-width: 640px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
 
 .stat-item {
   background: var(--gray-50);
@@ -366,7 +367,7 @@ onUnmounted(() => {
 }
 
 .stat-value {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
@@ -377,7 +378,7 @@ onUnmounted(() => {
 .stat-value.orange { color: #F97316; }
 
 .stat-label {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
 }
 
@@ -473,7 +474,7 @@ onUnmounted(() => {
   }
 
   .profile-name {
-    font-size: 1.25rem;
+    font-size: 1rem;
   }
 }
 </style>

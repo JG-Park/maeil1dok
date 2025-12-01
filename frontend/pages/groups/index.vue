@@ -45,7 +45,7 @@
       <LoadingState v-if="isLoading" message="그룹을 불러오는 중..." />
 
       <!-- 그룹 목록 -->
-      <div v-else-if="currentGroups.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in delay-100">
+      <div v-else-if="currentGroups.length > 0" class="groups-grid fade-in delay-100">
         <GroupCard
           v-for="group in currentGroups"
           :key="group.id"
@@ -230,5 +230,11 @@ onUnmounted(() => {
 
 .action-button:active {
   transform: scale(0.95);
+}
+
+.groups-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 </style>

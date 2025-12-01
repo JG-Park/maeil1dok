@@ -434,7 +434,7 @@ onUnmounted(() => {
 
 .group-name {
   flex: 1;
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -778,7 +778,7 @@ onUnmounted(() => {
 /* 반응형 */
 @media (max-width: 640px) {
   .group-name {
-    font-size: 1.25rem;
+    font-size: 1rem;
   }
 
   .action-buttons {
