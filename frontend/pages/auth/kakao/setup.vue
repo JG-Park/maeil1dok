@@ -143,7 +143,7 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     // 카카오 회원가입 완료 API 호출
-    const response = await api.post('/api/v1/auth/kakao/complete-signup/', {
+    const response = await api.post('/api/v1/auth/complete-kakao-signup/', {
       nickname: nickname.value,
       ...route.query  // 카카오에서 받은 정보 포함
     })
