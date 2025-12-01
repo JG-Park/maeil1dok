@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   calendarData: {
@@ -61,6 +61,8 @@ const props = defineProps({
     default: () => []
   }
 })
+
+const emit = defineEmits(['month-change'])
 
 const currentDate = new Date()
 const currentYear = ref(currentDate.getFullYear())
@@ -109,7 +111,7 @@ const calendarDates = computed(() => {
     today.setHours(0, 0, 0, 0)
 
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const isCompleted = props.calendarData.some(d => d.date === dateStr && d.completed)
+    const isCompleted = props.calendarData.some(d => d.date === dateStr && d.is_completed)
 
     dates.push({
       day,
@@ -142,6 +144,7 @@ const previousMonth = () => {
   } else {
     currentMonth.value--
   }
+  emit('month-change', currentYear.value, currentMonth.value + 1)
 }
 
 const nextMonth = () => {
@@ -153,6 +156,7 @@ const nextMonth = () => {
   } else {
     currentMonth.value++
   }
+  emit('month-change', currentYear.value, currentMonth.value + 1)
 }
 </script>
 
