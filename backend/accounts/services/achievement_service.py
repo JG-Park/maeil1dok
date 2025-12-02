@@ -151,6 +151,8 @@ class AchievementService:
     @staticmethod
     def _check_book_completion(user):
         """성경책별 완독 확인 - 완독한 책 목록 반환"""
+        from todos.models import PlanSubscription
+
         # 사용자가 완료한 모든 스케줄의 책 목록
         completed_books = UserBibleProgress.objects.filter(
             subscription__user=user,
@@ -158,6 +160,12 @@ class AchievementService:
         ).values_list('schedule__book', flat=True).distinct()
 
         completed_books_set = set(completed_books)
+
+        # 사용자의 활성 구독 플랜 ID 목록 가져오기
+        active_plan_ids = PlanSubscription.objects.filter(
+            user=user,
+            is_active=True
+        ).values_list('plan_id', flat=True)
 
         # 각 책에 대해 모든 장을 읽었는지 확인하기 어려우므로,
         # 플랜의 해당 책 스케줄을 모두 완료했는지 확인
@@ -168,8 +176,7 @@ class AchievementService:
                 # 해당 책의 스케줄 중 완료한 것의 비율 확인
                 total_schedules = DailyBibleSchedule.objects.filter(
                     book=book,
-                    plan__subscriptions__user=user,
-                    plan__subscriptions__is_active=True
+                    plan_id__in=active_plan_ids
                 ).distinct().count()
 
                 if total_schedules > 0:
