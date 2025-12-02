@@ -150,9 +150,11 @@
 import { ref, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
+import { useSocialStore } from '~/stores/social'
 import UserCard from '~/components/UserCard.vue'
 
 const authStore = useAuthStore()
+const socialStore = useSocialStore()
 const activeTab = ref('friends')
 const searchQuery = ref('')
 
@@ -169,7 +171,9 @@ const fetchFriends = async () => {
   try {
     const response = await useApi().get('/api/v1/accounts/friends/')
     if (response.data?.success) {
-      friendsList.value = response.data.friends.map(friend => ({
+      // 하위 호환: response.data.data?.friends 또는 response.data.friends
+      const friends = response.data.data?.friends ?? response.data.friends ?? []
+      friendsList.value = friends.map(friend => ({
         ...friend,
         is_friend: true,
         is_mutual_follow: true
@@ -184,11 +188,12 @@ const fetchFriends = async () => {
 // 팔로워 목록 가져오기
 const fetchFollowers = async () => {
   if (!authStore.user) return
-  
+
   try {
     const response = await useApi().get(`/api/v1/accounts/followers/${authStore.user.id}/`)
     if (response.data?.success) {
-      followersList.value = response.data.followers
+      // 하위 호환: response.data.data?.followers 또는 response.data.followers
+      followersList.value = response.data.data?.followers ?? response.data.followers ?? []
     }
   } catch (error) {
     console.error('팔로워 목록 조회 실패:', error)
@@ -198,11 +203,12 @@ const fetchFollowers = async () => {
 // 팔로잉 목록 가져오기
 const fetchFollowing = async () => {
   if (!authStore.user) return
-  
+
   try {
     const response = await useApi().get(`/api/v1/accounts/following/${authStore.user.id}/`)
     if (response.data?.success) {
-      followingList.value = response.data.following
+      // 하위 호환: response.data.data?.following 또는 response.data.following
+      followingList.value = response.data.data?.following ?? response.data.following ?? []
     }
   } catch (error) {
     console.error('팔로잉 목록 조회 실패:', error)
@@ -215,62 +221,69 @@ const searchUsers = async () => {
     searchResults.value = []
     return
   }
-  
+
   try {
     const response = await useApi().get('/api/v1/accounts/search/', {
       params: { q: searchQuery.value }
     })
     if (response.data?.success) {
-      searchResults.value = response.data.users
+      // 하위 호환: response.data.data?.users 또는 response.data.users
+      searchResults.value = response.data.data?.users ?? response.data.users ?? []
     }
   } catch (error) {
     console.error('사용자 검색 실패:', error)
   }
 }
 
-// 팔로우 처리
-const handleFollow = async (userId) => {
-  try {
-    const response = await useApi().post('/api/v1/accounts/follow/', {
-      user_id: userId
-    })
-    if (response.data?.success || response.success) {
-      // 목록 새로고침
-      await Promise.all([
-        fetchFriends(),
-        fetchFollowers(),
-        fetchFollowing()
-      ])
-      
-      // 검색 결과도 업데이트
-      if (searchQuery.value) {
-        await searchUsers()
-      }
+// 로컬 목록에서 is_following 상태 업데이트 (낙관적 업데이트)
+const updateLocalFollowStatus = (userId, isFollowing) => {
+  // 팔로워 목록 업데이트
+  followersList.value = followersList.value.map(user =>
+    user.id === userId ? { ...user, is_following: isFollowing } : user
+  )
+  // 검색 결과 업데이트
+  searchResults.value = searchResults.value.map(user =>
+    user.id === userId ? { ...user, is_following: isFollowing } : user
+  )
+  // 팔로잉 목록 업데이트
+  if (isFollowing) {
+    // 팔로우 시: 팔로잉 목록에 추가 (이미 있으면 무시)
+    const userToAdd = followersList.value.find(u => u.id === userId) ||
+                      searchResults.value.find(u => u.id === userId)
+    if (userToAdd && !followingList.value.some(u => u.id === userId)) {
+      followingList.value.push({ ...userToAdd, is_following: true })
     }
-  } catch (error) {
-    console.error('팔로우 실패:', error)
+  } else {
+    // 언팔로우 시: 팔로잉 목록에서 제거
+    followingList.value = followingList.value.filter(u => u.id !== userId)
+    // 친구 목록에서도 제거 (상호 팔로우 깨짐)
+    friendsList.value = friendsList.value.filter(u => u.id !== userId)
   }
 }
 
-// 언팔로우 처리
+// 팔로우 처리 (social store 사용 + 낙관적 업데이트)
+const handleFollow = async (userId) => {
+  // 사용자 정보 찾기 (낙관적 업데이트용)
+  const userInfo = followersList.value.find(u => u.id === userId) ||
+                   searchResults.value.find(u => u.id === userId)
+
+  const result = await socialStore.followUser(userId, userInfo)
+  if (result.success) {
+    // 로컬 상태 낙관적 업데이트
+    updateLocalFollowStatus(userId, true)
+  } else {
+    console.error('팔로우 실패:', result.error)
+  }
+}
+
+// 언팔로우 처리 (social store 사용 + 낙관적 업데이트)
 const handleUnfollow = async (userId) => {
-  try {
-    const response = await useApi().delete(`/api/v1/accounts/unfollow/${userId}/`)
-    if (response.data?.success || response.success) {
-      // 목록 새로고침
-      await Promise.all([
-        fetchFriends(),
-        fetchFollowers(),
-        fetchFollowing()
-      ])
-      
-      // 검색 결과도 업데이트
-      if (searchQuery.value) {
-        await searchUsers()
-      }
-    }
-  } catch (error) {
-    console.error('언팔로우 실패:', error)
+  const result = await socialStore.unfollowUser(userId)
+  if (result.success) {
+    // 로컬 상태 낙관적 업데이트
+    updateLocalFollowStatus(userId, false)
+  } else {
+    console.error('언팔로우 실패:', result.error)
   }
 }
 

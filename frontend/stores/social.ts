@@ -46,7 +46,8 @@ export const useSocialStore = defineStore('social', {
       try {
         const response = await useApi().get(`/api/v1/accounts/followers/${userId}/`)
         if (response.data?.success) {
-          this.followers = response.data.followers
+          // 하위 호환: response.data.data?.followers 또는 response.data.followers
+          this.followers = response.data.data?.followers ?? response.data.followers ?? []
         } else {
           this.error = response.data?.error || '팔로워를 불러올 수 없습니다.'
         }
@@ -64,7 +65,8 @@ export const useSocialStore = defineStore('social', {
       try {
         const response = await useApi().get(`/api/v1/accounts/following/${userId}/`)
         if (response.data?.success) {
-          this.following = response.data.following
+          // 하위 호환: response.data.data?.following 또는 response.data.following
+          this.following = response.data.data?.following ?? response.data.following ?? []
         } else {
           this.error = response.data?.error || '팔로잉 목록을 불러올 수 없습니다.'
         }
@@ -98,21 +100,41 @@ export const useSocialStore = defineStore('social', {
       }
     },
 
-    async followUser(userId: number) {
+    // 모든 목록에서 사용자의 is_following 상태 업데이트
+    updateUserFollowStatus(userId: number, isFollowing: boolean) {
+      // 팔로워 목록 업데이트
+      this.followers = this.followers.map(user =>
+        user.id === userId ? { ...user, is_following: isFollowing } : user
+      )
+      // 검색 결과 업데이트
+      this.searchResults = this.searchResults.map(user =>
+        user.id === userId ? { ...user, is_following: isFollowing } : user
+      )
+    },
+
+    async followUser(userId: number, userInfo?: Partial<User>) {
       try {
         const response = await useApi().post('/api/v1/accounts/follow/', {
           user_id: userId
         })
 
-        if (response?.success) {
-          // 팔로잉 목록 업데이트
-          const authStore = useAuthStore()
-          if (authStore.user?.id) {
-            await this.fetchFollowing(authStore.user.id)
+        if (response?.success || response?.data?.success) {
+          // 낙관적 업데이트: 팔로잉 목록에 추가
+          if (userInfo && !this.following.some(u => u.id === userId)) {
+            this.following.push({
+              id: userId,
+              username: userInfo.username || '',
+              nickname: userInfo.nickname || '',
+              profile_image: userInfo.profile_image,
+              is_following: true,
+              total_completed_days: userInfo.total_completed_days
+            })
           }
+          // 모든 목록에서 is_following 상태 업데이트
+          this.updateUserFollowStatus(userId, true)
           return { success: true }
         } else {
-          return { success: false, error: response?.error || '팔로우에 실패했습니다.' }
+          return { success: false, error: response?.error || response?.data?.error || '팔로우에 실패했습니다.' }
         }
       } catch (error: any) {
         return { success: false, error: error.message || '팔로우에 실패했습니다.' }
@@ -123,14 +145,16 @@ export const useSocialStore = defineStore('social', {
       try {
         const response = await useApi().delete(`/api/v1/accounts/unfollow/${userId}/`)
 
-        if (response?.success) {
+        if (response?.success || response?.data?.success) {
           // 팔로잉 목록에서 제거
           this.following = this.following.filter(user => user.id !== userId)
           // 친구 목록에서도 제거 (상호 팔로우가 깨짐)
           this.friends = this.friends.filter(friend => friend.id !== userId)
+          // 모든 목록에서 is_following 상태 업데이트
+          this.updateUserFollowStatus(userId, false)
           return { success: true }
         } else {
-          return { success: false, error: response?.error || '언팔로우에 실패했습니다.' }
+          return { success: false, error: response?.error || response?.data?.error || '언팔로우에 실패했습니다.' }
         }
       } catch (error: any) {
         return { success: false, error: error.message || '언팔로우에 실패했습니다.' }
@@ -151,7 +175,8 @@ export const useSocialStore = defineStore('social', {
         })
 
         if (response.data?.success) {
-          this.searchResults = response.data.users
+          // 하위 호환: response.data.data?.users 또는 response.data.users
+          this.searchResults = response.data.data?.users ?? response.data.users ?? []
         } else {
           this.searchResults = []
         }

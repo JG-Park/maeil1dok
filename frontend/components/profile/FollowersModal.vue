@@ -86,37 +86,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'toggleFollow'])
 
-// Mock followers data
-const mockFollowers = [
-  {
-    id: 1,
-    nickname: '김철수',
-    profile_image: null,
-    bio: '매일 성경을 읽는 청년입니다',
-    is_following: true,
-    is_me: false
-  },
-  {
-    id: 2,
-    nickname: '이영희',
-    profile_image: null,
-    bio: null,
-    is_following: false,
-    is_me: false
-  },
-  {
-    id: 3,
-    nickname: '박민수',
-    profile_image: null,
-    bio: '함께 성경을 읽어요!',
-    is_following: true,
-    is_me: false
-  }
-]
-
-const followers = computed(() => {
-  return props.followersData.length > 0 ? props.followersData : mockFollowers
-})
+const followers = computed(() => props.followersData)
 
 const handleClose = () => {
   emit('close')

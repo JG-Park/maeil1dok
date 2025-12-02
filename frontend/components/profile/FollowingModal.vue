@@ -39,10 +39,12 @@
                   <div v-if="user.bio" class="following-bio">{{ user.bio }}</div>
                 </div>
                 <button
-                  class="unfollow-button"
+                  :disabled="loadingIds[user.id]"
+                  :class="['unfollow-button', { 'loading': loadingIds[user.id] }]"
                   @click.stop="handleUnfollow(user)"
                 >
-                  팔로잉
+                  <span v-if="loadingIds[user.id]" class="btn-loading-spinner"></span>
+                  <span v-else>팔로잉</span>
                 </button>
               </div>
             </div>
@@ -64,6 +66,7 @@ import { computed, ref } from 'vue'
 import EmptyState from '../common/EmptyState.vue'
 
 const avatarErrors = ref({})
+const loadingIds = ref({})
 
 const props = defineProps({
   isOpen: {
@@ -82,37 +85,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'unfollow'])
 
-// Mock following data
-const mockFollowing = [
-  {
-    id: 4,
-    nickname: '정다은',
-    profile_image: null,
-    bio: '하나님의 말씀과 함께하는 삶',
-  },
-  {
-    id: 5,
-    nickname: '최유진',
-    profile_image: null,
-    bio: null,
-  },
-  {
-    id: 6,
-    nickname: '강민호',
-    profile_image: null,
-    bio: '새벽마다 성경을 읽습니다',
-  },
-  {
-    id: 7,
-    nickname: '윤서연',
-    profile_image: null,
-    bio: '통독 챌린지 참여 중!',
-  }
-]
-
-const following = computed(() => {
-  return props.followingData.length > 0 ? props.followingData : mockFollowing
-})
+const following = computed(() => props.followingData)
 
 const handleClose = () => {
   emit('close')
@@ -123,8 +96,17 @@ const navigateToProfile = (userId) => {
   navigateTo(`/profile/${userId}`)
 }
 
-const handleUnfollow = (user) => {
-  emit('unfollow', user)
+const handleUnfollow = async (user) => {
+  if (loadingIds.value[user.id]) return
+
+  loadingIds.value[user.id] = true
+  try {
+    emit('unfollow', user)
+    // 부모 컴포넌트에서 처리 후 약간의 지연
+    await new Promise(resolve => setTimeout(resolve, 300))
+  } finally {
+    loadingIds.value[user.id] = false
+  }
 }
 
 const handleImageError = (userId) => {
@@ -307,6 +289,31 @@ const handleImageError = (userId) => {
 .unfollow-button:hover {
   background: white;
   color: var(--primary-color);
+}
+
+.unfollow-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.unfollow-button.loading {
+  pointer-events: none;
+}
+
+.btn-loading-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.75s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-enter-active,

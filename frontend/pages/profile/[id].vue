@@ -31,7 +31,7 @@
             <div class="profile-actions">
               <button
                 v-if="isOwnProfile"
-                @click="navigateTo('/profile/edit')"
+                @click="showEditModal = true"
                 class="btn-action btn-secondary"
               >
                 프로필 편집
@@ -171,6 +171,14 @@
         @close="showFollowing = false"
         @unfollow="handleUnfollow"
       />
+
+      <!-- 프로필 편집 모달 -->
+      <ProfileEditModal
+        v-if="showEditModal && profile"
+        :profile="profile"
+        @close="showEditModal = false"
+        @saved="handleProfileSaved"
+      />
     </div>
   </PageLayout>
 </template>
@@ -187,6 +195,7 @@ import ProfileAchievements from '~/components/profile/ProfileAchievements.vue'
 import ProfileGroups from '~/components/profile/ProfileGroups.vue'
 import FollowersModal from '~/components/profile/FollowersModal.vue'
 import FollowingModal from '~/components/profile/FollowingModal.vue'
+import ProfileEditModal from '~/components/profile/ProfileEditModal.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -220,6 +229,7 @@ const {
 const activeTab = ref('calendar')
 const showFollowers = ref(false)
 const showFollowing = ref(false)
+const showEditModal = ref(false)
 const avatarError = ref(false)
 
 const handleAvatarError = () => {
@@ -296,6 +306,12 @@ const formatDate = (date: string) => {
 const handleCalendarDayClick = (date: { dateStr: string; day: number }) => {
   // 날짜 클릭 시 해당 날짜의 읽기 페이지로 이동 (추후 구현 가능)
   console.log('Calendar day clicked:', date)
+}
+
+// 프로필 편집 저장 후 처리
+const handleProfileSaved = () => {
+  // 프로필 데이터 다시 로드
+  loadInitialData()
 }
 
 // 페이지 떠날 때 정리

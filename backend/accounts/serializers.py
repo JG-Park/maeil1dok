@@ -153,6 +153,12 @@ class UserSearchSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'nickname', 'profile_image', 'is_following', 'total_completed_days']
     
     def get_is_following(self, obj):
+        # context에서 미리 계산된 following_ids가 있으면 사용 (N+1 방지)
+        following_ids = self.context.get('following_ids')
+        if following_ids is not None:
+            return obj.id in following_ids
+
+        # fallback: 직접 쿼리 (하위 호환)
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Follow.objects.filter(

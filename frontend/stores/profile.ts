@@ -103,7 +103,8 @@ export const useProfileStore = defineStore('profile', {
       try {
         const response = await useApi().get(`/api/v1/accounts/profile/${userId}/achievements/`)
         if (response.data?.success) {
-          this.achievements = response.data.achievements
+          // 하위 호환: response.data.data?.achievements 또는 response.data.achievements
+          this.achievements = response.data.data?.achievements ?? response.data.achievements ?? []
         }
       } catch (error) {
         console.error('업적 조회 실패:', error)
@@ -115,9 +116,10 @@ export const useProfileStore = defineStore('profile', {
         const response = await useApi().get(`/api/v1/accounts/profile/${userId}/calendar/`, {
           params: { year, month }
         })
-        
+
         if (response.data?.success) {
-          this.calendarData = response.data.calendar
+          // 하위 호환: response.data.data?.calendar 또는 response.data.calendar
+          this.calendarData = response.data.data?.calendar ?? response.data.calendar ?? []
         }
       } catch (error) {
         console.error('달력 데이터 조회 실패:', error)
