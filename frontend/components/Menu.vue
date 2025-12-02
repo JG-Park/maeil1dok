@@ -109,7 +109,7 @@
                 <!-- 하단 정보 영역 추가 -->
                 <div class="menu-footer">
                   <div class="app-version">
-                    <img src="@/assets/images/maeil1dok_footer.png" alt="매일일독" class="footer-logo"><span> v2.0.1</span>
+                    <img src="@/assets/images/maeil1dok_footer.png" alt="매일일독" class="footer-logo"><span> v2.6.4</span>
                   </div>
                   <div class="github-link-container">
                     <a href="https://github.com/JG-Park/maeil1dok/" target="_blank" rel="noopener noreferrer"
