@@ -9,11 +9,13 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import User, UserProfile, Follow, UserAchievement
 from .serializers import (
-    UserProfileSerializer, FollowSerializer, 
+    UserProfileSerializer, FollowSerializer,
     UserAchievementSerializer, UserCalendarDataSerializer,
     UserSearchSerializer
 )
-from todos.models import UserBibleProgress, PlanSubscription, DailyBibleSchedule
+from .achievement_config import ACHIEVEMENT_METADATA
+from todos.models import UserBibleProgress, PlanSubscription, DailyBibleSchedule, UserPlanDisplaySettings
+from todos.utils import abbreviate_schedule, get_plan_color
 import logging
 
 logger = logging.getLogger(__name__)
@@ -95,32 +97,78 @@ def get_user_calendar(request, user_id):
     subscriptions = PlanSubscription.objects.filter(
         user=user,
         is_active=True
-    )
+    ).select_related('plan')
+
+    if not subscriptions.exists():
+        return StandardResponse.success(
+            data={'calendar': [], 'plans': []},
+            message='달력 데이터를 조회했습니다.'
+        )
+
+    # 구독 ID 목록
+    subscription_ids = list(subscriptions.values_list('id', flat=True))
+    plan_ids = list(subscriptions.values_list('plan_id', flat=True))
+
+    # 표시 설정 조회 (색상 정보)
+    display_settings = UserPlanDisplaySettings.objects.filter(
+        user=user,
+        subscription_id__in=subscription_ids
+    ).select_related('subscription')
+    color_map = {ds.subscription_id: ds.color for ds in display_settings}
+
+    # 해당 기간의 모든 스케줄을 한 번에 조회
+    schedules = DailyBibleSchedule.objects.filter(
+        plan_id__in=plan_ids,
+        date__range=[start_date, end_date]
+    ).select_related('plan').order_by('date')
+
+    # 진행 상황을 한 번에 조회 (N+1 쿼리 최적화)
+    progress_map = {
+        (p.subscription_id, p.schedule_id): p.is_completed
+        for p in UserBibleProgress.objects.filter(
+            subscription_id__in=subscription_ids,
+            schedule__date__range=[start_date, end_date]
+        ).select_related('schedule')
+    }
+
+    # 구독-플랜 매핑
+    subscription_map = {s.plan_id: s for s in subscriptions}
+
+    # 플랜 정보 구성
+    plans_info = []
+    for idx, sub in enumerate(subscriptions):
+        plans_info.append({
+            'id': sub.plan.id,
+            'name': sub.plan.name,
+            'color': color_map.get(sub.id, get_plan_color(idx))
+        })
 
     calendar_data = []
-    for subscription in subscriptions:
-        # 해당 기간의 스케줄과 진행 상황 조회
-        schedules = DailyBibleSchedule.objects.filter(
-            plan=subscription.plan,
-            date__range=[start_date, end_date]
-        ).select_related('plan')
-
-        for schedule in schedules:
-            progress = UserBibleProgress.objects.filter(
-                subscription=subscription,
-                schedule=schedule
-            ).first()
-
+    for schedule in schedules:
+        subscription = subscription_map.get(schedule.plan_id)
+        if subscription:
+            idx = list(subscription_map.keys()).index(schedule.plan_id)
+            is_completed = progress_map.get((subscription.id, schedule.id), False)
             calendar_data.append({
                 'date': schedule.date,
-                'is_completed': progress.is_completed if progress else False,
+                'is_completed': is_completed,
                 'book': schedule.book,
-                'chapters': f"{schedule.start_chapter}-{schedule.end_chapter}장"
+                'start_chapter': schedule.start_chapter,
+                'end_chapter': schedule.end_chapter,
+                'chapters': f"{schedule.start_chapter}-{schedule.end_chapter}장",
+                'plan_id': subscription.plan.id,
+                'plan_name': subscription.plan.name,
+                'color': color_map.get(subscription.id, get_plan_color(idx)),
+                'schedule_id': schedule.id,
+                'schedule_text': abbreviate_schedule(
+                    schedule.book,
+                    schedule.start_chapter,
+                    schedule.end_chapter
+                )
             })
 
-    serializer = UserCalendarDataSerializer(calendar_data, many=True)
     return StandardResponse.success(
-        data={'calendar': serializer.data},
+        data={'calendar': calendar_data, 'plans': plans_info},
         message='달력 데이터를 조회했습니다.'
     )
 
@@ -335,7 +383,7 @@ def search_users(request):
 @permission_classes([AllowAny])
 @handle_api_exception
 def get_user_achievements(request, user_id):
-    """사용자 업적 조회"""
+    """사용자 업적 조회 - 모든 업적 포함 (획득/미획득)"""
     user = get_object_or_404(User, id=user_id)
 
     # 프로필 공개 여부 확인
@@ -347,10 +395,32 @@ def get_user_achievements(request, user_id):
             status_code=status.HTTP_403_FORBIDDEN
         )
 
-    achievements = UserAchievement.objects.filter(user=user)
-    serializer = UserAchievementSerializer(achievements, many=True)
+    # 획득한 업적 조회
+    earned_achievements = {
+        a.achievement_type: a
+        for a in UserAchievement.objects.filter(user=user)
+    }
+
+    # 모든 업적 구성 (획득 + 미획득)
+    all_achievements = []
+    for achievement_type, metadata in ACHIEVEMENT_METADATA.items():
+        earned = earned_achievements.get(achievement_type)
+        all_achievements.append({
+            'id': earned.id if earned else None,
+            'achievement_type': achievement_type,
+            'title': metadata['title'],
+            'description': metadata['description'],
+            'icon': metadata['icon'],
+            'order': metadata['order'],
+            'unlocked': earned is not None,
+            'unlockedAt': earned.achieved_at.isoformat() if earned else None,
+            'milestone_value': earned.milestone_value if earned else 0,
+        })
+
+    # order 순으로 정렬
+    all_achievements.sort(key=lambda x: x['order'])
 
     return StandardResponse.success(
-        data={'achievements': serializer.data},
+        data={'achievements': all_achievements},
         message='업적을 조회했습니다.'
     )
