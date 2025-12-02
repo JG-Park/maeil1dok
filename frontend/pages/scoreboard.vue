@@ -125,7 +125,7 @@ import LeaderboardItem from '~/components/leaderboard/LeaderboardItem.vue'
 const scoreboardStore = useScoreboardStore()
 const authStore = useAuthStore()
 
-const activeView = ref<'global' | 'friends'>('global')
+const activeView = ref<'global' | 'friends' | 'following'>('global')
 const currentPeriod = computed(() => scoreboardStore.currentPeriod)
 const isLoading = computed(() => scoreboardStore.isLoading)
 const myRanking = computed(() => scoreboardStore.myRanking)
@@ -137,9 +137,13 @@ const handleAvatarError = (userId: number) => {
 }
 
 const currentLeaderboard = computed(() => {
-  return activeView.value === 'global'
-    ? scoreboardStore.globalLeaderboard
-    : scoreboardStore.friendsLeaderboard
+  if (activeView.value === 'global') {
+    return scoreboardStore.globalLeaderboard
+  } else if (activeView.value === 'following') {
+    return scoreboardStore.followingLeaderboard
+  } else {
+    return scoreboardStore.friendsLeaderboard
+  }
 })
 
 const periods = [
@@ -150,7 +154,8 @@ const periods = [
 
 const viewModes = [
   { value: 'global', label: '전체' },
-  { value: 'friends', label: '친구' }
+  { value: 'friends', label: '친구' },
+  { value: 'following', label: '팔로잉' }
 ]
 
 // 초기 데이터 로드
@@ -165,8 +170,10 @@ onMounted(() => {
 const loadLeaderboard = () => {
   if (activeView.value === 'global') {
     scoreboardStore.fetchGlobalLeaderboard(currentPeriod.value)
-  } else if (authStore.isAuthenticated) {
-    scoreboardStore.fetchFriendsLeaderboard(currentPeriod.value)
+  } else if (activeView.value === 'following' && authStore.isAuthenticated) {
+    scoreboardStore.fetchFriendsLeaderboard(currentPeriod.value, undefined, 'following')
+  } else if (activeView.value === 'friends' && authStore.isAuthenticated) {
+    scoreboardStore.fetchFriendsLeaderboard(currentPeriod.value, undefined, 'mutual')
   }
 }
 

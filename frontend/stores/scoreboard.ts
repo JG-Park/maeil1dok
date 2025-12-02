@@ -27,14 +27,17 @@ interface MyRanking {
 }
 
 type Period = 'all' | 'week' | 'month'
+type FollowType = 'mutual' | 'following'
 
 export const useScoreboardStore = defineStore('scoreboard', {
   state: () => ({
     globalLeaderboard: [] as LeaderboardEntry[],
     friendsLeaderboard: [] as LeaderboardEntry[],
+    followingLeaderboard: [] as LeaderboardEntry[],
     groupLeaderboard: [] as LeaderboardEntry[],
     myRanking: null as MyRanking | null,
     currentPeriod: 'all' as Period,
+    currentFollowType: 'mutual' as FollowType,
     currentPlanId: null as number | null,
     currentGroupId: null as number | null,
     isLoading: false,
@@ -44,7 +47,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
   getters: {
     topThree: (state) => state.globalLeaderboard.slice(0, 3),
     myPosition: (state) => state.globalLeaderboard.find(entry => entry.user.is_me),
-    
+
     formattedPeriod: (state) => {
       const periods = {
         all: '전체',
@@ -52,6 +55,14 @@ export const useScoreboardStore = defineStore('scoreboard', {
         month: '이번 달'
       }
       return periods[state.currentPeriod]
+    },
+
+    currentLeaderboard: (state) => {
+      // 현재 선택된 팔로우 타입에 따라 리더보드 반환
+      if (state.currentFollowType === 'following') {
+        return state.followingLeaderboard
+      }
+      return state.friendsLeaderboard
     }
   },
 
@@ -78,21 +89,33 @@ export const useScoreboardStore = defineStore('scoreboard', {
       }
     },
 
-    async fetchFriendsLeaderboard(period: Period = 'all', planId?: number) {
+    async fetchFriendsLeaderboard(period: Period = 'all', planId?: number, type: FollowType = 'mutual') {
       this.isLoading = true
+      this.error = null
       this.currentPeriod = period
-      
+      this.currentFollowType = type
+
       try {
-        const params: any = { period }
+        const params: any = { period, type }
         if (planId) params.plan_id = planId
-        
-        const { data } = await useApi().get('/api/v1/todos/scoreboard/friends/', { params })
-        
+
+        const { data, error } = await useApi().get('/api/v1/todos/scoreboard/friends/', { params })
+
+        if (error.value) {
+          throw new Error(error.value.message || '친구 리더보드를 불러올 수 없습니다.')
+        }
+
         if (data.value?.success) {
-          this.friendsLeaderboard = data.value.leaderboard
+          // type에 따라 다른 상태에 저장
+          if (type === 'following') {
+            this.followingLeaderboard = data.value.leaderboard
+          } else {
+            this.friendsLeaderboard = data.value.leaderboard
+          }
         }
       } catch (error: any) {
         this.error = error.message || '친구 리더보드를 불러올 수 없습니다.'
+        console.error('친구 리더보드 조회 실패:', error)
       } finally {
         this.isLoading = false
       }
@@ -137,12 +160,18 @@ export const useScoreboardStore = defineStore('scoreboard', {
       this.currentPeriod = period
     },
 
+    setFollowType(type: FollowType) {
+      this.currentFollowType = type
+    },
+
     clearScoreboardData() {
       this.globalLeaderboard = []
       this.friendsLeaderboard = []
+      this.followingLeaderboard = []
       this.groupLeaderboard = []
       this.myRanking = null
       this.currentPeriod = 'all'
+      this.currentFollowType = 'mutual'
       this.currentPlanId = null
       this.currentGroupId = null
       this.error = null
