@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import DailyBibleSchedule, UserBibleProgress, BibleReadingPlan, PlanSubscription, VideoBibleIntro
+from .models import (
+    DailyBibleSchedule, UserBibleProgress, BibleReadingPlan,
+    PlanSubscription, VideoBibleIntro, UserPlanDisplaySettings
+)
 from django.contrib.auth import get_user_model
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
@@ -153,8 +156,45 @@ class PlanSubscriptionSerializer(serializers.ModelSerializer):
 
 class VideoBibleIntroSerializer(serializers.ModelSerializer):
     plan_name = serializers.CharField(source='plan.name', read_only=True)
-    
+
     class Meta:
         model = VideoBibleIntro
         fields = ['id', 'plan', 'plan_name', 'book', 'url_link', 'start_date', 'end_date']
-        read_only_fields = ['id'] 
+        read_only_fields = ['id']
+
+
+class UserPlanDisplaySettingsSerializer(serializers.ModelSerializer):
+    """사용자 플랜 표시 설정 Serializer"""
+    subscription_id = serializers.IntegerField(source='subscription.id', read_only=True)
+    plan_id = serializers.IntegerField(source='subscription.plan.id', read_only=True)
+    plan_name = serializers.CharField(source='subscription.plan.name', read_only=True)
+    is_active = serializers.BooleanField(source='subscription.is_active', read_only=True)
+
+    class Meta:
+        model = UserPlanDisplaySettings
+        fields = [
+            'id', 'subscription_id', 'plan_id', 'plan_name',
+            'color', 'display_order', 'is_visible', 'is_active'
+        ]
+        read_only_fields = ['id', 'subscription_id', 'plan_id', 'plan_name', 'is_active']
+
+
+class CalendarDayScheduleSerializer(serializers.Serializer):
+    """캘린더 날짜별 스케줄 Serializer"""
+    plan_id = serializers.IntegerField()
+    plan_name = serializers.CharField()
+    color = serializers.CharField()
+    book = serializers.CharField()
+    chapters = serializers.CharField()
+    is_completed = serializers.BooleanField()
+    schedule_id = serializers.IntegerField(required=False)
+
+
+class LastIncompletePositionSerializer(serializers.Serializer):
+    """마지막 미완료 위치 Serializer"""
+    plan_id = serializers.IntegerField()
+    plan_name = serializers.CharField()
+    subscription_id = serializers.IntegerField()
+    date = serializers.DateField()
+    book = serializers.CharField()
+    chapters = serializers.CharField() 

@@ -275,6 +275,12 @@ const handleUnfollow = async (userId) => {
 }
 
 onMounted(async () => {
+  // 비로그인 사용자는 로그인 페이지로 리다이렉트
+  if (!authStore.isAuthenticated) {
+    navigateTo('/login')
+    return
+  }
+
   isLoading.value = true
   try {
     await Promise.all([

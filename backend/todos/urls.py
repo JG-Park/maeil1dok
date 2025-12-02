@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views, scoreboard_views, group_views
+from . import views, scoreboard_views, group_views, calendar_views
 
 router = DefaultRouter()
 router.register(r'bible-plans', views.BibleReadingPlanViewSet)
@@ -66,4 +66,11 @@ urlpatterns = [
     path('groups/<int:group_id>/invite/', group_views.invite_to_group, name='invite-to-group'),
     path('invitations/', group_views.get_my_invitations, name='my-invitations'),
     path('invitations/<int:invitation_id>/respond/', group_views.respond_to_invitation, name='respond-invitation'),
+
+    # 멀티플랜 캘린더 관련 URL
+    path('calendar/settings/', calendar_views.get_calendar_settings, name='calendar-settings'),
+    path('calendar/settings/<int:pk>/', calendar_views.update_calendar_setting, name='calendar-setting-detail'),
+    path('calendar/settings/reorder/', calendar_views.reorder_calendar_settings, name='calendar-settings-reorder'),
+    path('calendar/month/', calendar_views.get_calendar_month_data, name='calendar-month'),
+    path('calendar/last-incomplete/', calendar_views.get_last_incomplete_positions, name='calendar-last-incomplete'),
 ] 

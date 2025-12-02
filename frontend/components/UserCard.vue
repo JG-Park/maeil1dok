@@ -30,15 +30,18 @@
     </NuxtLink>
     
     <div class="user-actions">
-      <button 
+      <button
         v-if="!isOwnProfile"
         @click="toggleFollow"
+        :disabled="isLoading"
         :class="[
           'follow-button',
-          user.is_following ? 'following' : 'not-following'
+          user.is_following ? 'following' : 'not-following',
+          { 'loading': isLoading }
         ]"
       >
-        {{ user.is_following ? '팔로잉' : '팔로우' }}
+        <span v-if="isLoading" class="loading-spinner"></span>
+        <span v-else>{{ user.is_following ? '팔로잉' : '팔로우' }}</span>
       </button>
       
       <div v-if="user.is_mutual_follow || user.is_friend" class="mutual-badge">
@@ -55,7 +58,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps({
@@ -68,16 +71,22 @@ const props = defineProps({
 const emit = defineEmits(['follow', 'unfollow'])
 
 const authStore = useAuthStore()
+const isLoading = ref(false)
 
 const isOwnProfile = computed(() => {
   return authStore.user?.id === props.user.id
 })
 
 const toggleFollow = async () => {
+  // 중복 클릭 방지
+  if (isLoading.value) return
+
+  isLoading.value = true
+
   // Optimistic UI update
   const prevState = props.user.is_following
   props.user.is_following = !prevState
-  
+
   try {
     if (!prevState) {
       emit('follow', props.user.id)
@@ -88,6 +97,8 @@ const toggleFollow = async () => {
     // Revert on error
     props.user.is_following = prevState
     console.error('Failed to toggle follow:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
@@ -211,6 +222,31 @@ const toggleFollow = async () => {
   background: #FEE2E2;
   color: #DC2626;
   border-color: #DC2626;
+}
+
+.follow-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.follow-button.loading {
+  pointer-events: none;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .mutual-badge {

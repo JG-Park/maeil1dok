@@ -110,14 +110,23 @@
           <div class="tab-content">
             <!-- 달력 탭 -->
             <div v-if="activeTab === 'calendar'" class="calendar-tab-content">
-              <div v-if="loadingStates.calendar" class="calendar-loading-overlay">
-                <div class="loading-spinner"></div>
-              </div>
-              <ProfileCalendar
-                v-if="profile"
-                :calendar-data="calendarData"
-                @month-change="handleMonthChange"
+              <!-- 본인 프로필: 멀티플랜 캘린더 -->
+              <MultiPlanCalendar
+                v-if="isOwnProfile"
+                :user-id="userId"
+                @day-click="handleCalendarDayClick"
               />
+              <!-- 타인 프로필: 기존 캘린더 -->
+              <template v-else>
+                <div v-if="loadingStates.calendar" class="calendar-loading-overlay">
+                  <div class="loading-spinner"></div>
+                </div>
+                <ProfileCalendar
+                  v-if="profile"
+                  :calendar-data="calendarData"
+                  @month-change="handleMonthChange"
+                />
+              </template>
             </div>
 
             <!-- 업적 탭 -->
@@ -173,6 +182,7 @@ import PageLayout from '~/components/common/PageLayout.vue'
 import LoadingState from '~/components/LoadingState.vue'
 import ErrorState from '~/components/ErrorState.vue'
 import ProfileCalendar from '~/components/profile/ProfileCalendar.vue'
+import MultiPlanCalendar from '~/components/calendar/MultiPlanCalendar.vue'
 import ProfileAchievements from '~/components/profile/ProfileAchievements.vue'
 import ProfileGroups from '~/components/profile/ProfileGroups.vue'
 import FollowersModal from '~/components/profile/FollowersModal.vue'
@@ -280,6 +290,12 @@ const formatDate = (date: string) => {
     month: 'long',
     day: 'numeric'
   })
+}
+
+// 멀티플랜 캘린더 날짜 클릭 핸들러
+const handleCalendarDayClick = (date: { dateStr: string; day: number }) => {
+  // 날짜 클릭 시 해당 날짜의 읽기 페이지로 이동 (추후 구현 가능)
+  console.log('Calendar day clicked:', date)
 }
 
 // 페이지 떠날 때 정리

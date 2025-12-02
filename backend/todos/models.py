@@ -320,7 +320,7 @@ class GroupInvitation(models.Model):
         ('declined', '거절'),
         ('expired', '만료'),
     ]
-    
+
     group = models.ForeignKey(
         ReadingGroup,
         on_delete=models.CASCADE,
@@ -344,10 +344,50 @@ class GroupInvitation(models.Model):
     message = models.TextField(blank=True, help_text="초대 메시지")
     created_at = models.DateTimeField(auto_now_add=True)
     responded_at = models.DateTimeField(null=True, blank=True)
-    
+
     class Meta:
         unique_together = ['group', 'invitee']
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return f"Invitation to {self.invitee.nickname} for {self.group.name}"
+
+
+class UserPlanDisplaySettings(models.Model):
+    """사용자별 플랜 표시 설정 (캘린더용)"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='plan_display_settings'
+    )
+    subscription = models.OneToOneField(
+        PlanSubscription,
+        on_delete=models.CASCADE,
+        related_name='display_settings'
+    )
+    color = models.CharField(
+        max_length=7,
+        default='#3B82F6',
+        help_text="플랜 표시 색상 (HEX)"
+    )
+    display_order = models.IntegerField(
+        default=0,
+        help_text="캘린더에서 표시 순서"
+    )
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="캘린더에 표시 여부"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'created_at']
+        indexes = [
+            models.Index(fields=['user', 'is_visible']),
+        ]
+        verbose_name = "플랜 표시 설정"
+        verbose_name_plural = "플랜 표시 설정"
+
+    def __str__(self):
+        return f"{self.user.nickname}'s display settings for {self.subscription.plan.name}"

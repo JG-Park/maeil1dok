@@ -40,10 +40,12 @@
                 </div>
                 <button
                   v-if="!follower.is_me"
-                  :class="['follow-button', follower.is_following ? 'following' : '']"
+                  :disabled="loadingIds[follower.id]"
+                  :class="['follow-button', follower.is_following ? 'following' : '', { 'loading': loadingIds[follower.id] }]"
                   @click.stop="toggleFollow(follower)"
                 >
-                  {{ follower.is_following ? '팔로잉' : '팔로우' }}
+                  <span v-if="loadingIds[follower.id]" class="btn-loading-spinner"></span>
+                  <span v-else>{{ follower.is_following ? '팔로잉' : '팔로우' }}</span>
                 </button>
               </div>
             </div>
@@ -65,6 +67,7 @@ import { computed, ref } from 'vue'
 import EmptyState from '../common/EmptyState.vue'
 
 const avatarErrors = ref({})
+const loadingIds = ref({})
 
 const props = defineProps({
   isOpen: {
@@ -124,8 +127,17 @@ const navigateToProfile = (userId) => {
   navigateTo(`/profile/${userId}`)
 }
 
-const toggleFollow = (follower) => {
-  emit('toggleFollow', follower)
+const toggleFollow = async (follower) => {
+  if (loadingIds.value[follower.id]) return
+
+  loadingIds.value[follower.id] = true
+  try {
+    emit('toggleFollow', follower)
+    // 부모 컴포넌트에서 처리 후 약간의 지연
+    await new Promise(resolve => setTimeout(resolve, 300))
+  } finally {
+    loadingIds.value[follower.id] = false
+  }
 }
 
 const handleImageError = (userId) => {
@@ -318,6 +330,31 @@ const handleImageError = (userId) => {
 .follow-button.following:hover {
   background: white;
   color: var(--primary-color);
+}
+
+.follow-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.follow-button.loading {
+  pointer-events: none;
+}
+
+.btn-loading-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.75s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-enter-active,
