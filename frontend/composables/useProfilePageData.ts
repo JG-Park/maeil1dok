@@ -95,7 +95,13 @@ export function useProfilePageData(userId: Ref<number>) {
       case 'groups':
         loadingStates.groups = true
         try {
-          await groupsStore.fetchGroups({ only_mine: profileStore.isOwnProfile })
+          if (profileStore.isOwnProfile) {
+            // 본인 프로필: 내 그룹 전체 조회
+            await groupsStore.fetchGroups({ only_mine: true })
+          } else {
+            // 타인 프로필: 해당 사용자의 프로필에 공개된 그룹만 조회
+            await groupsStore.fetchUserPublicGroups(userId.value)
+          }
         } catch (e) {
           toast.warning('그룹을 불러오지 못했습니다')
         } finally {
@@ -247,8 +253,9 @@ export function useProfilePageData(userId: Ref<number>) {
     // 데이터
     profile: computed(() => profileStore.currentProfile),
     calendarData: computed(() => profileStore.calendarData),
+    calendarPlans: computed(() => profileStore.calendarPlans),
     achievements: computed(() => profileStore.achievements),
-    groups: computed(() => groupsStore.groups),
+    groups: computed(() => profileStore.isOwnProfile ? groupsStore.myGroups : groupsStore.groups),
     followers: computed(() => socialStore.followers),
     following: computed(() => socialStore.following),
     isOwnProfile: computed(() => profileStore.isOwnProfile),

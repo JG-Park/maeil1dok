@@ -124,7 +124,9 @@
                 <ProfileCalendar
                   v-if="profile"
                   :calendar-data="calendarData"
+                  :plans="calendarPlans"
                   @month-change="handleMonthChange"
+                  @navigate-to-date="handleNavigateToDate"
                 />
               </template>
             </div>
@@ -208,6 +210,7 @@ const {
   errors,
   profile,
   calendarData,
+  calendarPlans,
   achievements,
   groups,
   followers,
@@ -303,9 +306,13 @@ const formatDate = (date: string) => {
 }
 
 // 멀티플랜 캘린더 날짜 클릭 핸들러
-const handleCalendarDayClick = (date: { dateStr: string; day: number }) => {
-  // 날짜 클릭 시 해당 날짜의 읽기 페이지로 이동 (추후 구현 가능)
-  console.log('Calendar day clicked:', date)
+const handleCalendarDayClick = (_date: { dateStr: string; day: number }) => {
+  // 자신의 프로필에서 날짜 클릭 시 처리 (필요시 구현)
+}
+
+// 프로필 캘린더에서 일정 클릭 시 읽기 페이지로 이동
+const handleNavigateToDate = (_schedule: any) => {
+  // ScheduleDetailModal에서 이미 라우터 네비게이션을 처리하므로 추가 처리 불필요
 }
 
 // 프로필 편집 저장 후 처리

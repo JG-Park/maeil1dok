@@ -37,6 +37,19 @@ interface CalendarData {
   is_completed: boolean
   book: string
   chapters: string
+  start_chapter?: number
+  end_chapter?: number
+  plan_id?: number
+  plan_name?: string
+  color?: string
+  schedule_id?: number
+  schedule_text?: string
+}
+
+interface CalendarPlan {
+  id: number
+  name: string
+  color: string
 }
 
 export const useProfileStore = defineStore('profile', {
@@ -44,6 +57,7 @@ export const useProfileStore = defineStore('profile', {
     currentProfile: null as UserProfile | null,
     achievements: [] as Achievement[],
     calendarData: [] as CalendarData[],
+    calendarPlans: [] as CalendarPlan[],
     isLoading: false,
     error: null as string | null
   }),
@@ -118,8 +132,9 @@ export const useProfileStore = defineStore('profile', {
         })
 
         if (response.data?.success) {
-          // 하위 호환: response.data.data?.calendar 또는 response.data.calendar
-          this.calendarData = response.data.data?.calendar ?? response.data.calendar ?? []
+          const data = response.data.data ?? response.data
+          this.calendarData = data.calendar ?? []
+          this.calendarPlans = data.plans ?? []
         }
       } catch (error) {
         console.error('달력 데이터 조회 실패:', error)
@@ -130,6 +145,7 @@ export const useProfileStore = defineStore('profile', {
       this.currentProfile = null
       this.achievements = []
       this.calendarData = []
+      this.calendarPlans = []
       this.error = null
     }
   }

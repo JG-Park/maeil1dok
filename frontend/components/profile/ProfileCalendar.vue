@@ -14,25 +14,32 @@
       </button>
     </div>
 
+    <!-- 플랜 범례 -->
+    <div v-if="plans.length > 0" class="plan-legend">
+      <div v-for="plan in plans" :key="plan.id" class="legend-plan-item">
+        <span class="legend-dot" :style="{ backgroundColor: plan.color }"></span>
+        <span class="legend-name">{{ plan.name }}</span>
+      </div>
+    </div>
+
     <div class="calendar-grid">
       <div v-for="day in weekDays" :key="day" class="weekday-label">
         {{ day }}
       </div>
 
-      <div
+      <CalendarDayCell
         v-for="(date, index) in calendarDates"
         :key="index"
-        class="calendar-day"
-        :class="{
-          'other-month': !date.isCurrentMonth,
-          'today': date.isToday,
-          'completed': date.completed,
-          'future': date.isFuture
-        }"
-      >
-        <span class="day-number">{{ date.day }}</span>
-        <div v-if="date.completed && date.isCurrentMonth" class="completion-indicator"></div>
-      </div>
+        :day="date.day"
+        :date-str="date.dateStr"
+        :is-current-month="date.isCurrentMonth"
+        :is-today="date.isToday"
+        :is-future="date.isFuture"
+        :schedules="date.schedules"
+        :display-mode="hasMultiplePlans ? 'text' : 'simple'"
+        :max-items="2"
+        @click="handleDayClick"
+      />
     </div>
 
     <div class="calendar-legend">
@@ -49,26 +56,71 @@
         <span>미래</span>
       </div>
     </div>
+
+    <!-- 날짜 상세 모달 -->
+    <ScheduleDetailModal
+      :is-open="showModal"
+      :date="selectedDate"
+      :schedules="selectedSchedules"
+      @close="closeModal"
+      @navigate="handleNavigate"
+    />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import CalendarDayCell from '~/components/calendar/CalendarDayCell.vue'
+import ScheduleDetailModal from '~/components/calendar/ScheduleDetailModal.vue'
+import type { ScheduleDisplay } from '~/components/calendar/CalendarDayCell.vue'
+import type { ScheduleDetail } from '~/components/calendar/ScheduleDetailModal.vue'
 
-const props = defineProps({
-  calendarData: {
-    type: Array,
-    default: () => []
-  }
-})
+interface CalendarDataItem {
+  date: string
+  is_completed: boolean
+  book: string
+  chapters: string
+  start_chapter?: number
+  end_chapter?: number
+  plan_id?: number
+  plan_name?: string
+  color?: string
+  schedule_id?: number
+  schedule_text?: string
+}
 
-const emit = defineEmits(['month-change'])
+interface PlanInfo {
+  id: number
+  name: string
+  color: string
+}
+
+const props = defineProps<{
+  calendarData: CalendarDataItem[]
+  plans?: PlanInfo[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'month-change', year: number, month: number): void
+  (e: 'navigate-to-date', schedule: ScheduleDetail): void
+}>()
 
 const currentDate = new Date()
 const currentYear = ref(currentDate.getFullYear())
 const currentMonth = ref(currentDate.getMonth())
 
+// 모달 상태
+const showModal = ref(false)
+const selectedDate = ref<{ dateStr: string; day: number } | null>(null)
+const selectedSchedules = ref<ScheduleDetail[]>([])
+
 const weekDays = ['일', '월', '화', '수', '목', '금', '토']
+
+const hasMultiplePlans = computed(() => {
+  return (props.plans?.length ?? 0) > 0 || props.calendarData.some(d => d.plan_id)
+})
+
+const plans = computed(() => props.plans ?? [])
 
 const currentMonthLabel = computed(() => {
   return `${currentYear.value}년 ${currentMonth.value + 1}월`
@@ -77,6 +129,18 @@ const currentMonthLabel = computed(() => {
 const isCurrentMonth = computed(() => {
   return currentYear.value === currentDate.getFullYear() &&
          currentMonth.value === currentDate.getMonth()
+})
+
+// O(1) 조회를 위한 날짜별 데이터 맵
+const calendarDataMap = computed(() => {
+  const map = new Map<string, CalendarDataItem[]>()
+  for (const item of props.calendarData) {
+    const dateStr = typeof item.date === 'string' ? item.date : item.date
+    const existing = map.get(dateStr) || []
+    existing.push(item)
+    map.set(dateStr, existing)
+  }
+  return map
 })
 
 const calendarDates = computed(() => {
@@ -91,51 +155,110 @@ const calendarDates = computed(() => {
   const daysInMonth = lastDay.getDate()
   const daysInPrevMonth = prevMonthLastDay.getDate()
 
-  const dates = []
+  const dates: Array<{
+    day: number
+    dateStr: string
+    isCurrentMonth: boolean
+    isToday: boolean
+    isFuture: boolean
+    schedules: ScheduleDisplay[]
+  }> = []
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
   // Previous month days
   for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    const day = daysInPrevMonth - i
+    const prevMonth = month === 0 ? 11 : month - 1
+    const prevYear = month === 0 ? year - 1 : year
+    const dateStr = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
     dates.push({
-      day: daysInPrevMonth - i,
+      day,
+      dateStr,
       isCurrentMonth: false,
-      completed: false,
       isToday: false,
-      isFuture: false
+      isFuture: false,
+      schedules: []
     })
   }
 
   // Current month days
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const isCompleted = props.calendarData.some(d => d.date === dateStr && d.is_completed)
+
+    // O(1) 조회
+    const daySchedules = calendarDataMap.value.get(dateStr) || []
+    const schedules: ScheduleDisplay[] = daySchedules.map(item => ({
+      plan_id: item.plan_id,
+      plan_name: item.plan_name,
+      color: item.color || '#3B82F6',
+      book: item.book,
+      chapters: item.chapters,
+      schedule_text: item.schedule_text,
+      full_text: `${item.book} ${item.chapters}`,
+      is_completed: item.is_completed,
+      schedule_id: item.schedule_id
+    }))
 
     dates.push({
       day,
+      dateStr,
       isCurrentMonth: true,
-      completed: isCompleted,
       isToday: date.toDateString() === today.toDateString(),
-      isFuture: date > today
+      isFuture: date > today,
+      schedules
     })
   }
 
   // Next month days
   const remainingDays = 42 - dates.length
   for (let day = 1; day <= remainingDays; day++) {
+    const nextMonth = month === 11 ? 0 : month + 1
+    const nextYear = month === 11 ? year + 1 : year
+    const dateStr = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
     dates.push({
       day,
+      dateStr,
       isCurrentMonth: false,
-      completed: false,
       isToday: false,
-      isFuture: false
+      isFuture: false,
+      schedules: []
     })
   }
 
   return dates
 })
+
+const handleDayClick = (payload: { dateStr: string; day: number; schedules: ScheduleDisplay[] }) => {
+  if (payload.schedules.length === 0) return
+
+  selectedDate.value = { dateStr: payload.dateStr, day: payload.day }
+  selectedSchedules.value = payload.schedules.map(s => ({
+    plan_id: s.plan_id || 0,
+    plan_name: s.plan_name || '',
+    color: s.color,
+    book: s.book || '',
+    chapters: s.chapters,
+    is_completed: s.is_completed,
+    schedule_id: s.schedule_id,
+    schedule_text: s.schedule_text
+  }))
+  showModal.value = true
+}
+
+const closeModal = () => {
+  showModal.value = false
+  selectedDate.value = null
+  selectedSchedules.value = []
+}
+
+const handleNavigate = (schedule: ScheduleDetail) => {
+  emit('navigate-to-date', schedule)
+}
 
 const previousMonth = () => {
   if (currentMonth.value === 0) {
@@ -169,7 +292,7 @@ const nextMonth = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .month-nav-button {
@@ -203,10 +326,39 @@ const nextMonth = () => {
   margin: 0;
 }
 
+/* 플랜 범례 */
+.plan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.legend-plan-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 .weekday-label {
@@ -215,53 +367,6 @@ const nextMonth = () => {
   font-weight: 600;
   color: var(--text-secondary);
   padding: 0.5rem 0;
-}
-
-.calendar-day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  background: white;
-  border: 1px solid var(--gray-200);
-  position: relative;
-  transition: all var(--transition-fast);
-}
-
-.calendar-day.other-month {
-  opacity: 0.3;
-}
-
-.calendar-day.today {
-  border-color: var(--primary-color);
-  border-width: 2px;
-  font-weight: 700;
-}
-
-.calendar-day.completed {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-}
-
-.calendar-day.future {
-  background: var(--gray-50);
-}
-
-.day-number {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.completion-indicator {
-  position: absolute;
-  bottom: 4px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: white;
 }
 
 .calendar-legend {
@@ -312,8 +417,14 @@ const nextMonth = () => {
     gap: 0.25rem;
   }
 
-  .day-number {
-    font-size: 0.75rem;
+  .plan-legend {
+    gap: 0.5rem;
+    padding: 0.375rem 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .legend-name {
+    font-size: 0.6875rem;
   }
 
   .calendar-legend {

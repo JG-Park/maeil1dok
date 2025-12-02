@@ -3,13 +3,13 @@
     <div v-if="achievements.length > 0" class="achievements-grid">
       <div
         v-for="achievement in achievements"
-        :key="achievement.id"
+        :key="achievement.achievement_type"
         class="achievement-card"
         :class="{ unlocked: achievement.unlocked }"
         :title="achievement.description"
       >
         <div class="achievement-icon">
-          <span class="icon-emoji">{{ achievement.icon }}</span>
+          <i :class="achievement.icon"></i>
         </div>
         <h4 class="achievement-title">{{ achievement.title }}</h4>
         <p class="achievement-description">{{ achievement.description }}</p>
@@ -17,97 +17,46 @@
           {{ formatDate(achievement.unlockedAt) }}
         </div>
         <div v-else class="locked-overlay">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
+          <i class="fa-solid fa-lock"></i>
         </div>
       </div>
     </div>
 
     <EmptyState
       v-else
-      title="아직 획득한 업적이 없습니다"
-      description="성경 통독을 완료하여 업적을 획득하세요!"
+      title="업적 정보를 불러올 수 없습니다"
+      description="잠시 후 다시 시도해주세요."
     >
       <template #icon>
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 6v6l4 2"/>
-        </svg>
+        <i class="fa-solid fa-trophy empty-icon"></i>
       </template>
     </EmptyState>
   </div>
 </template>
 
-<script setup>
-import { computed } from 'vue'
+<script setup lang="ts">
 import EmptyState from '../common/EmptyState.vue'
 
-const props = defineProps({
-  achievementsData: {
-    type: Array,
-    default: () => []
-  }
-})
+interface Achievement {
+  id: number | null
+  achievement_type: string
+  title: string
+  description: string
+  icon: string
+  order: number
+  unlocked: boolean
+  unlockedAt: string | null
+  milestone_value: number
+}
 
-// Mock achievements data
-const mockAchievements = [
-  {
-    id: 1,
-    title: '첫 걸음',
-    description: '첫 번째 성경 읽기 완료',
-    icon: '🎯',
-    unlocked: true,
-    unlockedAt: '2024-01-15'
-  },
-  {
-    id: 2,
-    title: '일주일 연속',
-    description: '7일 연속 성경 읽기',
-    icon: '🔥',
-    unlocked: true,
-    unlockedAt: '2024-01-22'
-  },
-  {
-    id: 3,
-    title: '한 달 완주',
-    description: '30일 연속 성경 읽기',
-    icon: '⭐',
-    unlocked: true,
-    unlockedAt: '2024-02-14'
-  },
-  {
-    id: 4,
-    title: '꾸준함의 달인',
-    description: '100일 연속 성경 읽기',
-    icon: '🏆',
-    unlocked: false,
-    unlockedAt: null
-  },
-  {
-    id: 5,
-    title: '완독 달성',
-    description: '성경 전체 읽기 완료',
-    icon: '📖',
-    unlocked: false,
-    unlockedAt: null
-  },
-  {
-    id: 6,
-    title: '소셜 리더',
-    description: '10명 이상의 팔로워 확보',
-    icon: '👥',
-    unlocked: false,
-    unlockedAt: null
-  }
-]
+const props = defineProps<{
+  achievementsData: Achievement[]
+}>()
 
-const achievements = computed(() => {
-  return props.achievementsData.length > 0 ? props.achievementsData : mockAchievements
-})
+// 실제 API 데이터만 사용 (Mock 데이터 제거)
+const achievements = computed(() => props.achievementsData)
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | null) => {
   if (!dateString) return ''
   const date = new Date(dateString)
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
@@ -169,8 +118,13 @@ const formatDate = (dateString) => {
   background: var(--primary-color);
 }
 
-.icon-emoji {
-  font-size: 2rem;
+.achievement-icon i {
+  font-size: 1.75rem;
+  color: var(--gray-400);
+}
+
+.achievement-card.unlocked .achievement-icon i {
+  color: white;
 }
 
 .achievement-title {
@@ -209,6 +163,15 @@ const formatDate = (dateString) => {
   color: var(--text-secondary);
 }
 
+.locked-overlay i {
+  font-size: 1.25rem;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: var(--gray-300);
+}
+
 @media (max-width: 640px) {
   .achievements-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -224,8 +187,8 @@ const formatDate = (dateString) => {
     height: 56px;
   }
 
-  .icon-emoji {
-    font-size: 1.75rem;
+  .achievement-icon i {
+    font-size: 1.5rem;
   }
 }
 </style>
