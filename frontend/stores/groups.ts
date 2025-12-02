@@ -25,6 +25,7 @@ interface ReadingGroup {
   is_full: boolean
   is_member?: boolean
   my_role?: string
+  show_in_profile?: boolean
   created_at: string
   updated_at: string
 }
@@ -283,6 +284,46 @@ export const useGroupsStore = defineStore('groups', {
         }
       } catch (error: any) {
         return { success: false, error: error.message || '일정을 불러올 수 없습니다.' }
+      }
+    },
+
+    // 타인의 공개 그룹 조회
+    async fetchUserPublicGroups(userId: number) {
+      this.isLoading = true
+      this.error = null
+
+      try {
+        const { data } = await useApi().get(`/api/v1/todos/users/${userId}/groups/`)
+
+        if (data?.success) {
+          this.groups = data.groups
+        }
+      } catch (error: any) {
+        this.error = error.message || '그룹 목록을 불러올 수 없습니다.'
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    // 그룹 프로필 표시 설정
+    async updateGroupVisibility(groupId: number, showInProfile: boolean) {
+      try {
+        const response = await useApi().patch(`/api/v1/todos/groups/${groupId}/visibility/`, {
+          show_in_profile: showInProfile
+        })
+
+        if (response?.success) {
+          // myGroups에서 해당 그룹 업데이트
+          const group = this.myGroups.find(g => g.id === groupId)
+          if (group) {
+            group.show_in_profile = response.show_in_profile
+          }
+          return { success: true }
+        } else {
+          return { success: false, error: response?.error }
+        }
+      } catch (error: any) {
+        return { success: false, error: error.message }
       }
     },
 

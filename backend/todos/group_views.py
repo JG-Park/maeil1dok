@@ -45,9 +45,11 @@ class ReadingGroupSerializer:
             ).first()
             data['is_member'] = membership is not None
             data['my_role'] = membership.get_role_display() if membership else None
+            data['show_in_profile'] = membership.show_in_profile if membership else True
         else:
             data['is_member'] = False
             data['my_role'] = None
+            data['show_in_profile'] = True
 
         return data
 
@@ -532,13 +534,95 @@ def respond_to_invitation(request, invitation_id):
         else:
             invitation.status = 'declined'
             invitation.save()
-            
+
             return Response({
                 'success': True,
                 'message': '초대를 거절했습니다.'
             })
     except Exception as e:
         logger.error(f"Error responding to invitation: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_user_public_groups(request, user_id):
+    """특정 사용자의 프로필에 표시된 그룹 조회"""
+    try:
+        from accounts.models import UserProfile
+
+        user = get_object_or_404(User, id=user_id)
+
+        # 프로필 공개 여부 확인
+        profile = UserProfile.objects.filter(user=user).first()
+        if profile and not profile.is_public:
+            if not request.user.is_authenticated or request.user != user:
+                return Response({
+                    'success': False,
+                    'error': '비공개 프로필입니다.'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+        # 본인인 경우 모든 그룹 표시, 타인인 경우 공개 그룹만
+        is_own_profile = request.user.is_authenticated and request.user == user
+
+        if is_own_profile:
+            # 본인: 모든 그룹 (show_in_profile 상관없이)
+            groups = ReadingGroup.objects.filter(
+                memberships__user=user,
+                memberships__is_active=True
+            ).distinct()
+        else:
+            # 타인: 공개 그룹 + 프로필에 표시 설정된 그룹만
+            groups = ReadingGroup.objects.filter(
+                memberships__user=user,
+                memberships__is_active=True,
+                memberships__show_in_profile=True,
+                is_public=True
+            ).distinct()
+
+        groups = groups.order_by('-created_at')[:50]
+        groups_data = [ReadingGroupSerializer.to_dict(g, request) for g in groups]
+
+        return Response({
+            'success': True,
+            'groups': groups_data,
+            'total': len(groups_data)
+        })
+    except Exception as e:
+        logger.error(f"Error getting user public groups: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_group_visibility(request, group_id):
+    """프로필에서 그룹 표시 여부 설정"""
+    try:
+        membership = get_object_or_404(
+            GroupMembership,
+            group_id=group_id,
+            user=request.user,
+            is_active=True
+        )
+
+        show_in_profile = request.data.get('show_in_profile')
+        if show_in_profile is not None:
+            membership.show_in_profile = show_in_profile
+            membership.save()
+
+        return Response({
+            'success': True,
+            'show_in_profile': membership.show_in_profile,
+            'message': '프로필 표시 설정이 변경되었습니다.'
+        })
+    except Exception as e:
+        logger.error(f"Error updating group visibility: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)

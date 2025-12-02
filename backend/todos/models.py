@@ -299,7 +299,11 @@ class GroupMembership(models.Model):
     )
     joined_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-    
+    show_in_profile = models.BooleanField(
+        default=True,
+        help_text="프로필에 이 그룹 표시 여부"
+    )
+
     class Meta:
         unique_together = ['group', 'user']
         ordering = ['-joined_at']
