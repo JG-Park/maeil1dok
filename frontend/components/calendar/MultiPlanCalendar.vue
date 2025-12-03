@@ -5,6 +5,7 @@
       :year="currentYear"
       :month="currentMonth"
       :is-loading="isLoading"
+      :readonly="readonly"
       @prev="handlePrevMonth"
       @next="handleNextMonth"
       @today="handleGoToToday"
@@ -15,6 +16,7 @@
     <!-- 플랜 토글 패널 -->
     <PlanTogglePanel
       :settings="allActivePlans"
+      :readonly="readonly"
       @toggle="handleToggleVisibility"
     />
 
@@ -45,18 +47,18 @@
       <CalendarLegend :visible-plans="visiblePlans" />
     </div>
 
-    <!-- 설정 모달 -->
+    <!-- 설정 모달 (readonly가 아닐 때만) -->
     <PlanSettingsModal
-      v-if="showSettingsModal"
+      v-if="showSettingsModal && !readonly"
       :settings="allActivePlans"
       @close="showSettingsModal = false"
       @update-color="handleUpdateColor"
       @reorder="handleReorder"
     />
 
-    <!-- 미완료 위치 선택 모달 -->
+    <!-- 미완료 위치 선택 모달 (readonly가 아닐 때만) -->
     <LastIncompleteModal
-      v-if="showIncompleteModal"
+      v-if="showIncompleteModal && !readonly"
       :positions="lastIncompletePositions"
       :is-loading="isLoadingPositions"
       @close="showIncompleteModal = false"
@@ -67,7 +69,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useCalendarDisplayStore } from '~/stores/calendarDisplay'
+import { useCalendarDisplayStore, type PlanDisplaySetting, type CalendarDayData } from '~/stores/calendarDisplay'
+import { useApi } from '~/composables/useApi'
 import CalendarHeader from './CalendarHeader.vue'
 import PlanTogglePanel from './PlanTogglePanel.vue'
 import MultiPlanCalendarDay from './MultiPlanCalendarDay.vue'
@@ -77,6 +80,7 @@ import LastIncompleteModal from './LastIncompleteModal.vue'
 
 const props = defineProps<{
   userId?: number
+  readonly?: boolean  // 읽기 전용 모드 (타인 프로필)
 }>()
 
 const emit = defineEmits<{
@@ -84,20 +88,58 @@ const emit = defineEmits<{
 }>()
 
 const calendarStore = useCalendarDisplayStore()
+const api = useApi()
 
 // 로컬 상태
 const showSettingsModal = ref(false)
 const showIncompleteModal = ref(false)
 const isLoadingPositions = ref(false)
 
-// 스토어 상태
-const currentYear = computed(() => calendarStore.currentYear)
-const currentMonth = computed(() => calendarStore.currentMonth)
-const isLoading = computed(() => calendarStore.isLoading)
-const visiblePlans = computed(() => calendarStore.visiblePlans)
-const allActivePlans = computed(() => calendarStore.allActivePlans)
+// readonly 모드용 로컬 상태
+const localYear = ref(new Date().getFullYear())
+const localMonth = ref(new Date().getMonth() + 1)
+const localIsLoading = ref(false)
+const localMonthData = ref<Record<string, CalendarDayData[]>>({})
+const localSettings = ref<PlanDisplaySetting[]>([])
+const localHiddenPlanIds = ref<Set<number>>(new Set())
+
+// readonly 여부에 따라 상태 선택
+const currentYear = computed(() => props.readonly ? localYear.value : calendarStore.currentYear)
+const currentMonth = computed(() => props.readonly ? localMonth.value : calendarStore.currentMonth)
+const isLoading = computed(() => props.readonly ? localIsLoading.value : calendarStore.isLoading)
+
+const visiblePlans = computed(() => {
+  if (props.readonly) {
+    return localSettings.value.filter(s => !localHiddenPlanIds.value.has(s.plan_id))
+  }
+  return calendarStore.visiblePlans
+})
+
+const allActivePlans = computed(() => {
+  if (props.readonly) {
+    return localSettings.value.map(s => ({
+      ...s,
+      is_visible: !localHiddenPlanIds.value.has(s.plan_id)
+    }))
+  }
+  return calendarStore.allActivePlans
+})
+
 const lastIncompletePositions = computed(() => calendarStore.lastIncompletePositions)
-const getDisplayForDate = calendarStore.getDisplayForDate
+
+// readonly 모드에서 날짜별 데이터 조회
+const getDisplayForDate = (date: string) => {
+  if (props.readonly) {
+    const dayData = localMonthData.value[date] || []
+    const filtered = dayData.filter(d => !localHiddenPlanIds.value.has(d.plan_id))
+    return {
+      items: filtered.slice(0, 2),
+      hasMore: filtered.length > 2,
+      totalCount: filtered.length
+    }
+  }
+  return calendarStore.getDisplayForDate(date)
+}
 
 // 요일 라벨
 const weekDays = ['일', '월', '화', '수', '목', '금', '토']
@@ -171,29 +213,126 @@ const calendarDates = computed(() => {
   return dates
 })
 
+// readonly 모드용 API 호출
+const fetchUserCalendarData = async (year: number, month: number) => {
+  if (!props.userId) return
+
+  localIsLoading.value = true
+  try {
+    const response = await api.get(`/api/v1/accounts/profile/${props.userId}/calendar/`, {
+      params: { year, month }
+    })
+
+    if (response.data?.success) {
+      // calendar 데이터를 날짜별로 그룹화
+      const monthData: Record<string, CalendarDayData[]> = {}
+      for (const item of response.data.data.calendar) {
+        const dateStr = item.date
+        if (!monthData[dateStr]) {
+          monthData[dateStr] = []
+        }
+        monthData[dateStr].push({
+          plan_id: item.plan_id,
+          plan_name: item.plan_name,
+          subscription_id: 0, // API에서 제공하지 않음
+          color: item.color,
+          book: item.book,
+          chapters: item.chapters,
+          is_completed: item.is_completed,
+          schedule_id: item.schedule_id,
+          is_visible: true
+        })
+      }
+      localMonthData.value = monthData
+
+      // plans 정보를 settings 형태로 변환
+      localSettings.value = (response.data.data.plans || []).map((plan: any, index: number) => ({
+        id: plan.id,
+        subscription_id: 0,
+        plan_id: plan.id,
+        plan_name: plan.name,
+        color: plan.color,
+        display_order: index,
+        is_visible: true,
+        is_active: true
+      }))
+
+      localYear.value = year
+      localMonth.value = month
+    }
+  } catch (error) {
+    console.error('Failed to fetch user calendar data:', error)
+  } finally {
+    localIsLoading.value = false
+  }
+}
+
 // 핸들러
 const handlePrevMonth = async () => {
-  await calendarStore.goToPreviousMonth()
+  if (props.readonly) {
+    let newYear = localYear.value
+    let newMonth = localMonth.value - 1
+    if (newMonth < 1) {
+      newMonth = 12
+      newYear--
+    }
+    await fetchUserCalendarData(newYear, newMonth)
+  } else {
+    await calendarStore.goToPreviousMonth()
+  }
 }
 
 const handleNextMonth = async () => {
-  await calendarStore.goToNextMonth()
+  if (props.readonly) {
+    let newYear = localYear.value
+    let newMonth = localMonth.value + 1
+    if (newMonth > 12) {
+      newMonth = 1
+      newYear++
+    }
+    await fetchUserCalendarData(newYear, newMonth)
+  } else {
+    await calendarStore.goToNextMonth()
+  }
 }
 
 const handleGoToToday = async () => {
-  await calendarStore.goToToday()
+  if (props.readonly) {
+    const today = new Date()
+    await fetchUserCalendarData(today.getFullYear(), today.getMonth() + 1)
+  } else {
+    await calendarStore.goToToday()
+  }
 }
 
 const handleToggleVisibility = async (id: number) => {
-  await calendarStore.toggleVisibility(id)
+  if (props.readonly) {
+    // readonly 모드에서는 로컬에서만 토글
+    const setting = localSettings.value.find(s => s.id === id)
+    if (setting) {
+      if (localHiddenPlanIds.value.has(setting.plan_id)) {
+        localHiddenPlanIds.value.delete(setting.plan_id)
+      } else {
+        localHiddenPlanIds.value.add(setting.plan_id)
+      }
+      // reactivity를 위해 새 Set 생성
+      localHiddenPlanIds.value = new Set(localHiddenPlanIds.value)
+    }
+  } else {
+    await calendarStore.toggleVisibility(id)
+  }
 }
 
 const handleUpdateColor = async (id: number, color: string) => {
-  await calendarStore.updateSetting(id, { color })
+  if (!props.readonly) {
+    await calendarStore.updateSetting(id, { color })
+  }
 }
 
 const handleReorder = async (orderedIds: number[]) => {
-  await calendarStore.reorderPlans(orderedIds)
+  if (!props.readonly) {
+    await calendarStore.reorderPlans(orderedIds)
+  }
 }
 
 const handleDayClick = (date: { dateStr: string; day: number; isCurrentMonth: boolean }) => {
@@ -204,12 +343,14 @@ const handleDayClick = (date: { dateStr: string; day: number; isCurrentMonth: bo
 
 const handleSelectIncomplete = async (position: { date: string }) => {
   showIncompleteModal.value = false
-  await calendarStore.goToDate(position.date)
+  if (!props.readonly) {
+    await calendarStore.goToDate(position.date)
+  }
 }
 
-// 미완료 위치 모달 열 때 데이터 로드
+// 미완료 위치 모달 열 때 데이터 로드 (readonly 아닐 때만)
 watch(showIncompleteModal, async (isOpen) => {
-  if (isOpen) {
+  if (isOpen && !props.readonly) {
     isLoadingPositions.value = true
     await calendarStore.fetchLastIncompletePositions()
     isLoadingPositions.value = false
@@ -218,7 +359,11 @@ watch(showIncompleteModal, async (isOpen) => {
 
 // 초기 데이터 로드
 onMounted(async () => {
-  await calendarStore.fetchMonthData()
+  if (props.readonly && props.userId) {
+    await fetchUserCalendarData(localYear.value, localMonth.value)
+  } else {
+    await calendarStore.fetchMonthData()
+  }
 })
 </script>
 

@@ -23,6 +23,7 @@ import type { PlanDisplaySetting } from '~/stores/calendarDisplay'
 
 defineProps<{
   settings: PlanDisplaySetting[]
+  readonly?: boolean
 }>()
 
 defineEmits<{

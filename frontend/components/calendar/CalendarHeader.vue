@@ -2,7 +2,7 @@
   <div class="calendar-header">
     <div class="header-top">
       <h2 class="month-title">{{ year }}년 {{ month }}월</h2>
-      <div class="header-actions">
+      <div v-if="!readonly" class="header-actions">
         <button
           class="action-btn"
           :disabled="isLoading"
@@ -65,6 +65,7 @@ defineProps<{
   year: number
   month: number
   isLoading: boolean
+  readonly?: boolean
 }>()
 
 defineEmits<{
