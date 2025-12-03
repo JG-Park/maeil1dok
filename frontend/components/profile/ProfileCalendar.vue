@@ -62,6 +62,7 @@
       :is-open="showModal"
       :date="selectedDate"
       :schedules="selectedSchedules"
+      :profile-user-id="userId"
       @close="closeModal"
       @navigate="handleNavigate"
     />
@@ -98,6 +99,7 @@ interface PlanInfo {
 const props = defineProps<{
   calendarData: CalendarDataItem[]
   plans?: PlanInfo[]
+  userId?: number  // 프로필 사용자 ID (뒤로가기용)
 }>()
 
 const emit = defineEmits<{

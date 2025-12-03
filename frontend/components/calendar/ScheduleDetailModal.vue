@@ -73,6 +73,7 @@ interface Props {
   isOpen: boolean
   date: { dateStr: string; day: number } | null
   schedules: ScheduleDetail[]
+  profileUserId?: number  // 프로필 사용자 ID (뒤로가기용)
 }
 
 const props = defineProps<Props>()
@@ -122,14 +123,20 @@ const handleNavigate = (item: ScheduleDetail) => {
     }
   }
 
+  const query: Record<string, string> = {
+    book: bookCode,
+    chapter: chapter?.toString() || '1',
+    plan: item.plan_id.toString()
+  }
+
+  // 프로필 사용자 ID가 있으면 해당 프로필로 뒤로가기
+  if (props.profileUserId) {
+    query.from = `profile/${props.profileUserId}`
+  }
+
   router.push({
     path: '/reading',
-    query: {
-      book: bookCode,
-      chapter: chapter?.toString() || '1',
-      plan: item.plan_id.toString(),
-      from: 'profile-calendar'
-    }
+    query
   })
   emit('close')
 }

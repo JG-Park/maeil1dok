@@ -117,6 +117,7 @@
                 v-if="profile"
                 :calendar-data="calendarData"
                 :plans="calendarPlans"
+                :user-id="userId"
                 @month-change="handleMonthChange"
                 @navigate-to-date="handleNavigateToDate"
               />
