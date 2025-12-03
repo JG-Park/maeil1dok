@@ -249,8 +249,8 @@ onUnmounted(() => {
 }
 
 .menu-button svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 .profile-dropdown {
@@ -261,8 +261,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   overflow: hidden;
   transition: all 0.2s ease;
