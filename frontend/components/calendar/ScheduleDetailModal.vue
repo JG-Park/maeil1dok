@@ -95,13 +95,29 @@ const formattedDate = computed(() => {
 })
 
 const getFullText = (item: ScheduleDetail) => {
+  // 시편은 "편", 그 외는 "장" 사용
+  const unit = item.book === '시편' ? '편' : '장'
+
   if (item.start_chapter && item.end_chapter) {
     if (item.start_chapter === item.end_chapter) {
-      return `${item.book} ${item.start_chapter}장`
+      return `${item.book} ${item.start_chapter}${unit}`
     }
-    return `${item.book} ${item.start_chapter}-${item.end_chapter}장`
+    return `${item.book} ${item.start_chapter}-${item.end_chapter}${unit}`
   }
-  return `${item.book} ${item.chapters || ''}`
+
+  // chapters 필드가 있는 경우 파싱하여 처리
+  if (item.chapters) {
+    const parsed = parseChapters(item.chapters)
+    if (parsed) {
+      if (parsed.start === parsed.end) {
+        return `${item.book} ${parsed.start}${unit}`
+      }
+      return `${item.book} ${parsed.start}-${parsed.end}${unit}`
+    }
+    return `${item.book} ${item.chapters}`
+  }
+
+  return item.book
 }
 
 const handleClose = () => {

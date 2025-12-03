@@ -286,7 +286,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onBeforeUnmount, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
@@ -1108,6 +1108,9 @@ onMounted(() => {
     scrollMonthSelectorToCurrentMonth()
   })
 
+  // ESC 키 이벤트 리스너 등록
+  document.addEventListener('keydown', handleKeydown)
+
   initializeComponent().then(() => {
     // 컴포넌트 초기화가 완료된 후에 scrollToLastIncomplete 호출
     if (props.isModal && props.currentBook && props.currentChapter) {
@@ -1121,11 +1124,25 @@ onMounted(() => {
   })
 })
 
+// ESC 키로 모달 닫기
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    if (showModal.value) {
+      closeModal()
+    } else if (showLoginModal.value) {
+      closeLoginModal()
+    } else if (showPlanModal.value) {
+      showPlanModal.value = false
+    }
+  }
+}
+
 onBeforeUnmount(() => {
   const scheduleBody = document.querySelector('.schedule-body')
   if (scheduleBody) {
     scheduleBody.removeEventListener('scroll', handleScroll)
   }
+  document.removeEventListener('keydown', handleKeydown)
 })
 
 // Watchers

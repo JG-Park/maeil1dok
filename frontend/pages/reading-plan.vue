@@ -88,8 +88,8 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
   flex-direction: column;
   background: var(--background-color);
   position: relative;
-  /* fixed에서 relative로 변경 */
   width: 100%;
+  height: 100vh;
 }
 
 .fixed-area {
@@ -114,9 +114,7 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
 .scroll-area {
   flex: 1;
   min-height: 0;
-  /* 중요: flex 자식 요소의 스크롤을 위해 필요 */
   overflow: hidden;
-  /* BibleScheduleContent에서 스크롤 처리 */
 }
 
 /* iOS 안전영역 대응 */
