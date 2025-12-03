@@ -47,8 +47,6 @@ defineProps({
 .container {
   max-width: 768px;
   margin: 0 auto;
-  height: 100vh;
-  height: 100dvh; /* 동적 뷰포트 높이 */
   display: flex;
   flex-direction: column;
   background: var(--background-color);
