@@ -1222,6 +1222,15 @@ watch(selectedMonth, () => {
     scrollMonthSelectorToCurrentMonth()
   })
 })
+
+// 모달 열릴 때 배경 스크롤 방지
+watch([showModal, showLoginModal, showPlanModal], ([modal, loginModal, planModal]) => {
+  if (modal || loginModal || planModal) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
 </script>
 
 <style scoped src="./BibleScheduleContent.style.css"></style>

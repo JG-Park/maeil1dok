@@ -89,7 +89,8 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
   background: var(--background-color);
   position: relative;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .fixed-area {
