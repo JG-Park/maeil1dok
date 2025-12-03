@@ -84,10 +84,6 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
 .container {
   max-width: 768px;
   margin: 0 auto;
-  height: 100vh;
-  /* 뷰포트 높이 사용 */
-  height: 100dvh;
-  /* 동적 뷰포트 높이 사용 */
   display: flex;
   flex-direction: column;
   background: var(--background-color);
