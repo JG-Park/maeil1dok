@@ -179,7 +179,7 @@ const close = () => {
   width: 100%;
   height: 100%;
   background: white;
-  padding: 1.5rem 1rem;
+  padding: 1rem;
   box-shadow: -4px 0 25px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
