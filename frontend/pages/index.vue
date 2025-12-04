@@ -685,17 +685,57 @@
 import { useHead } from "#imports";
 
 useHead({
-  title: "매일일독",
+  title: "매일일독 - 성경 통독 관리 서비스",
   meta: [
-    { name: "description", content: "" },
-    { property: "og:title", content: "매일일독" },
-    { property: "og:description", content: "" },
-    { property: "og:image", content: "/og-image.png" },
+    { name: "description", content: "높은뜻 푸른교회의 성경 통독 관리 서비스. 매일 말씀을 읽고 진행률을 확인하세요. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요." },
+    { property: "og:title", content: "매일일독 - 성경 통독 관리 서비스" },
+    { property: "og:description", content: "높은뜻 푸른교회의 성경 통독 관리 서비스. 매일 말씀을 읽고 진행률을 확인하세요." },
+    { property: "og:image", content: "https://maeil1dok.app/og-image.png" },
     { property: "og:url", content: "https://maeil1dok.app/" },
+    { property: "og:type", content: "website" },
+    { property: "og:locale", content: "ko_KR" },
+    { property: "og:site_name", content: "매일일독" },
     { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: "매일일독" },
-    { name: "twitter:description", content: "" },
-    { name: "twitter:image", content: "/og-image.png" },
+    { name: "twitter:title", content: "매일일독 - 성경 통독 관리 서비스" },
+    { name: "twitter:description", content: "높은뜻 푸른교회의 성경 통독 관리 서비스. 매일 말씀을 읽고 진행률을 확인하세요." },
+    { name: "twitter:image", content: "https://maeil1dok.app/og-image.png" },
+  ],
+  link: [
+    { rel: "canonical", href: "https://maeil1dok.app/" },
+  ],
+  script: [
+    {
+      type: "application/ld+json",
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "매일일독",
+        url: "https://maeil1dok.app",
+        description: "높은뜻 푸른교회의 성경 통독 관리 서비스. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요.",
+        inLanguage: "ko-KR",
+        publisher: {
+          "@type": "Organization",
+          name: "높은뜻 푸른교회",
+        },
+      }),
+    },
+    {
+      type: "application/ld+json",
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        name: "매일일독",
+        url: "https://maeil1dok.app",
+        applicationCategory: "ReligionApplication",
+        operatingSystem: "All",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "KRW",
+        },
+        description: "성경 통독을 체계적으로 관리하고 진행률을 확인할 수 있는 웹 애플리케이션",
+      }),
+    },
   ],
 });
 

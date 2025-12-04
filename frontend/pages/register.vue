@@ -80,6 +80,23 @@ import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useApi } from '~/composables/useApi'
 import { useRuntimeConfig } from 'nuxt/app'
+import { useHead } from '#imports'
+
+useHead({
+  title: '회원가입 - 매일일독',
+  meta: [
+    { name: 'description', content: '매일일독에 가입하여 성경 통독을 시작하세요. 간편한 카카오 로그인을 지원합니다.' },
+    { property: 'og:title', content: '회원가입 - 매일일독' },
+    { property: 'og:description', content: '매일일독에 가입하여 성경 통독을 시작하세요.' },
+    { property: 'og:url', content: 'https://maeil1dok.app/register' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:locale', content: 'ko_KR' },
+    { property: 'og:site_name', content: '매일일독' },
+  ],
+  link: [
+    { rel: 'canonical', href: 'https://maeil1dok.app/register' },
+  ],
+})
 
 const config = useRuntimeConfig()
 

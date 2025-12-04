@@ -1,1 +1,25 @@
+# 매일일독 robots.txt
+# https://maeil1dok.app
 
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /intro
+Allow: /install
+
+# 비공개 페이지 차단
+Disallow: /reading
+Disallow: /reading-plan
+Disallow: /profile/
+Disallow: /groups
+Disallow: /friends
+Disallow: /scoreboard
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /hasena
+Disallow: /notice/
+Disallow: /plans/
+
+# Sitemap 위치
+Sitemap: https://maeil1dok.app/sitemap.xml

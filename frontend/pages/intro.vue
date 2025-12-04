@@ -62,6 +62,23 @@ import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
 import IntroListContent from '~/components/IntroListContent.vue'
+import { useHead } from '#imports'
+
+useHead({
+  title: '성경 개론 영상 - 매일일독',
+  meta: [
+    { name: 'description', content: '성경 각 권의 개론 영상을 시청하세요. 성경의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상할 수 있습니다.' },
+    { property: 'og:title', content: '성경 개론 영상 - 매일일독' },
+    { property: 'og:description', content: '성경 각 권의 개론 영상을 시청하세요.' },
+    { property: 'og:url', content: 'https://maeil1dok.app/intro' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:locale', content: 'ko_KR' },
+    { property: 'og:site_name', content: '매일일독' },
+  ],
+  link: [
+    { rel: 'canonical', href: 'https://maeil1dok.app/intro' },
+  ],
+})
 
 const route = useRoute()
 const router = useRouter()

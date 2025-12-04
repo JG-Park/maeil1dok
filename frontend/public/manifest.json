@@ -1,6 +1,10 @@
 {
-  "name": "매일일독",
+  "name": "매일일독 - 성경 통독 관리 서비스",
   "short_name": "매일일독",
+  "description": "높은뜻 푸른교회의 성경 통독 관리 서비스. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요.",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "ko-KR",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -10,10 +14,13 @@
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "theme_color": "#faf8f6",
   "background_color": "#faf8f6",
-  "display": "standalone"
-} 
+  "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["religion", "education"]
+}

@@ -17,6 +17,23 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { useHead } from '#imports'
+
+useHead({
+  title: '앱 설치 방법 - 매일일독',
+  meta: [
+    { name: 'description', content: '매일일독 앱을 휴대폰에 설치하는 방법을 안내합니다. iOS와 Android 모두 지원합니다.' },
+    { property: 'og:title', content: '앱 설치 방법 - 매일일독' },
+    { property: 'og:description', content: '매일일독 앱을 휴대폰에 설치하는 방법을 안내합니다.' },
+    { property: 'og:url', content: 'https://maeil1dok.app/install' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:locale', content: 'ko_KR' },
+    { property: 'og:site_name', content: '매일일독' },
+  ],
+  link: [
+    { rel: 'canonical', href: 'https://maeil1dok.app/install' },
+  ],
+})
 
 const router = useRouter()
 </script>
