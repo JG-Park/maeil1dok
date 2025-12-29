@@ -30,6 +30,12 @@ SUPPORTED_VERSIONS = frozenset({
 # 요청 타임아웃 (초)
 REQUEST_TIMEOUT = 15
 
+# KNT 전용 책 코드 매핑 (표준 코드 -> KNT API 코드)
+# KNT API는 일부 책에서 다른 코드 체계를 사용함
+KNT_BOOK_CODE_MAP = {
+    'jnh': 'JON',  # 요나서: 표준은 jnh, KNT는 JON
+}
+
 
 class BibleFetchError(Exception):
     """성경 본문 가져오기 실패 예외"""
@@ -136,10 +142,13 @@ class BibleFetchService:
 
         KNT는 JSON 형식으로 응답
         """
+        # KNT 전용 책 코드 변환 (필요한 경우)
+        knt_book = KNT_BOOK_CODE_MAP.get(book.lower(), book.upper())
+
         url = f"{BSKOREA_BASE_URL}/KNT/get_chapter.php"
         params = {
             'version': 'd7a4326402395391-01',
-            'chapter': f"{book.upper()}.{chapter}"
+            'chapter': f"{knt_book}.{chapter}"
         }
 
         response = requests.get(
@@ -156,9 +165,9 @@ class BibleFetchService:
         # JSON 응답 검증
         json_data = response.json()
         if not json_data.get('found'):
-            raise BibleFetchError(f"KNT 본문을 찾을 수 없음: {book}.{chapter}")
+            raise BibleFetchError(f"KNT 본문을 찾을 수 없음: {knt_book}.{chapter}")
 
-        source_url = f"{url}?version=d7a4326402395391-01&chapter={book.upper()}.{chapter}"
+        source_url = f"{url}?version=d7a4326402395391-01&chapter={knt_book}.{chapter}"
         return response.text, 'json', source_url
 
     @staticmethod
