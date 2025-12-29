@@ -526,13 +526,12 @@ const parseKntVersion = (jsonData, book, chapter) => {
               .trim();
             
             if (plainText && verseMap.has(verseNum)) {
-              // 같은 구절 번호에 텍스트 추가
+              // 같은 구절 번호에 줄 추가 (시적 구조를 위해 개별 줄로 저장)
               const existing = verseMap.get(verseNum);
-              existing.text += "\n" + plainText;
-              // 시적 구조 클래스가 있으면 업데이트
-              if (element.class && element.class !== 'p') {
-                existing.class = element.class;
-              }
+              existing.lines.push({
+                text: plainText,
+                class: element.class || 'p'
+              });
               return; // forEach에서 다음 요소로
             }
           }
@@ -560,14 +559,16 @@ const parseKntVersion = (jsonData, book, chapter) => {
                 if (currentVerseNum && verseText) {
                   const poeticClass = element.class || 'p';
                   if (verseMap.has(currentVerseNum)) {
-                    // 같은 구절 번호가 이미 있으면 텍스트 추가
+                    // 같은 구절 번호가 이미 있으면 줄 추가
                     const existing = verseMap.get(currentVerseNum);
-                    existing.text += "\n" + verseText;
-                  } else {
-                    // 새로운 구절 번호면 추가
-                    verseMap.set(currentVerseNum, {
+                    existing.lines.push({
                       text: verseText,
-                      class: poeticClass,
+                      class: poeticClass
+                    });
+                  } else {
+                    // 새로운 구절 번호면 추가 (줄 배열로 저장)
+                    verseMap.set(currentVerseNum, {
+                      lines: [{ text: verseText, class: poeticClass }],
                       order: elementIndex
                     });
                     verseOrder.push(currentVerseNum);
@@ -618,14 +619,16 @@ const parseKntVersion = (jsonData, book, chapter) => {
             if (currentVerseNum && verseText) {
               const poeticClass = element.class || 'p';
               if (verseMap.has(currentVerseNum)) {
-                // 같은 구절 번호가 이미 있으면 텍스트 추가
+                // 같은 구절 번호가 이미 있으면 줄 추가
                 const existing = verseMap.get(currentVerseNum);
-                existing.text += "\n" + verseText;
-              } else {
-                // 새로운 구절 번호면 추가
-                verseMap.set(currentVerseNum, {
+                existing.lines.push({
                   text: verseText,
-                  class: poeticClass,
+                  class: poeticClass
+                });
+              } else {
+                // 새로운 구절 번호면 추가 (줄 배열로 저장)
+                verseMap.set(currentVerseNum, {
+                  lines: [{ text: verseText, class: poeticClass }],
                   order: elementIndex
                 });
                 verseOrder.push(currentVerseNum);
@@ -660,14 +663,16 @@ const parseKntVersion = (jsonData, book, chapter) => {
               // 시적 구조 클래스 추가
               const poeticClass = element.class || 'p';
               if (verseMap.has(verseNum)) {
-                // 같은 구절 번호가 이미 있으면 텍스트 추가
+                // 같은 구절 번호가 이미 있으면 줄 추가
                 const existing = verseMap.get(verseNum);
-                existing.text += "\n" + verseContent;
-              } else {
-                // 새로운 구절 번호면 추가
-                verseMap.set(verseNum, {
+                existing.lines.push({
                   text: verseContent,
-                  class: poeticClass,
+                  class: poeticClass
+                });
+              } else {
+                // 새로운 구절 번호면 추가 (줄 배열로 저장)
+                verseMap.set(verseNum, {
+                  lines: [{ text: verseContent, class: poeticClass }],
                   order: elementIndex
                 });
                 verseOrder.push(verseNum);
@@ -706,13 +711,24 @@ const parseKntVersion = (jsonData, book, chapter) => {
       // 모든 요소를 원본 순서대로 정렬하여 verses 배열 구성
       const allContentElements = [];
       
-      // 구절들을 원본 인덱스와 함께 저장
+      // 구절들을 원본 인덱스와 함께 저장 (여러 줄을 개별 요소로 렌더링)
       verseOrder.forEach(verseNum => {
         const verseData = verseMap.get(verseNum);
-        if (verseData) {
+        if (verseData && verseData.lines) {
+          // 각 줄을 별도의 verse-line 요소로 렌더링
+          const linesHtml = verseData.lines.map((line, idx) => {
+            if (idx === 0) {
+              // 첫 줄: 구절 번호 포함
+              return `<div class="verse-line ${line.class}"><span class="verse-number">${verseNum}</span><span class="verse-text">${line.text}</span></div>`;
+            } else {
+              // 후속 줄: 번호 없이 들여쓰기만 (continuation 클래스 추가)
+              return `<div class="verse-line continuation ${line.class}"><span class="verse-text">${line.text}</span></div>`;
+            }
+          }).join('');
+
           allContentElements.push({
             order: verseData.order,
-            html: `<div class="verse ${verseData.class}"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseData.text}</span></div>`
+            html: `<div class="verse-group">${linesHtml}</div>`
           });
         }
       });
@@ -3032,6 +3048,51 @@ onUnmounted(() => {
   font-weight: normal;
   letter-spacing: -0.02em;
   transition: background-color 0.3s ease-in-out;
+}
+
+/* 시적 구조를 위한 구절 그룹 */
+:deep(.verse-group) {
+  margin: 0.25rem 0;
+}
+
+:deep(.verse-line) {
+  font-family: "RIDIBatang", serif;
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.8;
+  font-weight: normal;
+  letter-spacing: -0.02em;
+  transition: background-color 0.3s ease-in-out;
+}
+
+/* 후속 줄: 구절 번호 자리만큼 왼쪽 여백 */
+:deep(.verse-line.continuation) {
+  padding-left: 1.3em;
+}
+
+/* 시적 구조 들여쓰기 (q1, q2 등) */
+:deep(.verse-line.q1) {
+  padding-left: 1.5em;
+}
+
+:deep(.verse-line.continuation.q1) {
+  padding-left: calc(1.3em + 1.5em);
+}
+
+:deep(.verse-line.q2) {
+  padding-left: 2.5em;
+}
+
+:deep(.verse-line.continuation.q2) {
+  padding-left: calc(1.3em + 2.5em);
+}
+
+:deep(.verse-line.m) {
+  padding-left: 0.5em;
+}
+
+:deep(.verse-line.continuation.m) {
+  padding-left: calc(1.3em + 0.5em);
 }
 
 :deep(.verse-number) {
