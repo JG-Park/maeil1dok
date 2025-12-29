@@ -336,7 +336,7 @@ const processFootnotes = (text) => {
     // 각주를 마커로 변환
     // 원본 구조: <span data-caller="+" class="f"><span class="fr">절번호</span><span class="ft">각주내용</span></span>
     return text.replace(
-      /<span[^>]*data-caller[^>]*class="f"[^>]*>.*?<span class="ft">([^<]*)<\/span>.*?<\/span>/gs,
+      /<span[^>]*class="f"[^>]*>[\s\S]*?<span class="ft">([^<]*)<\/span>\s*<\/span>/gs,
       (match, footnoteText) => {
         if (footnoteText && footnoteText.trim()) {
           // 특수문자 이스케이프 (HTML 속성에 안전하게 저장)
@@ -348,13 +348,21 @@ const processFootnotes = (text) => {
         return '';
       }
     ).replace(
-      // 위 패턴으로 매칭되지 않는 나머지 각주 형태도 처리
-      /<span[^>]*data-caller[^>]*>.*?<\/span>/gs,
+      // 위 패턴으로 매칭되지 않는 나머지 각주 형태도 처리 (중첩 구조)
+      /<span[^>]*data-caller[^>]*>[\s\S]*?<\/span>\s*<\/span>\s*<\/span>/g,
+      ''
+    ).replace(
+      // 단순 각주 형태
+      /<span[^>]*data-caller[^>]*>[\s\S]*?<\/span>/gs,
       ''
     );
   } else {
     // 각주 완전 제거 (기존 동작)
-    return text.replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '');
+    // 중첩된 각주 구조 처리: <span class="f">...<span class="fr">...</span><span class="ft">...</span></span>
+    return text
+      .replace(/<span[^>]*class="f"[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, '')
+      .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, '')
+      .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '');
   }
 };
 
@@ -362,18 +370,23 @@ const processFootnotes = (text) => {
 const parseKntVersion = (jsonData, book, chapter) => {
   try {
     // JSON 객체인 경우 (일반적인 케이스)
-    if (typeof jsonData !== "string" && jsonData.reference) {
+    if (typeof jsonData !== "string" && jsonData.found && jsonData.content) {
       // 장 제목 설정
       const suffix = book === "psa" ? "편" : "장";
-      const reference =
-        jsonData.reference || `${bookNames[book] || ""} ${chapter}`;
+      const bookName = bookNames[book] || "";
 
-      // reference에 이미 장/편이 포함되어 있는지 확인
-      if (reference.includes("장") || reference.includes("편")) {
-        chapterTitle.value = reference;
+      // reference가 있으면 사용, 없으면 기본 형식 사용
+      if (jsonData.reference) {
+        // reference에 "N장" 또는 "N편" 패턴이 있는지 확인 (숫자+장/편)
+        if (/\d+(장|편)/.test(jsonData.reference)) {
+          chapterTitle.value = jsonData.reference;
+        } else {
+          // 장/편 단위가 없으면 추가
+          chapterTitle.value = `${jsonData.reference}${suffix}`;
+        }
       } else {
-        // 장/편 단위가 없으면 추가
-        chapterTitle.value = `${reference}${suffix}`;
+        // reference가 없으면 기본 형식 사용: "창세기 1장" 또는 "시편 1편"
+        chapterTitle.value = `${bookName} ${chapter}${suffix}`;
       }
 
       // 섹션 제목 초기화
@@ -422,8 +435,10 @@ const parseKntVersion = (jsonData, book, chapter) => {
       let descMatch;
       while ((descMatch = descRegex.exec(content)) !== null) {
         // 각주 및 verse-span 제거 후 텍스트 추출
+        // 중첩된 각주 구조 제거: <span class="f">...<span class="fr">...</span><span class="ft">...</span></span>
         const cleanText = descMatch[1]
-          .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "")
+          .replace(/<span[^>]*class="f"[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, "")
+          .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, "")
           .replace(/<span[^>]*class="verse-span"[^>]*>.*?<\/span>/gs, "")
           .replace(/<span[^>]*class="v"[^>]*>\d+<\/span>/gs, "")
           .replace(/<\/?[^>]+(>|$)/g, "")
@@ -544,23 +559,35 @@ const parseKntVersion = (jsonData, book, chapter) => {
           const vidMatch = element.fullMatch.match(/data-vid="[^:]+:(\d+)"/);
           if (vidMatch) {
             const verseNum = vidMatch[1];
-            const plainText = element.content
+            // 각주 처리 포함한 텍스트 추출
+            let processedContent = processFootnotes(element.content);
+            const plainText = processedContent
               .replace(/&nbsp;/g, " ")
               .replace(/&amp;/g, "&")
               .replace(/&lt;/g, "<")
               .replace(/&gt;/g, ">")
               .replace(/&quot;/g, '"')
               .replace(/&#39;/g, "'")
-              .replace(/<\/?[^>]+(>|$)/g, "")
+              .replace(/<(?!\/?sup[^>]*class="footnote-marker")[^>]+>/g, "")
               .trim();
-            
-            if (plainText && verseMap.has(verseNum)) {
-              // 같은 구절 번호에 줄 추가 (시적 구조를 위해 개별 줄로 저장)
-              const existing = verseMap.get(verseNum);
-              existing.lines.push({
-                text: plainText,
-                class: element.class || 'p'
-              });
+
+            if (plainText) {
+              const poeticClass = element.class || 'p';
+              if (verseMap.has(verseNum)) {
+                // 같은 구절 번호에 줄 추가 (시적 구조를 위해 개별 줄로 저장)
+                const existing = verseMap.get(verseNum);
+                existing.lines.push({
+                  text: plainText,
+                  class: poeticClass
+                });
+              } else {
+                // 새로운 구절 번호면 추가 (data-vid에서 추출한 경우)
+                verseMap.set(verseNum, {
+                  lines: [{ text: plainText, class: poeticClass }],
+                  order: elementIndex
+                });
+                verseOrder.push(verseNum);
+              }
               return; // forEach에서 다음 요소로
             }
           }
@@ -628,7 +655,7 @@ const parseKntVersion = (jsonData, book, chapter) => {
                   .replace(/<(?!\/?sup[^>]*class="footnote-marker")[^>]+>/g, "")
                   .trim();
               } else {
-                // 구절 번호 없는 경우 - 이전 구절의 계속되는 내용일 수 있음
+                // 구절 번호 없는 경우 - data-verse-id에서 추출 시도 또는 이전 구절의 계속
                 let additionalSpan = verseSpan
                   .replace(/<span[^>]*class="verse-span"[^>]*>/, "")
                   .replace(/<\/span>$/, "");
@@ -648,8 +675,18 @@ const parseKntVersion = (jsonData, book, chapter) => {
                   .replace(/<(?!\/?sup[^>]*class="footnote-marker")[^>]+>/g, "")
                   .trim();
 
-                if (additionalText && currentVerseNum) {
-                  verseText += " " + additionalText;
+                if (additionalText) {
+                  if (currentVerseNum) {
+                    // 이전 구절에 추가
+                    verseText += " " + additionalText;
+                  } else {
+                    // currentVerseNum이 없으면 data-verse-id에서 추출 시도 (형식: PSA.6.1)
+                    const verseIdMatch = verseSpan.match(/data-verse-id="[^.]+\.\d+\.(\d+)"/);
+                    if (verseIdMatch) {
+                      currentVerseNum = verseIdMatch[1];
+                      verseText = additionalText;
+                    }
+                  }
                 }
               }
             });
