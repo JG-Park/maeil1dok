@@ -38,6 +38,7 @@ const viewOptions = reactive({
   showDescription: true,    // d 클래스 (시편 머리말) 표시
   showCrossRef: true,       // r 클래스 (교차 참조) 표시
   highlightNames: true,     // 인명/지명/원어 강조 표시
+  showFootnotes: false,     // 각주 표시 (기본: 숨김)
 });
 
 // 성경 내용 상태 관리
@@ -329,6 +330,34 @@ const parseStandardContent = (htmlText, book, chapter) => {
   parseGaeVersion(bibleElement, book, chapter);
 };
 
+// 각주 처리 함수: 각주를 마커로 변환하거나 제거
+const processFootnotes = (text) => {
+  if (viewOptions.showFootnotes) {
+    // 각주를 마커로 변환
+    // 원본 구조: <span data-caller="+" class="f"><span class="fr">절번호</span><span class="ft">각주내용</span></span>
+    return text.replace(
+      /<span[^>]*data-caller[^>]*class="f"[^>]*>.*?<span class="ft">([^<]*)<\/span>.*?<\/span>/gs,
+      (match, footnoteText) => {
+        if (footnoteText && footnoteText.trim()) {
+          // 특수문자 이스케이프 (HTML 속성에 안전하게 저장)
+          const escapedText = footnoteText.trim()
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+          return `<sup class="footnote-marker" data-footnote="${escapedText}" title="${escapedText}">*</sup>`;
+        }
+        return '';
+      }
+    ).replace(
+      // 위 패턴으로 매칭되지 않는 나머지 각주 형태도 처리
+      /<span[^>]*data-caller[^>]*>.*?<\/span>/gs,
+      ''
+    );
+  } else {
+    // 각주 완전 제거 (기존 동작)
+    return text.replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '');
+  }
+};
+
 // 새한글성경(KNT) 파싱 함수 수정 - 다양한 형식 대응
 const parseKntVersion = (jsonData, book, chapter) => {
   try {
@@ -578,12 +607,16 @@ const parseKntVersion = (jsonData, book, chapter) => {
                 // 새 구절 시작
                 currentVerseNum = numMatch[1];
 
-                // 구절 텍스트 추출 (구절 번호, 각주 등 제거)
-                verseText = verseSpan
+                // 구절 텍스트 추출 (구절 번호 제거, 각주는 조건부 처리)
+                let processedSpan = verseSpan
                   .replace(/<span[^>]*class="v"[^>]*>\d+<\/span>/, "") // 구절 번호 제거
                   .replace(/<span[^>]*class="verse-span"[^>]*>/, "") // 여는 태그 제거
-                  .replace(/<\/span>$/, "") // 닫는 태그 제거
-                  .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "") // 각주 제거
+                  .replace(/<\/span>$/, ""); // 닫는 태그 제거
+
+                // 각주 처리 (마커 변환 또는 제거)
+                processedSpan = processFootnotes(processedSpan);
+
+                verseText = processedSpan
                   // HTML 엔티티 디코딩
                   .replace(/&nbsp;/g, " ")
                   .replace(/&amp;/g, "&")
@@ -591,14 +624,19 @@ const parseKntVersion = (jsonData, book, chapter) => {
                   .replace(/&gt;/g, ">")
                   .replace(/&quot;/g, '"')
                   .replace(/&#39;/g, "'")
-                  .replace(/<\/?[^>]+(>|$)/g, "")
-                  .trim(); // 기타 HTML 태그 제거
+                  // 기타 HTML 태그 제거 (footnote-marker는 보존)
+                  .replace(/<(?!\/?sup[^>]*class="footnote-marker")[^>]+>/g, "")
+                  .trim();
               } else {
                 // 구절 번호 없는 경우 - 이전 구절의 계속되는 내용일 수 있음
-                const additionalText = verseSpan
+                let additionalSpan = verseSpan
                   .replace(/<span[^>]*class="verse-span"[^>]*>/, "")
-                  .replace(/<\/span>$/, "")
-                  .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "")
+                  .replace(/<\/span>$/, "");
+
+                // 각주 처리 (마커 변환 또는 제거)
+                additionalSpan = processFootnotes(additionalSpan);
+
+                const additionalText = additionalSpan
                   // HTML 엔티티 디코딩
                   .replace(/&nbsp;/g, " ")
                   .replace(/&amp;/g, "&")
@@ -606,7 +644,8 @@ const parseKntVersion = (jsonData, book, chapter) => {
                   .replace(/&gt;/g, ">")
                   .replace(/&quot;/g, '"')
                   .replace(/&#39;/g, "'")
-                  .replace(/<\/?[^>]+(>|$)/g, "")
+                  // 기타 HTML 태그 제거 (footnote-marker는 보존)
+                  .replace(/<(?!\/?sup[^>]*class="footnote-marker")[^>]+>/g, "")
                   .trim();
 
                 if (additionalText && currentVerseNum) {
@@ -647,9 +686,11 @@ const parseKntVersion = (jsonData, book, chapter) => {
               const verseNum = directVerseMatch[1];
               let verseContent = directVerseMatch[2];
 
+              // 각주 처리 (마커 변환 또는 제거)
+              verseContent = processFootnotes(verseContent);
+
               // HTML 태그 제거 및 엔티티 디코딩
               verseContent = verseContent
-                .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "") // 각주 제거
                 // HTML 엔티티 디코딩
                 .replace(/&nbsp;/g, " ")
                 .replace(/&amp;/g, "&")
@@ -657,7 +698,8 @@ const parseKntVersion = (jsonData, book, chapter) => {
                 .replace(/&gt;/g, ">")
                 .replace(/&quot;/g, '"')
                 .replace(/&#39;/g, "'")
-                .replace(/<\/?[^>]+(>|$)/g, "")
+                // 기타 HTML 태그 제거 (footnote-marker는 보존)
+                .replace(/<(?!\/?sup[^>]*class="footnote-marker")[^>]+>/g, "")
                 .trim();
 
               // 시적 구조 클래스 추가
@@ -2778,12 +2820,17 @@ onUnmounted(() => {
                 <span class="option-label">교차 참조 표시</span>
                 <span class="option-description">관련 성경 구절 참조 정보 표시</span>
               </label>
+              <label class="option-item" v-if="currentVersion === 'KNT'">
+                <input type="checkbox" v-model="viewOptions.showFootnotes">
+                <span class="option-label">각주 표시</span>
+                <span class="option-description">원어 의미, 역사적 배경 등 각주 정보 표시</span>
+              </label>
               <label class="option-item" v-if="currentVersion !== 'KNT'">
                 <input type="checkbox" v-model="viewOptions.highlightNames">
                 <span class="option-label">인명/지명 강조</span>
                 <span class="option-description">인명, 지명, 원어를 색상으로 구분 표시</span>
               </label>
-              <p v-if="currentVersion === 'KNT' && !viewOptions.showDescription && !viewOptions.showCrossRef" class="options-note">
+              <p v-if="currentVersion === 'KNT' && !viewOptions.showDescription && !viewOptions.showCrossRef && !viewOptions.showFootnotes" class="options-note">
                 모든 옵션이 꺼져 있습니다.
               </p>
             </div>
@@ -5038,6 +5085,54 @@ html.touch-device .nav-button.next:hover svg {
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   text-decoration-color: #9ca3af;
+}
+
+/* 각주 마커 */
+:deep(.footnote-marker) {
+  color: #3b82f6;
+  cursor: help;
+  font-size: 0.75em;
+  vertical-align: super;
+  margin: 0 1px;
+  font-weight: 500;
+  position: relative;
+}
+
+/* 터치 디바이스에서 탭 시 툴팁 표시 */
+:deep(.footnote-marker:hover)::after,
+:deep(.footnote-marker:focus)::after {
+  content: attr(data-footnote);
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: normal;
+  max-width: 280px;
+  width: max-content;
+  z-index: 20;
+  white-space: normal;
+  line-height: 1.5;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin-bottom: 4px;
+}
+
+/* 툴팁 화살표 */
+:deep(.footnote-marker:hover)::before,
+:deep(.footnote-marker:focus)::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1f2937;
+  margin-bottom: -8px;
+  z-index: 21;
 }
 
 :deep(.paragraph) {
