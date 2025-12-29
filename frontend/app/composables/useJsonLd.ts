@@ -37,7 +37,7 @@ export const useJsonLd = () => {
             '@type': 'WebSite',
             name: '매일일독',
             url: 'https://maeil1dok.app',
-            description: '높은뜻 푸른교회의 성경 통독 관리 서비스. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요.',
+            description: '매일일독과 함께 올해는 성경통독하기!',
             inLanguage: 'ko-KR',
             publisher: {
               '@type': 'Organization',

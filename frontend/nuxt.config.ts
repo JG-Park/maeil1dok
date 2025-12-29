@@ -69,7 +69,7 @@ export default defineNuxtConfig({
       htmlAttrs: {
         lang: 'ko',
       },
-      title: '매일일독 - 성경 통독 관리 서비스',
+      title: '매일일독',
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
@@ -84,17 +84,17 @@ export default defineNuxtConfig({
           name: 'viewport',
           content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
         },
-        { name: 'description', content: '높은뜻 푸른교회의 성경 통독 관리 서비스. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요.' },
-        { property: 'og:title', content: '매일일독 - 성경 통독 관리 서비스' },
-        { property: 'og:description', content: '높은뜻 푸른교회의 성경 통독 관리 서비스. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요.' },
+        { name: 'description', content: '매일일독과 함께 올해는 성경통독하기!' },
+        { property: 'og:title', content: '매일일독' },
+        { property: 'og:description', content: '매일일독과 함께 올해는 성경통독하기!' },
         { property: 'og:type', content: 'website' },
         { property: 'og:image', content: 'https://maeil1dok.app/og-image.png' },
         { property: 'og:url', content: 'https://maeil1dok.app' },
         { property: 'og:locale', content: 'ko_KR' },
         { property: 'og:site_name', content: '매일일독' },
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: '매일일독 - 성경 통독 관리 서비스' },
-        { name: 'twitter:description', content: '높은뜻 푸른교회의 성경 통독 관리 서비스. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요.' },
+        { name: 'twitter:title', content: '매일일독' },
+        { name: 'twitter:description', content: '매일일독과 함께 올해는 성경통독하기!' },
         { name: 'twitter:image', content: 'https://maeil1dok.app/og-image.png' },
         // 검색엔진 인증 메타 태그 (등록 후 인증 코드로 교체 필요)
         // { name: 'google-site-verification', content: 'YOUR_GOOGLE_VERIFICATION_CODE' },

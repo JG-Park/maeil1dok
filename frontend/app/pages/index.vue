@@ -685,10 +685,10 @@
 import { useHead } from "#imports";
 
 useHead({
-  title: "매일일독 - 성경 통독 관리 서비스",
+  title: "매일일독",
   meta: [
     { name: "description", content: "높은뜻 푸른교회의 성경 통독 관리 서비스. 매일 말씀을 읽고 진행률을 확인하세요. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요." },
-    { property: "og:title", content: "매일일독 - 성경 통독 관리 서비스" },
+    { property: "og:title", content: "매일일독" },
     { property: "og:description", content: "높은뜻 푸른교회의 성경 통독 관리 서비스. 매일 말씀을 읽고 진행률을 확인하세요." },
     { property: "og:image", content: "https://maeil1dok.app/og-image.png" },
     { property: "og:url", content: "https://maeil1dok.app/" },
@@ -696,7 +696,7 @@ useHead({
     { property: "og:locale", content: "ko_KR" },
     { property: "og:site_name", content: "매일일독" },
     { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: "매일일독 - 성경 통독 관리 서비스" },
+    { name: "twitter:title", content: "매일일독" },
     { name: "twitter:description", content: "높은뜻 푸른교회의 성경 통독 관리 서비스. 매일 말씀을 읽고 진행률을 확인하세요." },
     { name: "twitter:image", content: "https://maeil1dok.app/og-image.png" },
   ],
@@ -711,7 +711,7 @@ useHead({
         "@type": "WebSite",
         name: "매일일독",
         url: "https://maeil1dok.app",
-        description: "높은뜻 푸른교회의 성경 통독 관리 서비스. 45주 성경 통독 계획으로 체계적인 말씀 묵상을 시작하세요.",
+        description: "매일일독과 함께 올해는 성경통독하기!",
         inLanguage: "ko-KR",
         publisher: {
           "@type": "Organization",
