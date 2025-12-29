@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
+  compatibilityDate: '2025-12-29',
   devtools: {
     enabled: process.env.NUXT_DEVTOOLS === 'true'
   },
@@ -49,9 +49,9 @@ export default defineNuxtConfig({
     ],
   },
   css: [
-    '@/assets/css/main.css',
-    '@/assets/css/global.css',
-    '@/assets/css/mobile-nav.css'
+    '~/assets/css/main.css',
+    '~/assets/css/global.css',
+    '~/assets/css/mobile-nav.css'
   ],
   runtimeConfig: {
     public: {
@@ -114,38 +114,6 @@ export default defineNuxtConfig({
       ]
     }
   },
-  // Auth 설정
-  auth: {
-    strategies: {
-      local: {
-        token: {
-          property: 'access',
-          global: true,
-          required: true,
-          type: 'Bearer'
-        },
-        user: {
-          property: 'user'
-        },
-        endpoints: {
-          login: { url: '/api/v1/auth/token/', method: 'post' },
-          refresh: { url: '/api/v1/auth/token/refresh/', method: 'post' },
-          user: { url: '/api/v1/auth/user/', method: 'get' },
-          logout: false
-        }
-      }
-    },
-    redirect: {
-      login: '/login',
-      logout: '/login',
-      home: '/'
-    }
-  },
-  // 페이지 미들웨어 설정
-  // 전역 auth 미들웨어 비활성화 - 필요한 페이지에서만 개별 설정
-  // router: {
-  //   middleware: ['auth']
-  // },
   // Vite 설정 추가
   vite: {
     server: {
