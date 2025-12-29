@@ -892,6 +892,29 @@ const parseGaeVersion = (bibleElement, book, chapter) => {
   bibleContent.value = verses.join("");
 };
 
+// 특수 클래스 보존 함수: font 태그를 span으로 변환하면서 클래스 보존
+const preserveSpecialClasses = (html) => {
+  return html
+    // font.name -> span.bible-name (인명)
+    .replace(/<font[^>]*class="name"[^>]*>([^<]*)<\/font>/gi,
+      '<span class="bible-name">$1</span>')
+    // font.area -> span.bible-area (지명)
+    .replace(/<font[^>]*class="area"[^>]*>([^<]*)<\/font>/gi,
+      '<span class="bible-area">$1</span>')
+    // font.orgin -> span.bible-orgin (원어/음역어)
+    .replace(/<font[^>]*class="orgin"[^>]*>([^<]*)<\/font>/gi,
+      '<span class="bible-orgin">$1</span>');
+};
+
+// 구절 텍스트에서 특수 클래스만 보존하고 나머지 태그 제거
+const cleanVerseTextWithSpecialClasses = (html) => {
+  // 먼저 특수 클래스를 span으로 변환
+  let text = preserveSpecialClasses(html);
+  // bible-name, bible-area, bible-orgin 클래스를 가진 span만 보존하고 나머지 태그 제거
+  text = text.replace(/<(?!\/?span[^>]*class="bible-)[^>]+>/g, '');
+  return text.trim();
+};
+
 // 개역개정 일반 장 파싱 함수
 const parseGaeNormalChapter = (bibleElement, verses) => {
   Array.from(bibleElement.childNodes).forEach((node) => {
@@ -920,7 +943,13 @@ const parseGaeNormalChapter = (bibleElement, verses) => {
     else if (node.tagName === "SPAN" && node.querySelector(".number")) {
       const numberSpan = node.querySelector(".number");
       const number = numberSpan.textContent.trim().replace(/\s+/g, "");
-      let text = node.textContent.replace(numberSpan.textContent, "").trim();
+
+      // innerHTML에서 번호 span 제거 후 특수 클래스 보존
+      let rawHtml = node.innerHTML;
+      // number span 제거 (innerHTML에서)
+      rawHtml = rawHtml.replace(/<span[^>]*class="number"[^>]*>.*?<\/span>/gi, '');
+      // 특수 클래스만 보존하고 정리
+      let text = cleanVerseTextWithSpecialClasses(rawHtml);
 
       verses.push(
         `<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`
@@ -945,7 +974,11 @@ const parseGaePsalm1 = (bibleElement, verses) => {
       const numberSpan = span.querySelector(".number");
       if (numberSpan) {
         const number = numberSpan.textContent.trim().replace(/\s+/g, "");
-        let text = span.textContent.replace(numberSpan.textContent, "").trim();
+
+        // innerHTML에서 번호 span 제거 후 특수 클래스 보존
+        let rawHtml = span.innerHTML;
+        rawHtml = rawHtml.replace(/<span[^>]*class="number"[^>]*>.*?<\/span>/gi, '');
+        let text = cleanVerseTextWithSpecialClasses(rawHtml);
 
         verses.push(
           `<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`
@@ -965,7 +998,11 @@ const extractVersesFromTextNodes = (bibleElement, verses) => {
     const numberSpan = node.querySelector(".number");
     if (numberSpan) {
       const number = numberSpan.textContent.trim().replace(/\s+/g, "");
-      let text = node.textContent.replace(numberSpan.textContent, "").trim();
+
+      // innerHTML에서 번호 span 제거 후 특수 클래스 보존
+      let rawHtml = node.innerHTML;
+      rawHtml = rawHtml.replace(/<span[^>]*class="number"[^>]*>.*?<\/span>/gi, '');
+      let text = cleanVerseTextWithSpecialClasses(rawHtml);
 
       verses.push(
         `<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`
@@ -4734,6 +4771,25 @@ html.touch-device .nav-button.next:hover svg {
   color: #4b5563;
   margin: 0.25rem 0 0.75rem;
   padding-left: 0.5rem;
+}
+
+/* 인명 강조 (표준 번역본) */
+:deep(.bible-name) {
+  color: #1e40af;
+  font-weight: 500;
+}
+
+/* 지명 강조 (표준 번역본) */
+:deep(.bible-area) {
+  color: #047857;
+}
+
+/* 원어/음역어 (표준 번역본) */
+:deep(.bible-orgin) {
+  font-style: italic;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  text-decoration-color: #9ca3af;
 }
 
 :deep(.paragraph) {
