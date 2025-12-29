@@ -29,8 +29,16 @@ const showModal = ref(false);
 const showScheduleModal = ref(false);
 const showCompleteConfirmModal = ref(false);
 const showVersionModal = ref(false);
+const showViewOptionsModal = ref(false);
 const scheduleModalMounted = ref(false);
 const modalSource = ref("");
+
+// 보기 옵션 상태
+const viewOptions = reactive({
+  showDescription: true,    // d 클래스 (시편 머리말) 표시
+  showCrossRef: true,       // r 클래스 (교차 참조) 표시
+  highlightNames: true,     // 인명/지명/원어 강조 표시
+});
 
 // 성경 내용 상태 관리
 const bibleContent = ref("");
@@ -485,19 +493,23 @@ const parseKntVersion = (jsonData, book, chapter) => {
             processedSubtitles.add(element.content);
           }
         } else if (element.type === "description") {
-          // 설명/주석 (시편 머리말, 음악 지시어 등)
-          nonVerseElements.push({
-            index: element.index,
-            html: `<p class="description">${element.content}</p>`,
-            order: elementIndex
-          });
+          // 설명/주석 (시편 머리말, 음악 지시어 등) - 보기 옵션에 따라 표시
+          if (viewOptions.showDescription) {
+            nonVerseElements.push({
+              index: element.index,
+              html: `<p class="description">${element.content}</p>`,
+              order: elementIndex
+            });
+          }
         } else if (element.type === "crossref") {
-          // 교차 참조
-          nonVerseElements.push({
-            index: element.index,
-            html: `<p class="cross-ref">${element.content}</p>`,
-            order: elementIndex
-          });
+          // 교차 참조 - 보기 옵션에 따라 표시
+          if (viewOptions.showCrossRef) {
+            nonVerseElements.push({
+              index: element.index,
+              html: `<p class="cross-ref">${element.content}</p>`,
+              order: elementIndex
+            });
+          }
         } else if (element.type === "paragraph") {
           // data-vid로 구절 번호 확인 (연속된 시적 구조 처리)
           const vidMatch = element.fullMatch.match(/data-vid="[^:]+:(\d+)"/);
@@ -908,10 +920,17 @@ const preserveSpecialClasses = (html) => {
 
 // 구절 텍스트에서 특수 클래스만 보존하고 나머지 태그 제거
 const cleanVerseTextWithSpecialClasses = (html) => {
-  // 먼저 특수 클래스를 span으로 변환
-  let text = preserveSpecialClasses(html);
-  // bible-name, bible-area, bible-orgin 클래스를 가진 span만 보존하고 나머지 태그 제거
-  text = text.replace(/<(?!\/?span[^>]*class="bible-)[^>]+>/g, '');
+  let text = html;
+
+  // 인명/지명 강조 옵션이 켜져 있으면 특수 클래스를 span으로 변환
+  if (viewOptions.highlightNames) {
+    text = preserveSpecialClasses(text);
+    // bible-name, bible-area, bible-orgin 클래스를 가진 span만 보존하고 나머지 태그 제거
+    text = text.replace(/<(?!\/?span[^>]*class="bible-)[^>]+>/g, '');
+  } else {
+    // 옵션이 꺼져 있으면 모든 태그 제거
+    text = text.replace(/<[^>]+>/g, '');
+  }
   return text.trim();
 };
 
@@ -1280,12 +1299,27 @@ const toggleBodyScroll = (isModalOpen) => {
 
 // 모든 모달 상태를 감시하는 watch
 watch(
-  [showLoginModal, showModal, showScheduleModal, showVersionModal],
-  ([newLoginModal, newShowModal, newScheduleModal, newVersionModal]) => {
+  [showLoginModal, showModal, showScheduleModal, showVersionModal, showViewOptionsModal],
+  ([newLoginModal, newShowModal, newScheduleModal, newVersionModal, newViewOptionsModal]) => {
     toggleBodyScroll(
-      newLoginModal || newShowModal || newScheduleModal || newVersionModal
+      newLoginModal || newShowModal || newScheduleModal || newVersionModal || newViewOptionsModal
     );
   }
+);
+
+// 보기 옵션 변경 시 localStorage에 저장
+watch(
+  viewOptions,
+  (newVal) => {
+    if (process.client) {
+      localStorage.setItem('bibleViewOptions', JSON.stringify(newVal));
+      // 보기 옵션 변경 시 성경 내용 다시 로드
+      if (currentBook.value && currentChapter.value) {
+        loadBibleContent(currentBook.value, currentChapter.value);
+      }
+    }
+  },
+  { deep: true }
 );
 
 // 로그인 페이지로 이동
@@ -1328,6 +1362,18 @@ const detectTouchDevice = () => {
 onMounted(async () => {
   detectTouchDevice();
   window.addEventListener("scroll", handleScroll, { passive: true });
+
+  // 보기 옵션 로드 (localStorage)
+  if (process.client) {
+    const savedViewOptions = localStorage.getItem('bibleViewOptions');
+    if (savedViewOptions) {
+      try {
+        Object.assign(viewOptions, JSON.parse(savedViewOptions));
+      } catch (e) {
+        console.warn('Failed to parse saved view options:', e);
+      }
+    }
+  }
 
   // URL 파라미터에서 정보 추출
   const { book = "", chapter = "", plan: planId, version = "" } = route.query;
@@ -2300,6 +2346,13 @@ onUnmounted(() => {
                 <h2>{{ chapterTitle }}</h2>
               </div>
             </button>
+            <!-- 보기 옵션 버튼 -->
+            <button class="view-options-button" @click="showViewOptionsModal = true" title="보기 옵션">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
           <div class="chapter-select-button-wrapper right">
             <div class="font-size-controls">
@@ -2678,6 +2731,45 @@ onUnmounted(() => {
                   </svg>
                 </div>
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 보기 옵션 모달 -->
+    <Teleport to="body">
+      <div v-if="showViewOptionsModal" class="modal-overlay" @click="showViewOptionsModal = false">
+        <div class="modal-content view-options-modal" @click.stop>
+          <div class="modal-header">
+            <h3>보기 옵션</h3>
+            <button class="close-button" @click="showViewOptionsModal = false">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="options-list">
+              <label class="option-item" v-if="currentVersion === 'KNT'">
+                <input type="checkbox" v-model="viewOptions.showDescription">
+                <span class="option-label">시편 머리말 표시</span>
+                <span class="option-description">시편의 악기 지시어 및 배경 설명 표시</span>
+              </label>
+              <label class="option-item" v-if="currentVersion === 'KNT'">
+                <input type="checkbox" v-model="viewOptions.showCrossRef">
+                <span class="option-label">교차 참조 표시</span>
+                <span class="option-description">관련 성경 구절 참조 정보 표시</span>
+              </label>
+              <label class="option-item" v-if="currentVersion !== 'KNT'">
+                <input type="checkbox" v-model="viewOptions.highlightNames">
+                <span class="option-label">인명/지명 강조</span>
+                <span class="option-description">인명, 지명, 원어를 색상으로 구분 표시</span>
+              </label>
+              <p v-if="currentVersion === 'KNT' && !viewOptions.showDescription && !viewOptions.showCrossRef" class="options-note">
+                모든 옵션이 꺼져 있습니다.
+              </p>
             </div>
           </div>
         </div>
@@ -4681,6 +4773,101 @@ html.touch-device .nav-button.next:hover svg {
 .version-select-button .button-content {
   display: flex;
   align-items: center;
+}
+
+/* 보기 옵션 버튼 */
+.view-options-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.view-options-button:hover {
+  background: #e9ecef;
+  color: #374151;
+}
+
+.view-options-button:active {
+  transform: scale(0.95);
+}
+
+/* 보기 옵션 모달 */
+.view-options-modal {
+  width: 90%;
+  max-width: 360px;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.option-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-item:hover {
+  background: #f9fafb;
+}
+
+.option-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.option-label {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: #1f2937;
+}
+
+.option-description {
+  width: 100%;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  padding-left: calc(18px + 0.75rem);
+  margin-top: -0.25rem;
+}
+
+.options-note {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  padding: 1rem 0;
+}
+
+@media (max-width: 640px) {
+  .view-options-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .view-options-button svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .chapter-select-button {
