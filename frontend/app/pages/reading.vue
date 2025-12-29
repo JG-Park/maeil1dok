@@ -379,6 +379,56 @@ const parseKntVersion = (jsonData, book, chapter) => {
         });
       }
 
+      // 설명/주석 찾기 (d 클래스: 시편 머리말, 음악 지시어 등)
+      const descriptions = [];
+      const descRegex = /<p class="d">(.*?)<\/p>/gs;
+      let descMatch;
+      while ((descMatch = descRegex.exec(content)) !== null) {
+        // 각주 및 verse-span 제거 후 텍스트 추출
+        const cleanText = descMatch[1]
+          .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, "")
+          .replace(/<span[^>]*class="verse-span"[^>]*>.*?<\/span>/gs, "")
+          .replace(/<span[^>]*class="v"[^>]*>\d+<\/span>/gs, "")
+          .replace(/<\/?[^>]+(>|$)/g, "")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .trim();
+
+        if (cleanText) {
+          descriptions.push({
+            type: "description",
+            index: descMatch.index,
+            content: cleanText,
+            fullMatch: descMatch[0],
+          });
+        }
+      }
+
+      // 교차 참조 찾기 (r 클래스)
+      const crossRefs = [];
+      const crossRefRegex = /<p class="r">(.*?)<\/p>/gs;
+      let crossRefMatch;
+      while ((crossRefMatch = crossRefRegex.exec(content)) !== null) {
+        // 내부 span에서 참조 텍스트 추출
+        const cleanText = crossRefMatch[1]
+          .replace(/<span[^>]*id="[^"]*"[^>]*>([^<]*)<\/span>/g, "$1")
+          .replace(/<\/?[^>]+(>|$)/g, "")
+          .trim();
+
+        if (cleanText) {
+          crossRefs.push({
+            type: "crossref",
+            index: crossRefMatch.index,
+            content: cleanText,
+            fullMatch: crossRefMatch[0],
+          });
+        }
+      }
+
       // 모든 타입의 구절 단락 찾기 (p.p, p.q1, p.nb 등)
       const paragraphs = [];
       const paragraphRegex =
@@ -396,9 +446,13 @@ const parseKntVersion = (jsonData, book, chapter) => {
       }
 
       // 모든 요소를 원래 순서대로 정렬
-      const allElements = [...sectionTitles, ...subTitles, ...paragraphs].sort(
-        (a, b) => a.index - b.index
-      );
+      const allElements = [
+        ...sectionTitles,
+        ...subTitles,
+        ...descriptions,
+        ...crossRefs,
+        ...paragraphs,
+      ].sort((a, b) => a.index - b.index);
 
       // 첫 번째 섹션 제목 저장 (있는 경우)
       const firstSection = allElements.find((el) => el.type === "section");
@@ -430,6 +484,20 @@ const parseKntVersion = (jsonData, book, chapter) => {
             });
             processedSubtitles.add(element.content);
           }
+        } else if (element.type === "description") {
+          // 설명/주석 (시편 머리말, 음악 지시어 등)
+          nonVerseElements.push({
+            index: element.index,
+            html: `<p class="description">${element.content}</p>`,
+            order: elementIndex
+          });
+        } else if (element.type === "crossref") {
+          // 교차 참조
+          nonVerseElements.push({
+            index: element.index,
+            html: `<p class="cross-ref">${element.content}</p>`,
+            order: elementIndex
+          });
         } else if (element.type === "paragraph") {
           // data-vid로 구절 번호 확인 (연속된 시적 구조 처리)
           const vidMatch = element.fullMatch.match(/data-vid="[^:]+:(\d+)"/);
@@ -4647,6 +4715,25 @@ html.touch-device .nav-button.next:hover svg {
   font-size: 0.875rem;
   color: #6b7280;
   font-style: italic;
+}
+
+/* 설명/주석 (시편 머리말, 음악 지시어 등) */
+:deep(.description) {
+  font-style: italic;
+  font-size: 0.9em;
+  color: #6b7280;
+  margin: 0.5rem 0 1rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #e5e7eb;
+  line-height: 1.6;
+}
+
+/* 교차 참조 */
+:deep(.cross-ref) {
+  font-size: 0.85em;
+  color: #4b5563;
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 0.5rem;
 }
 
 :deep(.paragraph) {
