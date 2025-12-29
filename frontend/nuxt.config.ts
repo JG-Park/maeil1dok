@@ -136,10 +136,9 @@ export default defineNuxtConfig({
       }
     }
   },
-  // 개발/운영 환경 설정
-  nitro: {
-    preset: process.env.NODE_ENV === 'production' ? 'node-server' : 'dev'
-  },
+  // Nitro 설정 - preset은 배포 환경에 따라 자동 감지됨
+  // (Vercel: 'vercel', Node.js: 'node-server', Cloudflare: 'cloudflare' 등)
+  nitro: {},
   build: {
     transpile: ['vue-cal']
   }
