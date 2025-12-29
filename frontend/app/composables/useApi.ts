@@ -56,14 +56,18 @@ export const useApi = () => {
     let response = await fetch(url, options)
 
     // 401 에러 발생 시 토큰 갱신 후 재시도
-    if (response.status === 401) {
+    // 단, refresh token이 있을 때만 시도 (비로그인 상태에서는 불필요)
+    if (response.status === 401 && auth.refreshToken) {
       const refreshSuccess = await auth.refreshAccessToken()
       if (refreshSuccess) {
         // 갱신된 헤더로 재시도
         options.headers = getHeaders()
         response = await fetch(url, options)
       } else {
-        auth.logout()
+        // 토큰 갱신 실패 시 로그아웃 (이미 로그인된 사용자만 해당)
+        if (authStore.isAuthenticated) {
+          auth.logout()
+        }
         throw new Error('Authentication failed')
       }
     }

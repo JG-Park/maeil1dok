@@ -77,10 +77,10 @@ export const useScoreboardStore = defineStore('scoreboard', {
         const params: any = { period, limit }
         if (planId) params.plan_id = planId
         
-        const { data } = await useApi().get('/api/v1/todos/scoreboard/', { params })
-        
-        if (data.value?.success) {
-          this.globalLeaderboard = data.value.leaderboard
+        const response = await useApi().get('/api/v1/todos/scoreboard/', { params })
+
+        if (response.data?.success) {
+          this.globalLeaderboard = response.data.leaderboard
         }
       } catch (error: any) {
         this.error = error.message || '리더보드를 불러올 수 없습니다.'
@@ -99,18 +99,14 @@ export const useScoreboardStore = defineStore('scoreboard', {
         const params: any = { period, type }
         if (planId) params.plan_id = planId
 
-        const { data, error } = await useApi().get('/api/v1/todos/scoreboard/friends/', { params })
+        const response = await useApi().get('/api/v1/todos/scoreboard/friends/', { params })
 
-        if (error.value) {
-          throw new Error(error.value.message || '친구 리더보드를 불러올 수 없습니다.')
-        }
-
-        if (data.value?.success) {
+        if (response.data?.success) {
           // type에 따라 다른 상태에 저장
           if (type === 'following') {
-            this.followingLeaderboard = data.value.leaderboard
+            this.followingLeaderboard = response.data.leaderboard
           } else {
-            this.friendsLeaderboard = data.value.leaderboard
+            this.friendsLeaderboard = response.data.leaderboard
           }
         }
       } catch (error: any) {
@@ -127,12 +123,12 @@ export const useScoreboardStore = defineStore('scoreboard', {
       this.currentGroupId = groupId
       
       try {
-        const { data } = await useApi().get(`/api/v1/todos/scoreboard/group/${groupId}/`, {
+        const response = await useApi().get(`/api/v1/todos/scoreboard/group/${groupId}/`, {
           params: { period }
         })
-        
-        if (data.value?.success) {
-          this.groupLeaderboard = data.value.leaderboard
+
+        if (response.data?.success) {
+          this.groupLeaderboard = response.data.leaderboard
         }
       } catch (error: any) {
         this.error = error.message || '그룹 리더보드를 불러올 수 없습니다.'
@@ -146,10 +142,10 @@ export const useScoreboardStore = defineStore('scoreboard', {
         const params: any = { period }
         if (planId) params.plan_id = planId
         
-        const { data } = await useApi().get('/api/v1/todos/scoreboard/my-ranking/', { params })
-        
-        if (data.value?.success) {
-          this.myRanking = data.value.ranking
+        const response = await useApi().get('/api/v1/todos/scoreboard/my-ranking/', { params })
+
+        if (response.data?.success) {
+          this.myRanking = response.data.ranking
         }
       } catch (error) {
         console.error('내 순위 조회 실패:', error)

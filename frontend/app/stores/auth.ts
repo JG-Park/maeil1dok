@@ -16,6 +16,7 @@ interface AuthState {
   refreshInterval: NodeJS.Timeout | null
   storageListenerAttached: boolean
   isRefreshing: boolean
+  isLoggingOut: boolean
   // 쿠키 기반 인증 사용 여부
   useCookieAuth: boolean
 }
@@ -74,6 +75,7 @@ export const useAuthStore = defineStore('auth', {
     refreshInterval: null,
     storageListenerAttached: false,
     isRefreshing: false,
+    isLoggingOut: false,
     useCookieAuth: true  // 쿠키 기반 인증 활성화
   }),
 
@@ -387,9 +389,16 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
+      // 이미 로그아웃 중이면 중복 실행 방지
+      if (this.isLoggingOut) {
+        return
+      }
+
+      this.isLoggingOut = true
       this.stopTokenRefreshTimer()
 
       // 서버에 로그아웃 요청 (쿠키 삭제 및 토큰 블랙리스트)
+      // user가 있을 때만 서버 로그아웃 요청 (비로그인 상태에서는 불필요)
       if (this.useCookieAuth && this.user) {
         try {
           const api = useApi()
@@ -412,6 +421,8 @@ export const useAuthStore = defineStore('auth', {
           console.error('Failed to clear auth from localStorage:', error)
         }
       }
+
+      this.isLoggingOut = false
     },
 
     // 토큰 자동 갱신 타이머 시작
@@ -451,6 +462,11 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async refreshAccessToken() {
+      // refresh token이 없으면 갱신 불가
+      if (!this.refreshToken) {
+        return false
+      }
+
       // 이미 갱신 중이면 중복 요청 방지
       if (this.isRefreshing) {
         return false
