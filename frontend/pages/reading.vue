@@ -18,6 +18,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const api = useApi();
+const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch();
 
 // 토스트 상태
 const toast = ref(null);
@@ -208,85 +209,93 @@ const loadBibleContent = async (book, chapter) => {
   }
 };
 
-// 새한글성경(KNT) 전용 로드 함수 수정
+// 새한글성경(KNT) 전용 로드 함수 - failback 지원
 const loadKntBibleContent = async (book, chapter) => {
   try {
-    // 새한글성경은 다른 URL 구조 사용
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 15초로 연장
-
-    const url = `/bible-proxy/KNT/get_chapter.php?version=d7a4326402395391-01&chapter=${book.toUpperCase()}.${chapter}`;
-
-    const response = await fetch(url, {
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    // JSON 형식으로 응답 받기
-    const jsonData = await response.json();
+    // composable을 통해 프록시 -> 캐시 서버 순으로 시도
+    const result = await fetchKntContent(book, chapter);
 
     // 현재 책과 장 정보 업데이트
     currentBook.value = book;
     currentChapter.value = chapter;
+
+    if (result.source === 'error') {
+      // 모든 소스에서 실패
+      handleKntFetchError(book, chapter);
+      return;
+    }
+
+    // JSON 파싱
+    const jsonData = JSON.parse(result.content);
 
     // 응답 확인 및 파싱
     if (jsonData.found) {
       // JSON 응답의 HTML 콘텐츠를 파싱
       parseKntVersion(jsonData, book, chapter);
+
+      // 캐시에서 가져온 경우 사용자에게 알림 (선택적)
+      if (result.fromCache) {
+        console.info('[BibleFetch] KNT 콘텐츠를 캐시 서버에서 로드했습니다.');
+      }
     } else {
       // 데이터를 찾지 못한 경우
       handleKntContentNotFound(book, chapter);
     }
   } catch (error) {
-
-    // 에러 발생 시 북 제목 및 장 설정
-    if (!chapterTitle.value) {
-      const suffix = book === "psa" ? "편" : "장";
-      chapterTitle.value = `${bookNames[book] || ""} ${chapter}${suffix}`;
-    }
-
-    // 에러 메시지
-    bibleContent.value = `
-      <div class="error-message">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
-        <p>공회 서버 상태가 좋지 않거나 매일일독과의 통신이 원활하지 않아요. 대한성서공회 사이트에 직접 접속해보세요.</p>
-        <a href="https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}" target="_blank" class="external-link">
-          대한성서공회에서 보기
-        </a>
-      </div>
-    `;
+    console.error('[BibleFetch] KNT 로드 실패:', error);
+    handleKntFetchError(book, chapter);
   }
 };
 
-// 표준 역본 로드 함수 (개역개정, 새번역 등)
+// KNT fetch 에러 처리
+const handleKntFetchError = (book, chapter) => {
+  // 에러 발생 시 북 제목 및 장 설정
+  if (!chapterTitle.value) {
+    const suffix = book === "psa" ? "편" : "장";
+    chapterTitle.value = `${bookNames[book] || ""} ${chapter}${suffix}`;
+  }
+
+  const fallbackUrl = getFallbackUrl('KNT', book, chapter);
+
+  // 에러 메시지
+  bibleContent.value = `
+    <div class="error-message">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>대한성서공회 웹사이트에서 성경을 불러오는 과정에서 문제가 발생했어요.</h3>
+      <p>공회 서버 상태가 좋지 않거나 매일일독과의 통신이 원활하지 않아요. 대한성서공회 사이트에 직접 접속해보세요.</p>
+      <a href="${fallbackUrl}" target="_blank" class="external-link">
+        대한성서공회에서 보기
+      </a>
+    </div>
+  `;
+};
+
+// 표준 역본 로드 함수 (개역개정, 새번역 등) - failback 지원
 const loadStandardBibleContent = async (book, chapter) => {
   try {
-    // 일반적인 역본들은 동일한 URL 구조 사용
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-    const response = await fetch(
-      `/bible-proxy/bible/korbibReadpage.php?version=${currentVersion.value}&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`,
-      {
-        signal: controller.signal,
-      }
-    );
-
-    clearTimeout(timeoutId);
-
-    const text = await response.text();
+    // composable을 통해 프록시 -> 캐시 서버 순으로 시도
+    const result = await fetchStandardContent(currentVersion.value, book, chapter);
 
     // 현재 책과 장 정보 업데이트
     currentBook.value = book;
     currentChapter.value = chapter;
 
+    if (result.source === 'error') {
+      // 모든 소스에서 실패
+      throw new Error('All sources failed');
+    }
+
     // 표준 파싱 함수 호출
-    parseStandardContent(text, book, chapter);
+    parseStandardContent(result.content, book, chapter);
+
+    // 캐시에서 가져온 경우 사용자에게 알림 (선택적)
+    if (result.fromCache) {
+      console.info(`[BibleFetch] ${currentVersion.value} 콘텐츠를 캐시 서버에서 로드했습니다.`);
+    }
   } catch (error) {
+    console.error('[BibleFetch] 표준 역본 로드 실패:', error);
     throw error; // 상위 함수에서 처리하도록 전달
   }
 };

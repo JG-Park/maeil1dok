@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/v1/auth/', include('accounts.urls')),
     path('api/v1/accounts/', include('accounts.urls')),  # 프로필, 팔로우 등 계정 관련 API
     path('api/v1/todos/', include('todos.urls')),
+    path('api/v1/bible-cache/', include('bible_cache.urls')),  # 성경 본문 캐시 API
 ]

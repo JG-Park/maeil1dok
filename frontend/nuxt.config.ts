@@ -56,6 +56,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8019',
+      bibleCacheUrl: process.env.NUXT_PUBLIC_BIBLE_CACHE_URL || '',  // 성경 캐시 서버 URL (failback용)
       KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID,
       kakaoJsKey: process.env.KAKAO_JS_KEY,
       KAKAO_REDIRECT_URI: process.env.KAKAO_REDIRECT_URI,
