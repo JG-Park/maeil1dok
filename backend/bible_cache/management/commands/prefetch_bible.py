@@ -5,10 +5,10 @@
 자연스러운 트래픽 패턴을 위해 랜덤 순서와 랜덤 딜레이를 적용합니다.
 
 사용법:
-    python manage.py prefetch_bible -v GAE
+    python manage.py prefetch_bible GAE
     python manage.py prefetch_bible --all
-    python manage.py prefetch_bible --book gen -v GAE
-    python manage.py prefetch_bible -v GAE --min-delay 2 --max-delay 5
+    python manage.py prefetch_bible GAE --book gen
+    python manage.py prefetch_bible GAE --min-delay 2 --max-delay 5
 """
 
 import random
@@ -108,15 +108,15 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '-v', '--bible-version',
-            dest='bible_version',
+            'bible_version',
+            nargs='?',
             type=str,
             help=f'번역본 지정 (선택: {", ".join(sorted(SUPPORTED_VERSIONS))})'
         )
         parser.add_argument(
             '--all',
             action='store_true',
-            help='모든 번역본 캐싱'
+            help='모든 번역본 캐싱 (bible_version 대신 사용)'
         )
         parser.add_argument(
             '--book',
@@ -207,7 +207,7 @@ class Command(BaseCommand):
                 )
             return [version]
         else:
-            raise CommandError('-v/--bible-version 또는 --all 옵션이 필요합니다.')
+            raise CommandError('번역본을 지정하거나 --all 옵션을 사용하세요.\n예: prefetch_bible GAE')
 
     def _get_books(self, options):
         """책 목록 결정"""
