@@ -70,3 +70,6 @@ coverage/
 .cursor/ 
 
 logo/
+
+# Serena MCP
+.serena/
