@@ -9,11 +9,15 @@ interface User {
 
 interface AuthState {
   user: User | null
+  // 토큰은 HttpOnly 쿠키에 저장됨 (XSS 방지)
+  // 아래 필드들은 하위 호환 및 상태 추적용으로만 사용
   token: string | null
   refreshToken: string | null
   refreshInterval: NodeJS.Timeout | null
   storageListenerAttached: boolean
   isRefreshing: boolean
+  // 쿠키 기반 인증 사용 여부
+  useCookieAuth: boolean
 }
 
 // JWT 디코딩 유틸리티
@@ -69,11 +73,14 @@ export const useAuthStore = defineStore('auth', {
     refreshToken: null,
     refreshInterval: null,
     storageListenerAttached: false,
-    isRefreshing: false
+    isRefreshing: false,
+    useCookieAuth: true  // 쿠키 기반 인증 활성화
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token && !!state.user,
+    // 쿠키 기반 인증: 사용자 정보가 있으면 인증됨
+    // (토큰은 HttpOnly 쿠키에 저장되어 JavaScript에서 접근 불가)
+    isAuthenticated: (state) => !!state.user,
   },
 
   actions: {
@@ -128,7 +135,27 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async initializeAuth() {
-      // Load auth data from localStorage
+      // 쿠키 기반 인증: 서버에서 사용자 정보를 가져와 인증 상태 확인
+      // HttpOnly 쿠키는 JavaScript에서 접근 불가하므로 서버 요청으로 확인
+      if (this.useCookieAuth) {
+        try {
+          await this.fetchUser()
+          // 사용자 정보를 성공적으로 가져오면 인증됨
+          // 타이머는 쿠키 기반에서는 불필요 (서버가 쿠키 갱신)
+          return
+        } catch (error: any) {
+          // 401/403이면 미인증 상태 - localStorage fallback 시도
+          if (error?.response?.status === 401 || error?.response?.status === 403) {
+            // 쿠키 인증 실패, localStorage fallback 시도
+            this.useCookieAuth = false
+          } else {
+            // 네트워크 오류 등 - 일시적 문제로 간주
+            return
+          }
+        }
+      }
+
+      // 하위 호환: localStorage 기반 인증 (마이그레이션 완료 후 제거 예정)
       if (process.client && typeof window !== 'undefined') {
         this.loadFromLocalStorage()
       }
@@ -359,13 +386,25 @@ export const useAuthStore = defineStore('auth', {
       return false
     },
 
-    logout() {
+    async logout() {
       this.stopTokenRefreshTimer()
+
+      // 서버에 로그아웃 요청 (쿠키 삭제 및 토큰 블랙리스트)
+      if (this.useCookieAuth && this.user) {
+        try {
+          const api = useApi()
+          await api.post('/api/v1/auth/logout/')
+        } catch (error) {
+          // 로그아웃 API 실패해도 로컬 상태는 정리
+          console.error('Server logout failed:', error)
+        }
+      }
+
       this.user = null
       this.token = null
       this.refreshToken = null
 
-      // Clear from localStorage
+      // Clear from localStorage (하위 호환)
       if (process.client && typeof window !== 'undefined') {
         try {
           localStorage.removeItem('auth')

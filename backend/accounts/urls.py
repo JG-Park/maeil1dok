@@ -1,15 +1,21 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-from . import views, profile_views
+from . import views, profile_views, cookie_views
 from .views import CustomTokenObtainPairView
+from .cookie_views import CookieTokenObtainPairView, CookieTokenRefreshView
 
 urlpatterns = [
-    # 기존 인증 관련 엔드포인트
+    # HttpOnly Cookie 기반 인증 엔드포인트 (권장)
+    path('token/', CookieTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
+    path('logout/', cookie_views.cookie_logout, name='logout'),
+    path('csrf/', cookie_views.get_csrf_token, name='csrf_token'),
+    path('verify/', cookie_views.verify_auth, name='verify_auth'),
+
+    # 기존 인증 관련 엔드포인트 (하위 호환)
     path('register/', views.register, name='register'),
-    path('login/', CustomTokenObtainPairView.as_view(), name='login'),
-    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),  # 프론트엔드 호환용
-    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh_alt'),  # 프론트엔드 호환용
+    path('login/', CookieTokenObtainPairView.as_view(), name='login'),
+    path('refresh/', CookieTokenRefreshView.as_view(), name='token_refresh_legacy'),
     path('user/', views.get_user, name='get_user'),
     path('social-login/', views.social_login, name='social_login'),
     path('check-username/', views.check_username, name='check_username'),

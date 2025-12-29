@@ -8,7 +8,26 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxtjs/tailwindcss',
     '@nuxtjs/sitemap',
+    '@nuxt/image',
   ],
+  // 이미지 최적화 설정
+  image: {
+    // Vercel에서 자동 이미지 최적화 사용
+    provider: 'vercel',
+    // 지원 포맷
+    format: ['webp', 'avif'],
+    // 품질 설정
+    quality: 80,
+    // 스크린 사이즈
+    screens: {
+      xs: 320,
+      sm: 640,
+      md: 768,
+      lg: 1024,
+      xl: 1280,
+      xxl: 1536,
+    },
+  },
   // Sitemap 설정
   site: {
     url: 'https://maeil1dok.app',
@@ -88,6 +107,7 @@ export default defineNuxtConfig({
         },
         {
           src: 'https://kit.fontawesome.com/addd9ad2f2.js',
+          defer: true,  // 렌더 블로킹 방지
           crossorigin: 'anonymous'
         }
       ]

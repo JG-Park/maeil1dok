@@ -34,6 +34,7 @@ h2 {
   src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NotoSerifKR.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: swap;  /* FOUT 방지: 시스템 폰트로 먼저 표시 후 전환 */
 }
 
 @font-face {
@@ -41,6 +42,7 @@ h2 {
   src: url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -48,4 +50,5 @@ h2 {
   src: url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Medium.woff') format('woff');
   font-weight: 500;
   font-style: normal;
+  font-display: swap;
 } 

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer, SocialLoginSerializer
+from .authentication import set_auth_cookies, get_tokens_for_user
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests
@@ -78,11 +79,17 @@ def social_login(request):
             if user:
                 refresh = RefreshToken.for_user(user)
                 logger.info(f"카카오 소셜 로그인 성공: user_id={user.id}, username={user.username}")
-                return Response({
+
+                # 응답 생성 (하위 호환을 위해 토큰도 본문에 포함)
+                response = Response({
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
                     'user': UserSerializer(user).data
                 })
+
+                # HttpOnly 쿠키 설정
+                set_auth_cookies(response, str(refresh.access_token), str(refresh))
+                return response
             else:
                 suggested_nickname = user_info.get('properties', {}).get('nickname', '')
                 return Response({
@@ -231,11 +238,17 @@ def complete_kakao_signup(request):
         
         refresh = RefreshToken.for_user(user)
         logger.info(f"카카오 회원가입 및 토큰 발급 성공: user_id={user.id}, username={user.username}")
-        return Response({
+
+        # 응답 생성 (하위 호환을 위해 토큰도 본문에 포함)
+        response = Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
             'user': UserSerializer(user).data
         })
+
+        # HttpOnly 쿠키 설정
+        set_auth_cookies(response, str(refresh.access_token), str(refresh))
+        return response
     except Exception as e:
         logger.error(f"카카오 회원가입 중 오류 발생: {str(e)}")
         return Response({'error': str(e)}, status=400)

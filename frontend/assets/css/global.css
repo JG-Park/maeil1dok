@@ -21,6 +21,103 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 모바일 터치 타겟 최소 크기 (WCAG 2.1 권장: 44x44px) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 캘린더 셀 터치 타겟 개선 */
+.calendar-cell-touch {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .calendar-cell-touch {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 6px;
+  }
+}
+
+/* 체크박스 터치 타겟 개선 */
+.checkbox-touch {
+  position: relative;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-touch input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+/* 아이콘 버튼 터치 타겟 */
+.icon-btn-touch {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.icon-btn-touch:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.icon-btn-touch:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 접근성: 포커스 스타일 개선 */
+:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* 스크린 리더 전용 텍스트 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* 키보드 네비게이션 건너뛰기 링크 */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-600);
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 :root {
   /* Color System */
   --primary-50: #eff6ff;
@@ -34,13 +131,13 @@ html {
   --primary-800: #1e40af;
   --primary-900: #1e3a8a;
 
-  /* Gray Scale */
+  /* Gray Scale - 색상 대비 개선 (WCAG AA 4.5:1 충족) */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
   --gray-300: #d1d5db;
   --gray-400: #9ca3af;
-  --gray-500: #6b7280;
+  --gray-500: #595959;  /* 기존 #6b7280 → 4.5:1 대비 충족 */
   --gray-600: #4b5563;
   --gray-700: #374151;
   --gray-800: #1f2937;

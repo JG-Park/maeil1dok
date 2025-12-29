@@ -182,7 +182,8 @@ if DEBUG:
 # JWT 설정 추가
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # HttpOnly Cookie 기반 인증 (쿠키 우선, Authorization 헤더 fallback)
+        'accounts.authentication.CookieJWTAuthentication',
     ),
 }
 
