@@ -374,6 +374,15 @@ const selectedSchedule = ref<Schedule | null>(null)
 const defaultPlanName = ref('')
 const isInitialized = ref(false)
 
+// 중복 API 호출 방지 플래그
+const isInitializing = ref(false)
+const lastFetchKey = ref<string | null>(null)
+const isFetchingNextPosition = ref(false)
+const isFetchingSubscriptions = ref(false)
+
+// 반응형 모바일 감지 (SSR 호환)
+const isMobile = ref(false)
+
 // 일괄 수정 상태 변수
 const bulkEditState = ref<BulkEditState>({
   firstSchedule: null,
@@ -465,14 +474,13 @@ const scrollMonthSelectorToCurrentMonth = () => {
   }
 }
 
-// 날짜 포맷팅
+// 날짜 포맷팅 (SSR 호환 - isMobile ref 사용)
 const formatScheduleDate = (dateString: string) => {
   if (!dateString) return ''
   const date = new Date(dateString)
   const days = ['일', '월', '화', '수', '목', '금', '토']
-  const isMobile = window.innerWidth <= 640
 
-  if (isMobile) {
+  if (isMobile.value) {
     return `${date.getMonth() + 1}/${date.getDate()}(${days[date.getDay()]})`
   }
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일(${days[date.getDay()]})`
@@ -587,8 +595,14 @@ const isInSelectedRange = (scheduleGroup: Schedule | null) => {
 }
 
 // API 호출 함수
-// 구독 정보 가져오기
+// 구독 정보 가져오기 (중복 호출 방지)
 const fetchSubscriptions = async () => {
+  // 이미 호출 중이면 스킵
+  if (isFetchingSubscriptions.value) {
+    return
+  }
+  isFetchingSubscriptions.value = true
+
   try {
     const response = await api.get('/api/v1/todos/plan/')
 
@@ -603,11 +617,20 @@ const fetchSubscriptions = async () => {
     }
   } catch (err) {
     // Error handled silently
+  } finally {
+    isFetchingSubscriptions.value = false
   }
 }
 
-// 월별 스케줄 조회
+// 월별 스케줄 조회 (중복 호출 방지)
 const fetchSchedules = async () => {
+  // 동일한 파라미터로 이미 호출 중이면 스킵
+  const fetchKey = `${selectedSubscriptionId.value}-${selectedMonth.value}`
+  if (lastFetchKey.value === fetchKey && isLoading.value) {
+    return
+  }
+  lastFetchKey.value = fetchKey
+
   try {
     isLoading.value = true
     const response = await api.get('/api/v1/todos/schedules/month/', {
@@ -624,8 +647,14 @@ const fetchSchedules = async () => {
   }
 }
 
-// 다음 위치 정보 가져오기
+// 다음 위치 정보 가져오기 (중복 호출 방지)
 const fetchNextPosition = async () => {
+  // 이미 호출 중이면 스킵
+  if (isFetchingNextPosition.value) {
+    return null
+  }
+  isFetchingNextPosition.value = true
+
   try {
     const { data } = await api.get('/api/v1/todos/next-position/', {
       params: { plan_id: selectedSubscriptionId.value },
@@ -634,6 +663,8 @@ const fetchNextPosition = async () => {
   } catch (error) {
     showError('다음 위치를 불러오는 데 실패했습니다.')
     return null
+  } finally {
+    isFetchingNextPosition.value = false
   }
 }
 
@@ -1037,6 +1068,12 @@ const findBookCode = (koreanName: string) => {
 // 초기화 및 Watch
 // 컴포넌트 초기화
 const initializeComponent = async () => {
+  // 이미 초기화 중이면 스킵
+  if (isInitializing.value) {
+    return
+  }
+  isInitializing.value = true
+
   try {
     await fetchSubscriptions()
 
@@ -1049,6 +1086,7 @@ const initializeComponent = async () => {
     // Error handled silently
   } finally {
     isLoading.value = false
+    isInitializing.value = false
   }
 }
 
@@ -1096,8 +1134,17 @@ const updateUrlPlanId = (planId: string) => {
   })
 }
 
+// 모바일 감지 업데이트 함수
+const updateIsMobile = () => {
+  isMobile.value = window.innerWidth <= 640
+}
+
 // Lifecycle Hooks
 onMounted(() => {
+  // 클라이언트에서만 모바일 감지 (SSR 호환)
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
+
   // 스크롤 컨테이너 설정
   if (scheduleBodyRef.value) {
     setScrollContainer(scheduleBodyRef.value)
@@ -1143,6 +1190,7 @@ onBeforeUnmount(() => {
     scheduleBody.removeEventListener('scroll', handleScroll)
   }
   document.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('resize', updateIsMobile)
 })
 
 // Watchers
@@ -1176,7 +1224,8 @@ watch(
       return
     }
 
-    if (isInitialized.value) {
+    // 초기화 중에는 watcher에서 호출하지 않음 (initializeComponent에서 처리)
+    if (isInitialized.value && !isInitializing.value) {
       try {
         await fetchSchedules()
       } catch (error) {
@@ -1203,7 +1252,8 @@ watch(() => route.query.plan, async (newPlanId, oldPlanId) => {
   if (newPlanId && newPlanId !== oldPlanId && String(newPlanId) !== String(selectedSubscriptionId.value)) {
     selectedSubscriptionId.value = String(newPlanId)
 
-    if (isInitialized.value) {
+    // 초기화 중에는 watcher에서 호출하지 않음 (initializeComponent에서 처리)
+    if (isInitialized.value && !isInitializing.value) {
       try {
         await fetchSchedules()
       } catch (error) {

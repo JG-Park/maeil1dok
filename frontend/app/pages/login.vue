@@ -33,6 +33,7 @@
             v-model="username"
             type="text"
             required
+            autocomplete="username"
             class="form-input input-top"
             placeholder="아이디"
           >
@@ -43,6 +44,7 @@
             v-model="password"
             type="password"
             required
+            autocomplete="current-password"
             class="form-input input-bottom"
             placeholder="비밀번호"
           >

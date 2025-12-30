@@ -11,12 +11,20 @@
           </svg>
         </button>
         <h1>성경통독표</h1>
-        <button v-if="authStore.isAuthenticated" class="edit-mode-button" @click="toggleBulkEditMode">
-          {{ isBulkEditMode ? '완료' : '일괄수정' }}
-        </button>
-        <button v-else class="edit-mode-button" @click="goToLogin">
-          로그인
-        </button>
+        <!-- ClientOnly로 SSR/CSR 인증 상태 불일치 방지 -->
+        <ClientOnly>
+          <button v-if="authStore.isAuthenticated" class="edit-mode-button" @click="toggleBulkEditMode">
+            {{ isBulkEditMode ? '완료' : '일괄수정' }}
+          </button>
+          <button v-else class="edit-mode-button" @click="goToLogin">
+            로그인
+          </button>
+          <template #fallback>
+            <button class="edit-mode-button" disabled>
+              ...
+            </button>
+          </template>
+        </ClientOnly>
       </div>
     </div>
 

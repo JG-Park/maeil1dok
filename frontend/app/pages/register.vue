@@ -18,6 +18,7 @@
             <label for="username" class="block text-sm font-medium text-gray-700">아이디</label>
             <div class="relative">
               <input id="username" v-model="formData.username" type="text" required @blur="checkUsername"
+                autocomplete="username"
                 class="flex-1 mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                 :class="{ 'border-red-500': usernameError, 'border-green-500': isUsernameChecked }">
               <span v-if="usernameError" class="text-red-500 text-xs mt-1">{{ usernameError }}</span>
@@ -28,6 +29,7 @@
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700">비밀번호</label>
             <input id="password" v-model="formData.password" type="password" required
+              autocomplete="new-password"
               class="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
           </div>
         </div>
@@ -36,6 +38,7 @@
           <label for="nickname" class="block text-sm font-medium text-gray-700">닉네임</label>
           <div class="relative">
             <input id="nickname" v-model="formData.nickname" type="text" required @blur="checkNickname"
+              autocomplete="nickname"
               class="flex-1 mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
               :class="{ 'border-red-500': nicknameError, 'border-green-500': isNicknameChecked }">
             <span v-if="nicknameError" class="text-red-500 text-xs mt-1">{{ nicknameError }}</span>
