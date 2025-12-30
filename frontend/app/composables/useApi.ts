@@ -99,6 +99,7 @@ export const useApi = () => {
 
       const requiresAuth = url.includes('/api/v1/auth/user/') ||  // User info endpoint needs auto-retry on 401
                            url.includes('/api/v1/todos/hasena/status/') ||
+                           url.includes('/api/v1/todos/plans/user/') ||  // 사용자 플랜 목록
                            (url.includes('/api/v1/todos/user/') && !isVideoIntroAPI);
 
       const authStore = useAuthStore();

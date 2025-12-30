@@ -283,6 +283,13 @@ export const useAuthStore = defineStore('auth', {
         const response = await api.get('/api/v1/auth/user/')
         // Handle both wrapped and unwrapped responses
         const userData = response.data || response
+
+        // Validate that we have a valid user object, not an error response
+        // The guard in useApi returns { success: false, message: '...' } when not authenticated
+        if (!userData || userData.success === false || !userData.id) {
+          throw new Error('Invalid user data received')
+        }
+
         this.setUser(userData)
       } catch (error) {
         throw error

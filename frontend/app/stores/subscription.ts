@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
+import { useAuthStore } from '~/stores/auth'
 
 interface Subscription {
   id: number
@@ -25,6 +26,13 @@ export const useSubscriptionStore = defineStore('subscription', {
 
   actions: {
     async fetchSubscriptions() {
+      // 인증되지 않은 사용자는 API 호출하지 않음 (401 방지)
+      const authStore = useAuthStore()
+      if (!authStore.isAuthenticated) {
+        this.subscriptions = []
+        return
+      }
+
       const api = useApi()
       this.isLoading = true
       this.error = null

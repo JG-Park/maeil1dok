@@ -605,7 +605,7 @@
             </div>
           </NuxtLink>
 
-          <NuxtLink v-if="auth.isAuthenticated" :to="`/profile/${auth.user?.id}`" class="social-card">
+          <NuxtLink v-if="auth.isAuthenticated && auth.user?.id" :to="`/profile/${auth.user.id}`" class="social-card">
             <div class="social-icon">
               <svg
                 width="24"

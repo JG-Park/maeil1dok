@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'
+import { useAuthStore } from '~/stores/auth'
 
 interface HasenaResponseWrapped {
   success: boolean
@@ -32,10 +33,16 @@ export const useHasenaStore = defineStore('hasena', () => {
   }
   
   // 하세나 완료 상태 조회
-  const fetchStatus = async (): Promise<HasenaResponse> => {
+  const fetchStatus = async (): Promise<HasenaResponse | null> => {
+    // 인증되지 않은 사용자는 API 호출하지 않음 (401 방지)
+    const authStore = useAuthStore()
+    if (!authStore.isAuthenticated) {
+      return null
+    }
+
     isLoading.value = true
     error.value = null
-    
+
     try {
       const { data } = await api.get<HasenaResponse>('/api/v1/todos/hasena/status/')
       if (data.success) {
