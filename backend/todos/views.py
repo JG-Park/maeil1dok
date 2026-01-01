@@ -657,8 +657,15 @@ def plan_subscription_list(request):
             plan = BibleReadingPlan.objects.get(id=plan_id)
         except BibleReadingPlan.DoesNotExist:
             return Response(
-                {"detail": "존재하지 않는 플랜입니다."}, 
+                {"detail": "존재하지 않는 플랜입니다."},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 비활성화된 플랜은 신규 구독 불가
+        if not plan.is_active:
+            return Response(
+                {"detail": "현재 신규 구독이 중단된 플랜입니다."},
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         # 구독 생성
