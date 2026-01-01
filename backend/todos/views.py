@@ -980,29 +980,24 @@ def get_today_schedules(request):
 def get_user_plans(request):
     """사용자의 구독 중인 플랜과 구독 가능한 플랜 목록 반환"""
     try:
-        # 1. 사용자가 구독 중인 모든 플랜 목록 조회 (비활성 포함)
+        # 1. 사용자가 구독 중인 모든 플랜 목록 조회 (숨김 포함, 활성 먼저)
         all_subscriptions = PlanSubscription.objects.filter(
             user=request.user
-        )
-        
-        # 1-1. 구독 중인 활성화 플랜만 필터링
-        active_subscriptions = all_subscriptions.filter(
-            is_active=True
-        ).select_related('plan')
-        
+        ).select_related('plan').order_by('-is_active', '-plan__is_default')
+
         # 2. 구독 가능한 플랜 목록 조회 (모든 구독 중인 플랜 제외, 활성 여부 상관없이)
         subscribed_plan_ids = all_subscriptions.values_list('plan_id', flat=True)
-        
+
         available_plans = BibleReadingPlan.objects.filter(
             is_active=True
         ).exclude(
             id__in=subscribed_plan_ids
         )
-        
-        # 3. 시리얼라이징
-        subscription_serializer = PlanSubscriptionSerializer(active_subscriptions, many=True)
+
+        # 3. 시리얼라이징 (숨김 플랜 포함)
+        subscription_serializer = PlanSubscriptionSerializer(all_subscriptions, many=True)
         available_plan_serializer = BibleReadingPlanSerializer(available_plans, many=True)
-        
+
         return Response({
             'subscriptions': subscription_serializer.data,
             'available_plans': available_plan_serializer.data
