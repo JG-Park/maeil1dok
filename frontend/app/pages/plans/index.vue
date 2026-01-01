@@ -56,7 +56,7 @@
                     </p>
                   </div>
                   <div class="flex flex-col gap-2">
-                    <button @click="goToReadingPlan(sub)" class="action-button today-reading">성경통독표</button>
+                    <button v-if="sub.is_active" @click="goToReadingPlan(sub)" class="action-button today-reading">성경통독표</button>
                     <!-- 숨기기/다시 보기 버튼 -->
                     <button v-if="!sub.is_default" @click="toggleHide(sub)" :class="[
                       'action-button',
@@ -552,8 +552,8 @@ onMounted(async () => {
 .action-button {
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   transition: all 0.2s;
   min-width: 80px;
   text-align: center;
@@ -579,7 +579,6 @@ onMounted(async () => {
   background: #FEF2F2;
   border: #FECACA 1px solid;
   color: #DC2626;
-  font-size: 0.75rem;
 }
 
 .action-button:hover {
