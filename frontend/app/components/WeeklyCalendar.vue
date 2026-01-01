@@ -56,6 +56,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useSelectedPlanStore } from '~/stores/selectedPlan'
+
+const selectedPlanStore = useSelectedPlanStore()
+
 const props = defineProps({
   weekStatus: {
     type: Array,
@@ -275,8 +279,8 @@ async function loadMonthlySchedules(forceReload = false) {
     // API 호출 주소 설정 (개발 환경과 프로덕션 환경에 따라 다르게 설정)
     const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:8019' : 'http://192.168.0.41:8019'
 
-    // 기본 플랜 ID 설정 (필요에 따라 실제 플랜 ID로 변경해야 함)
-    const planId = 1 // 기본 플랜 ID
+    // 선택된 플랜 또는 기본 플랜 ID 사용
+    const planId = selectedPlanStore.effectivePlanId
 
     // 현재 달, 이전 달, 다음 달 데이터를 모두 가져오기 위한 월 배열 생성
     const prevMonth = month === 1 ? 12 : month - 1

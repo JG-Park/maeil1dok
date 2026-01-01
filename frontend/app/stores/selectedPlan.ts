@@ -2,12 +2,21 @@ import { defineStore } from 'pinia'
 
 interface SelectedPlanState {
   selectedPlanId: number | null
+  defaultPlanId: number | null
 }
 
 export const useSelectedPlanStore = defineStore('selectedPlan', {
   state: (): SelectedPlanState => ({
-    selectedPlanId: null
+    selectedPlanId: null,
+    defaultPlanId: null
   }),
+
+  getters: {
+    // 선택된 플랜 또는 기본 플랜 ID 반환
+    effectivePlanId: (state): number | null => {
+      return state.selectedPlanId || state.defaultPlanId
+    }
+  },
 
   actions: {
     setSelectedPlanId(planId: number | null) {
@@ -20,6 +29,10 @@ export const useSelectedPlanStore = defineStore('selectedPlan', {
           localStorage.removeItem('selectedPlanId')
         }
       }
+    },
+
+    setDefaultPlanId(planId: number | null) {
+      this.defaultPlanId = planId
     },
 
     initializeFromStorage() {

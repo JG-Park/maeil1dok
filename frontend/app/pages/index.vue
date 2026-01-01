@@ -786,7 +786,7 @@ const isSunday = computed(() => {
 
 const fetchStats = async () => {
   try {
-    const planId = selectedPlanId.value || 1; // 기본 플랜 ID는 1로 가정
+    const planId = selectedPlanStore.effectivePlanId;
 
     // 사용자 통계 가져오기
     const usersResponse = await api.get("/api/v1/todos/stats/users/", {
@@ -836,7 +836,8 @@ const fetchStats = async () => {
         }
       }
     } else {
-      selectedPlanStore.setSelectedPlanId(1);
+      // 구독이 없으면 null로 설정 (기본 플랜은 effectivePlanId에서 처리)
+      selectedPlanStore.setSelectedPlanId(null);
     }
 
     await fetchStats();
@@ -981,8 +982,23 @@ const closeDropdownOnOutsideClick = (event) => {
 };
 
 // 이벤트 리스너 등록 및 해제
+// 기본 플랜 ID 가져오기
+const fetchDefaultPlan = async () => {
+  try {
+    const response = await api.get("/api/v1/todos/plan/");
+    if (response.data?.plan_id) {
+      selectedPlanStore.setDefaultPlanId(response.data.plan_id);
+    }
+  } catch (error) {
+    // 오류 시 무시
+  }
+};
+
 onMounted(() => {
   document.addEventListener("click", closeDropdownOnOutsideClick);
+
+  // 기본 플랜 ID 가져오기
+  fetchDefaultPlan();
 
   // 방문자 카운트 관련 로직 실행
   const initVisitorCount = async () => {
@@ -1049,8 +1065,8 @@ watch(
         }
       }
     } else {
-      // 로그아웃 시 기본 플랜으로 초기화
-      selectedPlanStore.setSelectedPlanId(1);
+      // 로그아웃 시 선택 플랜 초기화 (기본 플랜은 effectivePlanId에서 처리)
+      selectedPlanStore.setSelectedPlanId(null);
     }
   }
 );
@@ -1069,8 +1085,7 @@ const toggleTask = async (task) => {
 
   // 성경통독표 버튼 - 일정 체크 없이 바로 이동
   if (task.id === 2 || task.title === "성경통독표") {
-    const planId =
-      auth.isAuthenticated && selectedPlanId.value ? selectedPlanId.value : 1;
+    const planId = selectedPlanStore.effectivePlanId;
     router.push(`/reading-plan?plan=${planId}`);
     return;
   }
@@ -1085,8 +1100,8 @@ const toggleTask = async (task) => {
 // 오늘일독 버튼 클릭 시 실행되는 함수를 단순화
 const handleTodayReading = async () => {
   try {
-    // 선택된 플랜 ID 확인 (비로그인 사용자는 기본 플랜 ID 1 사용)
-    const planId = selectedPlanId.value || 1;
+    // 선택된 플랜 ID 확인 (비로그인 사용자는 기본 플랜 사용)
+    const planId = selectedPlanStore.effectivePlanId;
 
     // 오늘의 스케줄 조회
     const response = await api.get(
@@ -1124,7 +1139,7 @@ const handleTodayReading = async () => {
 // 모달에서 독서 페이지로 이동하는 함수 - 단순화
 const navigateToReading = async () => {
   closeSundayModal();
-  const planId = selectedPlanId.value || 1;
+  const planId = selectedPlanStore.effectivePlanId;
 
   try {
     // 내일 일정 가져오기
@@ -1165,18 +1180,13 @@ const navigateToIntro = (task) => {
 
 // 영상 개론 목록 가져오기
 const fetchVideoIntros = async () => {
-  // 비로그인 사용자도 기본 플랜(id:1)의 개론 영상을 볼 수 있도록 수정
-  if (!auth.isAuthenticated) {
-    // 비로그인 사용자는 기본 플랜(id:1)을 사용
-    selectedPlanStore.setSelectedPlanId(1);
-  }
-
   loadingIntros.value = true;
 
   try {
-    // 선택된 플랜 ID를 쿼리 파라미터로 전달
-    const url = selectedPlanId.value
-      ? `/api/v1/todos/user/video/intro/?plan_id=${selectedPlanId.value}`
+    // 선택된 플랜 또는 기본 플랜 ID 사용
+    const planId = selectedPlanStore.effectivePlanId;
+    const url = planId
+      ? `/api/v1/todos/user/video/intro/?plan_id=${planId}`
       : "/api/v1/todos/user/video/intro/";
 
     const response = await api.get(url);

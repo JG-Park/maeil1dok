@@ -1432,12 +1432,17 @@ def get_user_video_intros(request):
             logger.info(f"[디버그] 비로그인 사용자 요청 - 파라미터 plan_id: {plan_id}")
             
             try:
-                # plan_id를 정수로 변환
-                plan_id = int(plan_id) if plan_id else 1
+                # plan_id를 정수로 변환, 없으면 기본 플랜 사용
+                if plan_id:
+                    plan_id = int(plan_id)
+                else:
+                    default_plan = BibleReadingPlan.objects.filter(is_default=True).first()
+                    plan_id = default_plan.id if default_plan else None
             except (ValueError, TypeError):
                 # 변환 오류 발생 시 기본 플랜 사용
-                logger.warning(f"[디버그] plan_id 변환 오류, 기본값 사용: {plan_id}")
-                plan_id = 1
+                logger.warning(f"[디버그] plan_id 변환 오류, 기본 플랜 조회: {plan_id}")
+                default_plan = BibleReadingPlan.objects.filter(is_default=True).first()
+                plan_id = default_plan.id if default_plan else None
             
             # 해당 플랜의 영상 개론 목록 조회
             logger.info(f"[디버그] 비로그인 사용자 영상 개론 조회 - plan_id: {plan_id}")
