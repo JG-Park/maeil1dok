@@ -164,17 +164,36 @@ def update_bible_progress(request):
                 'error': '구독 중인 플랜이 아닙니다.'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # 4. 진도 업데이트 또는 생성
+        # 4. 진도 업데이트 또는 생성 (bulk 연산으로 최적화)
         is_completed = action == 'complete'
         with transaction.atomic():
-            for schedule in daily_schedules:
-                UserBibleProgress.objects.update_or_create(
+            # 기존 진도 레코드 조회 (1 쿼리)
+            existing_progress = UserBibleProgress.objects.filter(
+                subscription=subscription,
+                schedule__in=daily_schedules
+            ).select_related('schedule')
+
+            existing_schedule_ids = set(p.schedule_id for p in existing_progress)
+
+            # 기존 레코드 bulk update (1 쿼리)
+            if existing_progress.exists():
+                UserBibleProgress.objects.filter(
+                    subscription=subscription,
+                    schedule__in=daily_schedules
+                ).update(is_completed=is_completed)
+
+            # 새 레코드 bulk create (1 쿼리)
+            new_progress = [
+                UserBibleProgress(
                     subscription=subscription,
                     schedule=schedule,
-                    defaults={
-                        'is_completed': is_completed,
-                    }
+                    is_completed=is_completed
                 )
+                for schedule in daily_schedules
+                if schedule.id not in existing_schedule_ids
+            ]
+            if new_progress:
+                UserBibleProgress.objects.bulk_create(new_progress)
 
         return Response({
             'success': True,
