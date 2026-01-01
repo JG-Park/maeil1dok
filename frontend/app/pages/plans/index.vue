@@ -42,13 +42,14 @@
           </div>
 
           <div v-else class="plan-grid">
-            <div v-for="sub in subscriptions" :key="sub.id" class="plan-card">
+            <div v-for="sub in subscriptions" :key="sub.id" class="plan-card" :class="{ 'hidden-plan': !sub.is_active }">
               <div class="plan-card-content">
                 <div class="flex justify-between items-start">
                   <div>
                     <h3 class="plan-title">
                       {{ sub.plan_name }}
                       <span v-if="sub.is_default" class="default-badge">기본 플랜</span>
+                      <span v-if="!sub.is_active" class="hidden-badge">숨김</span>
                     </h3>
                     <p class="text-sm text-gray-600 mt-1">
                       구독 시작일: {{ formatDate(sub.start_date) }}
@@ -56,11 +57,16 @@
                   </div>
                   <div class="flex flex-col gap-2">
                     <button @click="goToReadingPlan(sub)" class="action-button today-reading">성경통독표</button>
-                    <button v-if="!sub.is_default" @click="confirmUnsubscribe(sub)" :class="[
+                    <!-- 숨기기/다시 보기 버튼 -->
+                    <button v-if="!sub.is_default" @click="toggleHide(sub)" :class="[
                       'action-button',
-                      sub.is_active ? 'cancel' : 'resume'
+                      sub.is_active ? 'hide' : 'resume'
                     ]">
-                      {{ sub.is_active ? '구독 취소' : '다시 구독' }}
+                      {{ sub.is_active ? '숨기기' : '다시 보기' }}
+                    </button>
+                    <!-- 완전 삭제 버튼 (숨겨진 플랜만) -->
+                    <button v-if="!sub.is_default && !sub.is_active" @click="confirmDelete(sub)" class="action-button delete">
+                      완전 삭제
                     </button>
                   </div>
                 </div>
@@ -130,11 +136,11 @@
       </div>
     </div>
 
-    <!-- 구독 취소 확인 모달 -->
+    <!-- 완전 삭제 확인 모달 -->
     <div v-if="showUnsubscribeModal" class="modal-overlay" @click="closeUnsubscribeModal">
       <div class="modal-container" @click.stop>
         <div class="modal-header">
-          <h3>구독 취소 확인</h3>
+          <h3>완전 삭제 확인</h3>
           <button @click="closeUnsubscribeModal" class="close-button">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -143,12 +149,12 @@
           </button>
         </div>
         <div class="modal-content">
-          <p class="mb-4 text-red-600 font-bold">정말 구독을 취소하시겠어요?</p>
-          <p>지금까지 진행된 내역이 전부 초기화되며, 복구할 수 없습니다.</p>
+          <p class="mb-4 text-red-600 font-bold">정말 삭제하시겠어요?</p>
+          <p>지금까지 진행된 읽기 기록이 전부 삭제되며, <strong>복구할 수 없습니다.</strong></p>
         </div>
         <div class="modal-footer">
           <button @click="closeUnsubscribeModal" class="modal-button">취소</button>
-          <button @click="unsubscribePlan" class="modal-button primary bg-red-600 hover:bg-red-700">구독 취소</button>
+          <button @click="deletePlan" class="modal-button primary bg-red-600 hover:bg-red-700">완전 삭제</button>
         </div>
       </div>
     </div>
@@ -237,17 +243,15 @@ const subscribe = async (plan) => {
   }
 }
 
-// 구독 상태 토글 (취소/재개)
-const toggleSubscription = async (subscription) => {
-  // 이미 취소된 상태일 때만 다시 구독 처리
-  if (subscription.is_active) {
-    return
-  }
-
+// 숨기기/다시 보기 토글
+const toggleHide = async (subscription) => {
   try {
-    await api.post(`/api/v1/todos/plan/${subscription.id}/toggle_active/`)
+    await api.post(`/api/v1/todos/plan/${subscription.id}/toggle-active/`)
 
-    toast.success(`${subscription.plan_name} 플랜 구독을 재개했습니다.`)
+    const message = subscription.is_active
+      ? `${subscription.plan_name} 플랜을 숨겼습니다.`
+      : `${subscription.plan_name} 플랜을 다시 표시합니다.`
+    toast.success(message)
 
     // 목록 새로고침
     await fetchUserPlans()
@@ -255,7 +259,7 @@ const toggleSubscription = async (subscription) => {
     if (err.response?.data?.detail) {
       toast.error(err.response.data.detail)
     } else {
-      toast.error('구독 재개에 실패했습니다.')
+      toast.error('처리에 실패했습니다.')
     }
   }
 }
@@ -279,34 +283,27 @@ const closeModal = () => {
   showModal.value = false
 }
 
-// 구독 취소 확인 모달 표시
-const confirmUnsubscribe = (subscription) => {
-  // 다시 구독인 경우 바로 API 호출
-  if (!subscription.is_active) {
-    toggleSubscription(subscription)
-    return
-  }
-
-  // 구독 취소인 경우 확인 모달 표시
+// 완전 삭제 확인 모달 표시
+const confirmDelete = (subscription) => {
   currentSubscription.value = subscription
   showUnsubscribeModal.value = true
 }
 
-// 구독 취소 모달 닫기
+// 삭제 모달 닫기
 const closeUnsubscribeModal = () => {
   showUnsubscribeModal.value = false
   currentSubscription.value = null
 }
 
-// 구독 취소 실행
-const unsubscribePlan = async () => {
+// 완전 삭제 실행
+const deletePlan = async () => {
   if (!currentSubscription.value) return
 
   try {
-    // 플랜 구독 취소 API 호출
-    await api.post(`/api/v1/todos/plan/${currentSubscription.value.id}/unsubscribe/`)
+    // 플랜 구독 삭제 API 호출
+    await api.delete(`/api/v1/todos/plan/${currentSubscription.value.id}/`)
 
-    toast.success(`${currentSubscription.value.plan_name} 플랜 구독을 취소했습니다.`)
+    toast.success(`${currentSubscription.value.plan_name} 플랜을 완전히 삭제했습니다.`)
 
     // 목록 새로고침
     await fetchUserPlans()
@@ -317,7 +314,7 @@ const unsubscribePlan = async () => {
     if (err.response?.data?.detail) {
       toast.error(err.response.data.detail)
     } else {
-      toast.error('구독 취소에 실패했습니다.')
+      toast.error('삭제에 실패했습니다.')
     }
   }
 }
@@ -523,6 +520,21 @@ onMounted(async () => {
   border: 1px solid #CBD5E1;
 }
 
+.hidden-badge {
+  font-size: 0.65rem;
+  padding: 0.15em 0.75em;
+  border-radius: 6px;
+  font-weight: 600;
+  background: #9CA3AF;
+  color: white;
+}
+
+.hidden-plan {
+  opacity: 0.6;
+  border-style: dashed;
+  background: #F9FAFB;
+}
+
 .plan-description {
   color: var(--text-secondary);
   margin-top: 0.5rem;
@@ -552,15 +564,22 @@ onMounted(async () => {
   color: white;
 }
 
-.action-button.cancel {
-  background: #FEF2F2;
-  border: #dabbbb 1px solid;
-  color: #991B1B;
+.action-button.hide {
+  background: #F3F4F6;
+  border: #D1D5DB 1px solid;
+  color: #4B5563;
 }
 
 .action-button.resume {
-  background: var(--success);
+  background: var(--primary-color);
   color: white;
+}
+
+.action-button.delete {
+  background: #FEF2F2;
+  border: #FECACA 1px solid;
+  color: #DC2626;
+  font-size: 0.75rem;
 }
 
 .action-button:hover {
