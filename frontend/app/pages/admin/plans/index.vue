@@ -84,13 +84,14 @@
 
         <!-- 플랜 카드 그리드 개선 -->
         <div v-else class="plan-grid">
-          <div v-for="(plan, index) in plans" :key="plan?.id || index" class="plan-card" :class="{'default-plan': plan?.is_default}">
+          <div v-for="(plan, index) in plans" :key="plan?.id || index" class="plan-card" :class="{'default-plan': plan?.is_default, 'inactive-plan': !plan?.is_active}">
             <div class="plan-card-content">
               <div class="plan-header">
                 <div>
                   <h3 class="plan-title">
                     {{ plan?.name || '이름 없음' }}
                     <span v-if="plan?.is_default" class="default-badge">기본 플랜</span>
+                    <span v-if="!plan?.is_active" class="inactive-badge">신규 구독 중단</span>
                   </h3>
                   <p class="plan-description">{{ plan?.description || '설명 없음' }}</p>
                 </div>
@@ -1274,6 +1275,28 @@ h1 {
   color: white;
   border-radius: 1rem;
   font-weight: 500;
+}
+
+.inactive-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
+  background-color: #9CA3AF;
+  color: white;
+  border-radius: 1rem;
+  font-weight: 500;
+}
+
+.inactive-plan {
+  opacity: 0.7;
+  border: 1px dashed #9CA3AF;
+}
+
+.inactive-plan .plan-title,
+.inactive-plan .plan-description {
+  color: #6B7280;
 }
 
 .plan-description {
