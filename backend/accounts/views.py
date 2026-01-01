@@ -100,19 +100,14 @@ def social_login(request):
                 }, status=200)
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return Response({'error': str(e)}, status=400)
+        # 보안: 내부 에러 상세를 클라이언트에 노출하지 않음
+        logger.error(f"소셜 로그인 중 오류 발생: {str(e)}", exc_info=True)
+        return Response({'error': '로그인 처리 중 오류가 발생했습니다.'}, status=400)
 
 def get_kakao_user_info(code):
     # 카카오 토큰 받기
-    print("Kakao token request data:", {
-        'grant_type': 'authorization_code',
-        'client_id': settings.KAKAO_CLIENT_ID,
-        'redirect_uri': settings.KAKAO_REDIRECT_URI,
-        'code': code,
-    })
-    
+    logger.debug("Kakao token request initiated")
+
     token_response = requests.post(
         'https://kauth.kakao.com/oauth/token',
         data={
@@ -122,7 +117,7 @@ def get_kakao_user_info(code):
             'code': code,
         }
     )
-    print("Kakao token response:", token_response.text)
+    logger.debug(f"Kakao token response status: {token_response.status_code}")
     
     # 토큰 응답 확인
     token_data = token_response.json()
@@ -136,7 +131,7 @@ def get_kakao_user_info(code):
         'https://kapi.kakao.com/v2/user/me',
         headers={'Authorization': f'Bearer {access_token}'}
     )
-    print("Kakao user info response:", user_response.text)
+    logger.debug(f"Kakao user info response status: {user_response.status_code}")
     
     user_info = user_response.json()
     if 'id' not in user_info:
@@ -153,15 +148,15 @@ def get_kakao_user_info_by_token(access_token):
     """
     Fetch Kakao user info using native access_token without exchanging code.
     """
-    print(f"[views] get_kakao_user_info_by_token with token: {access_token}")
+    logger.debug("Fetching Kakao user info by token")
     response = requests.get(
         'https://kapi.kakao.com/v2/user/me',
         headers={'Authorization': f'Bearer {access_token}'}
     )
-    print(f"[views] user info by token response: {response.text}")
+    logger.debug(f"Kakao user info by token response status: {response.status_code}")
     data = response.json()
     if 'id' not in data:
-        print("[views] get_kakao_user_info_by_token error data:", data)
+        logger.warning("Kakao user info response missing 'id' field")
         return data
     return data
 
@@ -250,5 +245,6 @@ def complete_kakao_signup(request):
         set_auth_cookies(response, str(refresh.access_token), str(refresh))
         return response
     except Exception as e:
-        logger.error(f"카카오 회원가입 중 오류 발생: {str(e)}")
-        return Response({'error': str(e)}, status=400)
+        # 보안: 내부 에러 상세를 클라이언트에 노출하지 않음
+        logger.error(f"카카오 회원가입 중 오류 발생: {str(e)}", exc_info=True)
+        return Response({'error': '회원가입 처리 중 오류가 발생했습니다.'}, status=400)

@@ -176,9 +176,18 @@ CORS_ALLOW_HEADERS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# 개발 환경에서만 활성화
+# 보안: CORS_ORIGIN_ALLOW_ALL과 CORS_ALLOW_CREDENTIALS를 함께 사용하지 않음
+# 개발 환경에서도 명시적인 오리진 목록 사용
 if DEBUG:
-    CORS_ORIGIN_ALLOW_ALL = True
+    # 개발 환경에서 추가 허용 오리진
+    CORS_ALLOWED_ORIGINS += [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:3019',
+        'http://127.0.0.1:3019',
+    ]
+    # 중복 제거
+    CORS_ALLOWED_ORIGINS = list(set(CORS_ALLOWED_ORIGINS))
 
 # JWT 설정 추가
 REST_FRAMEWORK = {

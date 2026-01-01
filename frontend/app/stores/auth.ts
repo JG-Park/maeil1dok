@@ -146,12 +146,16 @@ export const useAuthStore = defineStore('auth', {
           // 타이머는 쿠키 기반에서는 불필요 (서버가 쿠키 갱신)
           return
         } catch (error: any) {
+          // 에러 상태 코드 확인 (ApiError.status 또는 error.response.status)
+          const statusCode = error?.status || error?.response?.status
+
           // 401/403이면 미인증 상태 - localStorage fallback 시도
-          if (error?.response?.status === 401 || error?.response?.status === 403) {
+          if (statusCode === 401 || statusCode === 403) {
             // 쿠키 인증 실패, localStorage fallback 시도
             this.useCookieAuth = false
           } else {
             // 네트워크 오류 등 - 일시적 문제로 간주
+            console.debug('Cookie auth check failed (non-auth error):', error?.message || error)
             return
           }
         }
@@ -192,7 +196,8 @@ export const useAuthStore = defineStore('auth', {
         } catch (error: any) {
           // Only logout if it's a permanent auth error (401/403)
           // Network errors, 500s, etc should NOT logout
-          if (error?.response?.status === 401 || error?.response?.status === 403) {
+          const statusCode = error?.status || error?.response?.status
+          if (statusCode === 401 || statusCode === 403) {
             this.logout()
             return
           }
@@ -469,13 +474,14 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async refreshAccessToken() {
-      // refresh token이 없으면 갱신 불가
-      if (!this.refreshToken) {
+      // 이미 갱신 중이면 중복 요청 방지
+      if (this.isRefreshing) {
         return false
       }
 
-      // 이미 갱신 중이면 중복 요청 방지
-      if (this.isRefreshing) {
+      // 쿠키 기반 인증: refreshToken이 null이어도 서버에서 쿠키로 갱신 가능
+      // localStorage 기반 인증: refreshToken이 있어야 갱신 가능
+      if (!this.useCookieAuth && !this.refreshToken) {
         return false
       }
 
@@ -483,21 +489,27 @@ export const useAuthStore = defineStore('auth', {
       this.isRefreshing = true
 
       try {
-        const response = await api.post('/api/v1/auth/token/refresh/', {
-          refresh: this.refreshToken
-        })
+        // 쿠키 기반: 서버가 쿠키에서 refresh token을 읽음 (credentials: 'include')
+        // localStorage 기반: request body에 refresh token 포함
+        const requestBody = this.useCookieAuth ? {} : { refresh: this.refreshToken }
+
+        const response = await api.post('/api/v1/auth/token/refresh/', requestBody)
 
         if (!response || !response.access) {
           throw new Error('Token refresh failed')
         }
 
-        // With ROTATE_REFRESH_TOKENS=True, Django returns both access and refresh tokens
-        // Update both tokens (or keep existing refresh token if not provided)
-        const newRefreshToken = response.refresh || this.refreshToken
-        this.setTokens(response.access, newRefreshToken)
+        // 쿠키 기반: 서버가 새 토큰을 쿠키에 설정함
+        // localStorage 기반: 응답에서 토큰을 받아 저장
+        if (!this.useCookieAuth) {
+          const newRefreshToken = response.refresh || this.refreshToken
+          this.setTokens(response.access, newRefreshToken)
+        }
+
         return true
       } catch (error) {
-        this.logout()
+        // 갱신 실패 시 로그아웃하지 않음 - 호출자가 처리
+        console.debug('Token refresh failed:', error)
         return false
       } finally {
         this.isRefreshing = false

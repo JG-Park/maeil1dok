@@ -41,6 +41,16 @@ export const useApi = () => {
     return headers
   }
 
+  // API 에러 클래스 - 상태 코드 포함
+  class ApiError extends Error {
+    status: number
+    constructor(message: string, status: number) {
+      super(message)
+      this.name = 'ApiError'
+      this.status = status
+    }
+  }
+
   // 401 에러 시 토큰 갱신 후 재시도하는 공통 함수
   const fetchWithRetry = async (
     url: string,
@@ -50,30 +60,37 @@ export const useApi = () => {
     const authStore = useAuthStore()
 
     if (requiresAuth && !authStore.isAuthenticated) {
-      throw new Error('Authentication required')
+      throw new ApiError('Authentication required', 401)
     }
 
     let response = await fetch(url, options)
 
     // 401 에러 발생 시 토큰 갱신 후 재시도
-    // 단, refresh token이 있을 때만 시도 (비로그인 상태에서는 불필요)
-    if (response.status === 401 && auth.refreshToken) {
-      const refreshSuccess = await auth.refreshAccessToken()
-      if (refreshSuccess) {
-        // 갱신된 헤더로 재시도
-        options.headers = getHeaders()
-        response = await fetch(url, options)
-      } else {
-        // 토큰 갱신 실패 시 로그아웃 (이미 로그인된 사용자만 해당)
-        if (authStore.isAuthenticated) {
-          auth.logout()
+    // 쿠키 기반 인증: refreshToken이 null이어도 서버에서 쿠키로 갱신 시도
+    // localStorage 기반 인증: refreshToken이 있을 때만 시도
+    if (response.status === 401) {
+      // 쿠키 기반 인증이거나 refreshToken이 있는 경우 갱신 시도
+      if (auth.useCookieAuth || auth.refreshToken) {
+        const refreshSuccess = await auth.refreshAccessToken()
+        if (refreshSuccess) {
+          // 갱신된 헤더로 재시도
+          options.headers = getHeaders()
+          response = await fetch(url, options)
+        } else {
+          // 토큰 갱신 실패 시 로그아웃 (이미 로그인된 사용자만 해당)
+          if (authStore.isAuthenticated) {
+            auth.logout()
+          }
+          throw new ApiError('Authentication failed', 401)
         }
-        throw new Error('Authentication failed')
+      } else {
+        // 토큰 갱신 불가 - 미인증 상태
+        throw new ApiError('Not authenticated', 401)
       }
     }
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`)
+      throw new ApiError(`API request failed: ${response.status}`, response.status)
     }
 
     return response
@@ -97,20 +114,26 @@ export const useApi = () => {
       const isVideoIntroAPI = url.includes('/api/v1/todos/user/video/intro/') || // 목록 조회 API
                              url.includes('/api/v1/todos/video/intro/');         // 개별 영상 조회 API
 
-      const requiresAuth = url.includes('/api/v1/auth/user/') ||  // User info endpoint needs auto-retry on 401
-                           url.includes('/api/v1/todos/hasena/status/') ||
+      // /api/v1/auth/user/는 인증 상태 확인용 엔드포인트이므로 guard에서 제외
+      // 쿠키 기반 인증에서 새로고침 시 서버로 요청을 보내서 쿠키 유효성을 확인해야 함
+      const isAuthCheckEndpoint = url.includes('/api/v1/auth/user/') ||
+                                  url.includes('/api/v1/auth/verify/');
+
+      const requiresAuth = url.includes('/api/v1/todos/hasena/status/') ||
                            url.includes('/api/v1/todos/plans/user/') ||  // 사용자 플랜 목록
                            (url.includes('/api/v1/todos/user/') && !isVideoIntroAPI);
 
       const authStore = useAuthStore();
-      if (requiresAuth && !authStore.isAuthenticated) {
+      // 인증 확인 엔드포인트는 항상 서버로 요청 (쿠키 기반 인증 지원)
+      if (requiresAuth && !isAuthCheckEndpoint && !authStore.isAuthenticated) {
         return { data: { success: false, message: 'Authentication required' } };
       }
 
+      // 인증 확인 엔드포인트는 requiresAuth=false로 호출 (서버로 요청 보내야 함)
       const response = await fetchWithRetry(fullUrl, {
         headers: getHeaders(),
         credentials: 'include'
-      }, requiresAuth)
+      }, requiresAuth && !isAuthCheckEndpoint)
 
       const data = await response.json()
       return { data }
