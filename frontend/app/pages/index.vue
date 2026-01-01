@@ -58,7 +58,7 @@
             <div
               v-if="
                 auth.isAuthenticated &&
-                subscriptionStore.subscriptions.length > 1
+                subscriptionStore.activeSubscriptions.length > 1
               "
               class="plan-selector"
             >
@@ -87,7 +87,7 @@
               <!-- 드롭다운 메뉴 -->
               <div v-if="showPlanDropdown" class="plan-dropdown">
                 <button
-                  v-for="subscription in subscriptionStore.subscriptions"
+                  v-for="subscription in subscriptionStore.activeSubscriptions"
                   :key="subscription.plan_id"
                   class="dropdown-item"
                   :class="{ active: subscription.plan_id === selectedPlanId }"
@@ -283,7 +283,7 @@
           <h2>참여 현황</h2>
           <div
             v-if="
-              auth.isAuthenticated && subscriptionStore.subscriptions.length > 1
+              auth.isAuthenticated && subscriptionStore.activeSubscriptions.length > 1
             "
             class="plan-selector"
           >
@@ -312,7 +312,7 @@
             <!-- 드롭다운 메뉴 -->
             <div v-if="showStatsPlanDropdown" class="plan-dropdown">
               <button
-                v-for="subscription in subscriptionStore.subscriptions"
+                v-for="subscription in subscriptionStore.activeSubscriptions"
                 :key="subscription.plan_id"
                 class="dropdown-item"
                 :class="{ active: subscription.plan_id === selectedPlanId }"
@@ -416,7 +416,7 @@
           <h2>진행률</h2>
           <div
             v-if="
-              auth.isAuthenticated && subscriptionStore.subscriptions.length > 1
+              auth.isAuthenticated && subscriptionStore.activeSubscriptions.length > 1
             "
             class="plan-selector"
           >
@@ -445,7 +445,7 @@
             <!-- 드롭다운 메뉴 -->
             <div v-if="showProgressPlanDropdown" class="plan-dropdown">
               <button
-                v-for="subscription in subscriptionStore.subscriptions"
+                v-for="subscription in subscriptionStore.activeSubscriptions"
                 :key="subscription.plan_id"
                 class="dropdown-item"
                 :class="{ active: subscription.plan_id === selectedPlanId }"
@@ -774,7 +774,7 @@ const selectedPlanId = computed({
 const selectedPlanName = computed(() => {
   if (!auth.isAuthenticated) return "기본 플랜";
 
-  const selectedPlan = subscriptionStore.subscriptions.find(
+  const selectedPlan = subscriptionStore.activeSubscriptions.find(
     (sub) => sub.plan_id === selectedPlanId.value
   );
   return selectedPlan ? selectedPlan.plan_name : "플랜 선택";
@@ -825,13 +825,13 @@ const fetchStats = async () => {
 
       if (
         !selectedPlanId.value ||
-        !subscriptionStore.subscriptions.find(
+        !subscriptionStore.activeSubscriptions.find(
           (sub) => sub.plan_id === selectedPlanId.value
         )
       ) {
-        if (subscriptionStore.subscriptions.length > 0) {
+        if (subscriptionStore.activeSubscriptions.length > 0) {
           selectedPlanStore.setSelectedPlanId(
-            subscriptionStore.subscriptions[0].plan_id
+            subscriptionStore.activeSubscriptions[0].plan_id
           );
         }
       }
@@ -1050,17 +1050,17 @@ watch(
   async (newValue) => {
     if (newValue) {
       await subscriptionStore.fetchSubscriptions();
-      if (subscriptionStore.subscriptions.length > 0) {
+      if (subscriptionStore.activeSubscriptions.length > 0) {
         // 저장된 플랜 ID가 있고 유효한 경우 그대로 사용, 아니면 첫 번째 구독의 플랜 ID 사용
         const storedPlanId = selectedPlanId.value;
         if (
           !storedPlanId ||
-          !subscriptionStore.subscriptions.find(
+          !subscriptionStore.activeSubscriptions.find(
             (sub) => sub.plan_id === storedPlanId
           )
         ) {
           selectedPlanStore.setSelectedPlanId(
-            subscriptionStore.subscriptions[0].plan_id
+            subscriptionStore.activeSubscriptions[0].plan_id
           );
         }
       }
