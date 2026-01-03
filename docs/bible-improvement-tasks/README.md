@@ -21,7 +21,7 @@
 | # | 태스크 | 문서 | 상태 | 커밋 |
 |---|--------|------|------|------|
 | 1 | [Backend 모델 추가](./task-01-backend-models.md) | ✅ | ✅ 완료 | - |
-| 2 | [Backend API 구현](./task-02-backend-api.md) | ✅ | ⬜ 대기 | - |
+| 2 | [Backend API 구현](./task-02-backend-api.md) | ✅ | ✅ 완료 | - |
 | 3 | [Frontend 기반 구조](./task-03-frontend-structure.md) | ✅ | ⬜ 대기 | - |
 | 4 | [BibleReader 컴포넌트 추출](./task-04-bible-reader.md) | ✅ | ⬜ 대기 | - |
 | 5 | [탭 UI 및 통독모드](./task-05-tab-ui-tongdok.md) | ✅ | ⬜ 대기 | - |

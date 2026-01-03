@@ -1,6 +1,6 @@
 # Task 2: Backend API 구현
 
-> **상태**: ⬜ 대기
+> **상태**: ✅ 완료
 > **의존성**: Task 1 완료 필요
 > **예상 파일**: `serializers.py`, `views.py`, `urls.py`
 

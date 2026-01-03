@@ -2207,4 +2207,281 @@ def get_user_hasena_status(request):
         return Response({
             'success': False,
             'detail': f'하세나 상태 조회 중 오류가 발생했습니다: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================
+# 성경읽기 기능 API (읽기 위치, 북마크, 묵상노트, 개인 읽기 기록)
+# ============================================
+
+from .models import UserReadingPosition, BibleBookmark, ReflectionNote, PersonalReadingRecord
+from .serializers import (
+    UserReadingPositionSerializer,
+    BibleBookmarkSerializer,
+    ReflectionNoteSerializer,
+    PersonalReadingRecordSerializer
+)
+from collections import defaultdict
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def reading_position_view(request):
+    """마지막 읽기 위치 조회/저장 API"""
+    if request.method == 'GET':
+        try:
+            position = UserReadingPosition.objects.filter(user=request.user).first()
+            if position:
+                serializer = UserReadingPositionSerializer(position)
+                return Response({'success': True, 'position': serializer.data})
+            return Response({'success': True, 'position': None})
+        except Exception as e:
+            return Response({
+                'success': False,
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'POST':
+        try:
+            position, created = UserReadingPosition.objects.get_or_create(user=request.user)
+            serializer = UserReadingPositionSerializer(position, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'success': True, 'message': '위치가 저장되었습니다'})
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BibleBookmarkViewSet(viewsets.ModelViewSet):
+    """북마크 CRUD API"""
+    serializer_class = BibleBookmarkSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return BibleBookmark.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({'success': True, 'message': '북마크가 삭제되었습니다'})
+
+    @action(detail=False, methods=['get'], url_path='by-chapter')
+    def by_chapter(self, request):
+        """특정 장의 북마크 조회"""
+        book = request.query_params.get('book')
+        chapter = request.query_params.get('chapter')
+        if not book or not chapter:
+            return Response({
+                'success': False,
+                'error': 'book and chapter required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            chapter = int(chapter)
+        except ValueError:
+            return Response({
+                'success': False,
+                'error': 'chapter must be a number'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        bookmarks = self.get_queryset().filter(book=book, chapter=chapter)
+        serializer = self.get_serializer(bookmarks, many=True)
+        return Response({'success': True, 'bookmarks': serializer.data})
+
+
+class ReflectionNoteViewSet(viewsets.ModelViewSet):
+    """묵상노트 CRUD API"""
+    serializer_class = ReflectionNoteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return ReflectionNote.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({'success': True, 'message': '묵상노트가 삭제되었습니다'})
+
+    @action(detail=False, methods=['get'], url_path='by-chapter')
+    def by_chapter(self, request):
+        """특정 장의 묵상노트 조회"""
+        book = request.query_params.get('book')
+        chapter = request.query_params.get('chapter')
+        if not book or not chapter:
+            return Response({
+                'success': False,
+                'error': 'book and chapter required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            chapter = int(chapter)
+        except ValueError:
+            return Response({
+                'success': False,
+                'error': 'chapter must be a number'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        notes = self.get_queryset().filter(book=book, chapter=chapter)
+        serializer = self.get_serializer(notes, many=True)
+        return Response({'success': True, 'notes': serializer.data})
+
+
+# 성경책별 총 장 수
+BIBLE_CHAPTER_COUNTS = {
+    'gen': 50, 'exo': 40, 'lev': 27, 'num': 36, 'deu': 34,
+    'jos': 24, 'jdg': 21, 'rut': 4, '1sa': 31, '2sa': 24,
+    '1ki': 22, '2ki': 25, '1ch': 29, '2ch': 36, 'ezr': 10,
+    'neh': 13, 'est': 10, 'job': 42, 'psa': 150, 'pro': 31,
+    'ecc': 12, 'sng': 8, 'isa': 66, 'jer': 52, 'lam': 5,
+    'ezk': 48, 'dan': 12, 'hos': 14, 'jol': 3, 'amo': 9,
+    'oba': 1, 'jon': 4, 'mic': 7, 'nam': 3, 'hab': 3,
+    'zep': 3, 'hag': 2, 'zec': 14, 'mal': 4,
+    'mat': 28, 'mrk': 16, 'luk': 24, 'jhn': 21, 'act': 28,
+    'rom': 16, '1co': 16, '2co': 13, 'gal': 6, 'eph': 6,
+    'php': 4, 'col': 4, '1th': 5, '2th': 3,
+    '1ti': 6, '2ti': 4, 'tit': 3, 'phm': 1, 'heb': 13,
+    'jas': 5, '1pe': 5, '2pe': 3, '1jn': 5,
+    '2jn': 1, '3jn': 1, 'jud': 1, 'rev': 22
+}
+
+
+class PersonalReadingRecordViewSet(viewsets.ModelViewSet):
+    """개인 읽기 기록 API"""
+    serializer_class = PersonalReadingRecordSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post']  # 삭제/수정 불가
+
+    def get_queryset(self):
+        return PersonalReadingRecord.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        # 중복 체크 - 이미 있으면 업데이트
+        book = request.data.get('book')
+        chapter = request.data.get('chapter')
+
+        if book and chapter:
+            existing = PersonalReadingRecord.objects.filter(
+                user=request.user,
+                book=book,
+                chapter=chapter
+            ).first()
+
+            if existing:
+                # 이미 읽은 기록이 있으면 날짜만 업데이트
+                from datetime import date
+                existing.read_date = request.data.get('read_date', date.today())
+                existing.save()
+                serializer = self.get_serializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """읽기 통계 조회"""
+        records = self.get_queryset()
+
+        # 책별 읽은 장 수 계산
+        books_progress = defaultdict(lambda: {'read': 0, 'total': 0})
+        for record in records:
+            books_progress[record.book]['read'] += 1
+
+        # 각 책의 총 장 수 추가
+        for book in books_progress:
+            books_progress[book]['total'] = BIBLE_CHAPTER_COUNTS.get(book, 0)
+
+        # 완독한 책 수 계산
+        books_completed = sum(
+            1 for book, progress in books_progress.items()
+            if progress['read'] >= progress['total'] and progress['total'] > 0
+        )
+
+        # 연속 읽기 일수 (streak) 계산
+        from datetime import date, timedelta
+        dates = records.values_list('read_date', flat=True).distinct().order_by('-read_date')
+        dates_list = list(dates)
+
+        current_streak = 0
+        if dates_list:
+            today = date.today()
+            expected_date = today
+
+            for read_date in dates_list:
+                if read_date == expected_date:
+                    current_streak += 1
+                    expected_date -= timedelta(days=1)
+                elif read_date == expected_date + timedelta(days=1):
+                    # 오늘 안 읽었지만 어제 읽었으면 어제부터 카운트
+                    current_streak += 1
+                    expected_date = read_date - timedelta(days=1)
+                else:
+                    break
+
+        stats = {
+            'total_chapters_read': records.count(),
+            'books_read': records.values('book').distinct().count(),
+            'books_completed': books_completed,
+            'current_streak': current_streak,
+            'books_progress': dict(books_progress)
+        }
+
+        return Response({'success': True, 'stats': stats})
+
+    @action(detail=False, methods=['get'], url_path='by-book')
+    def by_book(self, request):
+        """특정 책의 읽기 기록 조회"""
+        book = request.query_params.get('book')
+        if not book:
+            return Response({
+                'success': False,
+                'error': 'book required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        records = self.get_queryset().filter(book=book)
+        serializer = self.get_serializer(records, many=True)
+
+        # 읽은 장 목록
+        read_chapters = list(records.values_list('chapter', flat=True))
+        total_chapters = BIBLE_CHAPTER_COUNTS.get(book, 0)
+
+        return Response({
+            'success': True,
+            'records': serializer.data,
+            'read_chapters': read_chapters,
+            'total_chapters': total_chapters,
+            'is_completed': len(read_chapters) >= total_chapters if total_chapters > 0 else False
+        }) 

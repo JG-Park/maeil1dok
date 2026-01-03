@@ -1,9 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views, scoreboard_views, group_views, calendar_views
+from . import views, scoreboard_views, group_views, calendar_views, catchup_views
 
 router = DefaultRouter()
 router.register(r'bible-plans', views.BibleReadingPlanViewSet)
+router.register(r'bible/bookmarks', views.BibleBookmarkViewSet, basename='bible-bookmark')
+router.register(r'bible/notes', views.ReflectionNoteViewSet, basename='reflection-note')
+router.register(r'bible/personal-records', views.PersonalReadingRecordViewSet, basename='personal-record')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -75,4 +78,19 @@ urlpatterns = [
     path('calendar/settings/reorder/', calendar_views.reorder_calendar_settings, name='calendar-settings-reorder'),
     path('calendar/month/', calendar_views.get_calendar_month_data, name='calendar-month'),
     path('calendar/last-incomplete/', calendar_views.get_last_incomplete_positions, name='calendar-last-incomplete'),
+
+    # 따라잡기(Catchup) 관련 URL
+    path('subscriptions/<int:subscription_id>/catchup-status/', catchup_views.catchup_status, name='catchup-status'),
+    path('subscriptions/<int:subscription_id>/catchup/preview/', catchup_views.catchup_preview, name='catchup-preview'),
+    path('subscriptions/<int:subscription_id>/catchup/', catchup_views.catchup_create, name='catchup-create'),
+    path('catchup-sessions/active/', catchup_views.my_active_catchup_sessions, name='catchup-sessions-active'),
+    path('catchup-sessions/<int:session_id>/', catchup_views.catchup_session_detail, name='catchup-session-detail'),
+    path('catchup-sessions/<int:session_id>/update/', catchup_views.catchup_session_update, name='catchup-session-update'),
+    path('catchup-sessions/<int:session_id>/schedules/', catchup_views.catchup_session_schedules, name='catchup-session-schedules'),
+    path('catchup-sessions/<int:session_id>/complete/', catchup_views.catchup_session_complete, name='catchup-session-complete'),
+    path('catchup-sessions/<int:session_id>/abandon/', catchup_views.catchup_session_abandon, name='catchup-session-abandon'),
+    path('catchup-schedules/<int:schedule_id>/toggle/', catchup_views.catchup_schedule_toggle, name='catchup-schedule-toggle'),
+
+    # 성경읽기 기능 관련 URL
+    path('bible/reading-position/', views.reading_position_view, name='reading-position'),
 ] 
