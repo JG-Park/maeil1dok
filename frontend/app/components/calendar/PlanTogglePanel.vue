@@ -34,8 +34,8 @@ defineEmits<{
 <style scoped>
 .plan-toggle-panel {
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid #E2E8F0;
-  background: #F8FAFC;
+  border-bottom: 1px solid var(--color-slate-200);
+  background: var(--color-slate-50);
 }
 
 .toggle-list {
@@ -49,22 +49,22 @@ defineEmits<{
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  border: 1px solid #E2E8F0;
-  background: white;
+  border: 1px solid var(--color-slate-200);
+  background: var(--color-bg-card);
   border-radius: 9999px;
   font-size: 0.8125rem;
-  color: #64748B;
+  color: var(--color-slate-500);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .toggle-item:hover {
-  border-color: #CBD5E1;
+  border-color: var(--color-slate-300);
 }
 
 .toggle-item.active {
-  color: #1E293B;
-  border-color: #94A3B8;
+  color: var(--color-slate-800);
+  border-color: var(--color-slate-400);
 }
 
 .color-dot {
