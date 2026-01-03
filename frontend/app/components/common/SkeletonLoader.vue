@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
   </div>
 
   <!-- 카드 스켈레톤 -->
-  <div v-else-if="type === 'card'" class="rounded-lg border border-gray-200 p-4 space-y-3" role="status" aria-label="카드 로딩 중">
+  <div v-else-if="type === 'card'" class="skeleton-card rounded-lg p-4 space-y-3" role="status" aria-label="카드 로딩 중">
     <div class="skeleton-shimmer h-40 rounded-lg" />
     <div class="space-y-2">
       <div class="skeleton-shimmer h-5 rounded w-3/4" />
@@ -66,12 +66,17 @@ const props = withDefaults(defineProps<Props>(), {
 </template>
 
 <style scoped>
+.skeleton-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+}
+
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
-    #f0f0f0 25%,
-    #e0e0e0 50%,
-    #f0f0f0 75%
+    var(--color-bg-tertiary) 25%,
+    var(--color-bg-hover) 50%,
+    var(--color-bg-tertiary) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
