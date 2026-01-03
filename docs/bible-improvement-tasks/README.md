@@ -24,8 +24,8 @@
 | 2 | [Backend API 구현](./task-02-backend-api.md) | ✅ | ✅ 완료 | ea275de |
 | 3 | [Frontend 기반 구조](./task-03-frontend-structure.md) | ✅ | ✅ 완료 | 4e43b99 |
 | 4 | [BibleReader 컴포넌트 추출](./task-04-bible-reader.md) | ✅ | ✅ 완료 | 08880c4 |
-| 5 | [탭 UI 및 통독모드](./task-05-tab-ui-tongdok.md) | ✅ | 🔄 진행 중 | - |
-| 6 | [마지막 위치 저장](./task-06-reading-position.md) | ✅ | ⬜ 대기 | - |
+| 5 | [탭 UI 및 통독모드](./task-05-tab-ui-tongdok.md) | ✅ | ✅ 완료 | 8c786ef |
+| 6 | [마지막 위치 저장](./task-06-reading-position.md) | ✅ | ✅ 완료 | (pending) |
 | 7 | [북마크 기능](./task-07-bookmark.md) | ✅ | ⬜ 대기 | - |
 | 8 | [묵상노트 기능](./task-08-reflection-note.md) | ✅ | ⬜ 대기 | - |
 | 9 | [개인 읽기 기록](./task-09-personal-record.md) | ✅ | ⬜ 대기 | - |

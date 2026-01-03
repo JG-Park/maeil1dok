@@ -105,6 +105,10 @@ onMounted(async () => {
     const position = await loadLastPosition()
     if (position && !route.query.book) {
       bibleStore.setCurrentPosition(position.book, position.chapter)
+      // 역본도 함께 복원
+      if (position.version) {
+        bibleStore.setVersion(position.version)
+      }
     }
   }
 
