@@ -80,7 +80,7 @@ defineEmits<{
 <style scoped>
 .calendar-header {
   padding: 1rem;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid var(--color-slate-200);
 }
 
 .header-top {
@@ -93,7 +93,7 @@ defineEmits<{
 .month-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--color-slate-800);
   margin: 0;
 }
 
@@ -109,16 +109,16 @@ defineEmits<{
   width: 36px;
   height: 36px;
   border: none;
-  background: #F1F5F9;
+  background: var(--color-slate-100);
   border-radius: 8px;
-  color: #64748B;
+  color: var(--color-slate-500);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .action-btn:hover:not(:disabled) {
-  background: #E2E8F0;
-  color: #3B82F6;
+  background: var(--color-slate-200);
+  color: var(--color-accent-secondary);
 }
 
 .action-btn:disabled {
@@ -140,16 +140,16 @@ defineEmits<{
   width: 36px;
   height: 36px;
   border: none;
-  background: #F1F5F9;
+  background: var(--color-slate-100);
   border-radius: 8px;
-  color: #64748B;
+  color: var(--color-slate-500);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: #E2E8F0;
-  color: #1E293B;
+  background: var(--color-slate-200);
+  color: var(--color-slate-800);
 }
 
 .nav-btn:disabled {
@@ -159,19 +159,19 @@ defineEmits<{
 
 .today-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid #E2E8F0;
-  background: white;
+  border: 1px solid var(--color-slate-200);
+  background: var(--color-bg-card);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #3B82F6;
+  color: var(--color-accent-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .today-btn:hover:not(:disabled) {
-  background: #EFF6FF;
-  border-color: #3B82F6;
+  background: var(--color-info-bg);
+  border-color: var(--color-accent-secondary);
 }
 
 .today-btn:disabled {

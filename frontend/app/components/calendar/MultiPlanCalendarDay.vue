@@ -62,7 +62,7 @@ defineEmits<{
 .calendar-day {
   min-height: 60px;
   padding: 4px;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -71,31 +71,31 @@ defineEmits<{
 }
 
 .calendar-day:hover {
-  background: #F8FAFC;
+  background: var(--color-slate-50);
 }
 
 .calendar-day.other-month {
-  background: #F8FAFC;
+  background: var(--color-slate-50);
 }
 
 .calendar-day.other-month .day-number {
-  color: #94A3B8;
+  color: var(--color-slate-400);
 }
 
 .calendar-day.is-today {
-  background: #EFF6FF;
-  border: 2px solid #3B82F6;
+  background: var(--color-info-bg);
+  border: 2px solid var(--color-accent-secondary);
 }
 
 .calendar-day.is-today .day-number {
-  color: #3B82F6;
+  color: var(--color-accent-secondary);
   font-weight: 700;
 }
 
 .day-number {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--color-slate-700);
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -132,7 +132,7 @@ defineEmits<{
 
 .more-indicator {
   font-size: 0.625rem;
-  color: #94A3B8;
+  color: var(--color-slate-400);
   font-weight: 600;
   line-height: 1;
 }

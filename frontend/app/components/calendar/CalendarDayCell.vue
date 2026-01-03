@@ -106,8 +106,8 @@ const handleClick = () => {
   align-items: center;
   padding: 4px 2px;
   border-radius: var(--radius-md, 8px);
-  background: white;
-  border: 1px solid var(--gray-200, #E2E8F0);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-slate-200);
   position: relative;
   transition: all 0.15s ease;
 }
@@ -126,7 +126,7 @@ const handleClick = () => {
 }
 
 .calendar-day-cell.future {
-  background: var(--gray-50, #F8FAFC);
+  background: var(--color-slate-50);
 }
 
 .calendar-day-cell.has-schedules {
@@ -134,8 +134,8 @@ const handleClick = () => {
 }
 
 .calendar-day-cell.has-schedules:hover {
-  background: var(--gray-100, #F1F5F9);
-  border-color: var(--gray-300, #CBD5E1);
+  background: var(--color-slate-100);
+  border-color: var(--color-slate-300);
 }
 
 .calendar-day-cell.all-completed {
@@ -150,7 +150,7 @@ const handleClick = () => {
 .day-number {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-primary, #1E293B);
+  color: var(--color-slate-800);
   line-height: 1.2;
 }
 
@@ -186,7 +186,7 @@ const handleClick = () => {
 
 .schedule-text {
   font-size: 0.5625rem;
-  color: var(--text-primary, #1E293B);
+  color: var(--color-slate-800);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -220,7 +220,7 @@ const handleClick = () => {
 /* 공통 */
 .more-indicator {
   font-size: 0.5rem;
-  color: var(--text-secondary, #64748B);
+  color: var(--color-slate-500);
   line-height: 1;
 }
 
