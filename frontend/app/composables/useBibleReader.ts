@@ -1,4 +1,4 @@
-import { useDebounceFn } from '@vueuse/core'
+import debounce from 'lodash-es/debounce'
 import { useBibleStore } from '~/stores/bible'
 import { useAuthStore } from '~/stores/auth'
 
@@ -8,7 +8,7 @@ export function useBibleReader() {
   const bibleStore = useBibleStore()
 
   // 마지막 위치 저장 (debounce 3초)
-  const savePosition = useDebounceFn(async (position: {
+  const savePosition = debounce(async (position: {
     book: string
     chapter: number
     verse?: number

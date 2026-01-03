@@ -1,6 +1,6 @@
 # Task 5: 탭 UI 및 통독모드 구현
 
-> **상태**: ⬜ 대기
+> **상태**: ✅ 완료
 > **의존성**: Task 4 완료 필요
 > **예상 파일**: `bible/index.vue`, `BibleTabNavigation.vue`
 
@@ -463,6 +463,6 @@ const exitTongdokMode = () => {
 
 ## 완료 기록
 
-- **완료일**: -
-- **커밋**: -
-- **비고**: -
+- **완료일**: 2026-01-03
+- **커밋**: (pending)
+- **비고**: BibleTabNavigation, TongdokModeIndicator, bible/index.vue 완성
