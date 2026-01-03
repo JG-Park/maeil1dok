@@ -14,12 +14,12 @@
 
 | ID | 태스크 | 상태 | 커밋 |
 |----|--------|------|------|
-| T001 | [백엔드 모델 생성](./tasks/T001-models.md) | `pending` | - |
-| T002 | [밀린 현황 조회 API](./tasks/T002-status-api.md) | `pending` | - |
-| T003 | [따라잡기 미리보기 API](./tasks/T003-preview-api.md) | `pending` | - |
-| T004 | [따라잡기 세션 생성 API](./tasks/T004-create-api.md) | `pending` | - |
-| T005 | [스케줄 완료 처리 API](./tasks/T005-complete-api.md) | `pending` | - |
-| T006 | [프론트엔드 설정 모달](./tasks/T006-settings-modal.md) | `pending` | - |
+| T001 | [백엔드 모델 생성](./tasks/T001-models.md) | `completed` | 7223053 |
+| T002 | [밀린 현황 조회 API](./tasks/T002-status-api.md) | `completed` | 72c474b |
+| T003 | [따라잡기 미리보기 API](./tasks/T003-preview-api.md) | `completed` | 72c474b |
+| T004 | [따라잡기 세션 생성 API](./tasks/T004-create-api.md) | `completed` | 72c474b |
+| T005 | [스케줄 완료 처리 API](./tasks/T005-complete-api.md) | `completed` | 72c474b |
+| T006 | [프론트엔드 설정 모달](./tasks/T006-settings-modal.md) | `in_progress` | - |
 | T007 | [미리보기 화면](./tasks/T007-preview-ui.md) | `pending` | - |
 | T008 | [진행 중 표시 UI](./tasks/T008-progress-ui.md) | `pending` | - |
 | T009 | [완료 축하 화면](./tasks/T009-celebration-ui.md) | `pending` | - |
@@ -63,4 +63,5 @@ T001 (모델)
 
 | 날짜 | 태스크 | 비고 |
 |------|--------|------|
-| - | - | - |
+| 2026-01-03 | T001 | CatchupSession, CatchupSchedule 모델 생성 |
+| 2026-01-03 | T002-T005 | 백엔드 API (services.py, catchup_views.py, serializers, urls) 구현 |
