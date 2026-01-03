@@ -48,45 +48,45 @@ def get_completed_days_annotation(period, plan_id=None):
 
 
 def calculate_progress_rate(user, plan_id=None):
-    """사용자의 진행률 계산"""
+    """사용자의 진행률 계산
+
+    진도율은 항상 해당 구독 플랜 기준으로 계산됩니다:
+    - 완료 스케줄 수 / 오늘까지의 총 스케줄 수 × 100
+
+    주의: UserProfile.total_completed_days는 모든 플랜에 걸친 고유 날짜 수이므로
+    특정 플랜의 진도율 계산에는 사용하지 않습니다.
+    """
     try:
+        subscriptions = PlanSubscription.objects.filter(user=user, is_active=True)
+        if not subscriptions.exists():
+            return 0
+
         if plan_id:
             # 특정 플랜의 진행률
-            subscription = PlanSubscription.objects.filter(
-                user=user,
-                plan_id=plan_id,
-                is_active=True
-            ).first()
-
-            if not subscription:
-                return 0
-
-            total_schedules = DailyBibleSchedule.objects.filter(
-                plan_id=plan_id,
-                date__lte=timezone.now().date()
-            ).count()
-
-            completed_schedules = UserBibleProgress.objects.filter(
-                subscription=subscription,
-                is_completed=True
-            ).count()
-
-            return round((completed_schedules / total_schedules * 100), 2) if total_schedules > 0 else 0
+            subscription = subscriptions.filter(plan_id=plan_id).first()
         else:
-            # 전체 플랜 기준
-            subscriptions = PlanSubscription.objects.filter(user=user, is_active=True)
-            if not subscriptions.exists():
-                return 0
-
+            # 첫 번째 활성 플랜 기준
             subscription = subscriptions.first()
-            total_schedules = DailyBibleSchedule.objects.filter(
-                plan=subscription.plan,
-                date__lte=timezone.now().date()
-            ).count()
 
-            completed_days = user.profile.total_completed_days if hasattr(user, 'profile') else 0
+        if not subscription:
+            return 0
 
-            return round((completed_days / total_schedules * 100), 2) if total_schedules > 0 else 0
+        # 해당 플랜의 오늘까지 스케줄 수
+        total_schedules = DailyBibleSchedule.objects.filter(
+            plan=subscription.plan,
+            date__lte=timezone.now().date()
+        ).count()
+
+        if total_schedules == 0:
+            return 0
+
+        # 해당 구독의 완료 스케줄 수 (플랜 기준으로 일관성 있게 계산)
+        completed_schedules = UserBibleProgress.objects.filter(
+            subscription=subscription,
+            is_completed=True
+        ).count()
+
+        return round((completed_schedules / total_schedules * 100), 2)
     except Exception as e:
         logger.error(f"Error calculating progress rate for user {user.id}: {str(e)}")
         return 0
