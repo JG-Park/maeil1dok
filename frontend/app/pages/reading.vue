@@ -3508,7 +3508,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: var(--color-bg-primary, #faf8f6);
+  background: white;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -3577,10 +3577,10 @@ onUnmounted(() => {
   max-width: 768px;
   margin: 0 auto;
   padding: 0.7rem 0.85rem;
-  background: var(--color-bg-primary, #faf8f6);
+  background: rgba(255, 255, 255, 0.98);
   border-radius: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
-  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.05));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top;
   min-height: 52px;
@@ -3644,10 +3644,11 @@ onUnmounted(() => {
 }
 
 .content-section {
-  background: var(--color-bg-primary, #faf8f6);
+  background: white;
   margin: 0.5rem;
   padding: 0.85rem;
   border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 4rem;
 }
 
@@ -6170,10 +6171,10 @@ html.touch-device .nav-button.next:hover svg {
 .today-reading-header {
   position: sticky;
   top: 0;
-  background-color: var(--color-bg-primary, #faf8f6);
+  background-color: white;
   z-index: 10;
   padding: 1rem;
-  border-bottom: 1px solid var(--color-border-default, #e5e7eb);
+  border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: none;
   /* 애니메이션 효과 제거 */
