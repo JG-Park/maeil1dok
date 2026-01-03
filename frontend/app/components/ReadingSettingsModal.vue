@@ -16,10 +16,20 @@
 
           <!-- Preview Area -->
           <div class="settings-preview" :style="previewStyles">
-            <p class="preview-text">
-              <span class="verse-number">1</span>
-              태초에 하나님이 천지를 창조하시니라
-            </p>
+            <div class="preview-verses">
+              <p class="preview-text">
+                <span class="verse-number">1</span>
+                <span class="verse-text">태초에 하나님이 천지를 창조하시니라</span>
+              </p>
+              <p class="preview-text">
+                <span class="verse-number">2</span>
+                <span class="verse-text">땅이 혼돈하고 공허하며 흑암이 깊음 위에 있고</span>
+              </p>
+              <p class="preview-text">
+                <span class="verse-number">3</span>
+                <span class="verse-text">하나님이 이르시되 빛이 있으라 하시니 빛이 있었고</span>
+              </p>
+            </div>
           </div>
 
           <!-- Settings Body (Scrollable) -->
@@ -440,15 +450,21 @@ function close() {
 }
 
 .settings-preview {
-  padding: 20px;
-  background-color: var(--bible-bg, #faf8f6);
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.preview-verses {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .preview-text {
   margin: 0;
   display: flex;
   gap: 8px;
+  align-items: flex-start;
 }
 
 .preview-text .verse-number {
@@ -456,8 +472,14 @@ function close() {
   font-family: "Pretendard", sans-serif;
   font-size: 0.75em;
   font-weight: 500;
-  min-width: 1.5em;
+  min-width: 1.2em;
   text-align: right;
+  flex-shrink: 0;
+  line-height: 1.8;
+}
+
+.preview-text .verse-text {
+  flex: 1;
 }
 
 .settings-body {
