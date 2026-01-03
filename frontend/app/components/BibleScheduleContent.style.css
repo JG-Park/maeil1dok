@@ -12,8 +12,8 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  background: white;
-  border-bottom: 1px solid #f1f5f9;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-slate-100);
   z-index: 10;
 }
 
@@ -39,7 +39,7 @@
   width: 1px;
   height: 16px;
   /* 구분선 높이 축소 */
-  background-color: #e2e8f0;
+  background-color: var(--color-slate-200);
 }
 
 .plan-select {
@@ -47,11 +47,11 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   padding: 0.5rem 2rem 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
-  background-color: white;
+  background-color: var(--color-bg-card);
   font-size: 0.875rem;
-  color: var(--text-primary);
+  color: var(--color-slate-800);
   cursor: pointer;
   transition: all 0.2s ease;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
@@ -61,7 +61,7 @@
 }
 
 .plan-select:hover {
-  border-color: #cbd5e1;
+  border-color: var(--color-slate-300);
 }
 
 .plan-select:focus {
@@ -103,17 +103,17 @@
   }
 
   .month-scroll::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--color-slate-100);
     border-radius: 3px;
   }
 
   .month-scroll::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
+    background-color: var(--color-slate-300);
     border-radius: 3px;
   }
 
   .month-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: #94a3b8;
+    background-color: var(--color-slate-400);
   }
 }
 
@@ -135,8 +135,8 @@
   left: -1px;
   background: linear-gradient(
     to right,
-    rgb(255, 255, 255) 0%,
-    rgba(255, 255, 255, 0) 100%
+    var(--color-bg-card) 0%,
+    transparent 100%
   );
 }
 
@@ -144,8 +144,8 @@
   right: -1px;
   background: linear-gradient(
     to left,
-    rgb(255, 255, 255) 0%,
-    rgba(255, 255, 255, 0) 100%
+    var(--color-bg-card) 0%,
+    transparent 100%
   );
 }
 
@@ -163,7 +163,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--color-slate-100);
   padding-top: 0.5rem;
 }
 
@@ -205,29 +205,29 @@
   }
 
   .control-buttons::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--color-slate-100);
     border-radius: 2px;
   }
 
   .control-buttons::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
+    background-color: var(--color-slate-300);
     border-radius: 2px;
   }
 
   .control-buttons::-webkit-scrollbar-thumb:hover {
-    background-color: #94a3b8;
+    background-color: var(--color-slate-400);
   }
 }
 
 .controls-label {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--color-slate-500);
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .controls-divider {
-  color: #cbd5e1;
+  color: var(--color-slate-300);
   font-size: 0.75rem;
   flex-shrink: 0;
 }
@@ -238,10 +238,10 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-200);
   border-radius: 6px;
-  background: white;
-  color: #475569;
+  background: var(--color-bg-card);
+  color: var(--color-slate-600);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -249,8 +249,8 @@
 }
 
 .control-button:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--color-slate-50);
+  border-color: var(--color-slate-300);
 }
 
 .control-button svg {
@@ -263,7 +263,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background: #ffffff;
+  background: var(--color-bg-card);
   padding: 1rem;
   position: relative;
 }
@@ -297,11 +297,11 @@
 
 .month-button {
   padding: 0.2rem 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
-  background: white;
+  background: var(--color-bg-card);
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-slate-500);
   transition: all 0.2s ease;
   font-weight: 500;
   flex-shrink: 0;
@@ -317,10 +317,10 @@
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 12px;
   transition: all 0.2s ease;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-200);
   cursor: pointer;
 }
 
@@ -464,10 +464,11 @@
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--color-slate-300);
   appearance: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: var(--color-bg-card);
 }
 
 /* 체크박스 인풋 호버 효과 강화 */
@@ -518,8 +519,8 @@
 .loading-state {
   text-align: center;
   padding: 2rem;
-  color: var(--text-secondary);
-  background: white;
+  color: var(--color-slate-500);
+  background: var(--color-bg-card);
   border-radius: 12px;
   font-size: 0.9375rem;
   display: flex;
@@ -546,8 +547,8 @@
 .no-schedules {
   text-align: center;
   padding: 2rem;
-  color: var(--text-secondary);
-  background: white;
+  color: var(--color-slate-500);
+  background: var(--color-bg-card);
   border-radius: 12px;
   font-size: 0.9375rem;
 }
@@ -580,7 +581,7 @@
 
 .progress-card {
   position: relative;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -595,14 +596,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--color-bg-overlay);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   border-radius: 12px;
   z-index: 1;
   padding: 1rem;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--color-slate-500);
 }
 
 /* 모달 스타일 */
@@ -628,11 +629,11 @@
 }
 
 .modal {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   width: 100%;
   padding: 2rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
 }
 
 .modal-content {
@@ -700,9 +701,9 @@
 }
 
 .cancel-button {
-  background: #f1f5f9;
+  background: var(--color-slate-100);
   border: none;
-  color: var(--text-secondary);
+  color: var(--color-slate-600);
 }
 
 .confirm-button {
@@ -712,7 +713,7 @@
 }
 
 .cancel-button:hover {
-  background: #e2e8f0;
+  background: var(--color-slate-200);
 }
 
 .confirm-button:hover {
@@ -813,14 +814,14 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 1rem;
-  color: #94a3b8;
+  color: var(--color-slate-400);
   gap: 1rem;
 }
 
 .no-plan-selected svg {
   width: 32px;
   height: 32px;
-  color: #cbd5e1;
+  color: var(--color-slate-300);
 }
 
 .no-plan-selected span {
@@ -841,8 +842,9 @@
   font-weight: 600;
   border-radius: 8px;
   gap: 0.5rem;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
+  color: var(--color-slate-700);
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -850,7 +852,7 @@
 }
 
 .plan-select-button:hover {
-  border-color: #cbd5e1;
+  border-color: var(--color-slate-300);
 }
 
 .plan-select-button span {
@@ -871,22 +873,22 @@
 .plan-item {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
-  background-color: white;
+  background-color: var(--color-bg-card);
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
 }
 
 .plan-item:hover {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
+  background-color: var(--color-slate-50);
+  border-color: var(--color-slate-300);
 }
 
 .plan-item.active {
   border-color: var(--primary-color);
-  background-color: #f8fafc;
+  background-color: var(--color-slate-50);
 }
 
 .plan-item-content {
@@ -932,17 +934,17 @@
 .default-badge {
   font-size: 0.7rem;
   padding: 0.2rem 0.75em;
-  background-color: #f1f5f9;
+  background-color: var(--color-slate-100);
   border-radius: 6px;
   font-weight: 500;
-  background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
+  background: var(--color-slate-100);
+  color: var(--color-slate-500);
+  border: 1px solid var(--color-slate-300);
 }
 
 /* active 상태일 때 스타일 강화 */
 .plan-item.active {
-  background-color: #f8fafc;
+  background-color: var(--color-slate-50);
   border-color: var(--primary-color);
   border-width: 1px;
 }
@@ -958,8 +960,8 @@
 
 /* 플랜 아이템 hover 효과 개선 */
 .plan-item:hover:not(.active) {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
+  background-color: var(--color-slate-50);
+  border-color: var(--color-slate-300);
 }
 
 .schedule-item.range-start {
@@ -974,10 +976,10 @@
 
 .bulk-edit-indicator {
   align-items: center;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-slate-200);
   border-radius: 12px;
-  box-shadow: 0 4px 15px #00000014;
+  box-shadow: var(--shadow-md);
   display: flex;
   gap: 0.5rem;
   justify-content: center;
@@ -1015,12 +1017,12 @@
 
 /* 선택된 구간 스타일 */
 .schedule-item.selected-range {
-  background: #f1f5f9;
-  border-color: #94a3b8;
+  background: var(--color-slate-100);
+  border-color: var(--color-slate-400);
 }
 
 .schedule-item.selected-range:hover {
-  background: #f1f5f9;
+  background: var(--color-slate-100);
   transform: none;
   box-shadow: none;
 }
@@ -1029,24 +1031,24 @@
 .schedule-item.selected-range .schedule-reading,
 .schedule-item.selected-range .status-text,
 .schedule-item.selected-range .bible-text {
-  color: #475569;
+  color: var(--color-slate-600);
 }
 
 /* 체크박스도 회색조로 변경 */
 .schedule-item.selected-range .checkbox input[type="checkbox"] {
-  border-color: #94a3b8;
+  border-color: var(--color-slate-400);
 }
 
 /* 현재 위치 배지도 회색조로 변경 */
 .schedule-item.selected-range .current-location-badge {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--color-slate-200);
+  color: var(--color-slate-600);
 }
 
 /* 오늘 배지도 회색조로 변경 */
 .schedule-item.selected-range .today-badge {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--color-slate-200);
+  color: var(--color-slate-600);
 }
 
 /* 일괄 수정 액션 버튼 스타일 */
@@ -1080,7 +1082,7 @@
 }
 
 .action-divider {
-  color: #cbd5e1;
+  color: var(--color-slate-300);
 }
 
 .action-button svg {
@@ -1095,25 +1097,25 @@
   width: 40px;
   height: 40px;
   border-radius: 20px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-slate-200);
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 100;
-  color: #64748b;
+  color: var(--color-slate-500);
   transition: all 0.2s ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
 .scroll-top-button:hover {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--color-slate-50);
+  color: var(--color-slate-600);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
 }
 
 /* iOS 안전영역 대응도 수정 */
@@ -1196,5 +1198,5 @@
   gap: 0.5rem;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--color-slate-200);
 }
