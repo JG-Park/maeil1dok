@@ -3780,7 +3780,7 @@ onUnmounted(() => {
 }
 
 :deep(.verse-number) {
-  color: var(--primary-color);
+  color: var(--verse-number-color, #999999);
   font-weight: 500;
   margin-right: 0.3rem;
   min-width: 0.8em;
@@ -6010,15 +6010,14 @@ html.touch-device .nav-button.next:hover svg {
   padding-left: 0.5rem;
 }
 
-/* 인명 강조 (표준 번역본) */
+/* 인명 강조 (표준 번역본) - 부드러운 갈색 */
 :deep(.bible-name) {
-  color: #1e40af;
-  font-weight: 500;
+  color: var(--highlight-name-color, #7c5a3c);
 }
 
-/* 지명 강조 (표준 번역본) */
+/* 지명 강조 (표준 번역본) - 부드러운 올리브 */
 :deep(.bible-area) {
-  color: #047857;
+  color: var(--highlight-place-color, #5a6e54);
 }
 
 

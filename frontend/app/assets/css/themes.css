@@ -112,9 +112,22 @@
   --footnote-color: #3b82f6;
   --description-color: #6b7280;
 
-  /* Highlight colors for names/places */
-  --highlight-name-color: #1e40af;
-  --highlight-place-color: #047857;
+  /* Highlight colors for names/places - 부드러운 색상 */
+  --highlight-name-color: #7c5a3c;  /* 갈색 (인명) */
+  --highlight-place-color: #5a6e54;  /* 올리브 (지명) */
+
+  /* ===== Slate Color Palette ===== */
+  /* For calendar and modal components */
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-300: #CBD5E1;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
 }
 
 /* Dark Theme */
@@ -224,9 +237,9 @@
   --footnote-color: #60a5fa;
   --description-color: #9ca3af;
 
-  /* Highlight colors for names/places (adjusted for dark mode) */
-  --highlight-name-color: #60a5fa;
-  --highlight-place-color: #34d399;
+  /* Highlight colors for names/places - 다크모드용 부드러운 색상 */
+  --highlight-name-color: #c9a67a;  /* 밝은 갈색 (인명) */
+  --highlight-place-color: #9cb094;  /* 밝은 올리브 (지명) */
 }
 
 /* Reading content dynamic styles using CSS variables from store */
