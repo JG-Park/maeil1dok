@@ -124,7 +124,7 @@ const handleKakaoLogin = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f9fafb;
+  background-color: var(--color-bg-base);
   padding: 3rem 1rem;
 }
 
@@ -139,7 +139,7 @@ const handleKakaoLogin = () => {
 .back-btn {
   display: flex;
   align-items: center;
-  color: #6b7280;
+  color: var(--color-slate-500);
   background: none;
   border: none;
   cursor: pointer;
@@ -150,7 +150,7 @@ const handleKakaoLogin = () => {
 }
 
 .back-btn:hover {
-  color: #111827;
+  color: var(--color-slate-800);
 }
 
 .logo-container {
@@ -204,15 +204,15 @@ const handleKakaoLogin = () => {
   left: 0;
   right: 0;
   height: 1px;
-  background-color: #d1d5db;
+  background-color: var(--color-slate-300);
 }
 
 .divider span {
   position: relative;
   display: inline-block;
   padding: 0 0.5rem;
-  background-color: #f9fafb;
-  color: #6b7280;
+  background-color: var(--color-bg-base);
+  color: var(--color-slate-500);
   font-size: 0.875rem;
 }
 
@@ -225,7 +225,7 @@ const handleKakaoLogin = () => {
 .input-group {
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   border-radius: 0.375rem;
   overflow: hidden;
 }
@@ -247,21 +247,21 @@ const handleKakaoLogin = () => {
   display: block;
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  background-color: white;
-  color: #111827;
+  border: 1px solid var(--color-slate-300);
+  background-color: var(--color-bg-card);
+  color: var(--color-slate-800);
   font-size: 0.875rem;
   transition: all 0.2s ease;
 }
 
 .form-input::placeholder {
-  color: #9ca3af;
+  color: var(--color-slate-400);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-accent-secondary);
+  box-shadow: 0 0 0 3px var(--color-accent-bg);
   z-index: 10;
   position: relative;
 }
