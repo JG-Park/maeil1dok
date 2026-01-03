@@ -1,0 +1,390 @@
+/**
+ * Global Theme CSS Variables (SSOT)
+ * - Light/Dark 테마 지원
+ * - 전역 앱 + 읽기 화면 스타일링
+ */
+
+/* Light Theme (default) */
+:root,
+[data-theme="light"] {
+  /* ===== Global Design Tokens ===== */
+
+  /* Background */
+  --color-bg-primary: #faf8f6;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f5f3f0;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f3f4f6;
+  --color-bg-active: #e5e7eb;
+
+  /* Text */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-text-inverse: #ffffff;
+
+  /* Border */
+  --color-border-default: #e5e7eb;
+  --color-border-light: #f0f0f0;
+  --color-border-dark: #d1d5db;
+
+  /* Accent */
+  --color-accent-primary: #4B9F7E;
+  --color-accent-primary-hover: #3B7E63;
+  --color-accent-primary-light: #e9f5f0;
+  --color-accent-secondary: #3b82f6;
+  --color-accent-secondary-hover: #2563eb;
+
+  /* Status */
+  --color-success: #10b981;
+  --color-success-bg: #d1fae5;
+  --color-success-text: #065f46;
+  --color-error: #ef4444;
+  --color-error-bg: #fee2e2;
+  --color-error-text: #991b1b;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-info: #3b82f6;
+  --color-info-bg: #dbeafe;
+  --color-info-text: #1e40af;
+
+  /* Interactive Elements */
+  --color-button-default: #f3f4f6;
+  --color-button-hover: #e5e7eb;
+  --color-button-active: #d1d5db;
+  --color-input-bg: #ffffff;
+  --color-input-border: #d1d5db;
+  --color-input-focus: #4B9F7E;
+  --color-link: #3b82f6;
+  --color-link-hover: #2563eb;
+
+  /* Overlay */
+  --color-modal-bg: #ffffff;
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-tooltip-bg: #1f2937;
+  --color-tooltip-text: #ffffff;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Third-party (Kakao) */
+  --color-kakao-bg: #FEE500;
+  --color-kakao-hover: #FDD835;
+  --color-kakao-text: #000000;
+
+  /* ===== Legacy Aliases (for backward compatibility) ===== */
+  --bg-primary: var(--color-bg-primary);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-tertiary: var(--color-bg-tertiary);
+  --bg-card: var(--color-bg-card);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-tertiary);
+  --text-muted: var(--color-text-muted);
+  --border-color: var(--color-border-default);
+  --border-light: var(--color-border-light);
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --shadow-heavy: rgba(0, 0, 0, 0.15);
+  --accent-primary: var(--color-accent-primary);
+  --accent-primary-light: var(--color-accent-primary-light);
+  --accent-secondary: var(--color-accent-secondary);
+  --modal-bg: var(--color-modal-bg);
+  --modal-overlay: var(--color-overlay);
+  --input-bg: var(--color-input-bg);
+  --input-border: var(--color-input-border);
+  --input-focus-border: var(--color-input-focus);
+  --button-bg: var(--color-button-default);
+  --button-hover-bg: var(--color-button-hover);
+  --button-active-bg: var(--color-accent-primary);
+  --button-active-text: var(--color-text-inverse);
+
+  /* ===== Bible Content Specific ===== */
+  --bible-bg: #faf8f6;
+  --bible-text: #2a1111;
+  --verse-number-color: #999999;
+  --section-title-color: #4B9F7E;
+  --cross-ref-color: #666666;
+  --footnote-color: #3b82f6;
+  --description-color: #6b7280;
+
+  /* Highlight colors for names/places */
+  --highlight-name-color: #1e40af;
+  --highlight-place-color: #047857;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  /* ===== Global Design Tokens ===== */
+
+  /* Background */
+  --color-bg-primary: #1a1a1a;
+  --color-bg-secondary: #242424;
+  --color-bg-tertiary: #2d2d2d;
+  --color-bg-card: #2a2a2a;
+  --color-bg-hover: #3a3a3a;
+  --color-bg-active: #4a4a4a;
+
+  /* Text */
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #d1d5db;
+  --color-text-tertiary: #9ca3af;
+  --color-text-muted: #6b7280;
+  --color-text-inverse: #1f2937;
+
+  /* Border */
+  --color-border-default: #3d3d3d;
+  --color-border-light: #333333;
+  --color-border-dark: #4a4a4a;
+
+  /* Accent */
+  --color-accent-primary: #6bc99f;
+  --color-accent-primary-hover: #5ab88e;
+  --color-accent-primary-light: #1a2f25;
+  --color-accent-secondary: #60a5fa;
+  --color-accent-secondary-hover: #3b82f6;
+
+  /* Status */
+  --color-success: #34d399;
+  --color-success-bg: #064e3b;
+  --color-success-text: #a7f3d0;
+  --color-error: #f87171;
+  --color-error-bg: #7f1d1d;
+  --color-error-text: #fecaca;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #78350f;
+  --color-warning-text: #fef3c7;
+  --color-info: #60a5fa;
+  --color-info-bg: #1e3a5f;
+  --color-info-text: #bfdbfe;
+
+  /* Interactive Elements */
+  --color-button-default: #3a3a3a;
+  --color-button-hover: #4a4a4a;
+  --color-button-active: #5a5a5a;
+  --color-input-bg: #333333;
+  --color-input-border: #4a4a4a;
+  --color-input-focus: #6bc99f;
+  --color-link: #60a5fa;
+  --color-link-hover: #93c5fd;
+
+  /* Overlay */
+  --color-modal-bg: #2a2a2a;
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-tooltip-bg: #f3f4f6;
+  --color-tooltip-text: #1f2937;
+
+  /* Shadows (darker for dark mode) */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+
+  /* Third-party (Kakao) - unchanged for brand consistency */
+  --color-kakao-bg: #FEE500;
+  --color-kakao-hover: #FDD835;
+  --color-kakao-text: #000000;
+
+  /* ===== Legacy Aliases (for backward compatibility) ===== */
+  --bg-primary: var(--color-bg-primary);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-tertiary: var(--color-bg-tertiary);
+  --bg-card: var(--color-bg-card);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-tertiary);
+  --text-muted: var(--color-text-muted);
+  --border-color: var(--color-border-default);
+  --border-light: var(--color-border-light);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-heavy: rgba(0, 0, 0, 0.5);
+  --accent-primary: var(--color-accent-primary);
+  --accent-primary-light: var(--color-accent-primary-light);
+  --accent-secondary: var(--color-accent-secondary);
+  --modal-bg: var(--color-modal-bg);
+  --modal-overlay: var(--color-overlay);
+  --input-bg: var(--color-input-bg);
+  --input-border: var(--color-input-border);
+  --input-focus-border: var(--color-input-focus);
+  --button-bg: var(--color-button-default);
+  --button-hover-bg: var(--color-button-hover);
+  --button-active-bg: var(--color-accent-primary);
+  --button-active-text: var(--color-text-inverse);
+
+  /* ===== Bible Content Specific ===== */
+  --bible-bg: #1a1a1a;
+  --bible-text: #e0e0e0;
+  --verse-number-color: #666666;
+  --section-title-color: #6bc99f;
+  --cross-ref-color: #a0a0a0;
+  --footnote-color: #60a5fa;
+  --description-color: #9ca3af;
+
+  /* Highlight colors for names/places (adjusted for dark mode) */
+  --highlight-name-color: #60a5fa;
+  --highlight-place-color: #34d399;
+}
+
+/* Reading content dynamic styles using CSS variables from store */
+.bible-content {
+  background-color: var(--bible-bg);
+  color: var(--bible-text);
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
+  font-size: var(--reading-font-size, 16px);
+  font-weight: var(--reading-font-weight, 400);
+  line-height: var(--reading-line-height, 1.8);
+  text-align: var(--reading-text-align, left);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.bible-content .verse-number {
+  color: var(--verse-number-color);
+}
+
+.bible-content .section-title,
+.bible-content .sub-title {
+  color: var(--section-title-color);
+}
+
+.bible-content .cross-ref {
+  color: var(--cross-ref-color);
+}
+
+.bible-content .footnote-marker {
+  color: var(--footnote-color);
+}
+
+.bible-content .description {
+  color: var(--description-color);
+  border-left-color: var(--border-color);
+}
+
+/* Name/Place highlighting */
+.bible-content .bible-name {
+  color: var(--highlight-name-color);
+}
+
+.bible-content .bible-area {
+  color: var(--highlight-place-color);
+}
+
+/* Verse joining mode styles - 절 붙임 (통독 모드) */
+.bible-content.verse-joining .verse-group,
+.bible-content.verse-joining .verse {
+  display: inline;
+}
+
+.bible-content.verse-joining .verse-number {
+  display: inline;
+  font-size: 0.65em;
+  vertical-align: super;
+  margin: 0 0.1em;
+  min-width: auto;
+  text-align: left;
+  line-height: 1;
+}
+
+.bible-content.verse-joining .verse-text {
+  display: inline;
+}
+
+.bible-content.verse-joining .verse-text::after {
+  content: " ";
+}
+
+/* 섹션 타이틀에서 단락 분리 */
+.bible-content.verse-joining .section-title,
+.bible-content.verse-joining .sub-title,
+.bible-content.verse-joining h4,
+.bible-content.verse-joining h5 {
+  display: block;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+/* 섹션 타이틀 이후 첫 절 앞에 새 문단 시작 */
+.bible-content.verse-joining .section-title + .verse-group,
+.bible-content.verse-joining .section-title + .verse,
+.bible-content.verse-joining .sub-title + .verse-group,
+.bible-content.verse-joining .sub-title + .verse,
+.bible-content.verse-joining h4 + .verse-group,
+.bible-content.verse-joining h4 + .verse {
+  display: inline;
+}
+
+/* 설명/교차참조는 블록으로 유지 */
+.bible-content.verse-joining .description,
+.bible-content.verse-joining .cross-ref {
+  display: block;
+  margin: 0.5em 0;
+}
+
+/* 시편 등 시문체 유지 */
+.bible-content.verse-joining .q1,
+.bible-content.verse-joining .q2,
+.bible-content.verse-joining .q3,
+.bible-content.verse-joining .q4 {
+  display: block;
+  padding-left: inherit;
+}
+
+/* 인라인 절 번호 스타일 (새로 생성되는 경우) */
+.bible-content.verse-joining .verse-num-inline {
+  font-size: 0.65em;
+  color: var(--verse-number-color);
+  vertical-align: super;
+  margin-right: 0.15em;
+  font-family: "Pretendard", sans-serif;
+  font-weight: 500;
+}
+
+/* 기존 단락 스타일 */
+.bible-content.verse-joining .verse-paragraph {
+  margin-bottom: 1em;
+  text-indent: 0;
+}
+
+/* Reading page specific dark mode overrides */
+[data-theme="dark"] .reading-header,
+[data-theme="dark"] .chapter-header {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reading-controls button {
+  background-color: var(--button-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reading-controls button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+[data-theme="dark"] .bottom-navigation {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+/* Settings modal dark mode */
+[data-theme="dark"] .settings-modal {
+  background-color: var(--modal-bg);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .settings-modal .settings-section {
+  border-color: var(--border-color);
+}
+
+/* Smooth theme transition */
+body,
+.bible-content,
+.reading-header,
+.bottom-navigation,
+.settings-modal {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

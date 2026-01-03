@@ -51,7 +51,8 @@ export default defineNuxtConfig({
   css: [
     '~/assets/css/main.css',
     '~/assets/css/global.css',
-    '~/assets/css/mobile-nav.css'
+    '~/assets/css/mobile-nav.css',
+    '~/assets/css/themes.css'
   ],
   runtimeConfig: {
     public: {
@@ -75,7 +76,13 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
-        { rel: 'manifest', href: '/manifest.json' }
+        { rel: 'manifest', href: '/manifest.json' },
+        // Google Fonts - Noto Serif KR, Noto Sans KR
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400;500;600&display=swap' },
+        // KoPub Batang (via CDN)
+        { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/gh/niceplugin/KoPub@1.1.0/KoPubWorld-Batang-M.css' }
       ],
       meta: [
         { name: 'msapplication-TileColor', content: '#ffffff' },
@@ -101,6 +108,11 @@ export default defineNuxtConfig({
         // { name: 'naver-site-verification', content: 'YOUR_NAVER_VERIFICATION_CODE' },
       ],
       script: [
+        // Theme resolver: FOUC prevention (must run before any content renders)
+        {
+          innerHTML: `(function(){var t='light';try{var s=localStorage.getItem('readingSettings');if(s){var p=JSON.parse(s);if(p.theme){t=p.theme==='system'?window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light':p.theme}}}catch(e){t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)})();`,
+          tagPosition: 'head',
+        },
         {
           src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8742107706365412',
           async: true,

@@ -84,7 +84,7 @@ html {
 
 /* 접근성: 포커스 스타일 개선 */
 :focus-visible {
-  outline: 2px solid var(--primary-500);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
 
@@ -106,8 +106,8 @@ html {
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--primary-600);
-  color: white;
+  background: var(--color-accent-primary);
+  color: var(--color-text-inverse);
   padding: 8px 16px;
   z-index: 100;
   text-decoration: none;
@@ -118,46 +118,13 @@ html {
   top: 0;
 }
 
+/**
+ * Global CSS - Utility Classes and Common Components
+ * Theme tokens are defined in themes.css (SSOT)
+ * Non-theme-related design tokens defined here
+ */
+
 :root {
-  /* Color System */
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-200: #bfdbfe;
-  --primary-300: #93c5fd;
-  --primary-400: #60a5fa;
-  --primary-500: #3b82f6;  /* Primary Color */
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-800: #1e40af;
-  --primary-900: #1e3a8a;
-
-  /* Gray Scale - 색상 대비 개선 (WCAG AA 4.5:1 충족) */
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #595959;  /* 기존 #6b7280 → 4.5:1 대비 충족 */
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
-
-  /* Semantic Colors */
-  --success: #10b981;
-  --error: #f15454;
-  --warning: #f59e0b;
-  --info: #3b82f6;
-
-  --red: #f15454;
-  --red-dark: #c0392b;
-  --blue: #3b82f6;
-  --blue-dark: #2563eb;
-  --yellow: #f59e0b;
-  --yellow-dark: #f59e0b;
-  --green: #10b981;
-  --green-dark: #10b981;
-
   /* Typography */
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
 
@@ -173,11 +140,6 @@ html {
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 /* Common Components */
@@ -190,7 +152,7 @@ html {
 }
 
 .btn-kakao {
-  @apply bg-[#FEE500] text-gray-900 hover:bg-[#FDD835] focus:ring-2 focus:ring-[#FEE500] focus:ring-offset-2;
+  @apply bg-kakao-bg text-kakao-text hover:bg-kakao-hover focus:ring-2 focus:ring-kakao-bg focus:ring-offset-2;
 }
 
 .input-field {
