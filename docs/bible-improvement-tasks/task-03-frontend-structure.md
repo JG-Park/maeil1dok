@@ -1,6 +1,6 @@
 # Task 3: Frontend 기반 구조 생성
 
-> **상태**: ⬜ 대기
+> **상태**: ✅ 완료
 > **의존성**: Task 2 완료 필요
 > **예상 파일**: pages, stores, composables
 
