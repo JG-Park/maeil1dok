@@ -14,35 +14,58 @@
             </button>
           </div>
 
-          <!-- Preview Area -->
-          <div class="settings-preview" :style="previewStyles">
-            <h4 class="preview-title">예수의 계보</h4>
-            <div class="preview-verses">
-              <p class="preview-text">
-                <span class="verse-number">1</span>
-                <span class="verse-text"><span class="bible-name">아브라함</span>의 자손이요 <span class="bible-name">다윗</span>의 자손인 <span class="bible-name">예수 그리스도</span>의 계보는 이러하다.</span>
-              </p>
-              <p class="preview-text">
-                <span class="verse-number">2</span>
-                <span class="verse-text"><span class="bible-name">아브라함</span>은 <span class="bible-name">이삭</span>을 낳고, <span class="bible-name">이삭</span>은 <span class="bible-name">야곱</span>을 낳고,</span>
-              </p>
-              <p class="preview-text">
-                <span class="verse-number">3</span>
-                <span class="verse-text"><span class="bible-name">야곱</span>은 <span class="bible-area">유다</span>와 그의 형제들을 낳고,</span>
-              </p>
+          <!-- Preview Area (Fixed, not scrollable) -->
+          <div class="settings-preview" :class="{ 'loading': isFontLoading }" :style="previewContainerStyles">
+            <!-- Font loading overlay -->
+            <div v-if="isFontLoading" class="preview-loading">
+              <div class="loading-spinner"></div>
+            </div>
+
+            <!-- Section Title (System font, not reading font) -->
+            <h4 class="preview-section-title">
+              예수 그리스도의 계보<span class="reference">(눅 3:23-38)</span>
+            </h4>
+
+            <!-- Verses (Reading font) -->
+            <div
+              class="preview-verses"
+              :class="{ 'verse-joining': settings.verseJoining }"
+              :style="previewTextStyles"
+            >
+              <template v-if="settings.verseJoining">
+                <!-- Verse joining mode: inline -->
+                <p class="verse-paragraph">
+                  <sup class="verse-num-inline">1</sup><span :class="nameClass">아브라함</span>과 <span :class="nameClass">다윗</span>의 자손 <span :class="nameClass">예수 그리스도</span>의 계보라
+                  <sup class="verse-num-inline">2</sup><span :class="nameClass">아브라함</span>이 <span :class="nameClass">이삭</span>을 낳고 <span :class="nameClass">이삭</span>은 <span :class="nameClass">야곱</span>을 낳고 <span :class="nameClass">야곱</span>은 <span :class="placeClass">유다</span>와 그의 형제들을 낳고
+                </p>
+              </template>
+              <template v-else>
+                <!-- Normal mode: line by line -->
+                <p class="preview-verse">
+                  <span class="verse-number">1</span>
+                  <span class="verse-text"><span :class="nameClass">아브라함</span>과 <span :class="nameClass">다윗</span>의 자손 <span :class="nameClass">예수 그리스도</span>의 계보라</span>
+                </p>
+                <p class="preview-verse">
+                  <span class="verse-number">2</span>
+                  <span class="verse-text"><span :class="nameClass">아브라함</span>이 <span :class="nameClass">이삭</span>을 낳고 <span :class="nameClass">이삭</span>은 <span :class="nameClass">야곱</span>을 낳고</span>
+                </p>
+                <p class="preview-verse">
+                  <span class="verse-number">3</span>
+                  <span class="verse-text"><span :class="nameClass">야곱</span>은 <span :class="placeClass">유다</span>와 그의 형제들을 낳고</span>
+                </p>
+              </template>
             </div>
           </div>
 
           <!-- Settings Body (Scrollable) -->
           <div class="settings-body">
-            <!-- Theme Section -->
-            <section class="settings-section">
-              <h4 class="section-title">화면 모드</h4>
-              <div class="theme-options">
+            <!-- Section 1: Theme (Always expanded, compact) -->
+            <section class="settings-section theme-section">
+              <div class="theme-row">
                 <button
                   v-for="option in themeOptions"
                   :key="option.value"
-                  class="theme-button"
+                  class="theme-chip"
                   :class="{ active: settings.theme === option.value }"
                   @click="updateSetting('theme', option.value)"
                 >
@@ -52,177 +75,213 @@
               </div>
             </section>
 
-            <!-- Font Section -->
+            <!-- Section 2: Typography (Collapsible) -->
             <section class="settings-section">
-              <h4 class="section-title">글꼴</h4>
-              <div class="font-grid">
-                <button
-                  v-for="(font, key) in fontFamilies"
-                  :key="key"
-                  class="font-button"
-                  :class="{ active: settings.fontFamily === key }"
-                  @click="updateSetting('fontFamily', key)"
+              <button class="section-header" @click="toggleSection('typography')">
+                <span class="section-title-text">글꼴 설정</span>
+                <span class="section-summary" v-if="!expandedSections.typography">
+                  {{ fontFamilies[settings.fontFamily].name }} · {{ settings.fontSize }}px
+                </span>
+                <svg
+                  class="chevron"
+                  :class="{ expanded: expandedSections.typography }"
+                  width="20" height="20" viewBox="0 0 24 24" fill="none"
                 >
-                  <span class="font-preview" :style="{ fontFamily: font.css }">가</span>
-                  <span class="font-name">{{ font.name }}</span>
-                  <span class="font-type">{{ font.type === 'serif' ? '명조' : font.type === 'sans-serif' ? '고딕' : '시스템' }}</span>
-                </button>
-              </div>
-            </section>
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
 
-            <!-- Font Size Section -->
-            <section class="settings-section">
-              <h4 class="section-title">글자 크기</h4>
-              <div class="slider-control">
-                <span class="slider-label small">가</span>
-                <input
-                  type="range"
-                  :value="settings.fontSize"
-                  min="14"
-                  max="24"
-                  step="1"
-                  class="font-size-slider"
-                  @input="updateSetting('fontSize', Number(($event.target as HTMLInputElement).value))"
-                />
-                <span class="slider-label large">가</span>
-                <span class="slider-value">{{ settings.fontSize }}px</span>
-              </div>
-            </section>
+              <Transition name="collapse">
+                <div v-if="expandedSections.typography" class="section-content">
+                  <!-- Font Family -->
+                  <div class="setting-group">
+                    <label class="setting-label">글꼴</label>
+                    <div class="font-grid">
+                      <button
+                        v-for="(font, key) in fontFamilies"
+                        :key="key"
+                        class="font-button"
+                        :class="{ active: settings.fontFamily === key }"
+                        @click="handleFontChange(key as FontFamily)"
+                      >
+                        <span class="font-preview" :style="{ fontFamily: font.css }">가</span>
+                        <span class="font-name">{{ font.name }}</span>
+                      </button>
+                    </div>
+                  </div>
 
-            <!-- Font Weight Section -->
-            <section class="settings-section">
-              <h4 class="section-title">글자 두께</h4>
-              <div class="toggle-group">
-                <button
-                  v-for="option in fontWeightOptions"
-                  :key="option.value"
-                  class="toggle-button"
-                  :class="{ active: settings.fontWeight === option.value }"
-                  :style="{ fontWeight: option.weight }"
-                  @click="updateSetting('fontWeight', option.value)"
-                >
-                  {{ option.label }}
-                </button>
-              </div>
-            </section>
+                  <!-- Font Size + Weight (Inline row) -->
+                  <div class="setting-row">
+                    <div class="setting-group flex-1">
+                      <label class="setting-label">크기</label>
+                      <div class="slider-compact">
+                        <span class="slider-icon small">가</span>
+                        <input
+                          type="range"
+                          :value="settings.fontSize"
+                          min="14"
+                          max="24"
+                          step="1"
+                          class="font-size-slider"
+                          @input="updateSetting('fontSize', Number(($event.target as HTMLInputElement).value))"
+                        />
+                        <span class="slider-icon large">가</span>
+                        <span class="slider-value">{{ settings.fontSize }}</span>
+                      </div>
+                    </div>
+                  </div>
 
-            <!-- Line Height Section -->
-            <section class="settings-section">
-              <h4 class="section-title">줄 간격</h4>
-              <div class="toggle-group">
-                <button
-                  v-for="option in lineHeightOptions"
-                  :key="option.value"
-                  class="toggle-button"
-                  :class="{ active: settings.lineHeight === option.value }"
-                  @click="updateSetting('lineHeight', option.value)"
-                >
-                  {{ option.label }}
-                </button>
-              </div>
-            </section>
-
-            <!-- Text Align Section -->
-            <section class="settings-section">
-              <h4 class="section-title">정렬</h4>
-              <div class="toggle-group">
-                <button
-                  v-for="option in textAlignOptions"
-                  :key="option.value"
-                  class="toggle-button"
-                  :class="{ active: settings.textAlign === option.value }"
-                  @click="updateSetting('textAlign', option.value)"
-                >
-                  <span v-html="option.icon"></span>
-                  {{ option.label }}
-                </button>
-              </div>
-            </section>
-
-            <!-- Verse Joining Section -->
-            <section class="settings-section">
-              <div class="switch-row">
-                <div class="switch-info">
-                  <h4 class="section-title inline">절 붙임 (통독 모드)</h4>
-                  <p class="switch-description">
-                    절을 문단으로 연결하여 흐름있게 읽기
-                  </p>
+                  <!-- Weight + LineHeight + Align (Compact chips) -->
+                  <div class="setting-chips-row">
+                    <div class="chip-group">
+                      <label class="chip-label">두께</label>
+                      <div class="chip-buttons">
+                        <button
+                          v-for="option in fontWeightOptions"
+                          :key="option.value"
+                          class="chip-button"
+                          :class="{ active: settings.fontWeight === option.value }"
+                          @click="updateSetting('fontWeight', option.value)"
+                        >
+                          {{ option.label }}
+                        </button>
+                      </div>
+                    </div>
+                    <div class="chip-group">
+                      <label class="chip-label">줄간격</label>
+                      <div class="chip-buttons">
+                        <button
+                          v-for="option in lineHeightOptions"
+                          :key="option.value"
+                          class="chip-button"
+                          :class="{ active: settings.lineHeight === option.value }"
+                          @click="updateSetting('lineHeight', option.value)"
+                        >
+                          {{ option.label }}
+                        </button>
+                      </div>
+                    </div>
+                    <div class="chip-group">
+                      <label class="chip-label">정렬</label>
+                      <div class="chip-buttons">
+                        <button
+                          v-for="option in textAlignOptions"
+                          :key="option.value"
+                          class="chip-button icon-chip"
+                          :class="{ active: settings.textAlign === option.value }"
+                          @click="updateSetting('textAlign', option.value)"
+                        >
+                          <span v-html="option.icon"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <label class="switch">
-                  <input
-                    type="checkbox"
-                    :checked="settings.verseJoining"
-                    @change="updateSetting('verseJoining', ($event.target as HTMLInputElement).checked)"
-                  />
-                  <span class="switch-slider"></span>
-                </label>
-              </div>
+              </Transition>
             </section>
 
-            <!-- View Options (KNT specific) -->
-            <section v-if="currentVersion === 'KNT'" class="settings-section">
-              <h4 class="section-title">표시 옵션 (새한글)</h4>
-              <div class="checkbox-list">
-                <label class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    :checked="settings.showDescription"
-                    @change="updateSetting('showDescription', ($event.target as HTMLInputElement).checked)"
-                  />
-                  <span class="checkmark"></span>
-                  <span>시편 머리말 표시</span>
-                </label>
-                <label class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    :checked="settings.showCrossRef"
-                    @change="updateSetting('showCrossRef', ($event.target as HTMLInputElement).checked)"
-                  />
-                  <span class="checkmark"></span>
-                  <span>교차 참조 표시</span>
-                </label>
-                <label class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    :checked="settings.showFootnotes"
-                    @change="updateSetting('showFootnotes', ($event.target as HTMLInputElement).checked)"
-                  />
-                  <span class="checkmark"></span>
-                  <span>각주 표시</span>
-                </label>
-              </div>
-            </section>
+            <!-- Section 3: Reading Mode (Collapsible) -->
+            <section class="settings-section">
+              <button class="section-header" @click="toggleSection('readingMode')">
+                <span class="section-title-text">읽기 모드</span>
+                <span class="section-summary" v-if="!expandedSections.readingMode">
+                  {{ settings.verseJoining ? '절 붙임' : '기본' }}{{ settings.highlightNames ? ' · 강조' : '' }}
+                </span>
+                <svg
+                  class="chevron"
+                  :class="{ expanded: expandedSections.readingMode }"
+                  width="20" height="20" viewBox="0 0 24 24" fill="none"
+                >
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
 
-            <!-- View Options (Non-KNT) -->
-            <section v-else class="settings-section">
-              <h4 class="section-title">표시 옵션</h4>
-              <div class="checkbox-list">
-                <label class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    :checked="settings.highlightNames"
-                    @change="updateSetting('highlightNames', ($event.target as HTMLInputElement).checked)"
-                  />
-                  <span class="checkmark"></span>
-                  <span>인명/지명 강조</span>
-                </label>
-              </div>
+              <Transition name="collapse">
+                <div v-if="expandedSections.readingMode" class="section-content">
+                  <!-- Verse Joining Toggle -->
+                  <div class="toggle-row">
+                    <div class="toggle-info">
+                      <span class="toggle-title">절 붙임 (통독 모드)</span>
+                      <span class="toggle-desc">절을 문단으로 연결하여 흐름있게 읽기</span>
+                    </div>
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        :checked="settings.verseJoining"
+                        @change="updateSetting('verseJoining', ($event.target as HTMLInputElement).checked)"
+                      />
+                      <span class="switch-slider"></span>
+                    </label>
+                  </div>
+
+                  <!-- Highlight Names Toggle -->
+                  <div class="toggle-row">
+                    <div class="toggle-info">
+                      <span class="toggle-title">인명/지명 강조</span>
+                      <span class="toggle-desc">성경 인물과 지명을 색상으로 구분</span>
+                    </div>
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        :checked="settings.highlightNames"
+                        @change="updateSetting('highlightNames', ($event.target as HTMLInputElement).checked)"
+                      />
+                      <span class="switch-slider"></span>
+                    </label>
+                  </div>
+
+                  <!-- KNT specific options -->
+                  <template v-if="currentVersion === 'KNT'">
+                    <div class="divider"></div>
+                    <p class="knt-label">새한글 전용 옵션</p>
+
+                    <div class="toggle-row compact">
+                      <span class="toggle-title">시편 머리말</span>
+                      <label class="switch small">
+                        <input
+                          type="checkbox"
+                          :checked="settings.showDescription"
+                          @change="updateSetting('showDescription', ($event.target as HTMLInputElement).checked)"
+                        />
+                        <span class="switch-slider"></span>
+                      </label>
+                    </div>
+                    <div class="toggle-row compact">
+                      <span class="toggle-title">교차 참조</span>
+                      <label class="switch small">
+                        <input
+                          type="checkbox"
+                          :checked="settings.showCrossRef"
+                          @change="updateSetting('showCrossRef', ($event.target as HTMLInputElement).checked)"
+                        />
+                        <span class="switch-slider"></span>
+                      </label>
+                    </div>
+                    <div class="toggle-row compact">
+                      <span class="toggle-title">각주</span>
+                      <label class="switch small">
+                        <input
+                          type="checkbox"
+                          :checked="settings.showFootnotes"
+                          @change="updateSetting('showFootnotes', ($event.target as HTMLInputElement).checked)"
+                        />
+                        <span class="switch-slider"></span>
+                      </label>
+                    </div>
+                  </template>
+                </div>
+              </Transition>
             </section>
           </div>
 
           <!-- Footer -->
           <div class="settings-footer">
             <button class="reset-button" @click="resetToDefaults">
-              기본값으로 초기화
+              초기화
             </button>
-            <div class="action-buttons">
-              <button class="cancel-button" @click="cancel">
-                취소
-              </button>
-              <button class="save-button" :class="{ disabled: !hasChanges }" @click="save">
-                저장
-              </button>
-            </div>
+            <button class="save-button" @click="save">
+              저장
+            </button>
           </div>
         </div>
       </div>
@@ -231,7 +290,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, reactive } from 'vue'
 import { useReadingSettingsStore, FONT_FAMILIES, LINE_HEIGHTS, FONT_WEIGHTS, type FontFamily, type ThemeMode, type FontWeight, type LineHeight, type TextAlign, type ReadingSettings } from '~/stores/readingSettings'
 
 const props = defineProps<{
@@ -247,12 +306,23 @@ const store = useReadingSettingsStore()
 
 // 로컬 설정 상태 (미리보기용)
 const localSettings = ref<ReadingSettings>({ ...store.settings })
-const hasChanges = computed(() => JSON.stringify(localSettings.value) !== JSON.stringify(store.settings))
+
+// 섹션 확장 상태
+const expandedSections = reactive({
+  typography: true,
+  readingMode: false,
+})
+
+// 폰트 로딩 상태
+const isFontLoading = ref(false)
 
 // 모달이 열릴 때 현재 설정을 로컬에 복사
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     localSettings.value = { ...store.settings }
+    // 열릴 때 typography 섹션 기본 열기
+    expandedSections.typography = true
+    expandedSections.readingMode = false
   }
 })
 
@@ -260,28 +330,29 @@ const settings = computed(() => localSettings.value)
 
 const fontFamilies = FONT_FAMILIES
 
+// 테마 옵션
 const themeOptions: Array<{ value: ThemeMode; label: string; icon: string }> = [
   {
     value: 'light',
     label: '라이트',
-    icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
   },
   {
     value: 'dark',
     label: '다크',
-    icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
   },
   {
     value: 'system',
-    label: '시스템',
-    icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
+    label: '자동',
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
   },
 ]
 
-const fontWeightOptions: Array<{ value: FontWeight; label: string; weight: number }> = [
-  { value: 'normal', label: '보통', weight: 400 },
-  { value: 'medium', label: '중간', weight: 500 },
-  { value: 'bold', label: '굵게', weight: 600 },
+const fontWeightOptions: Array<{ value: FontWeight; label: string }> = [
+  { value: 'normal', label: '보통' },
+  { value: 'medium', label: '중간' },
+  { value: 'bold', label: '굵게' },
 ]
 
 const lineHeightOptions: Array<{ value: LineHeight; label: string }> = [
@@ -290,30 +361,34 @@ const lineHeightOptions: Array<{ value: LineHeight; label: string }> = [
   { value: 'wide', label: '넓게' },
 ]
 
-const textAlignOptions: Array<{ value: TextAlign; label: string; icon: string }> = [
+const textAlignOptions: Array<{ value: TextAlign; icon: string }> = [
   {
     value: 'left',
-    label: '왼쪽',
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>'
   },
   {
     value: 'justify',
-    label: '양쪽',
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>'
   },
 ]
 
-// 테마별 배경색/글자색 (themes.css와 동일하게)
+// 테마별 색상 (themes.css와 동일)
 const themeColors = {
   light: {
     bg: '#faf8f6',
     text: '#2a1111',
     verseNumber: '#999999',
+    sectionTitle: '#4a5d4a',
+    highlightName: '#7c5a3c',
+    highlightPlace: '#5a6e54',
   },
   dark: {
     bg: '#1a1a1a',
     text: '#e0e0e0',
     verseNumber: '#666666',
+    sectionTitle: '#8ba888',
+    highlightName: '#c9a67a',
+    highlightPlace: '#9cb094',
   },
 }
 
@@ -328,7 +403,20 @@ const effectiveTheme = computed(() => {
   return settings.value.theme
 })
 
-const previewStyles = computed(() => {
+// 미리보기 컨테이너 스타일 (배경색)
+const previewContainerStyles = computed(() => {
+  const colors = themeColors[effectiveTheme.value]
+  return {
+    backgroundColor: colors.bg,
+    '--preview-verse-number': colors.verseNumber,
+    '--preview-section-title': colors.sectionTitle,
+    '--preview-name-color': colors.highlightName,
+    '--preview-place-color': colors.highlightPlace,
+  }
+})
+
+// 미리보기 텍스트 스타일 (폰트 관련)
+const previewTextStyles = computed(() => {
   const colors = themeColors[effectiveTheme.value]
   return {
     fontFamily: FONT_FAMILIES[settings.value.fontFamily].css,
@@ -336,18 +424,54 @@ const previewStyles = computed(() => {
     fontWeight: FONT_WEIGHTS[settings.value.fontWeight],
     lineHeight: LINE_HEIGHTS[settings.value.lineHeight],
     textAlign: settings.value.textAlign,
-    backgroundColor: colors.bg,
     color: colors.text,
-    '--verse-number-color': colors.verseNumber,
   }
 })
+
+// 인명/지명 강조 클래스 (토글 상태에 따라)
+const nameClass = computed(() => settings.value.highlightNames ? 'bible-name' : '')
+const placeClass = computed(() => settings.value.highlightNames ? 'bible-place' : '')
+
+function toggleSection(section: 'typography' | 'readingMode') {
+  expandedSections[section] = !expandedSections[section]
+}
 
 function updateSetting<K extends keyof ReadingSettings>(key: K, value: ReadingSettings[K]) {
   localSettings.value = { ...localSettings.value, [key]: value }
 }
 
+// 폰트 변경 시 로딩 처리
+async function handleFontChange(fontKey: FontFamily) {
+  const font = FONT_FAMILIES[fontKey]
+
+  // 시스템 폰트는 로딩 필요 없음
+  if (fontKey === 'system') {
+    updateSetting('fontFamily', fontKey)
+    return
+  }
+
+  isFontLoading.value = true
+
+  try {
+    // 폰트 프리로드 (document.fonts API 사용)
+    if (typeof document !== 'undefined' && document.fonts) {
+      const fontFace = `${FONT_WEIGHTS[settings.value.fontWeight]} ${settings.value.fontSize}px ${font.css.split(',')[0].replace(/"/g, '')}`
+      await document.fonts.load(fontFace)
+    }
+  } catch (e) {
+    // 폰트 로딩 실패해도 계속 진행
+    console.warn('Font preload failed:', e)
+  }
+
+  updateSetting('fontFamily', fontKey)
+
+  // 최소 로딩 시간 보장 (깜빡임 방지)
+  setTimeout(() => {
+    isFontLoading.value = false
+  }, 150)
+}
+
 function resetToDefaults() {
-  // 로컬 설정을 기본값으로 초기화 (저장은 아직 안 함)
   localSettings.value = {
     theme: 'light',
     fontFamily: 'ridi-batang',
@@ -368,15 +492,9 @@ function save() {
   emit('close')
 }
 
-function cancel() {
-  // 변경 사항 버리고 닫기
+function close() {
   localSettings.value = { ...store.settings }
   emit('close')
-}
-
-function close() {
-  // X 버튼 클릭 시 - cancel과 동일
-  cancel()
 }
 </script>
 
@@ -398,7 +516,7 @@ function close() {
   background-color: var(--modal-bg, #ffffff);
   color: var(--text-primary, #2a1111);
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
   max-height: 85vh;
   border-radius: 20px 20px 0 0;
   display: flex;
@@ -418,23 +536,25 @@ function close() {
   }
 }
 
+/* Header */
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-color, #e5e7eb);
+  flex-shrink: 0;
 }
 
 .settings-header h3 {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   margin: 0;
 }
 
 .close-button {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   background: var(--button-bg, #f3f4f6);
@@ -450,64 +570,126 @@ function close() {
   background: var(--button-hover-bg, #e5e7eb);
 }
 
+/* Preview Area */
 .settings-preview {
-  padding: 16px 20px;
+  padding: 16px;
   border-bottom: 1px solid var(--border-color, #e5e7eb);
+  flex-shrink: 0;
+  position: relative;
+  transition: opacity 0.15s ease;
+  border-radius: 12px;
+  margin: 12px 16px;
+  border: 1px solid var(--border-color, #e5e7eb);
 }
 
-.preview-title {
-  color: var(--section-title-color, #5a6e54);
-  font-size: 0.9em;
+.settings-preview.loading {
+  opacity: 0.6;
+}
+
+.preview-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color, #e5e7eb);
+  border-top-color: var(--accent-primary, #4B9F7E);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Section Title in Preview (System font) */
+.preview-section-title {
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
   font-weight: 600;
+  color: var(--preview-section-title, #4a5d4a);
   margin: 0 0 12px 0;
   text-align: center;
 }
 
+.preview-section-title .reference {
+  font-size: 0.75em;
+  font-weight: 500;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+/* Preview Verses */
 .preview-verses {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  transition: all 0.2s ease;
 }
 
-.preview-text {
+.preview-verse {
   margin: 0;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-start;
 }
 
-.preview-text .verse-number {
-  color: var(--verse-number-color, #999);
+.preview-verse .verse-number {
+  color: var(--preview-verse-number, #999);
   font-family: "Pretendard", sans-serif;
-  font-size: 0.75em;
+  font-size: 0.7em;
   font-weight: 500;
-  min-width: 1.2em;
+  min-width: 1em;
   text-align: right;
   flex-shrink: 0;
-  line-height: 1.8;
+  line-height: 2;
 }
 
-.preview-text .verse-text {
+.preview-verse .verse-text {
   flex: 1;
 }
 
-/* 인명/지명 강조 */
-.preview-text .bible-name {
-  color: var(--highlight-name-color, #7c5a3c);
+/* Verse Joining Mode */
+.preview-verses.verse-joining {
+  gap: 0;
 }
 
-.preview-text .bible-area {
-  color: var(--highlight-place-color, #5a6e54);
+.verse-paragraph {
+  margin: 0;
+  text-indent: 0;
 }
 
+.verse-num-inline {
+  font-size: 0.6em;
+  color: var(--preview-verse-number, #999);
+  font-family: "Pretendard", sans-serif;
+  font-weight: 500;
+  vertical-align: super;
+  margin-right: 0.1em;
+}
+
+/* Name/Place Highlighting */
+.bible-name {
+  color: var(--preview-name-color, #7c5a3c);
+}
+
+.bible-place {
+  color: var(--preview-place-color, #5a6e54);
+}
+
+/* Settings Body */
 .settings-body {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 0;
 }
 
 .settings-section {
-  padding: 16px 20px;
   border-bottom: 1px solid var(--border-light, #f0f0f0);
 }
 
@@ -515,69 +697,121 @@ function close() {
   border-bottom: none;
 }
 
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary, #555);
-  margin: 0 0 12px 0;
+/* Theme Section (Compact) */
+.theme-section {
+  padding: 12px 16px;
 }
 
-.section-title.inline {
-  margin-bottom: 4px;
-}
-
-/* Theme Options */
-.theme-options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.theme-row {
+  display: flex;
   gap: 8px;
 }
 
-.theme-button {
+.theme-chip {
+  flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 12px 8px;
-  border: 2px solid var(--border-color, #e5e7eb);
-  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
   background: var(--bg-secondary, #fff);
   color: var(--text-primary, #2a1111);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 13px;
+  font-weight: 500;
 }
 
-.theme-button:hover {
+.theme-chip:hover {
   border-color: var(--accent-primary, #4B9F7E);
 }
 
-.theme-button.active {
+.theme-chip.active {
   border-color: var(--accent-primary, #4B9F7E);
   background: var(--accent-primary-light, #e9f5f0);
+  color: var(--accent-primary, #4B9F7E);
 }
 
 .theme-icon {
   display: flex;
   align-items: center;
-  justify-content: center;
+}
+
+/* Section Header (Collapsible) */
+.section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  gap: 8px;
+}
+
+.section-title-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #2a1111);
+}
+
+.section-summary {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-tertiary, #888);
+  text-align: right;
+  margin-right: 4px;
+}
+
+.chevron {
+  color: var(--text-tertiary, #888);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.chevron.expanded {
+  transform: rotate(180deg);
+}
+
+/* Section Content */
+.section-content {
+  padding: 0 16px 16px;
+}
+
+.setting-group {
+  margin-bottom: 16px;
+}
+
+.setting-group:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  margin-bottom: 8px;
 }
 
 /* Font Grid */
 .font-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
 .font-button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px 8px;
-  border: 2px solid var(--border-color, #e5e7eb);
-  border-radius: 12px;
+  gap: 2px;
+  padding: 10px 6px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
   background: var(--bg-secondary, #fff);
   color: var(--text-primary, #2a1111);
   cursor: pointer;
@@ -594,62 +828,68 @@ function close() {
 }
 
 .font-preview {
-  font-size: 24px;
-  line-height: 1;
+  font-size: 22px;
+  line-height: 1.2;
 }
 
 .font-name {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.font-type {
   font-size: 10px;
-  color: var(--text-tertiary, #888);
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
 }
 
-/* Slider Control */
-.slider-control {
+/* Slider Compact */
+.setting-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.slider-compact {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-.slider-label {
+.slider-icon {
   color: var(--text-tertiary, #888);
 }
 
-.slider-label.small {
+.slider-icon.small {
   font-size: 12px;
 }
 
-.slider-label.large {
-  font-size: 20px;
+.slider-icon.large {
+  font-size: 18px;
 }
 
 .font-size-slider {
   flex: 1;
-  height: 6px;
+  height: 4px;
   -webkit-appearance: none;
   appearance: none;
   background: var(--border-color, #e5e7eb);
-  border-radius: 3px;
+  border-radius: 2px;
   outline: none;
 }
 
 .font-size-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--accent-primary, #4B9F7E);
   cursor: pointer;
 }
 
 .font-size-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--accent-primary, #4B9F7E);
   cursor: pointer;
@@ -657,70 +897,106 @@ function close() {
 }
 
 .slider-value {
-  min-width: 45px;
+  min-width: 28px;
   text-align: right;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--accent-primary, #4B9F7E);
 }
 
-/* Toggle Group */
-.toggle-group {
+/* Chip Buttons Row */
+.setting-chips-row {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.toggle-button {
-  flex: 1;
-  padding: 10px 16px;
-  border: 2px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+.chip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chip-label {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+}
+
+.chip-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.chip-button {
+  padding: 6px 10px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
   background: var(--bg-secondary, #fff);
   color: var(--text-primary, #2a1111);
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  transition: all 0.15s;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.toggle-button:hover {
+.chip-button:hover {
   border-color: var(--accent-primary, #4B9F7E);
 }
 
-.toggle-button.active {
+.chip-button.active {
   border-color: var(--accent-primary, #4B9F7E);
   background: var(--accent-primary, #4B9F7E);
   color: white;
 }
 
-/* Switch Row */
-.switch-row {
+.chip-button.icon-chip {
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toggle Row */
+.toggle-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  padding: 10px 0;
 }
 
-.switch-info {
-  flex: 1;
+.toggle-row.compact {
+  padding: 6px 0;
 }
 
-.switch-description {
+.toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #2a1111);
+}
+
+.toggle-desc {
   font-size: 12px;
   color: var(--text-tertiary, #888);
-  margin: 0;
 }
 
 /* Switch Toggle */
 .switch {
   position: relative;
   display: inline-block;
-  width: 48px;
-  height: 28px;
+  width: 44px;
+  height: 26px;
   flex-shrink: 0;
+}
+
+.switch.small {
+  width: 36px;
+  height: 22px;
 }
 
 .switch input {
@@ -737,21 +1013,26 @@ function close() {
   right: 0;
   bottom: 0;
   background-color: var(--border-color, #e5e7eb);
-  transition: 0.3s;
-  border-radius: 28px;
+  transition: 0.2s;
+  border-radius: 26px;
 }
 
 .switch-slider:before {
   position: absolute;
   content: "";
-  height: 22px;
-  width: 22px;
+  height: 20px;
+  width: 20px;
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: 0.3s;
+  transition: 0.2s;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.switch.small .switch-slider:before {
+  height: 16px;
+  width: 16px;
 }
 
 .switch input:checked + .switch-slider {
@@ -759,70 +1040,46 @@ function close() {
 }
 
 .switch input:checked + .switch-slider:before {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
-/* Checkbox List */
-.checkbox-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.switch.small input:checked + .switch-slider:before {
+  transform: translateX(14px);
 }
 
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  font-size: 14px;
+/* KNT Options */
+.divider {
+  height: 1px;
+  background: var(--border-light, #f0f0f0);
+  margin: 12px 0;
 }
 
-.checkbox-item input {
-  display: none;
-}
-
-.checkmark {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.checkbox-item input:checked + .checkmark {
-  background: var(--accent-primary, #4B9F7E);
-  border-color: var(--accent-primary, #4B9F7E);
-}
-
-.checkbox-item input:checked + .checkmark::after {
-  content: '';
-  width: 6px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-  margin-bottom: 2px;
+.knt-label {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Footer */
 .settings-footer {
-  padding: 16px 20px;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
   border-top: 1px solid var(--border-color, #e5e7eb);
+  flex-shrink: 0;
 }
 
 .reset-button {
-  width: 100%;
-  padding: 12px;
+  padding: 12px 16px;
   border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary, #666);
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
   transition: all 0.2s;
 }
 
@@ -830,39 +1087,16 @@ function close() {
   background: var(--button-bg, #f3f4f6);
 }
 
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.cancel-button {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-secondary, #555);
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.cancel-button:hover {
-  background: var(--button-bg, #f3f4f6);
-}
-
 .save-button {
   flex: 1;
   padding: 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--accent-primary, #4B9F7E);
   color: white;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
@@ -870,24 +1104,36 @@ function close() {
   background: var(--color-accent-primary-hover, #3B7E63);
 }
 
-.save-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* Collapse Transition */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
-.save-button.disabled:hover {
-  background: var(--accent-primary, #4B9F7E);
+.collapse-enter-from,
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.collapse-enter-to,
+.collapse-leave-from {
+  opacity: 1;
+  max-height: 500px;
 }
 
 /* Modal Transition */
 .modal-enter-active,
 .modal-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .modal-enter-active .settings-modal,
 .modal-leave-active .settings-modal {
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease;
 }
 
 .modal-enter-from,
