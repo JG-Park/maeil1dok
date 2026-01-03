@@ -44,14 +44,14 @@
 
         <div v-else-if="videoIntros.length === 0" class="empty-state">
           <p>등록된 영상 개론이 없습니다.</p>
-          <p class="text-sm text-gray-500 mt-2">엑셀 업로드 버튼을 눌러 영상 개론을 추가해보세요.</p>
+          <p class="empty-state-hint">엑셀 업로드 버튼을 눌러 영상 개론을 추가해보세요.</p>
         </div>
 
         <div v-else class="video-intro-grid">
           <div v-for="intro in videoIntros" :key="intro.id" class="video-intro-card">
             <div class="video-intro-card-content">
-              <div class="flex justify-between items-start">
-                <div>
+              <div class="card-layout">
+                <div class="card-info">
                   <h3 class="video-intro-title">{{ intro.book }}</h3>
                   <p class="video-intro-period">
                     {{ formatDate(intro.start_date) }} ~ {{ formatDate(intro.end_date) }}
@@ -74,7 +74,7 @@
                     </a>
                   </div>
                 </div>
-                <div class="flex flex-col gap-2">
+                <div class="card-actions">
                   <button @click="deleteVideoIntro(intro.id)" class="action-button delete">삭제</button>
                 </div>
               </div>
@@ -595,6 +595,25 @@ watch(() => authStore.user, async (newUser) => {
   padding: 1rem;
 }
 
+.card-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .video-intro-title {
   font-size: 1.125rem;
   font-weight: 600;
@@ -661,6 +680,12 @@ watch(() => authStore.user, async (newUser) => {
   background: white;
   border-radius: 0.5rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state-hint {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin-top: 0.5rem;
 }
 
 .file-input {
