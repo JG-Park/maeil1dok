@@ -155,7 +155,7 @@ export function useBibleFetch() {
     const timeoutId = setTimeout(() => controller.abort(), PROXY_TIMEOUT);
 
     try {
-      const url = `/bible-proxy/bible/korbibReadpage.php?version=${version}&book=${book}&chap=${chapter}&sec=1&cVersion=&fontSize=15px&fontWeight=normal`;
+      const url = `/bible-proxy/bible/korbibReadpage.php?version=${version}&book=${book}&chap=${chapter}&cVersion=&fontSize=15px&fontWeight=normal`;
 
       const response = await fetch(url, {
         signal: controller.signal,

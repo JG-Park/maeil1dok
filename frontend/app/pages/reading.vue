@@ -803,8 +803,10 @@ const loadStandardBibleContent = async (book, chapter) => {
 
 // 표준 역본 HTML 파싱 함수
 const parseStandardContent = (htmlText, book, chapter) => {
+  // DOMParser 전에 font 태그 전처리 (브라우저의 잘못된 HTML 수정 방지)
+  const preprocessedHtml = preprocessFontTags(htmlText);
   const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlText, "text/html");
+  const doc = parser.parseFromString(preprocessedHtml, "text/html");
   const bibleElement = doc.getElementById("tdBible1");
 
   if (!bibleElement) {
@@ -1323,8 +1325,9 @@ const parseKntVersion = (jsonData, book, chapter) => {
       }
     } else {
       // HTML 문자열인 경우 (이전 방식 호환)
+      const preprocessedHtml = preprocessFontTags(jsonData);
       const parser = new DOMParser();
-      const doc = parser.parseFromString(jsonData, "text/html");
+      const doc = parser.parseFromString(preprocessedHtml, "text/html");
 
       // 다양한 방식으로 시도
       const bibleElement =
@@ -1420,8 +1423,8 @@ const extractKntVerses = (bibleElement) => {
 
 // DOM 요소 정리 함수
 const cleanupBibleElement = (bibleElement) => {
-  // smallTitle 내부의 a 태그는 href만 제거하고 유지
-  const sectionTitles = bibleElement.querySelectorAll(".smallTitle");
+  // section-title 내부의 a 태그는 href만 제거하고 유지
+  const sectionTitles = bibleElement.querySelectorAll("h4.section-title");
   sectionTitles.forEach((section) => {
     const anchors = section.querySelectorAll("a");
     anchors.forEach((anchor) => {
@@ -1430,7 +1433,7 @@ const cleanupBibleElement = (bibleElement) => {
   });
 
   // 그 외의 a 태그는 완전히 제거
-  const otherAnchors = bibleElement.querySelectorAll("a:not(.smallTitle a)");
+  const otherAnchors = bibleElement.querySelectorAll("a:not(h4.section-title a)");
   otherAnchors.forEach((anchor) => {
     anchor.remove();
   });
@@ -1481,7 +1484,7 @@ const parseGaeVersion = (bibleElement, book, chapter) => {
   }
 
   // 첫 번째 섹션 제목 설정 (있는 경우에만)
-  const firstTitle = bibleElement.querySelector(".smallTitle");
+  const firstTitle = bibleElement.querySelector("h4.section-title");
   if (firstTitle) {
     sectionTitle.value = firstTitle.textContent.trim();
   } else {
@@ -1491,19 +1494,59 @@ const parseGaeVersion = (bibleElement, book, chapter) => {
   bibleContent.value = verses.join("");
 };
 
-// 특수 클래스 보존 함수: font 태그를 span으로 변환하면서 클래스 보존
+// DOMParser 전에 font 태그를 정리하는 함수
+// 브라우저가 잘못된 HTML을 "수정"하는 것을 방지
+const preprocessFontTags = (html) => {
+  let processed = html;
+
+  // 1단계: font class="name/area/orgin" 태그를 span으로 변환
+  // 이 태그들은 내부에 다른 태그가 없으므로 [^<]* 사용 가능
+  let prevLength = 0;
+  let iterations = 0;
+  while (processed.length !== prevLength && iterations < 10) {
+    prevLength = processed.length;
+    iterations++;
+    processed = processed
+      .replace(/<font\s+class="name">([^<]*)<\/font>/gi, '<span class="bible-name">$1</span>')
+      .replace(/<font\s+class="area">([^<]*)<\/font>/gi, '<span class="bible-area">$1</span>')
+      .replace(/<font\s+class="orgin">([^<]*)<\/font>/gi, '$1');
+  }
+
+  // 2단계: smallTitle은 내부에 <a> 태그가 있을 수 있으므로 별도 처리
+  // [\s\S]*? 사용하되, </font>가 나오면 멈춤
+  processed = processed.replace(/<font\s+class="smallTitle">([\s\S]*?)<\/font>/gi, '<h4 class="section-title">$1</h4>');
+
+  // 3단계: chapNum 제거
+  processed = processed.replace(/<font\s+class="chapNum">[^<]*<\/font>/gi, '');
+
+  // 4단계: 나머지 font 태그 (size 등) 내용만 유지 - 내부에 태그 없는 경우
+  iterations = 0;
+  prevLength = 0;
+  while (processed.length !== prevLength && iterations < 10) {
+    prevLength = processed.length;
+    iterations++;
+    processed = processed.replace(/<font[^>]*>([^<]*)<\/font>/gi, '$1');
+  }
+
+  // 5단계: 고아 </font> 태그 제거 (원본 HTML의 오류)
+  processed = processed.replace(/<\/font>/gi, '');
+
+  return processed;
+};
+
+// 특수 클래스 보존 함수: font 태그를 span으로 변환
 const preserveSpecialClasses = (html) => {
   return html
-    // font.name -> span.bible-name (인명) - 정확히 class="name"만 매칭
-    .replace(/<font\s+class="name">([\s\S]*?)<\/font>/gi,
-      '<span class="bible-name">$1</span>')
-    // font.area -> span.bible-area (지명) - 정확히 class="area"만 매칭
-    .replace(/<font\s+class="area">([\s\S]*?)<\/font>/gi,
-      '<span class="bible-area">$1</span>')
-    // font.orgin (원어/음역어)는 일반 텍스트로 변환 (강조 제거)
-    .replace(/<font\s+class="orgin">([\s\S]*?)<\/font>/gi, '$1')
+    // font.name -> span.bible-name (인명)
+    .replace(/<font\s+class="name">([^<]*)<\/font>/gi, '<span class="bible-name">$1</span>')
+    // font.area -> span.bible-area (지명)
+    .replace(/<font\s+class="area">([^<]*)<\/font>/gi, '<span class="bible-area">$1</span>')
+    // font.orgin (원어/음역어)는 일반 텍스트로 변환
+    .replace(/<font\s+class="orgin">([^<]*)<\/font>/gi, '$1')
     // 다른 font 태그 (size 등)는 내용만 유지
-    .replace(/<font[^>]*>([\s\S]*?)<\/font>/gi, '$1');
+    .replace(/<font[^>]*>([^<]*)<\/font>/gi, '$1')
+    // 남은 고아 </font> 태그 제거
+    .replace(/<\/font>/gi, '');
 };
 
 // 구절 텍스트에서 특수 클래스만 보존하고 나머지 태그 제거
@@ -1513,8 +1556,17 @@ const cleanVerseTextWithSpecialClasses = (html) => {
   // 인명/지명 강조 옵션이 켜져 있으면 특수 클래스를 span으로 변환
   if (viewOptions.value.highlightNames) {
     text = preserveSpecialClasses(text);
-    // bible-name, bible-area 클래스를 가진 span만 보존하고 나머지 태그 제거
-    text = text.replace(/<(?!\/?span[^>]*class="bible-)[^>]+>/g, '');
+    // bible-name, bible-area 클래스를 가진 span과 그 닫는 태그만 보존
+    // 1. 먼저 bible-* span 태그를 플레이스홀더로 치환
+    const placeholders = [];
+    text = text.replace(/<span\s+class="bible-(name|area)">[^<]*<\/span>/gi, (match) => {
+      placeholders.push(match);
+      return `__BIBLE_PLACEHOLDER_${placeholders.length - 1}__`;
+    });
+    // 2. 나머지 모든 태그 제거
+    text = text.replace(/<[^>]+>/g, '');
+    // 3. 플레이스홀더를 원래 태그로 복원
+    text = text.replace(/__BIBLE_PLACEHOLDER_(\d+)__/g, (_, idx) => placeholders[parseInt(idx)]);
   } else {
     // 옵션이 꺼져 있으면 모든 태그 제거
     text = text.replace(/<[^>]+>/g, '');
@@ -1523,46 +1575,89 @@ const cleanVerseTextWithSpecialClasses = (html) => {
 };
 
 // 개역개정 일반 장 파싱 함수
+// Note: DOMParser가 잘못된 HTML(span 안의 div 등)을 수정하면서
+// 일부 절이 중첩될 수 있으므로 querySelectorAll로 모든 요소를 찾음
 const parseGaeNormalChapter = (bibleElement, verses) => {
-  Array.from(bibleElement.childNodes).forEach((node) => {
-    // smallTitle 클래스를 가진 요소를 만나면 섹션 제목 업데이트
-    if (node.classList?.contains("smallTitle")) {
-      // 원본 제목 텍스트
-      let titleText = node.textContent
-        .trim()
-        .replace(/\(\s*\)/g, "") // 빈 괄호 제거
-        .replace(/\s+/g, " ") // 연속된 공백 하나로 통일
-        .trim(); // 앞뒤 공백 제거
+  // 섹션 타이틀과 절 번호를 모두 찾아서 문서 순서대로 처리
+  const sectionTitles = bibleElement.querySelectorAll("h4.section-title");
+  const numberSpans = bibleElement.querySelectorAll(".number");
 
-      // 괄호 내용을 작은 글자로 표시하기 위해 HTML로 변환
-      // 괄호 패턴 찾기: (내용) 형태
+  // 섹션 타이틀 위치 맵 생성 (절 번호 기준으로 삽입 위치 결정)
+  const titlePositions = new Map();
+  sectionTitles.forEach((title) => {
+    // 다음 형제 요소들 중에서 첫 번째 절 번호 찾기
+    let nextEl = title.nextElementSibling;
+    while (nextEl) {
+      const numSpan = nextEl.querySelector?.(".number") || (nextEl.classList?.contains("number") ? nextEl : null);
+      if (numSpan) {
+        const verseNum = parseInt(numSpan.textContent.trim());
+        if (!isNaN(verseNum)) {
+          titlePositions.set(verseNum, title);
+          break;
+        }
+      }
+      nextEl = nextEl.nextElementSibling;
+    }
+  });
+
+  // 섹션 타이틀이 절 앞에 없으면 문서 순서로 처리
+  // TreeWalker를 사용하여 문서 순서대로 순회
+  const processedVerses = new Set();
+  const walker = document.createTreeWalker(
+    bibleElement,
+    NodeFilter.SHOW_ELEMENT,
+    {
+      acceptNode: (node) => {
+        if (node.tagName === "H4" && node.classList?.contains("section-title")) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        if (node.classList?.contains("number")) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_SKIP;
+      }
+    }
+  );
+
+  let currentNode;
+  while ((currentNode = walker.nextNode())) {
+    if (currentNode.tagName === "H4" && currentNode.classList?.contains("section-title")) {
+      // 섹션 타이틀 처리
+      let titleText = currentNode.textContent
+        .trim()
+        .replace(/\(\s*\)/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
       titleText = titleText.replace(
         /(\([^)]+\))/g,
         '<span class="reference">$1</span>'
       );
 
       if (titleText) {
-        // 내용이 있는 경우에만 추가
         verses.push(`<h3 class="section-title">${titleText}</h3>`);
       }
-    }
-    // span 요소이고 number 클래스를 가진 자식이 있으면 구절로 처리
-    else if (node.tagName === "SPAN" && node.querySelector(".number")) {
-      const numberSpan = node.querySelector(".number");
-      const number = numberSpan.textContent.trim().replace(/\s+/g, "");
+    } else if (currentNode.classList?.contains("number")) {
+      // 절 번호 처리
+      const number = currentNode.textContent.trim().replace(/\s+/g, "");
 
-      // innerHTML에서 번호 span 제거 후 특수 클래스 보존
-      let rawHtml = node.innerHTML;
-      // number span 제거 (innerHTML에서)
-      rawHtml = rawHtml.replace(/<span[^>]*class="number"[^>]*>.*?<\/span>/gi, '');
-      // 특수 클래스만 보존하고 정리
-      let text = cleanVerseTextWithSpecialClasses(rawHtml);
+      // 중복 방지
+      if (processedVerses.has(number)) continue;
+      processedVerses.add(number);
 
-      verses.push(
-        `<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`
-      );
+      // 부모 span에서 본문 추출
+      const parentSpan = currentNode.parentElement;
+      if (parentSpan && parentSpan.tagName === "SPAN") {
+        let rawHtml = parentSpan.innerHTML;
+        rawHtml = rawHtml.replace(/<span[^>]*class="number"[^>]*>.*?<\/span>/gi, '');
+        let text = cleanVerseTextWithSpecialClasses(rawHtml);
+
+        verses.push(
+          `<div class="verse"><span class="verse-number">${number}</span><span class="verse-text">${text}</span></div>`
+        );
+      }
     }
-  });
+  }
 
   // 내용이 없으면 텍스트 상자로 직접 추출 시도 (백업 방법)
   if (verses.length === 0) {
