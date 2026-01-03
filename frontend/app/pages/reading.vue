@@ -4136,7 +4136,7 @@ onUnmounted(() => {
     "Helvetica Neue", Arial, sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #4170cd;
+  color: var(--section-title-color, #4a5d4a);
   margin: 2rem 0 0.25rem;
   text-align: center;
 }
@@ -5986,7 +5986,7 @@ html.touch-device .nav-button.next:hover svg {
 
 :deep(.sub-title) {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--section-title-color, #4a5d4a);
   font-style: italic;
 }
 
