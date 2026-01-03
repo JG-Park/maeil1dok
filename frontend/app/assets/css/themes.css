@@ -10,9 +10,9 @@
   /* ===== Global Design Tokens ===== */
 
   /* Background */
-  --color-bg-primary: #ffffff;
+  --color-bg-primary: #faf8f6;
   --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: #f8f9fa;
+  --color-bg-tertiary: #f5f3f0;
   --color-bg-card: #ffffff;
   --color-bg-hover: #f3f4f6;
   --color-bg-active: #e5e7eb;
@@ -105,7 +105,7 @@
   --button-active-text: var(--color-text-inverse);
 
   /* ===== Bible Content Specific ===== */
-  --bible-bg: #ffffff;
+  --bible-bg: #faf8f6;
   --bible-text: #2a1111;
   --verse-number-color: #999999;
   --section-title-color: #4a5d4a;  /* 올리브 계열로 변경 */

@@ -3498,7 +3498,7 @@ onUnmounted(() => {
 .container {
   max-width: 768px;
   margin: 0 auto;
-  background: var(--color-bg-primary, #ffffff);
+  background: var(--color-bg-primary, #faf8f6);
   min-height: 100vh;
   position: relative;
   /* top-button의 위치 기준 설정 */
