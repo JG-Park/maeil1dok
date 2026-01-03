@@ -525,22 +525,11 @@ const planForm = ref({
   description: ''
 })
 
-// isStaff 계산된 속성 수정
+// 관리자 권한 체크
 const isStaff = computed(() => {
-  // 사용자 정보가 다양한 구조로 존재할 수 있음
-  // 1. userData 객체 내부에 있는 경우
-  if (authStore.userData?.is_staff) return true;
-  
-  // 2. user 객체 내부에 있는 경우
-  if (authStore.user?.is_staff) return true;
-  
-  // 3. user.data 내부에 있는 경우 (중첩된 구조)
-  if (authStore.user?.data?.is_staff) return true;
-  
-  // 권한 플래그가 직접 저장된 경우
-  if (authStore.isStaff === true) return true;
-  
-  return false;
+  // authStore.user는 { id, username, nickname, profile_image, is_staff } 구조
+  // is_staff는 user 객체의 직접 속성임
+  return authStore.isAuthenticated && Boolean(authStore.user?.is_staff);
 })
 
 // 마운트 시 디버깅 정보 출력

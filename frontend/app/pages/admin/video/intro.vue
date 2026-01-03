@@ -221,10 +221,9 @@ const isUploadFormValid = computed(() => {
 
 // 관리자 권한 체크 - 수정
 const isStaff = computed(() => {
-  // 사용자 정보가 data 객체 내부에 있음
-  const staffStatus = authStore.user?.data?.is_staff;
-
-  return authStore.isAuthenticated && Boolean(staffStatus);
+  // authStore.user는 { id, username, nickname, profile_image, is_staff } 구조
+  // is_staff는 user 객체의 직접 속성임
+  return authStore.isAuthenticated && Boolean(authStore.user?.is_staff);
 })
 
 // 페이지 접근 권한 체크 - 수정

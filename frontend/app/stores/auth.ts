@@ -5,6 +5,8 @@ interface User {
   id: number
   username: string
   nickname: string
+  profile_image?: string
+  is_staff?: boolean
 }
 
 interface AuthState {
