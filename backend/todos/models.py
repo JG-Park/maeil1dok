@@ -509,3 +509,160 @@ class PersonalReadingRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.nickname} - {self.book} {self.chapter}"
+
+
+class CatchupSession(models.Model):
+    """따라잡기 세션"""
+
+    STRATEGY_CHOICES = [
+        ('parallel', '동시 진행'),
+        ('sequential', '순차 복귀'),
+    ]
+
+    STATUS_CHOICES = [
+        ('active', '진행 중'),
+        ('completed', '완료'),
+        ('abandoned', '포기'),
+    ]
+
+    subscription = models.ForeignKey(
+        PlanSubscription,
+        on_delete=models.CASCADE,
+        related_name='catchup_sessions',
+        help_text="따라잡기 대상 구독"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="사용자 지정 이름 (예: 나의 1월 도전!)"
+    )
+
+    # 따라잡기 범위
+    range_start = models.DateField(help_text="밀린 기간 시작일")
+    range_end = models.DateField(help_text="밀린 기간 종료일")
+
+    # 전략 및 목표
+    strategy = models.CharField(
+        max_length=20,
+        choices=STRATEGY_CHOICES,
+        default='parallel',
+        help_text="동시 진행: 원본과 함께 / 순차 복귀: 밀린 것부터 순서대로"
+    )
+    target_rejoin_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="순차 복귀 모드에서 원본 플랜 합류 목표일"
+    )
+
+    # 읽기량 설정
+    max_daily_readings = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="하루 최대 읽기 횟수"
+    )
+    max_daily_chapters = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="하루 최대 읽기 장 수"
+    )
+    weekend_multiplier = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        default=1.0,
+        help_text="주말 읽기량 배수 (예: 1.5 = 평일의 1.5배)"
+    )
+
+    # 상태
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active'
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    # 타임스탬프
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['subscription', 'status']),
+        ]
+        verbose_name = "따라잡기 세션"
+        verbose_name_plural = "따라잡기 세션"
+
+    def __str__(self):
+        return f"{self.name} ({self.subscription.plan.name})"
+
+    @property
+    def progress_percentage(self):
+        """진행률 계산"""
+        total = self.schedules.count()
+        if total == 0:
+            return 0
+        completed = self.schedules.filter(is_completed=True).count()
+        return int((completed / total) * 100)
+
+    @property
+    def completed_count(self):
+        """완료된 스케줄 수"""
+        return self.schedules.filter(is_completed=True).count()
+
+    @property
+    def total_count(self):
+        """전체 스케줄 수"""
+        return self.schedules.count()
+
+    @property
+    def remaining_count(self):
+        """남은 스케줄 수"""
+        return self.schedules.filter(is_completed=False).count()
+
+
+class CatchupSchedule(models.Model):
+    """따라잡기 세션의 개별 스케줄"""
+
+    session = models.ForeignKey(
+        CatchupSession,
+        on_delete=models.CASCADE,
+        related_name='schedules'
+    )
+    original_schedule = models.ForeignKey(
+        DailyBibleSchedule,
+        on_delete=models.CASCADE,
+        help_text="원본 스케줄 참조"
+    )
+    scheduled_date = models.DateField(
+        help_text="새로 배정된 날짜"
+    )
+
+    # 완료 상태
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    # 타임스탬프
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['scheduled_date', 'original_schedule__date']
+        unique_together = ['session', 'original_schedule']
+        indexes = [
+            models.Index(fields=['session', 'scheduled_date']),
+            models.Index(fields=['session', 'is_completed']),
+        ]
+        verbose_name = "따라잡기 스케줄"
+        verbose_name_plural = "따라잡기 스케줄"
+
+    def __str__(self):
+        return f"{self.session.name} - {self.original_schedule.book} {self.original_schedule.start_chapter}-{self.original_schedule.end_chapter}장 ({self.scheduled_date})"
+
+    def mark_as_completed(self):
+        self.is_completed = True
+        self.completed_at = timezone.now()
+        self.save()
+
+    def mark_as_incomplete(self):
+        self.is_completed = False
+        self.completed_at = None
+        self.save()
