@@ -395,3 +395,117 @@ class UserPlanDisplaySettings(models.Model):
 
     def __str__(self):
         return f"{self.user.nickname}'s display settings for {self.subscription.plan.name}"
+
+
+class UserReadingPosition(models.Model):
+    """사용자의 마지막 읽은 위치"""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reading_position'
+    )
+    book = models.CharField(max_length=10, help_text="성경책 코드 (gen, exo...)")
+    chapter = models.IntegerField(help_text="장 번호")
+    verse = models.IntegerField(null=True, blank=True, help_text="절 번호 (선택)")
+    scroll_position = models.FloatField(default=0, help_text="스크롤 위치 (0-1)")
+    version = models.CharField(max_length=10, default='GAE', help_text="역본")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "읽기 위치"
+        verbose_name_plural = "읽기 위치"
+
+    def __str__(self):
+        return f"{self.user.nickname} - {self.book} {self.chapter}"
+
+
+class BibleBookmark(models.Model):
+    """성경 북마크"""
+    BOOKMARK_TYPE_CHOICES = [
+        ('chapter', '장'),
+        ('verse', '절'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='bible_bookmarks'
+    )
+    bookmark_type = models.CharField(max_length=10, choices=BOOKMARK_TYPE_CHOICES)
+    book = models.CharField(max_length=10, help_text="성경책 코드")
+    chapter = models.IntegerField()
+    start_verse = models.IntegerField(null=True, blank=True, help_text="시작 절")
+    end_verse = models.IntegerField(null=True, blank=True, help_text="끝 절")
+    title = models.CharField(max_length=100, blank=True, help_text="북마크 제목")
+    color = models.CharField(max_length=7, default='#3B82F6', help_text="표시 색상")
+    memo = models.TextField(blank=True, help_text="간단한 메모")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'book', 'chapter']),
+            models.Index(fields=['user', 'bookmark_type']),
+        ]
+        verbose_name = "북마크"
+        verbose_name_plural = "북마크"
+
+    def __str__(self):
+        if self.bookmark_type == 'verse':
+            return f"{self.book} {self.chapter}:{self.start_verse}"
+        return f"{self.book} {self.chapter}"
+
+
+class ReflectionNote(models.Model):
+    """성경 묵상노트"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reflection_notes'
+    )
+    book = models.CharField(max_length=10, help_text="성경책 코드")
+    chapter = models.IntegerField()
+    start_verse = models.IntegerField(null=True, blank=True)
+    end_verse = models.IntegerField(null=True, blank=True)
+    content = models.TextField(help_text="묵상 내용")
+    is_private = models.BooleanField(default=True, help_text="비공개 여부")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'book', 'chapter']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+        verbose_name = "묵상노트"
+        verbose_name_plural = "묵상노트"
+
+    def __str__(self):
+        return f"{self.user.nickname} - {self.book} {self.chapter}"
+
+
+class PersonalReadingRecord(models.Model):
+    """개인 성경 읽기 기록 (Plan 무관)"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='personal_reading_records'
+    )
+    book = models.CharField(max_length=10, help_text="성경책 코드")
+    chapter = models.IntegerField()
+    read_date = models.DateField(help_text="읽은 날짜")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'book', 'chapter']
+        indexes = [
+            models.Index(fields=['user', 'book']),
+            models.Index(fields=['user', 'read_date']),
+        ]
+        verbose_name = "개인 읽기 기록"
+        verbose_name_plural = "개인 읽기 기록"
+
+    def __str__(self):
+        return f"{self.user.nickname} - {self.book} {self.chapter}"
