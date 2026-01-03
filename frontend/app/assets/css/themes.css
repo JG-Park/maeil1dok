@@ -258,7 +258,6 @@
 
 /* Reading content dynamic styles using CSS variables from store */
 .bible-content {
-  background-color: var(--bible-bg);
   color: var(--bible-text);
   font-family: var(--reading-font-family, "RIDIBatang", serif);
   font-size: var(--reading-font-size, 16px);
