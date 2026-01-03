@@ -295,11 +295,11 @@ onUnmounted(() => {
 
 /* 리더보드 카드 */
 .leaderboard-card {
-  background: white;
-  border: 1px solid #E2E8F0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-slate-200);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Top 3 섹션 */
@@ -308,8 +308,8 @@ onUnmounted(() => {
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 1.5rem;
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
+  background: var(--color-slate-50);
+  border-bottom: 1px solid var(--color-slate-200);
 }
 
 .top-card {
@@ -317,16 +317,16 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 1rem;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 12px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-slate-200);
   position: relative;
   transition: transform 0.2s ease;
 }
 
 .top-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
 }
 
 .rank-1 {
@@ -404,7 +404,7 @@ onUnmounted(() => {
 .top-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1E293B;
+  color: var(--color-slate-800);
   margin: 0 0 0.5rem 0;
   text-align: center;
   white-space: nowrap;
@@ -423,13 +423,13 @@ onUnmounted(() => {
 .top-days {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--color-slate-800);
   font-family: 'Pretendard', sans-serif;
 }
 
 .top-rate {
   font-size: 0.75rem;
-  color: #64748B;
+  color: var(--color-slate-500);
   font-weight: 500;
 }
 
@@ -448,9 +448,9 @@ onUnmounted(() => {
   text-align: left;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748B;
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
+  color: var(--color-slate-500);
+  background: var(--color-slate-50);
+  border-bottom: 1px solid var(--color-slate-200);
   white-space: nowrap;
 }
 
