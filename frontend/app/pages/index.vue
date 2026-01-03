@@ -1363,18 +1363,16 @@ const refreshHasenaStatus = async () => {
 }
 
 .section {
-  background: white;
+  background: var(--color-bg-card);
   margin: 0.875rem 1rem;
   padding: 1rem;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(0, 0, 0, 0.015);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
 }
 
 .section:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--shadow-md);
 }
 
 h2 {
@@ -1394,8 +1392,8 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fafafa;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-100);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1546,8 +1544,8 @@ h2 {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: #fafafa;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-100);
   transition: all 0.2s ease;
   padding: 0.25rem 0;
 }
@@ -1570,7 +1568,7 @@ h2 {
 }
 
 .calendar-date.completed {
-  background: white;
+  background: var(--color-bg-card);
   border-color: var(--primary-color);
   border-width: 1px;
 }
@@ -1619,7 +1617,7 @@ h2 {
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: #eeeeee;
+  background: var(--color-slate-200);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -1734,14 +1732,14 @@ h2 {
   top: 80%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--color-bg-card);
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.9rem;
   color: var(--text-secondary);
   white-space: nowrap;
   z-index: 10;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .progress-content {
@@ -1831,15 +1829,15 @@ h2 {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--color-slate-100);
   transition: all 0.2s ease;
 }
 
 .feature:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-sm);
 }
 
 .feature-icon {
@@ -1887,15 +1885,15 @@ h2 {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #fafafa;
+  background: var(--color-slate-50);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--color-slate-100);
   transition: all 0.2s ease;
 }
 
 .stat-item:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-icon {
@@ -1977,10 +1975,10 @@ h2 {
 .notice-content {
   display: flex;
   align-items: center;
-  background: #fafafa;
+  background: var(--color-slate-50);
   padding: 1rem;
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--color-slate-100);
 }
 
 .notice-icon.app-icon {
@@ -2047,9 +2045,9 @@ h2 {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #fafafa;
+  background: var(--color-slate-50);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--color-slate-100);
   text-decoration: none;
   color: var(--text-primary);
   transition: all 0.2s ease;
@@ -2058,8 +2056,8 @@ h2 {
 
 .social-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
-  background: white;
+  box-shadow: var(--shadow-sm);
+  background: var(--color-bg-card);
   border-color: var(--primary-color);
 }
 
@@ -2126,7 +2124,7 @@ h2 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2135,12 +2133,12 @@ h2 {
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   padding: 1.5rem;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
   animation: modalFadeIn 0.3s ease;
 }
 
@@ -2210,8 +2208,8 @@ h2 {
 .modal-close {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background: white;
+  border: 1px solid var(--color-slate-200);
+  background: var(--color-bg-card);
   border-radius: 12px;
   font-size: 0.95rem;
   color: var(--text-secondary);
@@ -2220,7 +2218,7 @@ h2 {
 }
 
 .modal-close:hover {
-  background: #f5f5f5;
+  background: var(--color-slate-100);
 }
 
 @keyframes modalFadeIn {
@@ -2253,8 +2251,8 @@ h2 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.75rem;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-slate-100);
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 0.75rem;
@@ -2281,10 +2279,10 @@ h2 {
   top: calc(100% + 4px);
   right: 0;
   width: 160px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
   z-index: 100;
   overflow: hidden;
   animation: dropdownFadeIn 0.2s ease;
@@ -2298,7 +2296,7 @@ h2 {
   font-size: 0.75rem;
   color: var(--text-primary);
   transition: all 0.2s ease;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-slate-100);
   overflow: hidden;
 }
 
@@ -2340,7 +2338,7 @@ h2 {
   text-align: center;
   padding: 1rem;
   border-radius: 8px;
-  background: #f5f5f5;
+  background: var(--color-slate-100);
   margin: 0.875rem 1rem;
 }
 
@@ -2348,7 +2346,7 @@ h2 {
   text-align: center;
   padding: 1rem;
   border-radius: 8px;
-  background: #f5f5f5;
+  background: var(--color-slate-100);
   font-size: 0.85rem;
 }
 
@@ -2374,7 +2372,7 @@ h2 {
 
 .notice-content:hover {
   transform: translateY(-1px);
-  background: #f8f9fa;
+  background: var(--color-slate-100);
 }
 
 .notice-content + .notice-content {

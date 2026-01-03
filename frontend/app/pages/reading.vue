@@ -3508,11 +3508,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: white;
+  background: var(--color-bg-card);
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   height: 50px;
   transition: all 0.15s ease;
   margin: 0;
@@ -3577,10 +3577,10 @@ onUnmounted(() => {
   max-width: 768px;
   margin: 0 auto;
   padding: 0.7rem 0.85rem;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--color-bg-card);
   border-radius: 0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm) !important;
+  border-bottom: 1px solid var(--color-slate-200);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top;
   min-height: 52px;
@@ -3644,11 +3644,11 @@ onUnmounted(() => {
 }
 
 .content-section {
-  background: white;
+  background: var(--color-bg-card);
   margin: 0.5rem;
   padding: 0.85rem;
   border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 4rem;
 }
 
@@ -3683,14 +3683,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem;
-  color: #64748b;
+  color: var(--color-slate-500);
   gap: 1rem;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #f3f3f3;
+  border: 3px solid var(--color-slate-200);
   border-top: 3px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -3802,13 +3802,13 @@ onUnmounted(() => {
 }
 
 :deep(.verse.selected-verse) {
-  background-color: #e2e1e1 !important;
+  background-color: var(--color-slate-200) !important;
   transition: background-color 0.2s ease;
   border-radius: 8px;
 }
 
 :deep(.verse:hover) {
-  background-color: #f3f3f3;
+  background-color: var(--color-slate-100);
   cursor: pointer;
   transition: background-color 0.2s ease;
   border-radius: 8px;
@@ -3834,15 +3834,15 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   top: calc(100% + 8px);
-  background: white;
+  background: var(--color-bg-card);
   padding: 0.5rem 0.75rem;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   z-index: 5;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-slate-200);
   min-width: 200px;
   width: max-content;
   max-width: 95vw;
@@ -3876,7 +3876,7 @@ onUnmounted(() => {
 }
 
 .copy-menu-divider {
-  color: #bdbdbd;
+  color: var(--color-slate-400);
   margin-left: 0.25rem;
   margin-right: 0.5rem;
   font-weight: normal;
@@ -3915,8 +3915,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.25rem;
-  background: white;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-md);
   max-width: 768px;
   min-height: 50px;
   margin: 0 auto;
@@ -3947,18 +3947,19 @@ onUnmounted(() => {
   padding: 0.25rem;
   border: none;
   border-radius: 8px;
-  color: #4b5563;
+  color: var(--color-slate-600);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   outline: none;
+  background: transparent;
 }
 
 @media (hover: none) {
   .nav-button:hover {
     background-color: transparent;
-    color: #4b5563;
+    color: var(--color-slate-600);
   }
 
   .nav-button:hover svg {
@@ -3967,8 +3968,8 @@ onUnmounted(() => {
 }
 
 .nav-button:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
+  background-color: var(--color-slate-200);
+  color: var(--color-slate-800);
 }
 
 .nav-button:active {
@@ -4152,7 +4153,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4160,7 +4161,6 @@ onUnmounted(() => {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   animation: fadeIn 0.2s ease-out;
-  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(4px);
   transition: all 0.3s ease;
 }
@@ -4171,7 +4171,7 @@ onUnmounted(() => {
   max-width: 480px;
   max-height: 85vh;
   overflow: hidden;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   position: relative;
   display: flex;
@@ -4180,11 +4180,11 @@ onUnmounted(() => {
 
 .modal-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-slate-200);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
+  background: var(--color-bg-card);
 }
 
 .modal-header h3 {
@@ -4229,8 +4229,8 @@ onUnmounted(() => {
 /* 검색 섹션 스타일 */
 .search-section {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-  background: #fafbfc;
+  border-bottom: 1px solid var(--color-slate-200);
+  background: var(--color-slate-50);
 }
 
 .search-input-wrapper {
@@ -4242,17 +4242,17 @@ onUnmounted(() => {
 .search-icon {
   position: absolute;
   left: 12px;
-  color: #94a3b8;
+  color: var(--color-slate-400);
   pointer-events: none;
 }
 
 .search-input {
   width: 100%;
   padding: 10px 40px 10px 40px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-300);
   border-radius: 10px;
   font-size: 15px;
-  background: white;
+  background: var(--color-bg-card);
   color: var(--text-primary);
   transition: all 0.2s ease;
 }
@@ -4264,7 +4264,7 @@ onUnmounted(() => {
 }
 
 .search-input::placeholder {
-  color: #94a3b8;
+  color: var(--color-slate-400);
   font-size: 14px;
 }
 
@@ -4274,7 +4274,7 @@ onUnmounted(() => {
   padding: 4px;
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--color-slate-400);
   cursor: pointer;
   border-radius: 50%;
   display: flex;
@@ -4284,7 +4284,7 @@ onUnmounted(() => {
 }
 
 .search-clear-button:hover {
-  color: #64748b;
+  color: var(--color-slate-500);
 }
 
 .search-result-preview {
@@ -4423,8 +4423,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  background: white;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-bg-card);
+  border: 1.5px solid var(--color-slate-200);
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
@@ -4538,7 +4538,7 @@ onUnmounted(() => {
 
 .books-section {
   flex: 1;
-  border-right: 1px solid #eee;
+  border-right: 1px solid var(--color-slate-200);
   padding: 0 1rem 0.85rem 1rem;
   overflow-y: auto;
   height: 100%;
@@ -4575,7 +4575,7 @@ onUnmounted(() => {
   margin-bottom: 0.5rem;
   position: sticky;
   top: 0;
-  background: white;
+  background: var(--color-bg-card);
   padding: 0.5rem 0;
   z-index: 1;
 }
@@ -4594,7 +4594,7 @@ onUnmounted(() => {
   margin-bottom: 0.5rem;
   position: sticky;
   top: 0;
-  background: white;
+  background: var(--color-bg-card);
   padding: 0.5rem 0;
   z-index: 1;
 }
@@ -4615,7 +4615,7 @@ onUnmounted(() => {
   justify-content: center;
   padding: 0.75rem;
   background: none;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -4623,6 +4623,7 @@ onUnmounted(() => {
   min-width: 44px;
   height: 44px;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .book-button.active,
@@ -4669,9 +4670,9 @@ onUnmounted(() => {
   max-width: 480px;
   max-height: 85vh;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--color-bg-card);
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
 }
 
 @media (max-width: 480px) {
@@ -4743,7 +4744,7 @@ onUnmounted(() => {
   max-height: 320px;
   width: 90%;
   text-align: center;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   overflow: hidden;
   position: relative;
@@ -4811,13 +4812,13 @@ onUnmounted(() => {
 }
 
 .modal-actions .cancel-button {
-  background: #f1f3f5;
+  background: var(--color-slate-100);
   color: var(--text-secondary);
   border: none;
 }
 
 .modal-actions .cancel-button:hover {
-  background: #e9ecef;
+  background: var(--color-slate-200);
   color: var(--text-primary);
 }
 
@@ -4862,8 +4863,8 @@ onUnmounted(() => {
 }
 
 .chapter-select-button:hover {
-  background: #f1f3f5;
-  border-color: #dee2e6;
+  background: var(--color-slate-100);
+  border-color: var(--color-slate-300);
 }
 
 .chapter-select-button:active {
@@ -5058,8 +5059,8 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   /* 오버플로우 방지 */
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
@@ -5083,8 +5084,8 @@ onUnmounted(() => {
   min-width: 85px;
   /* "공동번역 개정판" 텍스트 고려 */
   max-width: 130px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
@@ -5197,8 +5198,8 @@ onUnmounted(() => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid #e9ecef;
-  background: #f8f9fa;
+  border: 1px solid var(--color-slate-200);
+  background: var(--color-slate-50);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -5213,8 +5214,8 @@ onUnmounted(() => {
 }
 
 .font-button:hover:not(:disabled) {
-  background: #f1f3f5;
-  border-color: #dee2e6;
+  background: var(--color-slate-100);
+  border-color: var(--color-slate-300);
 }
 
 .font-button:disabled {
@@ -5264,7 +5265,7 @@ onUnmounted(() => {
 }
 
 .chapter-dot {
-  color: #cbd5e1;
+  color: var(--color-slate-300);
   margin: 0 0.1rem;
   font-size: 0.75em;
 }
@@ -5343,7 +5344,7 @@ onUnmounted(() => {
   max-height: 320px;
   width: 90%;
   text-align: center;
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   overflow: hidden;
   position: relative;
@@ -5382,14 +5383,14 @@ onUnmounted(() => {
 }
 
 .chapter-ellipsis {
-  color: #cbd5e1;
+  color: var(--color-slate-300);
   letter-spacing: 1px;
   margin: 0 -0.1rem;
   font-size: 0.75em;
 }
 
 .chapter-separator {
-  color: #cbd5e1;
+  color: var(--color-slate-300);
   margin: 0 0.25rem;
 }
 
@@ -5431,7 +5432,7 @@ onUnmounted(() => {
   justify-content: center;
   text-align: center;
   padding: 2rem 1rem;
-  color: #64748b;
+  color: var(--color-slate-500);
   gap: 1rem;
 }
 
@@ -5442,7 +5443,7 @@ onUnmounted(() => {
 :deep(.error-message h3) {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-slate-700);
   margin: 0;
   line-height: 1.5;
 }
@@ -5505,8 +5506,8 @@ html.touch-device .nav-button.next:hover svg {
 
 @media (hover: hover) {
   html.no-touch-device .nav-button:hover {
-    background-color: #e5e7eb;
-    color: #1f2937;
+    background-color: var(--color-slate-200);
+    color: var(--color-slate-800);
   }
 
   html.no-touch-device .nav-button.prev:hover svg {
@@ -5520,8 +5521,8 @@ html.touch-device .nav-button.next:hover svg {
 
 .nav-button:active {
   transform: translateY(1px);
-  background-color: #e5e7eb;
-  color: #1f2937;
+  background-color: var(--color-slate-200);
+  color: var(--color-slate-800);
 }
 
 .fade-enter-active,
@@ -5571,7 +5572,7 @@ html.touch-device .nav-button.next:hover svg {
 }
 
 .section-separator {
-  color: #cbd5e1;
+  color: var(--color-slate-300);
   margin: 0 0.75rem;
 }
 
@@ -5581,12 +5582,12 @@ html.touch-device .nav-button.next:hover svg {
   justify-content: center;
   width: 1.25rem;
   height: 1.25rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
   border-radius: 50%;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-slate-500);
   margin-right: 0.25rem;
   transition: all 0.2s ease;
 }
@@ -5598,7 +5599,7 @@ html.touch-device .nav-button.next:hover svg {
 }
 
 .book-name {
-  color: #64748b;
+  color: var(--color-slate-500);
   font-weight: 500;
   margin-right: 0.5rem;
 }
@@ -5609,7 +5610,7 @@ html.touch-device .nav-button.next:hover svg {
 }
 
 .book-name.other-book {
-  color: #64748b;
+  color: var(--color-slate-500);
   font-weight: 500;
 }
 
@@ -5628,9 +5629,9 @@ html.touch-device .nav-button.next:hover svg {
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
+  color: var(--color-slate-500);
 }
 
 .chapter-box.current {
@@ -5701,7 +5702,7 @@ html.touch-device .nav-button.next:hover svg {
 :deep(.section-title .reference) {
   font-size: 0.75em;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--color-slate-500);
   letter-spacing: -0.1em;
 }
 
@@ -5756,9 +5757,9 @@ html.touch-device .nav-button.next:hover svg {
   max-width: 480px;
   max-height: 85vh;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--color-bg-card);
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
 }
 
 .version-modal {
@@ -5832,18 +5833,18 @@ html.touch-device .nav-button.next:hover svg {
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #6b7280;
+  color: var(--color-slate-500);
   flex-shrink: 0;
 }
 
 .view-options-button:hover {
-  background: #e9ecef;
-  color: #374151;
+  background: var(--color-slate-200);
+  color: var(--color-slate-700);
 }
 
 .view-options-button:active {
@@ -5868,14 +5869,14 @@ html.touch-device .nav-button.next:hover svg {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.875rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .option-item:hover {
-  background: #f9fafb;
+  background: var(--color-slate-50);
 }
 
 .option-item input[type="checkbox"] {
@@ -5890,20 +5891,20 @@ html.touch-device .nav-button.next:hover svg {
   flex: 1;
   font-weight: 500;
   font-size: 0.9375rem;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .option-description {
   width: 100%;
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: var(--color-slate-500);
   padding-left: calc(18px + 0.75rem);
   margin-top: -0.25rem;
 }
 
 .options-note {
   text-align: center;
-  color: #9ca3af;
+  color: var(--color-slate-400);
   font-size: 0.875rem;
   padding: 1rem 0;
 }
@@ -5922,8 +5923,8 @@ html.touch-device .nav-button.next:hover svg {
 
 .chapter-select-button {
   flex: 1;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
@@ -5940,8 +5941,8 @@ html.touch-device .nav-button.next:hover svg {
   flex: 0 0 auto;
   max-width: 140px;
   /* 역본 버튼 너비 살짝 늘림 */
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
   border-radius: 8px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
@@ -5995,17 +5996,17 @@ html.touch-device .nav-button.next:hover svg {
 :deep(.description) {
   font-style: italic;
   font-size: 0.9em;
-  color: #6b7280;
+  color: var(--color-slate-500);
   margin: 0.5rem 0 1rem;
   padding-left: 0.75rem;
-  border-left: 2px solid #e5e7eb;
+  border-left: 2px solid var(--color-slate-200);
   line-height: 1.6;
 }
 
 /* 교차 참조 */
 :deep(.cross-ref) {
   font-size: 0.85em;
-  color: #4b5563;
+  color: var(--color-slate-600);
   margin: 0.25rem 0 0.75rem;
   padding-left: 0.5rem;
 }
