@@ -12,6 +12,12 @@
       </div>
 
       <div class="header-right">
+        <BookmarkButton
+          :book="currentBook"
+          :chapter="currentChapter"
+          @toggle="handleBookmarkToggle"
+        />
+
         <div class="version-selector">
           <select v-model="currentVersion" @change="loadContent">
             <option v-for="v in versions" :key="v.code" :value="v.code">
@@ -171,6 +177,15 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- 북마크 모달 -->
+    <BookmarkModal
+      :is-open="showBookmarkModal"
+      :book="currentBook"
+      :chapter="currentChapter"
+      @close="showBookmarkModal = false"
+      @saved="handleBookmarkSaved"
+    />
   </div>
 </template>
 
@@ -178,8 +193,12 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useBibleFetch } from '~/composables/useBibleFetch'
 import { useBibleReader } from '~/composables/useBibleReader'
+import { useBookmark } from '~/composables/useBookmark'
 import { useBibleStore } from '~/stores/bible'
+import { useBookmarkStore } from '~/stores/bookmark'
 import { BIBLE_BOOKS, BOOK_CHAPTERS, BOOK_NAMES, BIBLE_VERSIONS } from '~/constants/bible'
+import BookmarkButton from '~/components/bible/BookmarkButton.vue'
+import BookmarkModal from '~/components/bible/BookmarkModal.vue'
 
 // Props
 const props = defineProps<{
@@ -204,10 +223,12 @@ const emit = defineEmits<{
 
 // Store
 const bibleStore = useBibleStore()
+const bookmarkStore = useBookmarkStore()
 
 // Composables
 const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch()
 const { savePosition } = useBibleReader()
+const { fetchBookmarks, removeBookmark } = useBookmark()
 
 // Refs
 const contentRef = ref<HTMLElement | null>(null)
@@ -216,6 +237,7 @@ const error = ref<string | null>(null)
 const bibleContent = ref('')
 const showOptions = ref(false)
 const showBookModal = ref(false)
+const showBookmarkModal = ref(false)
 
 // State
 const currentBook = ref(props.initialBook || bibleStore.currentBook)
@@ -411,6 +433,31 @@ const onScroll = () => {
   })
 }
 
+// 북마크 토글 핸들러
+const handleBookmarkToggle = async () => {
+  const hasBookmark = bookmarkStore.hasBookmark(currentBook.value, currentChapter.value)
+
+  if (hasBookmark) {
+    // 북마크 제거
+    const bookmark = bookmarkStore.bookmarks.find(
+      b => b.book === currentBook.value &&
+           b.chapter === currentChapter.value &&
+           b.bookmark_type === 'chapter'
+    )
+    if (bookmark) {
+      await removeBookmark(bookmark.id)
+    }
+  } else {
+    // 북마크 추가 모달 열기
+    showBookmarkModal.value = true
+  }
+}
+
+// 북마크 저장 완료 핸들러
+const handleBookmarkSaved = () => {
+  // 필요시 추가 동작
+}
+
 // Watch view options
 watch(viewOptions, (newOptions) => {
   bibleStore.setViewOptions(newOptions)
@@ -433,10 +480,15 @@ watch(() => props.initialChapter, (newChapter) => {
 })
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   bibleStore.loadViewOptionsFromStorage()
   viewOptions.value = { ...bibleStore.viewOptions }
   loadContent()
+
+  // 북마크 목록 로드 (store가 비어있을 때만)
+  if (bookmarkStore.bookmarks.length === 0) {
+    await fetchBookmarks()
+  }
 })
 
 // 외부에서 호출 가능한 메서드 노출

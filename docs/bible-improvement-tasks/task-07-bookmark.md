@@ -1,6 +1,6 @@
 # Task 7: 북마크 기능
 
-> **상태**: ⬜ 대기
+> **상태**: ✅ 완료
 > **의존성**: Task 6 완료 필요
 > **예상 파일**: 북마크 컴포넌트들
 
@@ -547,6 +547,6 @@ const handleDelete = async (id: number) => {
 
 ## 완료 기록
 
-- **완료일**: -
-- **커밋**: -
-- **비고**: -
+- **완료일**: 2026-01-03
+- **커밋**: (pending)
+- **비고**: BookmarkButton, BookmarkModal, BookmarkList 컴포넌트 생성, BibleReader 통합
