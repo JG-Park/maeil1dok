@@ -43,17 +43,18 @@ const handleClick = (event) => {
 
 <style scoped>
 .card {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   transition: all var(--transition-normal);
   border: none;
   width: 100%;
   text-align: left;
+  color: var(--color-text-primary);
 }
 
 .card-default {
-  background: white;
+  background: var(--color-bg-card);
   box-shadow: var(--shadow-sm);
 }
 
