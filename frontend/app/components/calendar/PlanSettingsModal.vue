@@ -141,7 +141,7 @@ const handleDragEnd = () => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   width: 100%;
   max-width: 400px;
@@ -156,13 +156,13 @@ const handleDragEnd = () => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid var(--color-slate-200);
 }
 
 .modal-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--color-slate-800);
   margin: 0;
 }
 
@@ -174,15 +174,15 @@ const handleDragEnd = () => {
   height: 32px;
   border: none;
   background: transparent;
-  color: #64748B;
+  color: var(--color-slate-500);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-  background: #F1F5F9;
-  color: #1E293B;
+  background: var(--color-slate-100);
+  color: var(--color-slate-800);
 }
 
 .modal-body {
@@ -193,7 +193,7 @@ const handleDragEnd = () => {
 
 .section-description {
   font-size: 0.8125rem;
-  color: #64748B;
+  color: var(--color-slate-500);
   margin: 0 0 1rem 0;
 }
 
@@ -208,23 +208,23 @@ const handleDragEnd = () => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: #F8FAFC;
+  background: var(--color-slate-50);
   border-radius: 10px;
   cursor: grab;
   transition: all 0.2s ease;
 }
 
 .plan-item:hover {
-  background: #F1F5F9;
+  background: var(--color-slate-100);
 }
 
 .plan-item.dragging {
   opacity: 0.5;
-  background: #E2E8F0;
+  background: var(--color-slate-200);
 }
 
 .drag-handle {
-  color: #94A3B8;
+  color: var(--color-slate-400);
   cursor: grab;
 }
 
@@ -236,7 +236,7 @@ const handleDragEnd = () => {
 .plan-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #1E293B;
+  color: var(--color-slate-800);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -261,32 +261,32 @@ const handleDragEnd = () => {
 }
 
 .color-option.selected {
-  border-color: #1E293B;
-  box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
+  border-color: var(--color-slate-800);
+  box-shadow: 0 0 0 2px var(--color-bg-card), 0 0 0 4px currentColor;
 }
 
 .modal-footer {
   padding: 1rem 1.25rem;
-  border-top: 1px solid #E2E8F0;
+  border-top: 1px solid var(--color-slate-200);
   display: flex;
   justify-content: flex-end;
 }
 
 .btn-secondary {
   padding: 0.5rem 1rem;
-  border: 1px solid #E2E8F0;
-  background: white;
+  border: 1px solid var(--color-slate-200);
+  background: var(--color-bg-card);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #64748B;
+  color: var(--color-slate-500);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background: #F1F5F9;
-  border-color: #CBD5E1;
+  background: var(--color-slate-100);
+  border-color: var(--color-slate-300);
 }
 
 @media (max-width: 640px) {

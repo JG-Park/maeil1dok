@@ -87,7 +87,7 @@ const formatDate = (dateStr: string) => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   width: 100%;
   max-width: 360px;
@@ -102,13 +102,13 @@ const formatDate = (dateStr: string) => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid var(--color-slate-200);
 }
 
 .modal-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--color-slate-800);
   margin: 0;
 }
 
@@ -120,15 +120,15 @@ const formatDate = (dateStr: string) => {
   height: 32px;
   border: none;
   background: transparent;
-  color: #64748B;
+  color: var(--color-slate-500);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-  background: #F1F5F9;
-  color: #1E293B;
+  background: var(--color-slate-100);
+  color: var(--color-slate-800);
 }
 
 .modal-body {
@@ -144,15 +144,15 @@ const formatDate = (dateStr: string) => {
   justify-content: center;
   gap: 0.75rem;
   padding: 2rem;
-  color: #64748B;
+  color: var(--color-slate-500);
   font-size: 0.875rem;
 }
 
 .loading-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid #E2E8F0;
-  border-top-color: #3B82F6;
+  border: 3px solid var(--color-slate-200);
+  border-top-color: var(--color-accent-secondary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -169,14 +169,14 @@ const formatDate = (dateStr: string) => {
   gap: 0.75rem;
   padding: 2rem;
   text-align: center;
-  color: #10B981;
+  color: var(--color-success);
 }
 
 .empty-state p {
   margin: 0;
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #1E293B;
+  color: var(--color-slate-800);
 }
 
 .position-list {
@@ -190,7 +190,7 @@ const formatDate = (dateStr: string) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem;
-  background: #F8FAFC;
+  background: var(--color-slate-50);
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -200,7 +200,7 @@ const formatDate = (dateStr: string) => {
 }
 
 .position-item:hover {
-  background: #F1F5F9;
+  background: var(--color-slate-100);
 }
 
 .color-dot {
@@ -221,7 +221,7 @@ const formatDate = (dateStr: string) => {
 .plan-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1E293B;
+  color: var(--color-slate-800);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -229,16 +229,16 @@ const formatDate = (dateStr: string) => {
 
 .reading-info {
   font-size: 0.8125rem;
-  color: #475569;
+  color: var(--color-slate-600);
 }
 
 .date-info {
   font-size: 0.75rem;
-  color: #94A3B8;
+  color: var(--color-slate-400);
 }
 
 .arrow-icon {
-  color: #94A3B8;
+  color: var(--color-slate-400);
   flex-shrink: 0;
 }
 

@@ -174,7 +174,7 @@ const handleNavigate = (item: ScheduleDetail) => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 16px;
   width: 100%;
   max-width: 400px;
