@@ -99,8 +99,8 @@ const handleJoin = () => {
 
 <style scoped>
 .group-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-slate-200);
+  background: white;
+  border: 1px solid #E2E8F0;
   border-radius: 12px;
   padding: 1.25rem;
   display: flex;
@@ -113,7 +113,7 @@ const handleJoin = () => {
 }
 
 .group-card:hover {
-  border-color: var(--color-slate-300);
+  border-color: #CBD5E1;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
@@ -147,21 +147,21 @@ const handleJoin = () => {
 }
 
 .status-private {
-  background-color: var(--color-slate-50);
-  color: var(--color-slate-500);
-  border: 1px solid var(--color-slate-200);
+  background-color: #F8FAFC;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
 }
 
 .member-count {
   font-size: 0.8125rem;
-  color: var(--color-slate-500);
+  color: #64748B;
   font-family: 'Pretendard', sans-serif;
 }
 
 .group-name {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-slate-800);
+  color: #1E293B;
   margin: 0;
   line-height: 1.4;
   font-family: 'Pretendard', sans-serif;
@@ -170,7 +170,7 @@ const handleJoin = () => {
 
 .group-description {
   font-size: 0.875rem;
-  color: var(--color-slate-600);
+  color: #475569;
   margin: 0;
   line-height: 1.5;
   display: -webkit-box;
@@ -185,7 +185,7 @@ const handleJoin = () => {
   flex-direction: column;
   gap: 0.375rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--color-slate-100);
+  border-top: 1px solid #F1F5F9;
 }
 
 .meta-row {
@@ -196,12 +196,12 @@ const handleJoin = () => {
 }
 
 .meta-label {
-  color: var(--color-slate-400);
+  color: #94A3B8;
   min-width: 2.5rem;
 }
 
 .meta-value, .plan-text {
-  color: var(--color-slate-700);
+  color: #334155;
   font-weight: 500;
 }
 
@@ -228,15 +228,15 @@ const handleJoin = () => {
 }
 
 .btn-secondary {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-slate-200);
-  color: var(--color-slate-600);
+  background: white;
+  border: 1px solid #E2E8F0;
+  color: #475569;
 }
 
 .btn-secondary:hover {
-  background: var(--color-slate-50);
-  border-color: var(--color-slate-300);
-  color: var(--color-slate-800);
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #1E293B;
 }
 
 .btn-primary {
@@ -251,9 +251,9 @@ const handleJoin = () => {
 }
 
 .btn-disabled {
-  background: var(--color-slate-100);
-  border: 1px solid var(--color-slate-200);
-  color: var(--color-slate-400);
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #94A3B8;
   cursor: not-allowed;
 }
 

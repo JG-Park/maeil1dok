@@ -32,14 +32,14 @@ defineProps<{
 .calendar-legend {
   margin-top: 1rem;
   padding: 0.75rem;
-  background: var(--color-slate-50);
+  background: #F8FAFC;
   border-radius: 8px;
 }
 
 .legend-title {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-slate-500);
+  color: #64748B;
   margin-bottom: 0.5rem;
 }
 
@@ -65,14 +65,14 @@ defineProps<{
 
 .legend-name {
   font-size: 0.75rem;
-  color: var(--color-slate-600);
+  color: #475569;
 }
 
 .legend-status {
   display: flex;
   gap: 1rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--color-slate-200);
+  border-top: 1px solid #E2E8F0;
 }
 
 .status-item {
@@ -85,7 +85,7 @@ defineProps<{
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-accent-secondary);
+  background: #3B82F6;
   position: relative;
 }
 
@@ -97,13 +97,13 @@ defineProps<{
   transform: translate(-50%, -50%);
   width: 5px;
   height: 5px;
-  background: var(--color-bg-card);
+  background: white;
   border-radius: 50%;
 }
 
 .status-label {
   font-size: 0.75rem;
-  color: var(--color-slate-500);
+  color: #64748B;
 }
 
 @media (max-width: 640px) {

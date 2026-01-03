@@ -63,7 +63,6 @@
   /* Overlay */
   --color-modal-bg: #ffffff;
   --color-overlay: rgba(0, 0, 0, 0.5);
-  --color-bg-overlay: rgba(255, 255, 255, 0.7);
   --color-tooltip-bg: #1f2937;
   --color-tooltip-text: #ffffff;
 
@@ -189,7 +188,6 @@
   /* Overlay */
   --color-modal-bg: #2a2a2a;
   --color-overlay: rgba(0, 0, 0, 0.7);
-  --color-bg-overlay: rgba(42, 42, 42, 0.7);
   --color-tooltip-bg: #f3f4f6;
   --color-tooltip-text: #1f2937;
 

@@ -369,7 +369,7 @@ onMounted(async () => {
 
 <style scoped>
 .multi-plan-calendar {
-  background: var(--color-bg-card);
+  background: white;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -390,7 +390,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-bg-overlay);
+  background: rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -400,8 +400,8 @@ onMounted(async () => {
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-slate-200);
-  border-top-color: var(--color-accent-secondary);
+  border: 3px solid #E2E8F0;
+  border-top-color: #3B82F6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -420,7 +420,7 @@ onMounted(async () => {
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-slate-500);
+  color: #64748B;
   padding: 0.5rem 0;
 }
 
