@@ -10,13 +10,16 @@ import {
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "~/stores/auth";
+import { useReadingSettingsStore } from "~/stores/readingSettings";
 import Toast from "~/components/Toast.vue";
 import BibleScheduleContent from "~/components/BibleScheduleContent.vue";
+import ReadingSettingsModal from "~/components/ReadingSettingsModal.vue";
 
 // 라우터 및 스토어 설정
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const readingSettingsStore = useReadingSettingsStore();
 const api = useApi();
 const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch();
 
@@ -29,17 +32,13 @@ const showModal = ref(false);
 const showScheduleModal = ref(false);
 const showCompleteConfirmModal = ref(false);
 const showVersionModal = ref(false);
-const showViewOptionsModal = ref(false);
+const showReadingSettingsModal = ref(false);
 const scheduleModalMounted = ref(false);
 const modalSource = ref("");
 
-// 보기 옵션 상태
-const viewOptions = reactive({
-  showDescription: true,    // d 클래스 (시편 머리말) 표시
-  showCrossRef: true,       // r 클래스 (교차 참조) 표시
-  highlightNames: true,     // 인명/지명/원어 강조 표시
-  showFootnotes: false,     // 각주 표시 (기본: 숨김)
-});
+// 읽기 설정은 스토어에서 가져옴
+const viewOptions = computed(() => readingSettingsStore.settings);
+const fontSize = computed(() => readingSettingsStore.settings.fontSize);
 
 // 성경 내용 상태 관리
 const bibleContent = ref("");
@@ -57,8 +56,7 @@ const isUpdatingStatus = ref(false);
 const currentAction = ref("complete");
 const showTopButton = ref(false);
 
-// 글자 크기 상태 관리
-const fontSize = ref(16);
+// 글자 크기 기본값 (스토어에서 관리)
 const DEFAULT_FONT_SIZE = 16;
 
 // 성경 역본 정보
@@ -157,6 +155,500 @@ const bookChapters = {};
 bibleBooks.old.concat(bibleBooks.new).forEach((book) => {
   bookChapters[book.id] = book.chapters;
 });
+
+// 검색 기능 관련 상태
+const searchQuery = ref("");
+const searchInputRef = ref(null);
+
+// 한글 초성 추출 함수
+const CHOSUNG_LIST = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+
+// 한글 문자열에서 초성만 추출
+const extractChosung = (str) => {
+  let result = '';
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    // 한글 완성형 범위 (가 ~ 힣)
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      const chosungIndex = Math.floor((code - 0xAC00) / 588);
+      result += CHOSUNG_LIST[chosungIndex];
+    } else if (CHOSUNG_LIST.includes(str[i])) {
+      // 이미 초성인 경우 그대로 추가
+      result += str[i];
+    }
+  }
+  return result;
+};
+
+// 입력이 초성으로만 구성되어 있는지 확인
+const isChosungOnly = (str) => {
+  if (!str) return false;
+  for (let i = 0; i < str.length; i++) {
+    if (!CHOSUNG_LIST.includes(str[i])) {
+      return false;
+    }
+  }
+  return str.length > 0;
+};
+
+// 성경 책 약어 매핑 (한글 약어 → 책 id)
+const bookAliases = {
+  // 구약
+  창: "gen", 창세: "gen", 창세기: "gen",
+  출: "exo", 출애: "exo", 출애굽: "exo", 출애굽기: "exo",
+  레: "lev", 레위: "lev", 레위기: "lev",
+  민: "num", 민수: "num", 민수기: "num",
+  신: "deu", 신명: "deu", 신명기: "deu",
+  수: "jos", 여호: "jos", 여호수아: "jos",
+  삿: "jdg", 사사: "jdg", 사사기: "jdg",
+  룻: "rut", 룻기: "rut",
+  삼상: "1sa", 사무엘상: "1sa", "사상": "1sa", "삼상": "1sa",
+  삼하: "2sa", 사무엘하: "2sa", "사하": "2sa", "삼하": "2sa",
+  왕상: "1ki", 열왕기상: "1ki", "열상": "1ki",
+  왕하: "2ki", 열왕기하: "2ki", "열하": "2ki",
+  대상: "1ch", 역대상: "1ch", "역상": "1ch",
+  대하: "2ch", 역대하: "2ch", "역하": "2ch",
+  스: "ezr", 에스라: "ezr",
+  느: "neh", 느헤: "neh", 느헤미야: "neh",
+  에: "est", 에스더: "est",
+  욥: "job", 욥기: "job",
+  시: "psa", 시편: "psa",
+  잠: "pro", 잠언: "pro",
+  전: "ecc", 전도: "ecc", 전도서: "ecc",
+  아: "sng", 아가: "sng",
+  사: "isa", 이사야: "isa",
+  렘: "jer", 예레: "jer", 예레미야: "jer",
+  애: "lam", 애가: "lam", 예레미야애가: "lam",
+  겔: "ezk", 에스겔: "ezk",
+  단: "dan", 다니엘: "dan",
+  호: "hos", 호세아: "hos",
+  욜: "jol", 요엘: "jol",
+  암: "amo", 아모스: "amo",
+  옵: "oba", 오바댜: "oba",
+  욘: "jnh", 요나: "jnh",
+  미: "mic", 미가: "mic",
+  나: "nam", 나훔: "nam",
+  합: "hab", 하박국: "hab",
+  습: "zep", 스바냐: "zep",
+  학: "hag", 학개: "hag",
+  슥: "zec", 스가랴: "zec",
+  말: "mal", 말라기: "mal",
+  // 신약
+  마: "mat", 마태: "mat", 마태복음: "mat",
+  막: "mrk", 마가: "mrk", 마가복음: "mrk",
+  눅: "luk", 누가: "luk", 누가복음: "luk",
+  요: "jhn", 요한: "jhn", 요한복음: "jhn",
+  행: "act", 사도: "act", 사도행전: "act",
+  롬: "rom", 로마: "rom", 로마서: "rom",
+  고전: "1co", 고린도전서: "1co", "고린전": "1co",
+  고후: "2co", 고린도후서: "2co", "고린후": "2co",
+  갈: "gal", 갈라디아: "gal", 갈라디아서: "gal",
+  엡: "eph", 에베소: "eph", 에베소서: "eph",
+  빌: "php", 빌립보: "php", 빌립보서: "php",
+  골: "col", 골로새: "col", 골로새서: "col",
+  살전: "1th", 데살로니가전서: "1th", "데전": "1th", "살전": "1th",
+  살후: "2th", 데살로니가후서: "2th", "데후": "2th", "살후": "2th",
+  딤전: "1ti", 디모데전서: "1ti", "디전": "1ti",
+  딤후: "2ti", 디모데후서: "2ti", "디후": "2ti",
+  딛: "tit", 디도: "tit", 디도서: "tit",
+  몬: "phm", 빌레몬: "phm", 빌레몬서: "phm",
+  히: "heb", 히브리: "heb", 히브리서: "heb",
+  약: "jas", 야고보: "jas", 야고보서: "jas",
+  벧전: "1pe", 베드로전서: "1pe", "베전": "1pe",
+  벧후: "2pe", 베드로후서: "2pe", "베후": "2pe",
+  요일: "1jn", 요한일서: "1jn",
+  요이: "2jn", 요한이서: "2jn",
+  요삼: "3jn", 요한삼서: "3jn",
+  유: "jud", 유다: "jud", 유다서: "jud",
+  계: "rev", 요한계시록: "rev", 계시록: "rev",
+};
+
+// 스마트 검색 - 여러 후보 결과 반환 (초성 및 절 지원)
+const parseSearchQueryMultiple = (query) => {
+  if (!query || query.trim() === "") return [];
+
+  const trimmed = query.trim();
+  const allBooks = bibleBooks.old.concat(bibleBooks.new);
+  const results = [];
+
+  // 패턴들 (절 지원 추가)
+  // 패턴1: "창세기 1장 3절", "창세기 1장3절", "창세기 1:3" 형태 (책이름 + 장 + 절)
+  const pattern1 = /^(.+?)\s*(\d+)\s*(?:장\s*)?[:\s절]?\s*(\d+)\s*절?$/;
+  // 패턴2: "창세기 1장", "창세기 1" 형태 (책이름 + 장, 절 없음)
+  const pattern2 = /^(.+?)\s+(\d+)\s*장?$/;
+  // 패턴3: "창1:3", "창1장3절" 형태 (책이름+장+절, 공백없음)
+  const pattern3 = /^([가-힣ㄱ-ㅎ]+)(\d+)\s*(?:장\s*)?[:\s절]\s*(\d+)\s*절?$/;
+  // 패턴3b: "ㅁㅌ2223" 형태 (초성 + 4자리 숫자 = 장2자리 + 절2자리)
+  const pattern3b = /^([ㄱ-ㅎ]+)(\d{4})$/;
+  // 패턴3c: "ㅁㅌ123" 형태 (초성 + 3자리 숫자 = 장1자리 + 절2자리)
+  const pattern3c = /^([ㄱ-ㅎ]+)(\d{3})$/;
+  // 패턴4: "창1", "창세기1" 형태 (책이름 + 숫자, 공백없음, 절 없음)
+  const pattern4 = /^([가-힣ㄱ-ㅎ]+)(\d{1,2})$/;
+  // 패턴5: 책 이름만 (숫자 없음) - 초성 포함
+  const pattern5 = /^([가-힣ㄱ-ㅎ]+)$/;
+  // 패턴6: 영문 id + 숫자:숫자 (예: gen1:3)
+  const pattern6 = /^([a-z0-9]+)\s*(\d+)[:\s](\d+)$/i;
+  // 패턴7: 영문 id + 숫자 (예: gen1, gen 1)
+  const pattern7 = /^([a-z0-9]+)\s*(\d*)$/i;
+
+  let bookName = null;
+  let chapter = null;
+  let verse = null;
+  let alternativeInterpretations = []; // 3자리 숫자의 다중 해석용
+
+  // 패턴 매칭 순서: 초성+숫자 패턴을 먼저 체크 (다른 패턴에 잘못 매칭되는 것 방지)
+  let match = trimmed.match(pattern3b);
+  if (match) {
+    // 4자리 숫자: 앞 2자리 = 장, 뒤 2자리 = 절 (예: 2223 → 22장 23절)
+    bookName = match[1];
+    const digits = match[2];
+    chapter = parseInt(digits.slice(0, 2), 10);
+    verse = parseInt(digits.slice(2), 10);
+  } else {
+    match = trimmed.match(pattern3c);
+    if (match) {
+      // 3자리 숫자: 두 가지 해석 가능 (예: 123 → 1장 23절 또는 12장 3절)
+      bookName = match[1];
+      const digits = match[2];
+      // 기본 해석: 앞 1자리 = 장, 뒤 2자리 = 절
+      chapter = parseInt(digits.slice(0, 1), 10);
+      verse = parseInt(digits.slice(1), 10);
+      // 대안 해석: 앞 2자리 = 장, 뒤 1자리 = 절
+      alternativeInterpretations.push({
+        chapter: parseInt(digits.slice(0, 2), 10),
+        verse: parseInt(digits.slice(2), 10)
+      });
+    } else {
+      match = trimmed.match(pattern3);
+      if (match) {
+        bookName = match[1];
+        chapter = parseInt(match[2], 10);
+        verse = parseInt(match[3], 10);
+      } else {
+        match = trimmed.match(pattern1);
+        if (match) {
+          bookName = match[1].trim();
+          chapter = parseInt(match[2], 10);
+          verse = parseInt(match[3], 10);
+        } else {
+          match = trimmed.match(pattern6);
+          if (match) {
+            bookName = match[1].toLowerCase();
+            chapter = parseInt(match[2], 10);
+            verse = parseInt(match[3], 10);
+          } else {
+            match = trimmed.match(pattern2);
+            if (match) {
+              bookName = match[1].trim();
+              chapter = parseInt(match[2], 10);
+            } else {
+              match = trimmed.match(pattern4);
+              if (match) {
+                bookName = match[1];
+                chapter = parseInt(match[2], 10);
+              } else {
+                match = trimmed.match(pattern5);
+                if (match) {
+                  bookName = match[1];
+                } else {
+                  match = trimmed.match(pattern7);
+                  if (match) {
+                    bookName = match[1].toLowerCase();
+                    chapter = match[2] ? parseInt(match[2], 10) : null;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (!bookName) return [];
+
+  // 모든 매칭되는 책 찾기 (여러 후보 지원)
+  const matchedBookIds = new Set();
+  const bookNameLower = bookName.toLowerCase();
+
+  // 0. 초성 검색 지원
+  if (isChosungOnly(bookName)) {
+    // 입력이 초성만으로 구성된 경우
+    allBooks.forEach(book => {
+      const bookChosung = extractChosung(book.name);
+      // 초성이 입력과 일치하거나 시작하면 매칭
+      if (bookChosung.startsWith(bookName) || bookChosung === bookName) {
+        matchedBookIds.add(book.id);
+      }
+    });
+    // 약어의 초성도 검색
+    Object.entries(bookAliases).forEach(([alias, bookId]) => {
+      const aliasChosung = extractChosung(alias);
+      if (aliasChosung.startsWith(bookName) || aliasChosung === bookName) {
+        matchedBookIds.add(bookId);
+      }
+    });
+  }
+
+  // 1. 약어 매핑에서 직접 찾기 (정확한 매칭 우선)
+  if (bookAliases[bookNameLower]) {
+    matchedBookIds.add(bookAliases[bookNameLower]);
+  }
+
+  // 2. 영문 id로 직접 매칭
+  const directMatch = allBooks.find(b => b.id === bookNameLower);
+  if (directMatch) {
+    matchedBookIds.add(directMatch.id);
+  }
+
+  // 3. 부분 매칭 - 모든 관련 책 찾기 (예: "요한" -> 요한복음, 요한일서, 요한이서, 요한삼서, 요한계시록)
+  if (!isChosungOnly(bookName)) {
+    allBooks.forEach(book => {
+      const name = book.name.toLowerCase();
+      // 책 이름이 검색어로 시작하거나, 검색어가 책 이름에 포함되면 매칭
+      if (name.startsWith(bookNameLower) || name.includes(bookNameLower)) {
+        matchedBookIds.add(book.id);
+      }
+    });
+
+    // 4. 약어의 부분 매칭도 검색 (예: "요" -> 요한복음, 요한일서, 요엘 등)
+    Object.entries(bookAliases).forEach(([alias, bookId]) => {
+      if (alias.startsWith(bookNameLower) || bookNameLower.startsWith(alias)) {
+        matchedBookIds.add(bookId);
+      }
+    });
+  }
+
+  // 결과 생성
+  matchedBookIds.forEach(bookId => {
+    const maxChapters = bookChapters[bookId];
+    let validChapter = chapter;
+    if (validChapter !== null) {
+      if (validChapter < 1) validChapter = 1;
+      if (validChapter > maxChapters) validChapter = maxChapters;
+    }
+
+    // 기본 해석 추가
+    results.push({
+      bookId,
+      chapter: validChapter,
+      verse: verse,
+      bookName: bookNames[bookId],
+      maxChapters,
+    });
+
+    // 3자리 숫자의 대안 해석 추가 (예: 123 → 12장 3절)
+    alternativeInterpretations.forEach(alt => {
+      let altChapter = alt.chapter;
+      if (altChapter !== null) {
+        if (altChapter < 1) altChapter = 1;
+        if (altChapter > maxChapters) altChapter = maxChapters;
+      }
+      // 기본 해석과 다른 경우에만 추가
+      if (altChapter !== validChapter || alt.verse !== verse) {
+        results.push({
+          bookId,
+          chapter: altChapter,
+          verse: alt.verse,
+          bookName: bookNames[bookId],
+          maxChapters,
+        });
+      }
+    });
+  });
+
+  // 정렬: 정확한 매칭 우선, 그 다음 성경 순서대로
+  const bookOrder = allBooks.map(b => b.id);
+  results.sort((a, b) => {
+    // 정확한 이름 매칭 우선 (초성 매칭 포함)
+    const aExact = a.bookName.toLowerCase() === bookNameLower ||
+                   bookAliases[bookNameLower] === a.bookId ||
+                   (isChosungOnly(bookName) && extractChosung(a.bookName) === bookName);
+    const bExact = b.bookName.toLowerCase() === bookNameLower ||
+                   bookAliases[bookNameLower] === b.bookId ||
+                   (isChosungOnly(bookName) && extractChosung(b.bookName) === bookName);
+    if (aExact && !bExact) return -1;
+    if (!aExact && bExact) return 1;
+    // 성경 순서
+    return bookOrder.indexOf(a.bookId) - bookOrder.indexOf(b.bookId);
+  });
+
+  return results;
+};
+
+// 선택된 검색 결과 인덱스
+const selectedResultIndex = ref(0);
+
+// 검색 결과들 computed
+const searchResults = computed(() => {
+  return parseSearchQueryMultiple(searchQuery.value);
+});
+
+// 현재 선택된 검색 결과
+const searchResult = computed(() => {
+  const results = searchResults.value;
+  if (results.length === 0) return null;
+  return results[Math.min(selectedResultIndex.value, results.length - 1)];
+});
+
+// 검색어 변경 시 인덱스 리셋
+watch(searchQuery, () => {
+  selectedResultIndex.value = 0;
+});
+
+// 검색 결과가 변경될 때 책 선택 및 스크롤 자동 연동
+watch(searchResult, (result) => {
+  if (result && result.bookId) {
+    // 검색된 책으로 선택 변경 (장 목록도 자동 업데이트됨)
+    selectedBook.value = result.bookId;
+    // 해당 책으로 스크롤
+    nextTick(() => {
+      scrollToSelectedBook();
+      // 장이 있으면 해당 장으로도 스크롤
+      if (result.chapter) {
+        setTimeout(() => {
+          scrollToSearchedChapter(result.chapter);
+        }, 50);
+      }
+    });
+  }
+});
+
+// 다른 검색 결과 선택
+const selectSearchResult = (index) => {
+  selectedResultIndex.value = index;
+};
+
+// 콘텐츠 로딩 완료 후 절로 스크롤
+watch(isLoading, (newValue, oldValue) => {
+  // 로딩이 완료되었고 (false로 변경), 스크롤할 절이 있으면
+  if (oldValue === true && newValue === false && pendingScrollVerse.value) {
+    // 콘텐츠가 렌더링될 시간을 주고 스크롤
+    setTimeout(() => {
+      scrollToVerse(pendingScrollVerse.value);
+      pendingScrollVerse.value = null;
+    }, 300);
+  }
+});
+
+// 검색된 장으로 스크롤 (하이라이트용)
+const scrollToSearchedChapter = (chapter) => {
+  const chaptersSection = document.querySelector(".chapters-section");
+  if (!chaptersSection) return;
+
+  const chapterButton = chaptersSection.querySelector(`[data-chapter="${chapter}"]`);
+  if (chapterButton) {
+    const containerRect = chaptersSection.getBoundingClientRect();
+    const buttonRect = chapterButton.getBoundingClientRect();
+    const scrollTop = chaptersSection.scrollTop + (buttonRect.top - containerRect.top) - (containerRect.height / 2) + (buttonRect.height / 2);
+    chaptersSection.scrollTo({ top: scrollTop, behavior: "smooth" });
+  }
+};
+
+// 이동 후 스크롤할 절 번호 저장
+const pendingScrollVerse = ref(null);
+
+// 특정 절로 스크롤하는 함수
+const scrollToVerse = (verseNumber) => {
+  if (!verseNumber) return;
+
+  // 절 번호를 가진 요소 찾기 (여러 가능한 선택자 시도)
+  const selectors = [
+    `.verse-number:contains("${verseNumber}")`,
+    `[data-verse="${verseNumber}"]`,
+    `.bible-content .verse:nth-child(${verseNumber})`,
+    `.verse-${verseNumber}`,
+  ];
+
+  // 성경 본문에서 해당 절 찾기
+  const bibleContentEl = document.querySelector('.bible-content');
+  if (!bibleContentEl) return;
+
+  // sup 태그나 절 번호를 가진 요소 찾기 (.verse-num 포함)
+  const verseElements = bibleContentEl.querySelectorAll('sup, .verse-num, .verse-number, [data-verse]');
+  let targetElement = null;
+
+  for (const el of verseElements) {
+    const text = el.textContent.trim();
+    if (text === String(verseNumber) || text === `${verseNumber}`) {
+      targetElement = el;
+      break;
+    }
+  }
+
+  if (targetElement) {
+    // 절 번호의 부모 요소(전체 절 라인)를 찾아서 강조
+    const verseLine = targetElement.closest('p') || targetElement.parentElement;
+
+    // 요소가 화면 중앙에 오도록 스크롤
+    const elementRect = targetElement.getBoundingClientRect();
+    const absoluteElementTop = elementRect.top + window.pageYOffset;
+    const middle = absoluteElementTop - (window.innerHeight / 3);
+    window.scrollTo({
+      top: middle,
+      behavior: 'smooth'
+    });
+
+    // 전체 절 라인에 하이라이트 효과 추가
+    if (verseLine) {
+      verseLine.classList.add('verse-line-highlight');
+      setTimeout(() => {
+        verseLine.classList.remove('verse-line-highlight');
+      }, 2500);
+    }
+  }
+};
+
+// 검색으로 빠른 이동
+const goToSearchResult = () => {
+  const result = searchResult.value;
+  if (!result) return;
+
+  if (result.chapter) {
+    // 책과 장이 모두 있으면 바로 이동
+    selectBook(result.bookId);
+
+    // 절이 있으면 저장해두고 나중에 스크롤
+    if (result.verse) {
+      pendingScrollVerse.value = result.verse;
+    }
+
+    nextTick(() => {
+      selectChapter(result.chapter);
+    });
+  } else {
+    // 책만 있으면 책 선택 후 장 선택 대기 (모달 유지)
+    selectBook(result.bookId);
+    // 검색어 지우고 장 선택 대기
+    searchQuery.value = "";
+    return; // 모달 닫지 않음
+  }
+  searchQuery.value = "";
+};
+
+// 검색 입력 핸들러 (엔터키)
+const handleSearchKeydown = (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    goToSearchResult();
+  } else if (event.key === "Escape") {
+    searchQuery.value = "";
+    searchInputRef.value?.blur();
+  }
+};
+
+// 모달 열릴 때 검색 초기화 및 포커스
+const openModalWithSearch = () => {
+  searchQuery.value = "";
+  // 현재 보고 있는 책으로 선택 초기화
+  selectedBook.value = currentBook.value;
+  showModal.value = true;
+  nextTick(() => {
+    searchInputRef.value?.focus();
+    scrollToSelectedBook();
+    scrollToSelectedChapter();
+  });
+};
 
 // 선택된 책의 장 수 계산
 const chaptersArray = computed(() => {
@@ -332,7 +824,7 @@ const parseStandardContent = (htmlText, book, chapter) => {
 
 // 각주 처리 함수: 각주를 마커로 변환하거나 제거
 const processFootnotes = (text) => {
-  if (viewOptions.showFootnotes) {
+  if (viewOptions.value.showFootnotes) {
     // 각주를 마커로 변환
     // 원본 구조: <span data-caller="+" class="f"><span class="fr">절번호</span><span class="ft">각주내용</span></span>
     return text.replace(
@@ -538,7 +1030,7 @@ const parseKntVersion = (jsonData, book, chapter) => {
           }
         } else if (element.type === "description") {
           // 설명/주석 (시편 머리말, 음악 지시어 등) - 보기 옵션에 따라 표시
-          if (viewOptions.showDescription) {
+          if (viewOptions.value.showDescription) {
             nonVerseElements.push({
               index: element.index,
               html: `<p class="description">${element.content}</p>`,
@@ -547,7 +1039,7 @@ const parseKntVersion = (jsonData, book, chapter) => {
           }
         } else if (element.type === "crossref") {
           // 교차 참조 - 보기 옵션에 따라 표시
-          if (viewOptions.showCrossRef) {
+          if (viewOptions.value.showCrossRef) {
             nonVerseElements.push({
               index: element.index,
               html: `<p class="cross-ref">${element.content}</p>`,
@@ -1002,15 +1494,16 @@ const parseGaeVersion = (bibleElement, book, chapter) => {
 // 특수 클래스 보존 함수: font 태그를 span으로 변환하면서 클래스 보존
 const preserveSpecialClasses = (html) => {
   return html
-    // font.name -> span.bible-name (인명)
-    .replace(/<font[^>]*class="name"[^>]*>([^<]*)<\/font>/gi,
+    // font.name -> span.bible-name (인명) - 정확히 class="name"만 매칭
+    .replace(/<font\s+class="name">([\s\S]*?)<\/font>/gi,
       '<span class="bible-name">$1</span>')
-    // font.area -> span.bible-area (지명)
-    .replace(/<font[^>]*class="area"[^>]*>([^<]*)<\/font>/gi,
+    // font.area -> span.bible-area (지명) - 정확히 class="area"만 매칭
+    .replace(/<font\s+class="area">([\s\S]*?)<\/font>/gi,
       '<span class="bible-area">$1</span>')
-    // font.orgin -> span.bible-orgin (원어/음역어)
-    .replace(/<font[^>]*class="orgin"[^>]*>([^<]*)<\/font>/gi,
-      '<span class="bible-orgin">$1</span>');
+    // font.orgin (원어/음역어)는 일반 텍스트로 변환 (강조 제거)
+    .replace(/<font\s+class="orgin">([\s\S]*?)<\/font>/gi, '$1')
+    // 다른 font 태그 (size 등)는 내용만 유지
+    .replace(/<font[^>]*>([\s\S]*?)<\/font>/gi, '$1');
 };
 
 // 구절 텍스트에서 특수 클래스만 보존하고 나머지 태그 제거
@@ -1018,9 +1511,9 @@ const cleanVerseTextWithSpecialClasses = (html) => {
   let text = html;
 
   // 인명/지명 강조 옵션이 켜져 있으면 특수 클래스를 span으로 변환
-  if (viewOptions.highlightNames) {
+  if (viewOptions.value.highlightNames) {
     text = preserveSpecialClasses(text);
-    // bible-name, bible-area, bible-orgin 클래스를 가진 span만 보존하고 나머지 태그 제거
+    // bible-name, bible-area 클래스를 가진 span만 보존하고 나머지 태그 제거
     text = text.replace(/<(?!\/?span[^>]*class="bible-)[^>]+>/g, '');
   } else {
     // 옵션이 꺼져 있으면 모든 태그 제거
@@ -1394,27 +1887,22 @@ const toggleBodyScroll = (isModalOpen) => {
 
 // 모든 모달 상태를 감시하는 watch
 watch(
-  [showLoginModal, showModal, showScheduleModal, showVersionModal, showViewOptionsModal],
-  ([newLoginModal, newShowModal, newScheduleModal, newVersionModal, newViewOptionsModal]) => {
+  [showLoginModal, showModal, showScheduleModal, showVersionModal, showReadingSettingsModal],
+  ([newLoginModal, newShowModal, newScheduleModal, newVersionModal, newReadingSettingsModal]) => {
     toggleBodyScroll(
-      newLoginModal || newShowModal || newScheduleModal || newVersionModal || newViewOptionsModal
+      newLoginModal || newShowModal || newScheduleModal || newVersionModal || newReadingSettingsModal
     );
   }
 );
 
-// 보기 옵션 변경 시 localStorage에 저장
+// 읽기 설정 변경 시 성경 내용 다시 로드 (스토어 연동)
 watch(
-  viewOptions,
-  (newVal) => {
-    if (process.client) {
-      localStorage.setItem('bibleViewOptions', JSON.stringify(newVal));
-      // 보기 옵션 변경 시 성경 내용 다시 로드
-      if (currentBook.value && currentChapter.value) {
-        loadBibleContent(currentBook.value, currentChapter.value);
-      }
+  () => [viewOptions.value.showDescription, viewOptions.value.showCrossRef, viewOptions.value.highlightNames, viewOptions.value.showFootnotes, viewOptions.value.verseJoining],
+  () => {
+    if (currentBook.value && currentChapter.value) {
+      loadBibleContent(currentBook.value, currentChapter.value);
     }
-  },
-  { deep: true }
+  }
 );
 
 // 로그인 페이지로 이동
@@ -1458,17 +1946,8 @@ onMounted(async () => {
   detectTouchDevice();
   window.addEventListener("scroll", handleScroll, { passive: true });
 
-  // 보기 옵션 로드 (localStorage)
-  if (process.client) {
-    const savedViewOptions = localStorage.getItem('bibleViewOptions');
-    if (savedViewOptions) {
-      try {
-        Object.assign(viewOptions, JSON.parse(savedViewOptions));
-      } catch (e) {
-        console.warn('Failed to parse saved view options:', e);
-      }
-    }
-  }
+  // 읽기 설정 스토어 초기화
+  await readingSettingsStore.initialize();
 
   // URL 파라미터에서 정보 추출
   const { book = "", chapter = "", plan: planId, version = "" } = route.query;
@@ -1576,18 +2055,14 @@ const closeScheduleModal = () => {
   scheduleModalMounted.value = false;
 };
 
-// 글자 크기 조절 함수
+// 글자 크기 조절 함수 (스토어 위임)
 const adjustFontSize = (delta) => {
-  const newSize = fontSize.value + delta;
-  if (newSize >= 14 && newSize <= 24) {
-    // 최소 14px, 최대 24px
-    fontSize.value = newSize;
-  }
+  readingSettingsStore.adjustFontSize(delta);
 };
 
-// 글자 크기 초기화 함수
+// 글자 크기 초기화 함수 (스토어 위임)
 const resetFontSize = () => {
-  fontSize.value = DEFAULT_FONT_SIZE;
+  readingSettingsStore.updateSetting('fontSize', DEFAULT_FONT_SIZE);
 };
 
 // 뒤로가기 처리 함수 수정
@@ -2432,7 +2907,7 @@ onUnmounted(() => {
                 <h2>{{ versionNames[currentVersion] }}</h2>
               </div>
             </button>
-            <button class="chapter-select-button" @click="showModal = true">
+            <button class="chapter-select-button" @click="openModalWithSearch">
               <div class="button-content">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -2441,8 +2916,8 @@ onUnmounted(() => {
                 <h2>{{ chapterTitle }}</h2>
               </div>
             </button>
-            <!-- 보기 옵션 버튼 -->
-            <button class="view-options-button" @click="showViewOptionsModal = true" title="보기 옵션">
+            <!-- 읽기 설정 버튼 -->
+            <button class="view-options-button" @click="showReadingSettingsModal = true" title="읽기 설정">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2474,7 +2949,10 @@ onUnmounted(() => {
           <p>본문을 불러오는 중입니다...</p>
         </div>
 
-        <div v-else class="bible-content text-adjustable" :style="{ fontSize: `${fontSize}px` }" v-html="bibleContent"
+        <div v-else class="bible-content text-adjustable"
+          :class="{ 'verse-joining': viewOptions.verseJoining }"
+          :style="readingSettingsStore.cssVariables"
+          v-html="bibleContent"
           @click="onBibleClick"></div>
       </div>
     </div>
@@ -2635,6 +3113,68 @@ onUnmounted(() => {
               </svg>
             </button>
           </div>
+          <!-- 검색 섹션 -->
+          <div class="search-section">
+            <div class="search-input-wrapper">
+              <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                <path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <input
+                ref="searchInputRef"
+                v-model="searchQuery"
+                type="text"
+                class="search-input"
+                placeholder="예: 창1:3, ㅊㅅㄱ, 요한 3:16"
+                @keydown="handleSearchKeydown"
+              />
+              <button
+                v-if="searchQuery"
+                class="search-clear-button"
+                @click="searchQuery = ''"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
+                  <path d="M15 9L9 15M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+            <!-- AI 검색 결과 미리보기 -->
+            <div v-if="searchResults.length > 0" class="search-result-preview">
+              <div class="ai-result-label">
+                <svg class="ai-sparkle" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L13.09 8.26L19 9L13.09 9.74L12 16L10.91 9.74L5 9L10.91 8.26L12 2Z" fill="currentColor"/>
+                  <path d="M18 14L18.55 16.45L21 17L18.55 17.55L18 20L17.45 17.55L15 17L17.45 16.45L18 14Z" fill="currentColor" opacity="0.7"/>
+                  <path d="M6 16L6.37 17.63L8 18L6.37 18.37L6 20L5.63 18.37L4 18L5.63 17.63L6 16Z" fill="currentColor" opacity="0.5"/>
+                </svg>
+                <span>{{ searchResults.length > 1 ? `${searchResults.length}개를 찾았어요` : 'AI가 찾았어요' }}</span>
+              </div>
+              <!-- 여러 후보가 있을 때 -->
+              <div v-if="searchResults.length > 1" class="search-results-list">
+                <button
+                  v-for="(result, index) in searchResults"
+                  :key="result.bookId"
+                  :class="['search-result-item', { selected: index === selectedResultIndex }]"
+                  @click="selectSearchResult(index)"
+                >
+                  <span class="result-book">{{ result.bookName }}</span>
+                  <span v-if="result.chapter" class="result-chapter">{{ result.chapter }}장</span>
+                  <span v-if="result.verse" class="result-verse">{{ result.verse }}절</span>
+                </button>
+              </div>
+              <!-- 선택된 결과로 이동 버튼 -->
+              <button class="search-result-button" @click="goToSearchResult">
+                <span class="result-book">{{ searchResult.bookName }}</span>
+                <span v-if="searchResult.chapter" class="result-chapter">{{ searchResult.chapter }}장</span>
+                <span v-if="searchResult.verse" class="result-verse">{{ searchResult.verse }}절</span>
+                <span v-else-if="!searchResult.chapter" class="result-hint">장을 선택해주세요</span>
+                <span class="result-action">바로가기</span>
+                <svg class="result-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
           <div class="modal-body">
             <div class="books-section" ref="booksSection">
               <div class="testament">
@@ -2666,6 +3206,7 @@ onUnmounted(() => {
                 <button v-for="chapter in chaptersArray" :key="chapter" :data-chapter="chapter" :class="[
                   'chapter-button',
                   { active: chapter === currentChapter },
+                  { searched: searchResult && searchResult.chapter === chapter },
                 ]" @click="selectChapter(chapter)">
                   {{ chapter }}
                 </button>
@@ -2832,49 +3373,12 @@ onUnmounted(() => {
       </div>
     </Teleport>
 
-    <!-- 보기 옵션 모달 -->
-    <Teleport to="body">
-      <div v-if="showViewOptionsModal" class="modal-overlay" @click="showViewOptionsModal = false">
-        <div class="modal-content view-options-modal" @click.stop>
-          <div class="modal-header">
-            <h3>보기 옵션</h3>
-            <button class="close-button" @click="showViewOptionsModal = false">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="options-list">
-              <label class="option-item" v-if="currentVersion === 'KNT'">
-                <input type="checkbox" v-model="viewOptions.showDescription">
-                <span class="option-label">시편 머리말 표시</span>
-                <span class="option-description">시편의 악기 지시어 및 배경 설명 표시</span>
-              </label>
-              <label class="option-item" v-if="currentVersion === 'KNT'">
-                <input type="checkbox" v-model="viewOptions.showCrossRef">
-                <span class="option-label">교차 참조 표시</span>
-                <span class="option-description">관련 성경 구절 참조 정보 표시</span>
-              </label>
-              <label class="option-item" v-if="currentVersion === 'KNT'">
-                <input type="checkbox" v-model="viewOptions.showFootnotes">
-                <span class="option-label">각주 표시</span>
-                <span class="option-description">원어 의미, 역사적 배경 등 각주 정보 표시</span>
-              </label>
-              <label class="option-item" v-if="currentVersion !== 'KNT'">
-                <input type="checkbox" v-model="viewOptions.highlightNames">
-                <span class="option-label">인명/지명 강조</span>
-                <span class="option-description">인명, 지명, 원어를 색상으로 구분 표시</span>
-              </label>
-              <p v-if="currentVersion === 'KNT' && !viewOptions.showDescription && !viewOptions.showCrossRef && !viewOptions.showFootnotes" class="options-note">
-                모든 옵션이 꺼져 있습니다.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <!-- 읽기 설정 모달 -->
+    <ReadingSettingsModal
+      :is-open="showReadingSettingsModal"
+      :current-version="currentVersion"
+      @close="showReadingSettingsModal = false"
+    />
 
     <!-- Top 버튼 (트랜지션 추가) -->
     <Transition name="fade">
@@ -3626,6 +4130,299 @@ onUnmounted(() => {
   }
 }
 
+/* 검색 섹션 스타일 */
+.search-section {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 40px 10px 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 15px;
+  background: white;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(75, 159, 126, 0.15);
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.search-clear-button {
+  position: absolute;
+  right: 8px;
+  padding: 4px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.search-clear-button:hover {
+  color: #64748b;
+}
+
+.search-result-preview {
+  margin-top: 10px;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-result-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  padding-left: 2px;
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ai-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.search-result-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(75, 159, 126, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.search-result-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.search-result-button:hover::before {
+  left: 100%;
+}
+
+.search-result-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(75, 159, 126, 0.4);
+}
+
+.search-result-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(75, 159, 126, 0.3);
+}
+
+.result-book {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.result-chapter {
+  opacity: 0.95;
+  font-size: 15px;
+}
+
+.result-hint {
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+.result-action {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+.result-arrow {
+  opacity: 0.9;
+  transition: transform 0.2s ease;
+}
+
+.search-result-button:hover .result-arrow {
+  transform: translateX(3px);
+}
+
+/* 여러 후보 목록 스타일 */
+.search-results-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.search-result-item.selected {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(75, 159, 126, 0.3);
+}
+
+.search-result-item .result-book {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.search-result-item .result-chapter {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.search-result-item .result-verse,
+.search-result-button .result-verse {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: var(--primary-color);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.search-result-item.selected .result-verse {
+  background: white;
+  color: var(--primary-color);
+}
+
+/* 절 라인 하이라이트 효과 - v-html 컨텐츠에도 적용되도록 :deep 사용 */
+:deep(.verse-line-highlight) {
+  background: linear-gradient(90deg, rgba(75, 159, 126, 0.35) 0%, rgba(75, 159, 126, 0.2) 100%) !important;
+  border-left: 4px solid var(--primary-color) !important;
+  margin-left: -16px !important;
+  padding-left: 12px !important;
+  border-radius: 0 6px 6px 0;
+  animation: verseLineHighlight 2.5s ease-out forwards;
+  transition: background 0.3s ease, border-left-color 0.3s ease;
+}
+
+@keyframes verseLineHighlight {
+  0% {
+    background: linear-gradient(90deg, rgba(75, 159, 126, 0.5) 0%, rgba(75, 159, 126, 0.3) 100%);
+    border-left-color: var(--primary-color);
+  }
+  60% {
+    background: linear-gradient(90deg, rgba(75, 159, 126, 0.35) 0%, rgba(75, 159, 126, 0.2) 100%);
+    border-left-color: var(--primary-color);
+  }
+  100% {
+    background: transparent;
+    border-left-color: transparent;
+  }
+}
+
+@media (max-width: 640px) {
+  .search-section {
+    padding: 0.6rem 0.8rem;
+  }
+
+  .search-input {
+    padding: 9px 36px 9px 36px;
+    font-size: 14px;
+  }
+
+  .search-icon {
+    left: 10px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .search-result-button {
+    padding: 9px 12px;
+    font-size: 14px;
+  }
+}
+
 .modal-body {
   display: flex;
   flex: 1;
@@ -3738,6 +4535,16 @@ onUnmounted(() => {
   color: var(--primary-color);
   border-color: var(--primary-color);
   font-weight: 600;
+}
+
+/* 검색된 장 하이라이트 */
+.chapter-button.searched {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(75, 159, 126, 0.4);
+  transform: scale(1.05);
 }
 
 .chapter-button:hover,
@@ -5116,13 +5923,6 @@ html.touch-device .nav-button.next:hover svg {
   color: #047857;
 }
 
-/* 원어/음역어 (표준 번역본) */
-:deep(.bible-orgin) {
-  font-style: italic;
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  text-decoration-color: #9ca3af;
-}
 
 /* 각주 마커 */
 :deep(.footnote-marker) {
