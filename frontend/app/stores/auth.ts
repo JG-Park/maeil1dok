@@ -168,6 +168,12 @@ export const useAuthStore = defineStore('auth', {
 
       // We only need to validate and refresh user data if we have a token
       if (!this.token || !this.refreshToken) {
+        // 토큰이 없으면 인증되지 않은 상태 - user 정보도 초기화
+        // localStorage에서 로드된 user 정보가 있더라도 토큰 없이는 API 호출 불가
+        this.user = null
+        if (process.client && typeof window !== 'undefined') {
+          localStorage.removeItem('auth')
+        }
         return
       }
 
