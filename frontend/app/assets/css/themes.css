@@ -388,3 +388,168 @@ body,
 .settings-modal {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
+
+/* ===== Global Dark Mode Overrides ===== */
+/* These rules override common hardcoded colors in components */
+
+[data-theme="dark"] {
+  /* Global background */
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+/* Common card/section containers */
+[data-theme="dark"] .section,
+[data-theme="dark"] .card,
+[data-theme="dark"] .task,
+[data-theme="dark"] .notice-content,
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .menu-content,
+[data-theme="dark"] .plan-dropdown {
+  background-color: var(--color-bg-card) !important;
+  border-color: var(--color-border-default) !important;
+  color: var(--color-text-primary);
+}
+
+/* Hover states for cards */
+[data-theme="dark"] .task:hover,
+[data-theme="dark"] .card:hover,
+[data-theme="dark"] .notice-content:hover {
+  background-color: var(--color-bg-hover) !important;
+}
+
+/* Header and navigation */
+[data-theme="dark"] .header,
+[data-theme="dark"] .header-wrapper,
+[data-theme="dark"] header {
+  background-color: var(--color-bg-primary) !important;
+}
+
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .profile-dropdown .dropdown-menu {
+  background-color: var(--color-bg-card) !important;
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .dropdown-header {
+  background-color: var(--color-bg-tertiary) !important;
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+  background-color: var(--color-bg-hover) !important;
+}
+
+[data-theme="dark"] .dropdown-divider {
+  background-color: var(--color-border-default) !important;
+}
+
+/* Page content wrappers */
+[data-theme="dark"] .content-wrapper,
+[data-theme="dark"] .container,
+[data-theme="dark"] .page-content {
+  background-color: var(--color-bg-primary);
+}
+
+/* Input fields */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: var(--color-input-bg) !important;
+  border-color: var(--color-input-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+/* Buttons - default style */
+[data-theme="dark"] button:not(.primary-button):not(.auth-button) {
+  color: var(--color-text-primary);
+}
+
+/* Links */
+[data-theme="dark"] a {
+  color: var(--color-link);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--color-link-hover);
+}
+
+/* Text colors */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] span:not(.task-title):not(.check-mark) {
+  color: inherit;
+}
+
+/* Secondary text */
+[data-theme="dark"] .text-secondary,
+[data-theme="dark"] .task-subtitle,
+[data-theme="dark"] .dropdown-email,
+[data-theme="dark"] .notice-description {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Muted text */
+[data-theme="dark"] .text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+/* Icons in dark mode */
+[data-theme="dark"] svg {
+  color: currentColor;
+}
+
+/* Menu component */
+[data-theme="dark"] .menu-overlay {
+  background-color: var(--color-overlay);
+}
+
+[data-theme="dark"] .menu-content {
+  background-color: var(--color-bg-secondary) !important;
+}
+
+[data-theme="dark"] .menu-item {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .menu-item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* Dividers */
+[data-theme="dark"] hr,
+[data-theme="dark"] .divider {
+  border-color: var(--color-border-default);
+}
+
+/* Scrollbar for dark mode */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--color-bg-tertiary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--color-border-dark);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

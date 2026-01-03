@@ -3,6 +3,26 @@
  * Theme tokens are defined in themes.css (SSOT)
  */
 
+:root {
+  /* Primary colors - used by components */
+  --primary-color: #4B9F7E;
+  --primary-light: #F2F8F6;
+  --primary-dark: #3B7E63;
+  --text-primary: #2a1111;
+  --text-secondary: #666666;
+  --background-color: #faf8f6;
+  --text-color: #333;
+}
+
+/* Dark mode overrides for legacy variables */
+[data-theme="dark"] {
+  --primary-light: #1a3a2a;
+  --text-primary: #e5e5e5;
+  --text-secondary: #a3a3a3;
+  --background-color: #121212;
+  --text-color: #e5e5e5;
+}
+
 * {
   margin: 0;
   padding: 0;

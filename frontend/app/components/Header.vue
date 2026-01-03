@@ -129,6 +129,31 @@
             </ClientOnly>
           </template>
         </div>
+        <!-- Theme Toggle Button -->
+        <ClientOnly>
+          <button
+            class="theme-toggle-button"
+            @click="toggleTheme"
+            :title="currentTheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'"
+          >
+            <!-- Sun icon (shown in dark mode) -->
+            <svg v-if="currentTheme === 'dark'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <!-- Moon icon (shown in light mode) -->
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+        </ClientOnly>
         <button class="menu-button" @click="isMenuOpen = true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M4 6H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -144,17 +169,31 @@
 
 <script setup>
 import { useAuthStore } from '@/stores/auth'
+import { useReadingSettingsStore } from '@/stores/readingSettings'
 import { useRouter, useRoute } from 'vue-router'
 import { computed, ref, inject, onMounted, onUnmounted } from 'vue'
 import Menu from '~/components/Menu.vue'
 
 const authStore = useAuthStore()
+const readingSettingsStore = useReadingSettingsStore()
 const router = useRouter()
 const route = useRoute()
 const isMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
 const profileDropdown = ref(null)
 const toast = inject('toast')
+
+// Theme
+const currentTheme = computed(() => readingSettingsStore.effectiveTheme)
+const toggleTheme = () => {
+  const newTheme = currentTheme.value === 'dark' ? 'light' : 'dark'
+  readingSettingsStore.updateSetting('theme', newTheme)
+}
+
+// Initialize theme on mount
+onMounted(() => {
+  readingSettingsStore.initialize()
+})
 
 const user = computed(() => authStore.user)
 const isAuthenticated = computed(() => authStore.isAuthenticated)
@@ -292,6 +331,30 @@ onUnmounted(() => {
   height: 24px;
 }
 
+/* Theme Toggle Button */
+.theme-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--theme-bg-hover, #f3f4f6);
+  color: var(--theme-text, #1f2937);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-button:hover {
+  background: var(--theme-border, #e5e7eb);
+  transform: scale(1.05);
+}
+
+.theme-toggle-button:active {
+  transform: scale(0.95);
+}
+
 .profile-dropdown {
   position: relative;
 }
@@ -320,17 +383,17 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   width: 220px;
-  background: white;
+  background: var(--theme-card-bg, white);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 12px var(--theme-shadow, rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--theme-border, #E5E7EB);
   z-index: 100;
   overflow: hidden;
 }
 
 .dropdown-header {
   padding: 12px 16px;
-  background: #F9FAFB;
+  background: var(--theme-bg-hover, #F9FAFB);
 }
 
 .dropdown-nickname {
@@ -347,7 +410,7 @@ onUnmounted(() => {
 
 .dropdown-divider {
   height: 1px;
-  background: #E5E7EB;
+  background: var(--theme-border, #E5E7EB);
   margin: 0;
 }
 
@@ -368,7 +431,7 @@ onUnmounted(() => {
 }
 
 .dropdown-item:hover {
-  background: #F3F4F6;
+  background: var(--theme-bg-hover, #F3F4F6);
 }
 
 .dropdown-item.text-red {
