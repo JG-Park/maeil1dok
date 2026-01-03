@@ -16,18 +16,19 @@
 
           <!-- Preview Area -->
           <div class="settings-preview" :style="previewStyles">
+            <h4 class="preview-title">예수의 계보</h4>
             <div class="preview-verses">
               <p class="preview-text">
                 <span class="verse-number">1</span>
-                <span class="verse-text">태초에 하나님이 천지를 창조하시니라</span>
+                <span class="verse-text"><span class="bible-name">아브라함</span>의 자손이요 <span class="bible-name">다윗</span>의 자손인 <span class="bible-name">예수 그리스도</span>의 계보는 이러하다.</span>
               </p>
               <p class="preview-text">
                 <span class="verse-number">2</span>
-                <span class="verse-text">땅이 혼돈하고 공허하며 흑암이 깊음 위에 있고</span>
+                <span class="verse-text"><span class="bible-name">아브라함</span>은 <span class="bible-name">이삭</span>을 낳고, <span class="bible-name">이삭</span>은 <span class="bible-name">야곱</span>을 낳고,</span>
               </p>
               <p class="preview-text">
                 <span class="verse-number">3</span>
-                <span class="verse-text">하나님이 이르시되 빛이 있으라 하시니 빛이 있었고</span>
+                <span class="verse-text"><span class="bible-name">야곱</span>은 <span class="bible-area">유다</span>와 그의 형제들을 낳고,</span>
               </p>
             </div>
           </div>
@@ -454,6 +455,14 @@ function close() {
   border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
+.preview-title {
+  color: var(--section-title-color, #5a6e54);
+  font-size: 0.9em;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  text-align: center;
+}
+
 .preview-verses {
   display: flex;
   flex-direction: column;
@@ -480,6 +489,15 @@ function close() {
 
 .preview-text .verse-text {
   flex: 1;
+}
+
+/* 인명/지명 강조 */
+.preview-text .bible-name {
+  color: var(--highlight-name-color, #7c5a3c);
+}
+
+.preview-text .bible-area {
+  color: var(--highlight-place-color, #5a6e54);
 }
 
 .settings-body {

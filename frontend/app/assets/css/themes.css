@@ -107,7 +107,7 @@
   --bible-bg: #faf8f6;
   --bible-text: #2a1111;
   --verse-number-color: #999999;
-  --section-title-color: #4B9F7E;
+  --section-title-color: #4a5d4a;  /* 올리브 계열로 변경 */
   --cross-ref-color: #666666;
   --footnote-color: #3b82f6;
   --description-color: #6b7280;
@@ -232,7 +232,7 @@
   --bible-bg: #1a1a1a;
   --bible-text: #e0e0e0;
   --verse-number-color: #666666;
-  --section-title-color: #6bc99f;
+  --section-title-color: #8ba888;  /* 다크모드용 밝은 올리브 */
   --cross-ref-color: #a0a0a0;
   --footnote-color: #60a5fa;
   --description-color: #9ca3af;
