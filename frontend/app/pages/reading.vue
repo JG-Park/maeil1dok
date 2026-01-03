@@ -3708,12 +3708,13 @@ onUnmounted(() => {
 }
 
 .bible-content {
-  font-size: 1rem;
-  line-height: 1.8;
+  font-size: var(--reading-font-size, 1rem);
+  line-height: var(--reading-line-height, 1.8);
   letter-spacing: -0.04em;
   color: var(--text-primary);
-  font-family: "RIDIBatang", serif;
-  font-weight: normal;
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
+  font-weight: var(--reading-font-weight, normal);
+  text-align: var(--reading-text-align, left);
   touch-action: pan-x pan-y;
 }
 
@@ -3724,11 +3725,11 @@ onUnmounted(() => {
 }
 
 :deep(.verse) {
-  font-family: "RIDIBatang", serif;
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: flex-start;
-  font-weight: normal;
+  font-weight: var(--reading-font-weight, normal);
   letter-spacing: -0.02em;
   transition: background-color 0.3s ease-in-out;
 }
@@ -3739,11 +3740,11 @@ onUnmounted(() => {
 }
 
 :deep(.verse-line) {
-  font-family: "RIDIBatang", serif;
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
   display: flex;
   align-items: flex-start;
-  line-height: 1.8;
-  font-weight: normal;
+  line-height: var(--reading-line-height, 1.8);
+  font-weight: var(--reading-font-weight, normal);
   letter-spacing: -0.02em;
   transition: background-color 0.3s ease-in-out;
 }
@@ -5481,11 +5482,13 @@ onUnmounted(() => {
 }
 
 :deep(.bible-content) {
-  font-family: var(--font-family);
-  line-height: 1.8;
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
+  line-height: var(--reading-line-height, 1.8);
   word-break: keep-all;
   overflow-wrap: break-word;
-  font-size: 16px;
+  font-size: var(--reading-font-size, 16px);
+  font-weight: var(--reading-font-weight, normal);
+  text-align: var(--reading-text-align, left);
   min-height: 0vw;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
