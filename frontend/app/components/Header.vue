@@ -259,6 +259,12 @@ onUnmounted(() => {
   height: 20px;
   width: auto;
   margin-left: 5px;
+  transition: filter 0.2s ease;
+}
+
+/* 다크모드에서 로고 반전 */
+[data-theme="dark"] .logo {
+  filter: brightness(0) invert(1);
 }
 
 .header-controls {
@@ -340,14 +346,14 @@ onUnmounted(() => {
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: var(--theme-bg-hover, #f3f4f6);
-  color: var(--theme-text, #1f2937);
+  background: var(--color-slate-100);
+  color: var(--color-slate-700);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .theme-toggle-button:hover {
-  background: var(--theme-border, #e5e7eb);
+  background: var(--color-slate-200);
   transform: scale(1.05);
 }
 
@@ -383,17 +389,17 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   width: 220px;
-  background: var(--theme-card-bg, white);
+  background: var(--color-bg-card);
   border-radius: 8px;
-  box-shadow: 0 4px 12px var(--theme-shadow, rgba(0, 0, 0, 0.15));
-  border: 1px solid var(--theme-border, #E5E7EB);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-slate-200);
   z-index: 100;
   overflow: hidden;
 }
 
 .dropdown-header {
   padding: 12px 16px;
-  background: var(--theme-bg-hover, #F9FAFB);
+  background: var(--color-slate-50);
 }
 
 .dropdown-nickname {
@@ -410,7 +416,7 @@ onUnmounted(() => {
 
 .dropdown-divider {
   height: 1px;
-  background: var(--theme-border, #E5E7EB);
+  background: var(--color-slate-200);
   margin: 0;
 }
 
@@ -431,7 +437,7 @@ onUnmounted(() => {
 }
 
 .dropdown-item:hover {
-  background: var(--theme-bg-hover, #F3F4F6);
+  background: var(--color-slate-100);
 }
 
 .dropdown-item.text-red {
@@ -439,7 +445,7 @@ onUnmounted(() => {
 }
 
 .dropdown-item.text-red:hover {
-  background: #FEF2F2;
+  background: var(--color-slate-100);
 }
 
 /* 드롭다운 애니메이션 */

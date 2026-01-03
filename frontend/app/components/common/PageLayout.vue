@@ -59,7 +59,7 @@ defineProps({
   position: sticky;
   top: 0;
   z-index: 10;
-  background: white;
+  background: var(--color-bg-card);
 }
 
 .scroll-area {

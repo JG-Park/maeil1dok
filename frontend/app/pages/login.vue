@@ -163,6 +163,12 @@ const handleKakaoLogin = () => {
   width: auto;
   object-fit: contain;
   margin: 0 auto;
+  transition: filter 0.2s ease;
+}
+
+/* 다크모드에서 로고 반전 */
+[data-theme="dark"] .logo {
+  filter: brightness(0) invert(1);
 }
 
 .kakao-button {

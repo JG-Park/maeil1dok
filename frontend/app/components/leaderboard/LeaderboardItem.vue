@@ -108,7 +108,7 @@ tr {
 }
 
 tr:hover {
-  background: var(--gray-50);
+  background: var(--color-slate-50);
 }
 
 .highlight-row {
@@ -127,8 +127,8 @@ tr:hover {
   min-width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--gray-100);
-  color: var(--text-secondary);
+  background: var(--color-slate-100);
+  color: var(--color-slate-600);
   font-size: 0.875rem;
 }
 
@@ -165,18 +165,18 @@ tr:hover {
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--gray-200);
+  border: 2px solid var(--color-slate-200);
 }
 
 .user-avatar-placeholder {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 2px solid var(--gray-200);
+  border: 2px solid var(--color-slate-200);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-light);
+  background: var(--color-slate-100);
   color: var(--primary-color);
   font-size: 1rem;
   flex-shrink: 0;
@@ -230,7 +230,7 @@ tr:hover {
 .progress-bar {
   width: 80px;
   height: 6px;
-  background: var(--gray-200);
+  background: var(--color-slate-200);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -262,8 +262,8 @@ tr:hover {
 }
 
 .streak.longest {
-  background: var(--gray-100);
-  color: var(--text-secondary);
+  background: var(--color-slate-100);
+  color: var(--color-slate-600);
 }
 
 @media (max-width: 768px) {

@@ -332,7 +332,7 @@ onUnmounted(() => {
 .rank-1 {
   order: 2;
   border-color: #FEF3C7;
-  background: linear-gradient(to bottom, #FFFBEB, #FFFFFF);
+  background: linear-gradient(to bottom, #FFFBEB, var(--color-bg-card));
   transform: scale(1.05);
   z-index: 1;
 }
@@ -362,20 +362,20 @@ onUnmounted(() => {
   height: 3.5rem;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .top-avatar-placeholder {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-light, #E8F4FD);
+  background: var(--color-slate-100);
   color: var(--primary-color, #3B82F6);
   font-size: 1.25rem;
 }

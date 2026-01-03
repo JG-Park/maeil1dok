@@ -106,7 +106,7 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
   position: sticky;
   top: 0;
   z-index: 10;
-  background: white;
+  background: var(--color-bg-card);
 }
 
 .header {
@@ -116,7 +116,7 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   height: 50px;
 }
 
@@ -155,9 +155,9 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
 
 .edit-mode-button {
   padding: 0.25rem 0.75rem;
-  background: #F1F5F9;
-  color: #64748B;
-  border: 1px solid #CBD5E1;
+  background: var(--color-slate-100);
+  color: var(--color-slate-500);
+  border: 1px solid var(--color-slate-300);
   border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 500;
@@ -165,14 +165,14 @@ const handleRangeSelect = async ({ action, startSchedule, endSchedule, scheduleI
 }
 
 .edit-mode-button:hover {
-  background: #E2E8F0;
-  color: #475569;
+  background: var(--color-slate-200);
+  color: var(--color-slate-600);
 }
 
 .edit-mode-button:active,
 .edit-mode-button.active {
-  background: #CBD5E1;
-  color: #334155;
+  background: var(--color-slate-300);
+  color: var(--color-slate-700);
 }
 
 :root {

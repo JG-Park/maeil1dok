@@ -90,8 +90,8 @@ const isActive = (path) => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-card);
+  border-top: 1px solid var(--color-slate-200);
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom);
   display: block;
