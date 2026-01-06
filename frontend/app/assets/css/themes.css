@@ -316,6 +316,7 @@
 .bible-content.verse-joining .verse-group,
 .bible-content.verse-joining .verse {
   display: inline;
+  padding: 0;
 }
 
 .bible-content.verse-joining .verse-number {
