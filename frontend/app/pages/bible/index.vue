@@ -17,6 +17,10 @@
       </button>
 
       <div class="header-actions">
+        <BookmarkButton
+          :is-bookmarked="isCurrentChapterBookmarked"
+          @toggle="handleBookmarkToggle"
+        />
         <button class="version-button" @click="showVersionSelector = true">
           {{ currentVersionName }}
         </button>
@@ -161,6 +165,7 @@ import { useBibleFetch } from '~/composables/useBibleFetch';
 import { useTongdokMode } from '~/composables/useTongdokMode';
 import { usePersonalRecord } from '~/composables/usePersonalRecord';
 import { useReadingPosition } from '~/composables/useReadingPosition';
+import { useBookmark } from '~/composables/useBookmark';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useToast } from '~/composables/useToast';
@@ -168,6 +173,7 @@ import BookSelector from '~/components/bible/BookSelector.vue';
 import VersionSelector from '~/components/bible/VersionSelector.vue';
 import BibleViewer from '~/components/bible/BibleViewer.vue';
 import TongdokCompleteModal from '~/components/bible/TongdokCompleteModal.vue';
+import BookmarkButton from '~/components/bible/BookmarkButton.vue';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -208,6 +214,13 @@ const {
   saveReadingPosition,
   cleanup: cleanupReadingPosition
 } = useReadingPosition();
+const {
+  currentBookmarks,
+  isBookmarkLoading,
+  loadBookmarks,
+  isChapterBookmarked,
+  toggleChapterBookmark
+} = useBookmark();
 
 // 상태
 const currentBook = ref('gen');
@@ -268,6 +281,11 @@ const isCurrentChapterRead = computed(() =>
 );
 const currentBookProgress = computed(() =>
   getBookProgress(currentBook.value, maxChapters.value)
+);
+
+// 북마크 관련
+const isCurrentChapterBookmarked = computed(() =>
+  isChapterBookmarked(currentBook.value, currentChapter.value)
 );
 
 // 쿼리 파라미터에서 초기값 설정
@@ -582,6 +600,33 @@ const handleMarkAsRead = async () => {
 const handleExitTongdok = () => {
   disableTongdokMode();
   toast.info('통독모드를 종료했습니다');
+};
+
+// 북마크: 토글 핸들러
+const handleBookmarkToggle = async () => {
+  if (!authStore.isAuthenticated) {
+    toast.info('로그인이 필요합니다');
+    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
+    return;
+  }
+
+  try {
+    const result = await toggleChapterBookmark(
+      currentBook.value,
+      currentChapter.value,
+      currentBookName.value
+    );
+
+    if (result.success) {
+      if (result.added) {
+        toast.success('북마크에 추가되었습니다');
+      } else {
+        toast.info('북마크가 삭제되었습니다');
+      }
+    }
+  } catch (error) {
+    toast.error('북마크 처리에 실패했습니다');
+  }
 };
 
 // 통독모드: 완료 처리 핸들러

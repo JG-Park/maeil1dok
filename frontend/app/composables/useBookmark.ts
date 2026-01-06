@@ -3,17 +3,23 @@
  *
  * 북마크 CRUD 기능 제공
  */
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, type Ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { useApi } from './useApi';
 
 export interface Bookmark {
   id: number;
   bookmark_type: 'chapter' | 'verse';
   book: string;
+  book_name?: string;
   chapter: number;
-  verse?: number;
+  start_verse?: number;
+  end_verse?: number;
   title: string;
+  color?: string;
+  memo?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export const useBookmark = () => {
@@ -32,7 +38,7 @@ export const useBookmark = () => {
 
     try {
       isBookmarkLoading.value = true;
-      const response = await api.get('/api/v1/bible/bookmarks/by_chapter/', {
+      const response = await api.get('/api/v1/todos/bible/bookmarks/by_chapter/', {
         params: { book, chapter }
       });
       currentBookmarks.value = response.data || [];
@@ -69,7 +75,7 @@ export const useBookmark = () => {
 
     try {
       isBookmarkLoading.value = true;
-      await api.post('/api/v1/bible/bookmarks/', {
+      await api.post('/api/v1/todos/bible/bookmarks/', {
         bookmark_type: bookmarkType,
         book,
         chapter,
@@ -94,7 +100,7 @@ export const useBookmark = () => {
 
     try {
       isBookmarkLoading.value = true;
-      await api.delete(`/api/v1/bible/bookmarks/${bookmarkId}/`);
+      await api.delete(`/api/v1/todos/bible/bookmarks/${bookmarkId}/`);
       await loadBookmarks(book, chapter);
       return true;
     } catch (error) {
@@ -140,7 +146,7 @@ export const useBookmark = () => {
     if (!authStore.isAuthenticated) return [];
 
     try {
-      const response = await api.get('/api/v1/bible/bookmarks/');
+      const response = await api.get('/api/v1/todos/bible/bookmarks/');
       return response.data || [];
     } catch (error) {
       console.error('전체 북마크 불러오기 실패:', error);
