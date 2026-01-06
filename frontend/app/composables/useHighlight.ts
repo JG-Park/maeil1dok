@@ -6,19 +6,10 @@
 import { ref, type Ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useApi } from './useApi';
+import type { Highlight } from '~/types/bible';
 
-export interface Highlight {
-  id: number;
-  book: string;
-  book_name?: string;
-  chapter: number;
-  start_verse: number;
-  end_verse: number;
-  color: string;
-  memo?: string;
-  created_at: string;
-  updated_at?: string;
-}
+// Re-export for backward compatibility
+export type { Highlight } from '~/types/bible';
 
 // 기본 색상 팔레트
 export const DEFAULT_HIGHLIGHT_COLORS = [

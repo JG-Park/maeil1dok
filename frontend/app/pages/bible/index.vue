@@ -151,6 +151,9 @@ import ReadingSettingsModal from '~/components/ReadingSettingsModal.vue';
 // 기타
 import Toast from '~/components/Toast.vue';
 
+// 타입
+import type { VerseSelection } from '~/types/bible';
+
 definePageMeta({
   layout: 'default'
 });
@@ -365,12 +368,6 @@ const scrollToTop = () => {
 const handleScrollPosition = (position: number) => {
   scrollPosition.value = position;
 };
-
-interface VerseSelection {
-  start: number;
-  end: number;
-  text: string;
-}
 
 const handleBookmarkAction = (_verses: VerseSelection) => {
   // 북마크 기능: 현재 장 단위 북마크만 지원, 절 단위는 추후 구현 예정

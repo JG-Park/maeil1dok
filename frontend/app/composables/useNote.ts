@@ -6,19 +6,10 @@
 import { ref, type Ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useApi } from './useApi';
+import type { Note } from '~/types/bible';
 
-export interface Note {
-  id: number;
-  book: string;
-  book_name?: string;
-  chapter: number;
-  start_verse?: number;
-  end_verse?: number;
-  content: string;
-  is_private: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// Re-export for backward compatibility
+export type { Note } from '~/types/bible';
 
 export const useNote = () => {
   const authStore = useAuthStore();

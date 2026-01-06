@@ -23,11 +23,10 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue';
 import { useRouter, useRoute, type LocationQuery } from 'vue-router';
 import { useBibleData } from '~/composables/useBibleData';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
+import type { ViewMode } from '~/types/bible';
 
-/**
- * View mode 타입
- */
-export type ViewMode = 'reader' | 'home' | 'toc';
+// Re-export for backward compatibility
+export type { ViewMode } from '~/types/bible';
 
 /**
  * useBiblePageState 반환 타입

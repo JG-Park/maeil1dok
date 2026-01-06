@@ -6,21 +6,10 @@
 import { ref, type Ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useApi } from './useApi';
+import type { Bookmark } from '~/types/bible';
 
-export interface Bookmark {
-  id: number;
-  bookmark_type: 'chapter' | 'verse';
-  book: string;
-  book_name?: string;
-  chapter: number;
-  start_verse?: number;
-  end_verse?: number;
-  title: string;
-  color?: string;
-  memo?: string;
-  created_at: string;
-  updated_at?: string;
-}
+// Re-export for backward compatibility
+export type { Bookmark } from '~/types/bible';
 
 export const useBookmark = () => {
   const authStore = useAuthStore();

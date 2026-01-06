@@ -117,6 +117,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useApi } from '~/composables/useApi';
 import { useBibleData } from '~/composables/useBibleData';
+import type { ReadingStats } from '~/types/bible';
 
 definePageMeta({
   layout: 'default'
@@ -128,15 +129,7 @@ const { bibleBooks, allBooks } = useBibleData();
 
 const isLoading = ref(true);
 
-interface Stats {
-  total_chapters_read: number;
-  books_read: number;
-  books_completed: number;
-  current_streak: number;
-  books_progress: Record<string, { read: number; total: number }>;
-}
-
-const stats = ref<Stats>({
+const stats = ref<ReadingStats>({
   total_chapters_read: 0,
   books_read: 0,
   books_completed: 0,

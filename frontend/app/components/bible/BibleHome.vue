@@ -82,6 +82,7 @@ import { useRouter } from 'vue-router';
 import { useApi } from '~/composables/useApi';
 import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useBibleData } from '~/composables/useBibleData';
+import type { BiblePosition, RecentRecord } from '~/types/bible';
 
 const router = useRouter();
 const api = useApi();
@@ -94,20 +95,7 @@ const emit = defineEmits<{
   (e: 'show-toc'): void;
 }>();
 
-interface LastPosition {
-  book: string;
-  chapter: number;
-  book_name: string;
-}
-
-interface RecentRecord {
-  book: string;
-  chapter: number;
-  book_name: string;
-  read_date: string;
-}
-
-const lastPosition = ref<LastPosition | null>(null);
+const lastPosition = ref<BiblePosition | null>(null);
 const bookmarkCount = ref(0);
 const noteCount = ref(0);
 const highlightCount = ref(0);
