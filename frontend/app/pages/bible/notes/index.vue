@@ -12,12 +12,12 @@
       <select v-model="filterBook" class="filter-select">
         <option value="">전체</option>
         <optgroup label="구약">
-          <option v-for="book in bibleBooks.old" :key="book.id" :value="book.id">
+          <option v-for="book in BIBLE_BOOKS.old" :key="book.id" :value="book.id">
             {{ book.name }}
           </option>
         </optgroup>
         <optgroup label="신약">
-          <option v-for="book in bibleBooks.new" :key="book.id" :value="book.id">
+          <option v-for="book in BIBLE_BOOKS.new" :key="book.id" :value="book.id">
             {{ book.name }}
           </option>
         </optgroup>
@@ -84,10 +84,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useNote, type Note } from '~/composables/useNote';
+import { useNote } from '~/composables/useNote';
 import { useBibleData, BIBLE_BOOKS } from '~/composables/useBibleData';
 import { useAuthStore } from '~/stores/auth';
+import { useTextUtils } from '~/composables/useTextUtils';
 import Toast from '~/components/Toast.vue';
+import type { Note } from '~/types/bible';
 
 definePageMeta({
   layout: 'default'
@@ -97,8 +99,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { notes, isNoteLoading: isLoading, fetchNotes } = useNote();
 const { getBookName } = useBibleData();
+const { truncate } = useTextUtils();
 
-const bibleBooks = BIBLE_BOOKS;
 const filterBook = ref('');
 
 onMounted(async () => {
@@ -117,12 +119,6 @@ const goToNote = (id: number) => {
 };
 
 const { formatRelativeDate } = useDateFormat();
-
-const truncate = (text: string, length: number): string => {
-  if (!text) return '';
-  if (text.length <= length) return text;
-  return text.substring(0, length) + '...';
-};
 </script>
 
 <style scoped>

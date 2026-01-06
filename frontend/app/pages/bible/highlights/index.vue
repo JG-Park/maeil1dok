@@ -1,107 +1,94 @@
 <template>
-  <div class="highlights-page">
-    <header class="page-header">
-      <button class="back-btn" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <h1>하이라이트</h1>
-    </header>
+  <BibleSubpageLayout
+    title="하이라이트"
+    :loading="isLoading"
+    loading-text="하이라이트를 불러오는 중..."
+    :empty="isEmpty"
+    :empty-text="emptyText"
+    :empty-hint="emptyHint"
+  >
+    <!-- 빈 상태 아이콘 -->
+    <template #empty-icon>
+      <LayersIcon :size="48" />
+    </template>
+
+    <!-- 빈 상태 액션 -->
+    <template #empty-action>
+      <NuxtLink v-if="!authStore.isAuthenticated" to="/login" class="bible-login-btn">로그인</NuxtLink>
+    </template>
 
     <!-- 필터 -->
-    <div class="filter-bar">
-      <div class="filter-row">
-        <select v-model="filterBook" class="filter-select">
-          <option value="">전체</option>
-          <optgroup label="구약">
-            <option v-for="book in bibleBooks.old" :key="book.id" :value="book.id">
-              {{ book.name }}
+    <template #filter>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <select v-model="filterBook" class="filter-select">
+            <option value="">전체</option>
+            <optgroup label="구약">
+              <option v-for="book in BIBLE_BOOKS.old" :key="book.id" :value="book.id">
+                {{ book.name }}
+              </option>
+            </optgroup>
+            <optgroup label="신약">
+              <option v-for="book in BIBLE_BOOKS.new" :key="book.id" :value="book.id">
+                {{ book.name }}
+              </option>
+            </optgroup>
+          </select>
+          <select v-model="filterColor" class="filter-select color-filter">
+            <option value="">모든 색상</option>
+            <option v-for="color in DEFAULT_HIGHLIGHT_COLORS" :key="color.value" :value="color.value">
+              {{ color.name }}
             </option>
-          </optgroup>
-          <optgroup label="신약">
-            <option v-for="book in bibleBooks.new" :key="book.id" :value="book.id">
-              {{ book.name }}
-            </option>
-          </optgroup>
-        </select>
-        <select v-model="filterColor" class="filter-select color-filter">
-          <option value="">모든 색상</option>
-          <option v-for="color in DEFAULT_HIGHLIGHT_COLORS" :key="color.value" :value="color.value">
-            {{ color.name }}
-          </option>
-        </select>
+          </select>
+        </div>
       </div>
-    </div>
-
-    <!-- 로딩 -->
-    <LoadingSpinner v-if="isLoading" text="하이라이트를 불러오는 중..." fullscreen />
-
-    <!-- 로그인 필요 -->
-    <EmptyState
-      v-else-if="!authStore.isAuthenticated"
-      text="로그인 후 하이라이트를 확인할 수 있습니다"
-      fullscreen
-    >
-      <template #icon>
-        <HighlightIcon :size="48" />
-      </template>
-      <template #action>
-        <NuxtLink to="/login" class="login-btn">로그인</NuxtLink>
-      </template>
-    </EmptyState>
-
-    <!-- 빈 상태 -->
-    <EmptyState
-      v-else-if="filteredHighlights.length === 0"
-      :text="filterBook || filterColor ? '해당 조건의 하이라이트가 없습니다' : '하이라이트가 없습니다'"
-      hint="성경을 읽으며 중요한 구절을 하이라이트해보세요"
-      fullscreen
-    >
-      <template #icon>
-        <HighlightIcon :size="48" />
-      </template>
-    </EmptyState>
+    </template>
 
     <!-- 하이라이트 목록 -->
-    <ul v-else class="highlight-list">
+    <ul class="highlight-list">
       <li
         v-for="highlight in filteredHighlights"
         :key="highlight.id"
         class="highlight-item"
         @click="goToHighlight(highlight)"
       >
-        <div class="highlight-header">
-          <span class="highlight-location">
-            <span class="color-dot" :style="{ background: highlight.color }"></span>
-            {{ highlight.book_name || getBookName(highlight.book) }} {{ highlight.chapter }}:{{ highlight.start_verse }}<template v-if="highlight.end_verse !== highlight.start_verse">-{{ highlight.end_verse }}</template>
-          </span>
-          <span class="highlight-date">{{ formatRelativeDate(highlight.created_at) }}</span>
+        <div class="highlight-color" :style="{ background: highlight.color }"></div>
+        <div class="highlight-content">
+          <div class="highlight-location">
+            {{ highlight.book_name || getBookName(highlight.book) }}
+            {{ formatVerseRange(highlight) }}
+          </div>
+          <p v-if="highlight.memo" class="highlight-memo">
+            {{ truncate(highlight.memo, 100) }}
+          </p>
+          <div class="highlight-date">
+            {{ formatRelativeDate(highlight.created_at) }}
+          </div>
         </div>
-        <p v-if="highlight.memo" class="highlight-memo">{{ truncate(highlight.memo, 100) }}</p>
-        <div class="highlight-actions">
-          <button class="action-btn delete" @click.stop="handleDelete(highlight)" title="삭제">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
+        <button class="delete-btn" @click.stop="handleDelete(highlight)" title="삭제">
+          <TrashIcon :size="18" />
+        </button>
       </li>
     </ul>
 
+    <!-- 토스트 -->
     <Toast />
-  </div>
+  </BibleSubpageLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useHighlight, DEFAULT_HIGHLIGHT_COLORS, type Highlight } from '~/composables/useHighlight';
+import { useHighlight, DEFAULT_HIGHLIGHT_COLORS } from '~/composables/useHighlight';
 import { useBibleData, BIBLE_BOOKS } from '~/composables/useBibleData';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { useModal } from '~/composables/useModal';
+import { useErrorHandler } from '~/composables/useErrorHandler';
+import { useTextUtils } from '~/composables/useTextUtils';
 import Toast from '~/components/Toast.vue';
+import BibleSubpageLayout from '~/components/bible/BibleSubpageLayout.vue';
+import type { Highlight } from '~/types/bible';
 
 definePageMeta({
   layout: 'default'
@@ -111,12 +98,28 @@ const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
 const modal = useModal();
+const { handleApiError } = useErrorHandler();
 const { highlights, isHighlightLoading: isLoading, fetchHighlights, deleteHighlight } = useHighlight();
 const { getBookName } = useBibleData();
+const { formatRelativeDate } = useDateFormat();
+const { truncate } = useTextUtils();
 
-const bibleBooks = BIBLE_BOOKS;
 const filterBook = ref('');
 const filterColor = ref('');
+
+// 빈 상태 계산
+const isEmpty = computed(() => !authStore.isAuthenticated || filteredHighlights.value.length === 0);
+const emptyText = computed(() => {
+  if (!authStore.isAuthenticated) {
+    return '로그인 후 하이라이트를 확인할 수 있습니다';
+  }
+  return filterBook.value || filterColor.value
+    ? '해당 조건의 하이라이트가 없습니다'
+    : '하이라이트가 없습니다';
+});
+const emptyHint = computed(() =>
+  authStore.isAuthenticated ? '성경을 읽으며 중요한 구절을 하이라이트해보세요' : ''
+);
 
 onMounted(async () => {
   if (authStore.isAuthenticated) {
@@ -134,6 +137,13 @@ const filteredHighlights = computed(() => {
   }
   return result;
 });
+
+const formatVerseRange = (highlight: Highlight): string => {
+  if (highlight.start_verse === highlight.end_verse) {
+    return `${highlight.chapter}:${highlight.start_verse}`;
+  }
+  return `${highlight.chapter}:${highlight.start_verse}-${highlight.end_verse}`;
+};
 
 const goToHighlight = (highlight: Highlight) => {
   router.push({
@@ -165,60 +175,16 @@ const handleDelete = async (highlight: Highlight) => {
       toast.error('삭제에 실패했습니다');
     }
   } catch (error) {
-    toast.error('삭제에 실패했습니다');
+    handleApiError(error, '하이라이트 삭제');
   }
-};
-
-const { formatRelativeDate } = useDateFormat();
-
-const truncate = (text: string, length: number): string => {
-  if (!text) return '';
-  if (text.length <= length) return text;
-  return text.substring(0, length) + '...';
 };
 </script>
 
 <style scoped>
-.highlights-page {
-  max-width: 768px;
-  margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--color-bg-primary, #f9fafb);
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.back-btn {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary, #1f2937);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: none;
-}
-
-.back-btn:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-}
-
-.page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
+/*
+ * Highlights Page specific styles
+ * 공통 스타일은 bible-page.css에서 관리됨
+ */
 
 /* 필터 */
 .filter-bar {
@@ -253,23 +219,6 @@ const truncate = (text: string, length: number): string => {
   min-width: 100px;
 }
 
-/* 로그인 버튼 */
-.login-btn {
-  margin-top: 1rem;
-  padding: 0.625rem 1.25rem;
-  background: var(--primary-color, #6366f1);
-  color: white;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.2s;
-}
-
-.login-btn:hover {
-  background: var(--primary-dark, #4f46e5);
-}
-
 /* 하이라이트 목록 */
 .highlight-list {
   list-style: none;
@@ -278,6 +227,9 @@ const truncate = (text: string, length: number): string => {
 }
 
 .highlight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
   padding: 1rem;
   background: var(--color-bg-card, #fff);
   border-bottom: 1px solid var(--color-border, #e5e7eb);
@@ -293,27 +245,36 @@ const truncate = (text: string, length: number): string => {
   border-bottom: none;
 }
 
-.highlight-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+.highlight-color {
+  width: 4px;
+  min-height: 40px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.highlight-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .highlight-location {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary, #1f2937);
+  margin-bottom: 0.25rem;
 }
 
-.color-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.highlight-memo {
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0.25rem 0 0.375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.5;
 }
 
 .highlight-date {
@@ -321,48 +282,24 @@ const truncate = (text: string, length: number): string => {
   color: var(--text-muted, #9ca3af);
 }
 
-.highlight-memo {
-  font-size: 0.875rem;
+.delete-btn {
+  padding: 0.5rem;
+  margin: -0.25rem;
   color: var(--text-secondary, #6b7280);
-  line-height: 1.5;
-  margin: 0 0 0.5rem;
-}
-
-.highlight-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.action-btn {
-  padding: 0.375rem;
   background: transparent;
   border: none;
-  color: var(--text-muted, #9ca3af);
-  cursor: pointer;
   border-radius: 6px;
+  cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
-.action-btn:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-  color: var(--text-secondary, #6b7280);
-}
-
-.action-btn.delete:hover {
+.delete-btn:hover {
   background: var(--color-error-light, #fef2f2);
   color: var(--color-error, #ef4444);
 }
 
 /* 다크모드 */
-:root.dark .highlights-page {
-  background: var(--color-bg-primary);
-}
-
-:root.dark .page-header {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
-}
-
 :root.dark .filter-bar {
   background: var(--color-bg-card);
   border-color: var(--color-border);
@@ -383,7 +320,7 @@ const truncate = (text: string, length: number): string => {
   background: var(--color-bg-hover);
 }
 
-:root.dark .action-btn.delete:hover {
+:root.dark .delete-btn:hover {
   background: rgba(239, 68, 68, 0.15);
 }
 </style>

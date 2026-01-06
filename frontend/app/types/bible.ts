@@ -140,3 +140,76 @@ export type ThemeMode = 'light' | 'dark' | 'system';
  * 기본 진입점
  */
 export type DefaultEntryPoint = 'last-position' | 'home' | 'toc';
+
+// ============================================
+// API Response Types
+// ============================================
+
+/**
+ * API 기본 응답 구조
+ */
+export interface ApiResponse<T> {
+  success?: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+/**
+ * 홈 통계 API 응답 (/api/v1/todos/bible/home-stats/)
+ */
+export interface HomeStatsResponse {
+  bookmarks: number;
+  notes: number;
+  highlights: number;
+  recent_records: RecentRecordRaw[];
+}
+
+/**
+ * 최근 읽기 기록 (API 원본)
+ */
+export interface RecentRecordRaw {
+  book: string;
+  chapter: number;
+  read_date: string;
+}
+
+/**
+ * 읽기 통계 API 응답 (/api/v1/todos/bible/personal-records/stats/)
+ */
+export interface ReadingStatsResponse {
+  success: boolean;
+  stats: ReadingStats;
+}
+
+/**
+ * 읽기 날짜 API 응답 (/api/v1/todos/bible/personal-records/dates/)
+ */
+export interface ReadingDatesResponse {
+  success: boolean;
+  dates: string[];
+}
+
+/**
+ * 하이라이트 목록 API 응답
+ */
+export interface HighlightsResponse {
+  success: boolean;
+  highlights: Highlight[];
+}
+
+/**
+ * 북마크 목록 API 응답
+ */
+export interface BookmarksResponse {
+  success: boolean;
+  bookmarks: Bookmark[];
+}
+
+/**
+ * 노트 목록 API 응답
+ */
+export interface NotesResponse {
+  success: boolean;
+  notes: Note[];
+}

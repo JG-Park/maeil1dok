@@ -115,7 +115,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useApi } from '~/composables/useApi';
 import { useBibleData } from '~/composables/useBibleData';
-import type { ReadingStats } from '~/types/bible';
+import { useErrorHandler } from '~/composables/useErrorHandler';
+import type { ReadingStats, ReadingStatsResponse, ReadingDatesResponse } from '~/types/bible';
 
 definePageMeta({
   layout: 'default'
@@ -123,7 +124,8 @@ definePageMeta({
 
 const router = useRouter();
 const api = useApi();
-const { bibleBooks, allBooks } = useBibleData();
+const { bibleBooks } = useBibleData();
+const { handleSilentError } = useErrorHandler();
 
 const isLoading = ref(true);
 
@@ -173,17 +175,19 @@ const filteredBooks = computed(() => {
 const loadStats = async () => {
   try {
     const response = await api.get('/api/v1/todos/bible/personal-records/stats/');
-    if (response.data?.success && response.data?.stats) {
-      stats.value = response.data.stats;
+    const statsData = response.data as ReadingStatsResponse | undefined;
+    if (statsData?.success && statsData?.stats) {
+      stats.value = statsData.stats;
     }
 
     // 읽기 날짜 로드 (캘린더용)
     const datesResponse = await api.get('/api/v1/todos/bible/personal-records/dates/');
-    if (datesResponse.data?.success && datesResponse.data?.dates) {
-      readingDates.value = datesResponse.data.dates;
+    const datesData = datesResponse.data as ReadingDatesResponse | undefined;
+    if (datesData?.success && datesData?.dates) {
+      readingDates.value = datesData.dates;
     }
   } catch (error) {
-    console.error('통계 로드 실패:', error);
+    handleSilentError(error, '읽기 통계 로드');
   } finally {
     isLoading.value = false;
   }

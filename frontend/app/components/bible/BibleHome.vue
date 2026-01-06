@@ -83,7 +83,7 @@ import { useApi } from '~/composables/useApi';
 import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useBibleData } from '~/composables/useBibleData';
 import { useErrorHandler } from '~/composables/useErrorHandler';
-import type { BiblePosition, RecentRecord } from '~/types/bible';
+import type { BiblePosition, RecentRecord, HomeStatsResponse, RecentRecordRaw } from '~/types/bible';
 
 const router = useRouter();
 const api = useApi();
@@ -117,11 +117,12 @@ onMounted(async () => {
   // 카운트 및 최근 기록 로드 (통합 API로 효율적 조회)
   try {
     const statsRes = await api.get('/api/v1/todos/bible/home-stats/');
-    if (statsRes.data) {
-      bookmarkCount.value = statsRes.data.bookmarks || 0;
-      noteCount.value = statsRes.data.notes || 0;
-      highlightCount.value = statsRes.data.highlights || 0;
-      recentRecords.value = (statsRes.data.recent_records || []).map((r: any) => ({
+    const data = statsRes.data as HomeStatsResponse | undefined;
+    if (data) {
+      bookmarkCount.value = data.bookmarks || 0;
+      noteCount.value = data.notes || 0;
+      highlightCount.value = data.highlights || 0;
+      recentRecords.value = (data.recent_records || []).map((r: RecentRecordRaw) => ({
         ...r,
         book_name: getBookName(r.book)
       }));

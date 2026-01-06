@@ -67,6 +67,7 @@ import { useNote } from '~/composables/useNote';
 import { useBibleData } from '~/composables/useBibleData';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 import { useModal } from '~/composables/useModal';
+import { TIMING, TOGGLE_SIZE } from '~/constants/bible';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -189,7 +190,7 @@ watch([editContent, isPrivate], () => {
   if (hasChanges.value && !isSaving.value) {
     saveTimeout = setTimeout(async () => {
       await handleSave();
-    }, 3000);
+    }, TIMING.AUTO_SAVE_DEBOUNCE);
   }
 });
 </script>
@@ -296,10 +297,10 @@ watch([editContent, isPrivate], () => {
 }
 
 .toggle-slider {
-  width: 40px;
-  height: 22px;
+  width: 48px;
+  height: 28px;
   background: var(--color-border, #e5e7eb);
-  border-radius: 11px;
+  border-radius: 14px;
   position: relative;
   transition: background 0.2s;
 }
@@ -307,10 +308,10 @@ watch([editContent, isPrivate], () => {
 .toggle-slider::after {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
   background: white;
   border-radius: 50%;
   transition: transform 0.2s;
@@ -322,7 +323,7 @@ watch([editContent, isPrivate], () => {
 }
 
 .private-toggle input:checked + .toggle-slider::after {
-  transform: translateX(18px);
+  transform: translateX(20px);
 }
 
 .toggle-label {

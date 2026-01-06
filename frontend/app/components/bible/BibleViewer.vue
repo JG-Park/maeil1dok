@@ -98,6 +98,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings';
+import { ACTION_MENU, TIMING } from '~/constants/bible';
 
 interface Highlight {
   id: number;
@@ -219,7 +220,7 @@ const handleScroll = () => {
       const position = maxScroll > 0 ? scrollTop / maxScroll : 0;
       emit('scroll', position);
     }
-  }, 100);
+  }, TIMING.SCROLL_THROTTLE);
 };
 
 // ====== 절 클릭 선택 기능 (reading.vue 방식) ======
@@ -356,7 +357,7 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
     showCopyMenu.value = false;
     setTimeout(() => {
       clearClickSelection();
-    }, 250);
+    }, TIMING.VERSE_RESELECT_DELAY);
     return;
   }
 
@@ -407,7 +408,7 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
       clickSelectedVerses.value = [{ number: num, text: txt }];
       highlightVerses(num, num);
       showCopyMenu.value = true;
-    }, 250);
+    }, TIMING.VERSE_RESELECT_DELAY);
   }
 };
 
@@ -492,21 +493,20 @@ const extractVerseNumbers = (range: Range): { start: number; end: number } => {
 const showActionMenuAt = (range: Range) => {
   const rect = range.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
 
   // 메뉴 위치 계산 (선택 영역 위)
-  let top = rect.top - 60;
-  let left = rect.left + rect.width / 2 - 120; // 메뉴 너비의 절반
+  let top = rect.top - ACTION_MENU.TOP_OFFSET;
+  let left = rect.left + rect.width / 2 - ACTION_MENU.HALF_WIDTH;
 
   // 화면 경계 처리
-  if (top < 10) {
-    top = rect.bottom + 10;
+  if (top < ACTION_MENU.EDGE_MARGIN) {
+    top = rect.bottom + ACTION_MENU.EDGE_MARGIN;
   }
-  if (left < 10) {
-    left = 10;
+  if (left < ACTION_MENU.EDGE_MARGIN) {
+    left = ACTION_MENU.EDGE_MARGIN;
   }
-  if (left + 240 > viewportWidth) {
-    left = viewportWidth - 250;
+  if (left + ACTION_MENU.WIDTH > viewportWidth) {
+    left = viewportWidth - ACTION_MENU.WIDTH - ACTION_MENU.EDGE_MARGIN;
   }
 
   actionMenuPosition.value = {
