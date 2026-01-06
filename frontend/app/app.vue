@@ -3,18 +3,27 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <Toast ref="toast" />
+
+    <!-- Global UI Infrastructure -->
+    <ClientOnly>
+      <ModalHost />
+      <ToastHost />
+    </ClientOnly>
+
+    <!-- Legacy Toast (마이그레이션 완료 후 제거 예정) -->
+    <Toast ref="legacyToast" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, provide } from 'vue'
 import Toast from '~/components/Toast.vue'
+import ModalHost from '~/components/ui/modal/ModalHost.vue'
+import ToastHost from '~/components/ui/toast/ToastHost.vue'
 
-const toast = ref()
-
-// 전역적으로 toast 인스턴스를 제공
-provide('toast', toast)
+// Legacy toast 인스턴스 (마이그레이션 완료 후 제거 예정)
+const legacyToast = ref()
+provide('toast', legacyToast)
 
 // Auth initialization moved to plugins/auth-init.ts
 </script>

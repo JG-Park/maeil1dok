@@ -1,44 +1,119 @@
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useToastState } from './useToastState'
+import type { ToastOptions, ToastType, PromiseToastOptions, UseToastReturn } from '~/types/toast'
 
-interface ToastMessage {
-  id: number
-  message: string
-  type: 'success' | 'error' | 'info' | 'warning'
-}
+export function useToast(): UseToastReturn {
+  const state = useToastState()
 
-const toasts = ref<ToastMessage[]>([])
-let nextId = 0
-
-export function useToast() {
-  const addToast = (message: string, type: ToastMessage['type']) => {
-    const id = nextId++
-    toasts.value.push({ id, message, type })
-    
-    // 3초 후 자동으로 제거
-    setTimeout(() => {
-      removeToast(id)
-    }, 3000)
+  function show(options: ToastOptions | string): string {
+    return state.show(options)
   }
 
-  const removeToast = (id: number) => {
-    const index = toasts.value.findIndex(toast => toast.id === id)
-    if (index > -1) {
-      toasts.value.splice(index, 1)
+  function info(message: string, options?: Partial<ToastOptions>): string {
+    return state.show({ ...options, message, type: 'info' })
+  }
+
+  function success(message: string, options?: Partial<ToastOptions>): string {
+    return state.show({ ...options, message, type: 'success' })
+  }
+
+  function warning(message: string, options?: Partial<ToastOptions>): string {
+    return state.show({ ...options, message, type: 'warning' })
+  }
+
+  function error(message: string, options?: Partial<ToastOptions>): string {
+    return state.show({ ...options, message, type: 'error' })
+  }
+
+  function dismiss(id?: string): void {
+    state.dismiss(id)
+  }
+
+  function dismissAll(): void {
+    state.dismissAll()
+  }
+
+  async function promise<T>(
+    promiseOrFn: Promise<T>,
+    options: PromiseToastOptions<T>
+  ): Promise<T> {
+    const id = state.show({
+      message: options.loading,
+      type: 'info',
+      duration: 0, // 자동 닫힘 안 함
+      dismissible: false
+    })
+
+    try {
+      const result = await promiseOrFn
+
+      const successMessage = typeof options.success === 'function'
+        ? options.success(result)
+        : options.success
+
+      state.update(id, {
+        message: successMessage,
+        type: 'success',
+        duration: 3000,
+        dismissible: true
+      })
+
+      // 3초 후 제거
+      setTimeout(() => state.dismiss(id), 3000)
+
+      return result
+    } catch (err) {
+      const errorMessage = typeof options.error === 'function'
+        ? options.error(err as Error)
+        : options.error
+
+      state.update(id, {
+        message: errorMessage,
+        type: 'error',
+        duration: 5000,
+        dismissible: true
+      })
+
+      // 5초 후 제거
+      setTimeout(() => state.dismiss(id), 5000)
+
+      throw err
     }
   }
 
-  // showToastMessage 함수 추가
-  const showToastMessage = (message: string, type: ToastMessage['type'] = 'success') => {
-    addToast(message, type)
+  // ============================================
+  // 기존 API 호환용 (deprecated)
+  // ============================================
+
+  /**
+   * @deprecated showToastMessage 대신 success(), error(), info(), warning() 사용 권장
+   */
+  function showToastMessage(message: string, type: ToastType = 'success'): string {
+    return state.show({ message, type })
+  }
+
+  /**
+   * @deprecated remove 대신 dismiss 사용 권장
+   */
+  function remove(id: number | string): void {
+    state.dismiss(String(id))
   }
 
   return {
-    toasts,
-    success: (message: string) => addToast(message, 'success'),
-    error: (message: string) => addToast(message, 'error'),
-    info: (message: string) => addToast(message, 'info'),
-    warning: (message: string) => addToast(message, 'warning'),
-    remove: removeToast,
-    showToastMessage // 새로 추가한 함수 export
+    show,
+    info,
+    success,
+    warning,
+    error,
+    dismiss,
+    dismissAll,
+    promise,
+    toasts: state.toasts,
+    // 기존 API 호환
+    showToastMessage,
+    remove
   }
-} 
+}
+
+// 기본 export
+export default useToast

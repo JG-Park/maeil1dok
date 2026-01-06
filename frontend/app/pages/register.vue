@@ -84,6 +84,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useApi } from '~/composables/useApi'
 import { useRuntimeConfig } from 'nuxt/app'
 import { useHead } from '#imports'
+import { useModal } from '~/composables/useModal'
 
 useHead({
   title: '회원가입 - 매일일독',
@@ -105,6 +106,7 @@ const config = useRuntimeConfig()
 
 const auth = useAuthStore()
 const api = useApi()
+const modal = useModal()
 const loading = ref(false)
 const isUsernameChecked = ref(false)
 const isNicknameChecked = ref(false)
@@ -161,7 +163,11 @@ const checkNickname = async () => {
 
 const handleSubmit = async () => {
   if (!isUsernameChecked.value || !isNicknameChecked.value) {
-    alert('아이디와 닉네임 중복 확인이 필요합니다.')
+    await modal.alert({
+      title: '확인 필요',
+      description: '아이디와 닉네임 중복 확인이 필요합니다.',
+      icon: 'warning'
+    })
     return
   }
 
@@ -169,7 +175,11 @@ const handleSubmit = async () => {
   try {
     const success = await auth.register(formData.value)
     if (success) {
-      alert('회원가입이 완료되었습니다.')
+      await modal.alert({
+        title: '회원가입 완료',
+        description: '회원가입이 완료되었습니다.',
+        icon: 'success'
+      })
       navigateTo('/login')
     }
   } finally {

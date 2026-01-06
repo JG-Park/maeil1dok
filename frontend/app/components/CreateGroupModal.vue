@@ -90,10 +90,12 @@
 <script setup lang="ts">
 import { useGroupsStore } from '~/stores/groups'
 import { useApi } from '~/composables/useApi'
+import { useModal } from '~/composables/useModal'
 
 const emit = defineEmits(['close', 'created'])
 const groupsStore = useGroupsStore()
 const api = useApi()
+const modal = useModal()
 
 const form = reactive({
   name: '',
@@ -120,13 +122,21 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('Failed to load plans:', error)
-    alert('플랜 목록을 불러오는데 실패했습니다.')
+    modal.alert({
+      title: '오류',
+      description: '플랜 목록을 불러오는데 실패했습니다.',
+      icon: 'error'
+    })
   }
 })
 
 const createGroup = async () => {
   if (!form.name || form.planIds.length === 0 || !form.maxMembers) {
-    alert('필수 항목을 모두 입력해주세요.\n최소 1개 이상의 플랜을 선택해야 합니다.')
+    modal.alert({
+      title: '입력 오류',
+      description: '필수 항목을 모두 입력해주세요. 최소 1개 이상의 플랜을 선택해야 합니다.',
+      icon: 'warning'
+    })
     return
   }
 
@@ -144,10 +154,18 @@ const createGroup = async () => {
     if (result.success && result.data) {
       emit('created', result.data)
     } else {
-      alert(result.error || '그룹 생성에 실패했습니다.')
+      modal.alert({
+        title: '생성 실패',
+        description: result.error || '그룹 생성에 실패했습니다.',
+        icon: 'error'
+      })
     }
   } catch (error) {
-    alert('그룹 생성 중 오류가 발생했습니다.')
+    modal.alert({
+      title: '오류',
+      description: '그룹 생성 중 오류가 발생했습니다.',
+      icon: 'error'
+    })
   } finally {
     isCreating.value = false
   }
