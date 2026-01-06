@@ -11,17 +11,14 @@
     </header>
 
     <!-- 로딩 -->
-    <div v-if="isLoading" class="bible-loading-state">
-      <SpinnerIcon :size="32" />
-      <p>묵상노트를 불러오는 중...</p>
-    </div>
+    <LoadingSpinner v-if="isLoading" text="묵상노트를 불러오는 중..." />
 
     <!-- 노트 없음 -->
-    <div v-else-if="!note" class="bible-empty-state">
-      <InfoCircleIcon :size="48" class="empty-icon" />
-      <p>묵상노트를 찾을 수 없습니다</p>
-      <NuxtLink to="/bible/notes" class="back-link">목록으로 돌아가기</NuxtLink>
-    </div>
+    <EmptyState v-else-if="!note" text="묵상노트를 찾을 수 없습니다">
+      <template #action>
+        <NuxtLink to="/bible/notes" class="back-link">목록으로 돌아가기</NuxtLink>
+      </template>
+    </EmptyState>
 
     <!-- 에디터 -->
     <div v-else class="note-editor">
@@ -191,8 +188,8 @@ watch([editContent, isPrivate], () => {
 }
 
 /* 로딩/빈 상태가 flex: 1을 차지하도록 */
-.note-detail-page .bible-loading-state,
-.note-detail-page .bible-empty-state {
+.note-detail-page :deep(.loading-spinner-container),
+.note-detail-page :deep(.empty-state-container) {
   flex: 1;
   min-height: auto;
 }

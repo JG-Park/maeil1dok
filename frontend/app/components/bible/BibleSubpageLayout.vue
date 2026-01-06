@@ -14,20 +14,19 @@
     <slot name="filter" />
 
     <!-- 로딩 상태 -->
-    <div v-if="loading" class="bible-loading-state">
-      <SpinnerIcon :size="32" />
-      <p>{{ loadingText }}</p>
-    </div>
+    <LoadingSpinner v-if="loading" :text="loadingText" />
 
     <!-- 빈 상태 -->
-    <div v-else-if="empty" class="bible-empty-state">
-      <slot name="empty-icon">
-        <InfoCircleIcon :size="48" class="empty-icon" />
-      </slot>
-      <p>{{ emptyText }}</p>
-      <span v-if="emptyHint" class="empty-hint">{{ emptyHint }}</span>
-      <slot name="empty-action" />
-    </div>
+    <EmptyState v-else-if="empty" :text="emptyText" :hint="emptyHint">
+      <template #icon>
+        <slot name="empty-icon">
+          <InfoCircleIcon :size="48" />
+        </slot>
+      </template>
+      <template #action>
+        <slot name="empty-action" />
+      </template>
+    </EmptyState>
 
     <!-- 컨텐츠 -->
     <slot v-else />
@@ -74,8 +73,8 @@ const handleBack = () => {
 }
 
 /* 로딩/빈 상태가 flex: 1을 차지하도록 */
-.bible-subpage :deep(.bible-loading-state),
-.bible-subpage :deep(.bible-empty-state) {
+.bible-subpage :deep(.loading-spinner-container),
+.bible-subpage :deep(.empty-state-container) {
   flex: 1;
   min-height: auto;
 }

@@ -1,7 +1,7 @@
 # TASK-09: 로딩/빈 상태 컴포넌트 통일
 
 > **Priority**: P2 (Minor)
-> **Status**: `[ ]` Pending
+> **Status**: `[x]` Completed
 > **Tracker**: [TRACKER.md](./TRACKER.md)
 
 ---
@@ -53,21 +53,22 @@
 
 ### 1. 공통 컴포넌트 생성
 
-- [ ] `components/ui/LoadingSpinner.vue` 생성
-- [ ] `components/ui/EmptyState.vue` 생성
+- [x] `components/ui/LoadingSpinner.vue` 생성
+- [x] `components/ui/EmptyState.vue` 생성
 
 ### 2. 각 파일에서 공통 컴포넌트 사용
 
-- [ ] `pages/bible/history.vue`
-- [ ] `pages/bible/notes/index.vue`
-- [ ] `pages/bible/notes/[id].vue`
-- [ ] `components/bible/BibleViewer.vue`
-- [ ] `components/bible/BibleSubpageLayout.vue` (내부 개선)
+- [x] `pages/bible/history.vue`
+- [x] `pages/bible/notes/index.vue`
+- [x] `pages/bible/notes/[id].vue`
+- [x] `components/bible/BibleViewer.vue`
+- [x] `components/bible/BibleSubpageLayout.vue` (내부 개선)
+- [x] `pages/bible/highlights/index.vue` (추가)
 
 ### 3. BibleSubpageLayout 개선
 
-- [ ] 더 많은 페이지에서 활용 가능하도록 유연성 강화
-- [ ] `history.vue`, `settings.vue`에서 활용
+- [x] 더 많은 페이지에서 활용 가능하도록 유연성 강화
+- [-] `history.vue`, `settings.vue`에서 활용 (history는 직접 컴포넌트 사용)
 
 ---
 
@@ -234,10 +235,10 @@ defineProps<{
 
 ## Acceptance Criteria
 
-- [ ] 공통 컴포넌트 생성됨
-- [ ] 모든 파일에서 일관된 로딩/빈 상태 UI
-- [ ] 기존 기능 정상 동작
-- [ ] 다크모드 정상 동작
+- [x] 공통 컴포넌트 생성됨
+- [x] 모든 파일에서 일관된 로딩/빈 상태 UI
+- [x] 기존 기능 정상 동작
+- [x] 다크모드 정상 동작
 
 ---
 
@@ -253,7 +254,7 @@ defineProps<{
 
 ## Completion
 
-- [ ] 코드 변경 완료
-- [ ] 테스트 통과
-- [ ] 커밋 발행
-- [ ] TRACKER.md 상태 업데이트
+- [x] 코드 변경 완료
+- [x] 테스트 통과 (빌드 성공)
+- [x] 커밋 발행
+- [x] TRACKER.md 상태 업데이트

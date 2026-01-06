@@ -13,10 +13,7 @@
     @scroll="handleScroll"
   >
     <!-- 로딩 상태 -->
-    <div v-if="isLoading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>성경을 불러오는 중...</p>
-    </div>
+    <LoadingSpinner v-if="isLoading" text="성경을 불러오는 중..." :size="40" />
 
     <!-- 성경 본문 -->
     <template v-else>
@@ -700,34 +697,6 @@ defineExpose({
 .theme-dark {
   background: var(--color-bg-primary-dark, #1a1a1a);
   color: var(--text-primary-dark, #e5e5e5);
-}
-
-/* 로딩 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  gap: 1rem;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border, #e5e7eb);
-  border-top-color: var(--primary-color, #6366f1);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-container p {
-  color: var(--text-secondary, #6b7280);
-  font-size: 0.875rem;
 }
 
 /* 성경 본문 */

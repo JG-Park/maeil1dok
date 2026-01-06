@@ -25,24 +25,33 @@
     </div>
 
     <!-- 로딩 -->
-    <div v-if="isLoading" class="bible-loading-state">
-      <SpinnerIcon :size="32" />
-      <p>묵상노트를 불러오는 중...</p>
-    </div>
+    <LoadingSpinner v-if="isLoading" text="묵상노트를 불러오는 중..." fullscreen />
 
     <!-- 로그인 필요 -->
-    <div v-else-if="!authStore.isAuthenticated" class="bible-empty-state">
-      <DocumentIcon :size="48" class="empty-icon" />
-      <p>로그인 후 묵상노트를 확인할 수 있습니다</p>
-      <NuxtLink to="/login" class="bible-login-btn">로그인</NuxtLink>
-    </div>
+    <EmptyState
+      v-else-if="!authStore.isAuthenticated"
+      text="로그인 후 묵상노트를 확인할 수 있습니다"
+      fullscreen
+    >
+      <template #icon>
+        <DocumentIcon :size="48" />
+      </template>
+      <template #action>
+        <NuxtLink to="/login" class="bible-login-btn">로그인</NuxtLink>
+      </template>
+    </EmptyState>
 
     <!-- 빈 상태 -->
-    <div v-else-if="filteredNotes.length === 0" class="bible-empty-state">
-      <DocumentIcon :size="48" class="empty-icon" />
-      <p>{{ filterBook ? '해당 책에 작성된 묵상노트가 없습니다' : '작성된 묵상노트가 없습니다' }}</p>
-      <span class="empty-hint">성경을 읽으며 묵상을 기록해보세요</span>
-    </div>
+    <EmptyState
+      v-else-if="filteredNotes.length === 0"
+      :text="filterBook ? '해당 책에 작성된 묵상노트가 없습니다' : '작성된 묵상노트가 없습니다'"
+      hint="성경을 읽으며 묵상을 기록해보세요"
+      fullscreen
+    >
+      <template #icon>
+        <DocumentIcon :size="48" />
+      </template>
+    </EmptyState>
 
     <!-- 노트 목록 -->
     <ul v-else class="note-list">

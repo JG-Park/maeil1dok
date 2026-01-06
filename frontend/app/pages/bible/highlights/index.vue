@@ -35,28 +35,33 @@
     </div>
 
     <!-- 로딩 -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>하이라이트를 불러오는 중...</p>
-    </div>
+    <LoadingSpinner v-if="isLoading" text="하이라이트를 불러오는 중..." fullscreen />
 
     <!-- 로그인 필요 -->
-    <div v-else-if="!authStore.isAuthenticated" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <p>로그인 후 하이라이트를 확인할 수 있습니다</p>
-      <NuxtLink to="/login" class="login-btn">로그인</NuxtLink>
-    </div>
+    <EmptyState
+      v-else-if="!authStore.isAuthenticated"
+      text="로그인 후 하이라이트를 확인할 수 있습니다"
+      fullscreen
+    >
+      <template #icon>
+        <HighlightIcon :size="48" />
+      </template>
+      <template #action>
+        <NuxtLink to="/login" class="login-btn">로그인</NuxtLink>
+      </template>
+    </EmptyState>
 
     <!-- 빈 상태 -->
-    <div v-else-if="filteredHighlights.length === 0" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <p>{{ filterBook || filterColor ? '해당 조건의 하이라이트가 없습니다' : '하이라이트가 없습니다' }}</p>
-      <span class="empty-hint">성경을 읽으며 중요한 구절을 하이라이트해보세요</span>
-    </div>
+    <EmptyState
+      v-else-if="filteredHighlights.length === 0"
+      :text="filterBook || filterColor ? '해당 조건의 하이라이트가 없습니다' : '하이라이트가 없습니다'"
+      hint="성경을 읽으며 중요한 구절을 하이라이트해보세요"
+      fullscreen
+    >
+      <template #icon>
+        <HighlightIcon :size="48" />
+      </template>
+    </EmptyState>
 
     <!-- 하이라이트 목록 -->
     <ul v-else class="highlight-list">
@@ -238,58 +243,7 @@ const truncate = (text: string, length: number): string => {
   min-width: 100px;
 }
 
-/* 로딩 상태 */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 140px);
-  padding: 2rem;
-  color: var(--text-secondary, #6b7280);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border, #e5e7eb);
-  border-top-color: var(--primary-color, #6366f1);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 빈 상태 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 140px);
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-secondary, #6b7280);
-}
-
-.empty-state svg {
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 0.9375rem;
-  margin-bottom: 0.5rem;
-}
-
-.empty-hint {
-  font-size: 0.8125rem;
-  opacity: 0.7;
-}
-
+/* 로그인 버튼 */
 .login-btn {
   margin-top: 1rem;
   padding: 0.625rem 1.25rem;

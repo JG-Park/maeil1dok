@@ -7,9 +7,7 @@
       <h1>읽기 기록</h1>
     </header>
 
-    <div v-if="isLoading" class="bible-loading-state">
-      <SpinnerIcon :size="32" />
-    </div>
+    <LoadingSpinner v-if="isLoading" text="읽기 기록을 불러오는 중..." fullscreen />
 
     <div v-else class="history-content">
       <!-- 요약 카드 -->
