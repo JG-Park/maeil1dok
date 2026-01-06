@@ -103,7 +103,7 @@
         <div class="loading-spinner"></div>
         <span>초기화 중...</span>
       </div>
-      <div v-else-if="!route.query.plan && !props.useDefaultPlan" class="no-plan-selected">
+      <div v-else-if="!selectedSubscriptionId && !props.useDefaultPlan" class="no-plan-selected">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -177,53 +177,38 @@
     </div>
 
     <!-- 본문 이동 모달 -->
-    <Transition name="fade">
-      <div v-if="showModal" class="modal-overlay" @click="closeModal">
-        <div class="modal-wrapper" @click.stop>
-          <div class="modal">
-            <div class="modal-content">
-              <h3>본문 페이지로 이동하시겠어요?</h3>
-              <p class="reading-info">
-                <span class="date">{{ selectedSchedule?.date ? formatScheduleDate(selectedSchedule.date) : '' }}</span>
-                <span class="content">{{ selectedSchedule?.book }} {{ 
-                  selectedSchedule?.start_chapter === selectedSchedule?.end_chapter 
-                    ? selectedSchedule?.start_chapter 
-                    : `${selectedSchedule?.start_chapter}-${selectedSchedule?.end_chapter}` 
-                }}장</span>
-              </p>
-              <p class="guide-text">
-                <span class="sub-text">혹시 읽음 상태를 변경하려고 하셨나요?<br>왼쪽 체크박스를 직접 클릭하거나,<br>우측 상단 일괄수정 버튼을 누른 후 변경할 수
-                  있어요.</span>
-              </p>
-              <div class="modal-buttons">
-                <button class="cancel-button" @click="closeModal">취소</button>
-                <button class="confirm-button" @click="confirmGoToSchedule">이동</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <ConfirmModal
+      :show="showModal"
+      title="본문 페이지로 이동하시겠어요?"
+      confirm-text="이동"
+      @confirm="confirmGoToSchedule"
+      @cancel="closeModal"
+    >
+      <p class="reading-info">
+        <span class="date">{{ selectedSchedule?.date ? formatScheduleDate(selectedSchedule.date) : '' }}</span>
+        <span class="content">{{ selectedSchedule?.book }} {{
+          selectedSchedule?.start_chapter === selectedSchedule?.end_chapter
+            ? selectedSchedule?.start_chapter
+            : `${selectedSchedule?.start_chapter}-${selectedSchedule?.end_chapter}`
+        }}장</span>
+      </p>
+      <p class="guide-text">
+        <span class="sub-text">혹시 읽음 상태를 변경하려고 하셨나요?<br>왼쪽 체크박스를 직접 클릭하거나,<br>우측 상단 일괄수정 버튼을 누른 후 변경할 수 있어요.</span>
+      </p>
+    </ConfirmModal>
 
-    <!-- 로그인 안내 모달 추가 -->
-    <Transition name="fade">
-      <div v-if="showLoginModal" class="modal-overlay" @click="closeLoginModal">
-        <div class="modal-wrapper" @click.stop>
-          <div class="modal">
-            <div class="modal-content">
-              <h3>로그인이 필요해요</h3>
-              <p class="reading-info">
-                <span class="content">읽음 표시를 기록하시려면<br>로그인이 필요해요.</span>
-              </p>
-              <div class="modal-buttons">
-                <button class="cancel-button" @click="closeLoginModal">취소</button>
-                <button class="confirm-button" @click="goToLogin">로그인</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- 로그인 안내 모달 -->
+    <ConfirmModal
+      :show="showLoginModal"
+      title="로그인이 필요해요"
+      confirm-text="로그인"
+      @confirm="goToLogin"
+      @cancel="closeLoginModal"
+    >
+      <p class="reading-info">
+        <span class="content">읽음 표시를 기록하시려면<br>로그인이 필요해요.</span>
+      </p>
+    </ConfirmModal>
 
     <!-- 플랜 선택 모달 -->
     <Transition name="fade">
@@ -234,12 +219,12 @@
               <h3>플랜 선택</h3>
               <div class="plan-list">
                 <button v-for="subscription in subscriptions" :key="subscription.plan_id" class="plan-item" :class="{
-                  active: String(subscription.plan_id) === String(route.query.plan)
+                  active: String(subscription.plan_id) === String(selectedSubscriptionId)
                 }" @click="selectPlan(subscription)">
                   <div class="plan-item-content">
                     <div class="plan-info">
                       <div class="check-icon-wrapper">
-                        <svg v-show="String(subscription.plan_id) === String(route.query.plan)" class="check-icon"
+                        <svg v-show="String(subscription.plan_id) === String(selectedSubscriptionId)" class="check-icon"
                           xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <polyline points="20 6 9 17 4 12"></polyline>
@@ -289,9 +274,11 @@
 import { ref, computed, onMounted, nextTick, watch, onBeforeUnmount, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
+import { useSelectedPlanStore } from '~/stores/selectedPlan'
 import { useApi } from '~/composables/useApi'
 import { useToast } from '~/composables/useToast'
 import { useScrollToElement } from '~/composables/useScrollToElement'
+import ConfirmModal from '~/components/ConfirmModal.vue'
 
 // 타입 정의
 interface Schedule {
@@ -326,6 +313,7 @@ interface RangeSelectPayload {
 
 // Vue Router & Store
 const authStore = useAuthStore()
+const planStore = useSelectedPlanStore()
 const api = useApi()
 const router = useRouter()
 const route = useRoute()
@@ -373,7 +361,11 @@ const selectedMonth = ref(new Date().getMonth() + 1)
 const months = Array.from({ length: 12 }, (_, i) => i + 1)
 const schedules = ref<Schedule[]>([])
 const subscriptions = ref<Subscription[]>([])
-const selectedSubscriptionId = ref<string | null>(null)
+// Store 기반 플랜 ID 관리 (URL 파라미터는 공유용으로만 사용)
+const selectedSubscriptionId = computed({
+  get: () => planStore.selectedPlanId ? String(planStore.selectedPlanId) : null,
+  set: (val: string | null) => planStore.setSelectedPlanId(val ? parseInt(val, 10) : null)
+})
 const selectedSchedule = ref<Schedule | null>(null)
 const defaultPlanName = ref('')
 const isInitialized = ref(false)
@@ -405,17 +397,8 @@ const { success, error: showError, warning } = useToast()
 const { scrollToElement, setScrollContainer } = useScrollToElement()
 
 // Computed 속성
-// 선택된 플랜 이름
+// 선택된 플랜 이름 (Store 기반)
 const selectedPlanName = computed(() => {
-    const planId = route.query.plan as string
-
-  if (planId) {
-    const selectedPlan = subscriptions.value.find(sub => String(sub.plan_id) === String(planId))
-    if (selectedPlan) {
-      return selectedPlan.plan_name
-    }
-  }
-
   if (selectedSubscriptionId.value) {
     const selectedPlan = subscriptions.value.find(sub => String(sub.plan_id) === String(selectedSubscriptionId.value))
     if (selectedPlan) {
@@ -806,13 +789,9 @@ const handleScheduleClick = (scheduleGroup: Schedule[]) => {
 }
 }
 
-// 플랜 선택
+// 플랜 선택 (Store만 업데이트, URL은 변경하지 않음)
 const selectPlan = (subscription: Subscription) => {
   selectedSubscriptionId.value = subscription.plan_id
-
-  router.push({
-    query: { ...route.query, plan: subscription.plan_id }
-    })
   showPlanModal.value = false
 }
 
@@ -894,7 +873,7 @@ const confirmGoToSchedule = () => {
       queryParams.set('plan', selectedSubscriptionId.value)
     }
 
-    queryParams.set('from', 'reading-plan')
+    queryParams.set('from', 'plan')
 
     if (selectedSchedule.value.book) {
       const bookCode = findBookCode(selectedSchedule.value.book)
@@ -1094,26 +1073,31 @@ const initializeComponent = async () => {
   }
 }
 
-// 플랜 선택 후 처리 로직
+// 플랜 선택 후 처리 로직 (초기화 시에만 호출)
 const handleSubscriptionSelection = (subscriptionData: Subscription[]) => {
-  // URL에 plan 파라미터가 있는지 확인
+  // 1. URL에 plan 파라미터가 있으면 우선 적용 (URL 공유 시)
   if (route.query.plan) {
     const planId = route.query.plan as string
-
-    const planExists = subscriptionData.some(sub => {
-      return String(sub.plan_id) === String(planId)
-    })
+    const planExists = subscriptionData.some(sub => String(sub.plan_id) === String(planId))
 
     if (planExists) {
       selectedSubscriptionId.value = planId
-    } else if (subscriptionData.length > 0) {
-      selectedSubscriptionId.value = subscriptionData[0].plan_id
-      updateUrlPlanId(subscriptionData[0].plan_id)
+      return
     }
-  } else if (subscriptionData.length > 0 && !selectedSubscriptionId.value) {
+  }
+
+  // 2. Store에 저장된 플랜이 있으면 사용
+  if (planStore.selectedPlanId) {
+    const planExists = subscriptionData.some(sub => String(sub.plan_id) === String(planStore.selectedPlanId))
+    if (planExists) {
+      return // 이미 store에 설정되어 있음
+    }
+  }
+
+  // 3. 기본 플랜 설정 (비로그인 사용자 또는 useDefaultPlan인 경우)
+  if (subscriptionData.length > 0 && !selectedSubscriptionId.value) {
     if (props.useDefaultPlan || !authStore.isAuthenticated) {
       selectedSubscriptionId.value = subscriptionData[0].plan_id
-      updateUrlPlanId(subscriptionData[0].plan_id)
 
       if (!authStore.isAuthenticated) {
         defaultPlanName.value = subscriptionData[0].plan_name
@@ -1121,7 +1105,6 @@ const handleSubscriptionSelection = (subscriptionData: Subscription[]) => {
 
         setTimeout(() => {
           showDefaultPlanMessage.value = true
-
           setTimeout(() => {
             showDefaultPlanMessage.value = false
           }, 5000)
@@ -1131,12 +1114,6 @@ const handleSubscriptionSelection = (subscriptionData: Subscription[]) => {
   }
 }
 
-// URL 파라미터 업데이트
-const updateUrlPlanId = (planId: string) => {
-  router.push({
-    query: { ...route.query, plan: planId }
-  })
-}
 
 // 모바일 감지 업데이트 함수
 const updateIsMobile = () => {
@@ -1145,6 +1122,9 @@ const updateIsMobile = () => {
 
 // Lifecycle Hooks
 onMounted(() => {
+  // Store에서 저장된 플랜 ID 복원
+  planStore.initializeFromStorage()
+
   // 클라이언트에서만 모바일 감지 (SSR 호환)
   updateIsMobile()
   window.addEventListener('resize', updateIsMobile)
@@ -1250,25 +1230,6 @@ watch(() => props.isBulkEditMode, (newValue) => {
     }
   }
 })
-
-// URL의 plan 파라미터 변경 감지
-watch(() => route.query.plan, async (newPlanId, oldPlanId) => {
-  if (newPlanId && newPlanId !== oldPlanId && String(newPlanId) !== String(selectedSubscriptionId.value)) {
-    selectedSubscriptionId.value = String(newPlanId)
-
-    // 초기화 중에는 watcher에서 호출하지 않음 (initializeComponent에서 처리)
-    if (isInitialized.value && !isInitializing.value) {
-      try {
-        await fetchSchedules()
-      } catch (error) {
-        // Error handled silently
-      } finally {
-        // 플랜 변경 후 스케줄 로딩이 완료되면 마지막 미완료 위치로 스크롤
-        scrollToLastIncomplete()
-      }
-    }
-  }
-}, { immediate: true })
 
 // 선택된 월이 변경될 때 월 선택기 스크롤
 watch(selectedMonth, () => {
