@@ -18,8 +18,8 @@
 | T02 | 공통 로직 추출 (DRY 원칙) | P0 | `[x]` Completed | [TASK-02.md](./TASK-02.md) |
 | T03 | SVG 아이콘 컴포넌트화 | P1 | `[x]` Completed | [TASK-03.md](./TASK-03.md) |
 | T04 | CSS 공통화 및 중복 제거 | P1 | `[x]` Completed | [TASK-04.md](./TASK-04.md) |
-| T05 | 타입 정의 중앙화 | P1 | `[ ]` Pending | [TASK-05.md](./TASK-05.md) |
-| T06 | BibleViewer 선택 시스템 통합 | P1 | `[ ]` Pending | [TASK-06.md](./TASK-06.md) |
+| T05 | 타입 정의 중앙화 | P1 | `[x]` Completed | [TASK-05.md](./TASK-05.md) |
+| T06 | BibleViewer 선택 시스템 통합 | P1 | `[x]` Completed | [TASK-06.md](./TASK-06.md) |
 | T07 | API 호출 최적화 | P2 | `[ ]` Pending | [TASK-07.md](./TASK-07.md) |
 | T08 | 에러 핸들링 표준화 | P2 | `[ ]` Pending | [TASK-08.md](./TASK-08.md) |
 | T09 | 로딩/빈 상태 컴포넌트 통일 | P2 | `[ ]` Pending | [TASK-09.md](./TASK-09.md) |
@@ -51,6 +51,8 @@
 | T02 | d306c6e | 2026-01-06 | refactor(bible): extract common logic into helper functions (DRY) |
 | T03 | 866c9d0 | 2026-01-06 | refactor(bible): extract inline SVG icons to reusable components |
 | T04 | 2af35fe | 2026-01-06 | refactor(bible): consolidate duplicated CSS into global stylesheet |
+| T05 | f19d8f6 | 2026-01-06 | refactor(bible): centralize type definitions into types/bible.ts |
+| T06 | ab6a76f | 2026-01-06 | refactor(bible): integrate BibleViewer selection systems with conflict prevention |
 
 ---
 
