@@ -183,18 +183,24 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
+import { useModal } from '~/composables/useModal'
 import Toast from '~/components/Toast.vue'
 
 const authStore = useAuthStore()
 const api = useApi()
+const modal = useModal()
 const toast = ref(null)
 
 // Toast 컴포넌트 직접 사용
-const showToastMessage = (message, type = 'info') => {
+const showToastMessage = async (message, type = 'info') => {
   if (toast.value) {
     toast.value.show(message, type);
   } else {
-    alert(message);
+    await modal.alert({
+      title: type === 'error' ? '오류' : type === 'warning' ? '경고' : '알림',
+      description: message,
+      icon: type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info'
+    });
   }
 }
 
@@ -227,12 +233,16 @@ const isStaff = computed(() => {
 })
 
 // 페이지 접근 권한 체크 - 수정
-const checkAccess = () => {
+const checkAccess = async () => {
   if (!isStaff.value) {
     try {
-      showToastMessage('관리자 권한이 필요합니다.', 'error');
+      await showToastMessage('관리자 권한이 필요합니다.', 'error');
     } catch (e) {
-      alert('관리자 권한이 필요합니다.');
+      await modal.alert({
+        title: '권한 필요',
+        description: '관리자 권한이 필요합니다.',
+        icon: 'error'
+      });
     }
     return false;
   }
@@ -242,7 +252,7 @@ const checkAccess = () => {
 
 // 플랜 목록 조회 - 수정
 const fetchPlans = async () => {
-  if (!checkAccess()) return
+  if (!await checkAccess()) return
 
   try {
     loading.value = true
@@ -267,7 +277,7 @@ const fetchPlans = async () => {
 
 // 영상 개론 목록 조회 - 수정
 const fetchVideoIntros = async () => {
-  if (!checkAccess()) return
+  if (!await checkAccess()) return
 
   loading.value = true
   try {
@@ -297,7 +307,14 @@ const fetchVideoIntros = async () => {
 
 // 영상 개론 삭제
 const deleteVideoIntro = async (id) => {
-  if (!confirm('정말 삭제하시겠습니까?')) return
+  const confirmed = await modal.confirm({
+    title: '삭제 확인',
+    description: '정말 삭제하시겠습니까?',
+    confirmText: '삭제',
+    cancelText: '취소',
+    icon: 'warning'
+  })
+  if (!confirmed) return
 
   try {
     await api.delete(`/api/v1/todos/video/intro/${id}/`)
@@ -442,7 +459,7 @@ onMounted(async () => {
   // 인증 상태가 이미 로드되었는지 확인
   if (authStore.isAuthenticated && authStore.user) {
     await nextTick();
-    if (checkAccess()) {
+    if (await checkAccess()) {
       fetchPlans();
       fetchVideoIntros();
     }
@@ -451,7 +468,7 @@ onMounted(async () => {
     const unwatch = watch(() => authStore.user, async (newUser) => {
       if (newUser) {
         await nextTick();
-        if (checkAccess()) {
+        if (await checkAccess()) {
           fetchPlans();
           fetchVideoIntros();
         }

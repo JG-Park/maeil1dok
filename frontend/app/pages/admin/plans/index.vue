@@ -508,11 +508,13 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
+import { useModal } from '~/composables/useModal'
 import Toast from '~/components/Toast.vue'
 
 const { toasts, showToastMessage } = useToast()
 const authStore = useAuthStore()
 const api = useApi()
+const modal = useModal()
 const toast = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
@@ -938,7 +940,14 @@ const openAddScheduleModal = () => {
 
 // 일정 삭제 확인
 const confirmDeleteSchedule = async (schedule) => {
-  if (confirm(`"${schedule.book} ${schedule.start_chapter}-${schedule.end_chapter}장" 일정을 삭제하시겠습니까?`)) {
+  const confirmed = await modal.confirm({
+    title: '일정 삭제',
+    description: `"${schedule.book} ${schedule.start_chapter}-${schedule.end_chapter}장" 일정을 삭제하시겠습니까?`,
+    confirmText: '삭제',
+    cancelText: '취소',
+    icon: 'warning'
+  })
+  if (confirmed) {
     await deleteSchedule(schedule.id)
   }
 }

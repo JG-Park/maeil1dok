@@ -57,8 +57,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useSelectedPlanStore } from '~/stores/selectedPlan'
+import { useModal } from '~/composables/useModal'
 
 const selectedPlanStore = useSelectedPlanStore()
+const modal = useModal()
 
 const props = defineProps({
   weekStatus: {
@@ -369,7 +371,11 @@ async function loadMonthlySchedules(forceReload = false) {
       }
     })
   } catch (error) {
-    alert('서버 연결에 문제가 있습니다.')
+    await modal.alert({
+      title: '연결 오류',
+      description: '서버 연결에 문제가 있습니다.',
+      icon: 'error'
+    })
   } finally {
     isLoading.value = false
   }
