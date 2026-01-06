@@ -5,10 +5,7 @@
       <!-- 헤더 -->
       <div class="header fade-in">
         <button class="back-button" @click="$router.push('/')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" />
-          </svg>
+          <ChevronLeftIcon :size="20" />
         </button>
         <h1>성경통독표</h1>
         <!-- ClientOnly로 SSR/CSR 인증 상태 불일치 방지 -->
@@ -46,6 +43,7 @@ import { ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useRouter, useRoute } from 'vue-router';
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue';
+import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue';
 import { useApi } from '~/composables/useApi';
 import { useToast } from '~/composables/useToast';
 import Toast from '~/components/Toast.vue';

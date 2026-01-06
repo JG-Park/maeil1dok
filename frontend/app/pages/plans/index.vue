@@ -3,10 +3,7 @@
     <!-- 고정 헤더 -->
     <div class="header fade-in">
       <button class="back-button" @click="$router.push('/')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
+        <ChevronLeftIcon :size="20" />
       </button>
       <h1>플랜 관리</h1>
       <div style="width: 64px"></div>
@@ -120,10 +117,7 @@
         <div class="modal-header">
           <h3>{{ modalTitle }}</h3>
           <button @click="closeModal" class="close-button">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+            <XMarkIcon :size="20" />
           </button>
         </div>
         <div class="modal-content">
@@ -142,10 +136,7 @@
         <div class="modal-header">
           <h3>완전 삭제 확인</h3>
           <button @click="closeUnsubscribeModal" class="close-button">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+            <XMarkIcon :size="20" />
           </button>
         </div>
         <div class="modal-content">
@@ -167,6 +158,8 @@ import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import Toast from '~/components/Toast.vue'
+import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue'
+import XMarkIcon from '~/components/icons/XMarkIcon.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
