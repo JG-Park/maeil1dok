@@ -2,27 +2,23 @@
   <div class="container">
     <!-- 고정 영역 -->
     <div class="fixed-area">
-      <!-- 헤더 -->
-      <div class="header fade-in">
-        <button class="back-button" @click="$router.push('/')">
-          <ChevronLeftIcon :size="20" />
-        </button>
-        <h1>성경통독표</h1>
-        <!-- ClientOnly로 SSR/CSR 인증 상태 불일치 방지 -->
-        <ClientOnly>
-          <button v-if="authStore.isAuthenticated" class="edit-mode-button" @click="toggleBulkEditMode">
-            {{ isBulkEditMode ? '완료' : '일괄수정' }}
-          </button>
-          <button v-else class="edit-mode-button" @click="goToLogin">
-            로그인
-          </button>
-          <template #fallback>
-            <button class="edit-mode-button" disabled>
-              ...
+      <PageHeader title="성경통독표">
+        <template #right>
+          <ClientOnly>
+            <button v-if="authStore.isAuthenticated" class="edit-mode-button" @click="toggleBulkEditMode">
+              {{ isBulkEditMode ? '완료' : '일괄수정' }}
             </button>
-          </template>
-        </ClientOnly>
-      </div>
+            <button v-else class="edit-mode-button" @click="goToLogin">
+              로그인
+            </button>
+            <template #fallback>
+              <button class="edit-mode-button" disabled>
+                ...
+              </button>
+            </template>
+          </ClientOnly>
+        </template>
+      </PageHeader>
     </div>
 
     <!-- 스크롤 영역 -->
@@ -43,7 +39,7 @@ import { ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useRouter, useRoute } from 'vue-router';
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue';
-import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue';
+import PageHeader from '~/components/PageHeader.vue';
 import { useApi } from '~/composables/useApi';
 import { useToast } from '~/composables/useToast';
 import Toast from '~/components/Toast.vue';
@@ -114,21 +110,6 @@ const handleRangeSelect = async ({ action, scheduleIds, planId }: RangeSelectPar
 
 .fixed-area {
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--color-bg-card);
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  position: relative;
-  box-shadow: var(--shadow-sm);
-  height: 50px;
 }
 
 .scroll-area {
@@ -142,26 +123,6 @@ const handleRangeSelect = async ({ action, scheduleIds, planId }: RangeSelectPar
   .scroll-area {
     padding-bottom: env(safe-area-inset-bottom);
   }
-}
-
-.back-button {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.back-button:hover {
-  background: var(--primary-light);
-}
-
-.header h1 {
-  flex: 1;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 .edit-mode-button {
@@ -184,28 +145,5 @@ const handleRangeSelect = async ({ action, scheduleIds, planId }: RangeSelectPar
 .edit-mode-button.active {
   background: var(--color-slate-300);
   color: var(--color-slate-700);
-}
-
-@media (max-width: 640px) {
-  .header {
-    padding: 0.75rem;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  opacity: 0;
-  animation: fadeIn 0.4s ease-out forwards;
 }
 </style>

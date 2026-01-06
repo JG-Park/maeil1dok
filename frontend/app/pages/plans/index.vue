@@ -1,13 +1,7 @@
 <template>
   <div class="container">
     <!-- 고정 헤더 -->
-    <div class="header fade-in">
-      <button class="back-button" @click="$router.push('/')">
-        <ChevronLeftIcon :size="20" />
-      </button>
-      <h1>플랜 관리</h1>
-      <div style="width: 64px"></div>
-    </div>
+    <PageHeader title="플랜 관리" />
 
     <!-- 스크롤 영역 -->
     <div class="scroll-area">
@@ -158,7 +152,7 @@ import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import Toast from '~/components/Toast.vue'
-import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue'
+import PageHeader from '~/components/PageHeader.vue'
 import XMarkIcon from '~/components/icons/XMarkIcon.vue'
 import { useRouter } from 'vue-router'
 
@@ -364,42 +358,6 @@ onMounted(async () => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  height: 50px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: white;
-}
-
-.header h1 {
-  flex: 1;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.back-button {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.back-button:hover {
-  background-color: #F3F4F6;
 }
 
 .scroll-area {
