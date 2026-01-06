@@ -18,7 +18,7 @@
         <button @click="$router.push('/login')" class="login-button">로그인하기</button>
       </div>
 
-      <div v-else-if="authStore.isAuthenticated" class="content-section fade-in" style="animation-delay: 0.2s">
+      <div v-else class="content-section fade-in" style="animation-delay: 0.2s">
         <!-- 구독 중인 플랜 -->
         <section class="plan-section">
           <h2 class="section-title">
