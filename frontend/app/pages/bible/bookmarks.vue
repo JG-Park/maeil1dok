@@ -1,40 +1,26 @@
 <template>
-  <div class="bookmarks-page">
-    <header class="page-header">
-      <button class="back-btn" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <h1>북마크</h1>
-    </header>
-
-    <!-- 로딩 -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>북마크를 불러오는 중...</p>
-    </div>
-
-    <!-- 로그인 필요 -->
-    <div v-else-if="!authStore.isAuthenticated" class="empty-state">
+  <BibleSubpageLayout
+    title="북마크"
+    :loading="isLoading"
+    loading-text="북마크를 불러오는 중..."
+    :empty="isEmpty"
+    :empty-text="emptyText"
+    :empty-hint="emptyHint"
+  >
+    <!-- 빈 상태 아이콘 -->
+    <template #empty-icon>
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <p>로그인 후 북마크를 확인할 수 있습니다</p>
-      <NuxtLink to="/login" class="login-btn">로그인</NuxtLink>
-    </div>
+    </template>
 
-    <!-- 빈 상태 -->
-    <div v-else-if="bookmarks.length === 0" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <p>저장된 북마크가 없습니다</p>
-      <span class="empty-hint">성경을 읽으며 중요한 구절을 북마크해보세요</span>
-    </div>
+    <!-- 빈 상태 액션 -->
+    <template #empty-action>
+      <NuxtLink v-if="!authStore.isAuthenticated" to="/login" class="login-btn">로그인</NuxtLink>
+    </template>
 
     <!-- 북마크 목록 -->
-    <ul v-else class="bookmark-list">
+    <ul class="bookmark-list">
       <li
         v-for="bookmark in bookmarks"
         :key="bookmark.id"
@@ -67,16 +53,17 @@
 
     <!-- 토스트 -->
     <Toast />
-  </div>
+  </BibleSubpageLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBookmark, type Bookmark } from '~/composables/useBookmark';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import Toast from '~/components/Toast.vue';
+import BibleSubpageLayout from '~/components/bible/BibleSubpageLayout.vue';
 
 definePageMeta({
   layout: 'default'
@@ -86,9 +73,21 @@ const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
 const { getAllBookmarks } = useBookmark();
+const { formatRelativeDate } = useDateFormat();
 
 const bookmarks = ref<Bookmark[]>([]);
 const isLoading = ref(true);
+
+// 빈 상태 계산
+const isEmpty = computed(() => !authStore.isAuthenticated || bookmarks.value.length === 0);
+const emptyText = computed(() =>
+  !authStore.isAuthenticated
+    ? '로그인 후 북마크를 확인할 수 있습니다'
+    : '저장된 북마크가 없습니다'
+);
+const emptyHint = computed(() =>
+  authStore.isAuthenticated ? '성경을 읽으며 중요한 구절을 북마크해보세요' : ''
+);
 
 onMounted(async () => {
   if (authStore.isAuthenticated) {
@@ -111,8 +110,6 @@ const formatLocation = (bookmark: Bookmark): string => {
   }
   return `${bookmark.chapter}장`;
 };
-
-const { formatRelativeDate } = useDateFormat();
 
 const goToBookmark = (bookmark: Bookmark) => {
   const query: Record<string, string> = {
@@ -144,99 +141,6 @@ const handleDelete = async (bookmark: Bookmark) => {
 </script>
 
 <style scoped>
-.bookmarks-page {
-  max-width: 768px;
-  margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--color-bg-primary, #f9fafb);
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.back-btn {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary, #1f2937);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: none;
-}
-
-.back-btn:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-}
-
-.page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
-
-/* 로딩 상태 */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 60px);
-  padding: 2rem;
-  color: var(--text-secondary, #6b7280);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border, #e5e7eb);
-  border-top-color: var(--primary-color, #6366f1);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 빈 상태 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 60px);
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-secondary, #6b7280);
-}
-
-.empty-state svg {
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 0.9375rem;
-  margin-bottom: 0.5rem;
-}
-
-.empty-hint {
-  font-size: 0.8125rem;
-  opacity: 0.7;
-}
-
 .login-btn {
   margin-top: 1rem;
   padding: 0.625rem 1.25rem;
@@ -339,15 +243,6 @@ const handleDelete = async (bookmark: Bookmark) => {
 }
 
 /* 다크모드 */
-:root.dark .bookmarks-page {
-  background: var(--color-bg-primary);
-}
-
-:root.dark .page-header {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
-}
-
 :root.dark .bookmark-item {
   background: var(--color-bg-card);
   border-color: var(--color-border);
