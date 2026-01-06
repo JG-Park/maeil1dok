@@ -6,6 +6,16 @@
         <ChevronLeftIcon />
       </button>
 
+      <button
+        class="bookmark-toggle-button"
+        :class="{ 'is-bookmarked': isBookmarked }"
+        @click="$emit('bookmark-toggle')"
+        :title="isBookmarked ? '북마크 삭제' : '북마크 추가'"
+      >
+        <BookmarkFilledIcon v-if="isBookmarked" :size="20" />
+        <BookmarkOutlineIcon v-else :size="20" />
+      </button>
+
       <button class="book-selector-button" @click="$emit('open-book-selector')">
         <span class="book-name">{{ currentBookName }}</span>
         <span class="chapter-number">{{ currentChapter }}{{ chapterSuffix }}</span>
@@ -15,9 +25,7 @@
       <div class="header-actions">
         <BibleToolPopover
           :note-count="noteCount"
-          :is-bookmarked="isBookmarked"
           @note-click="$emit('note-click')"
-          @bookmark-toggle="$emit('bookmark-toggle')"
           @open-settings="$emit('open-settings')"
         />
         <button class="version-button" @click="$emit('open-version-selector')">
@@ -128,6 +136,8 @@ import ChevronDownIcon from '~/components/icons/ChevronDownIcon.vue';
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue';
 import CheckCircleOutlineIcon from '~/components/icons/CheckCircleOutlineIcon.vue';
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
+import BookmarkFilledIcon from '~/components/icons/BookmarkFilledIcon.vue';
+import BookmarkOutlineIcon from '~/components/icons/BookmarkOutlineIcon.vue';
 
 // Highlight 인터페이스
 interface Highlight {
@@ -265,6 +275,36 @@ defineExpose({
 
 .back-button:active {
   background: var(--color-bg-active, #e5e7eb);
+}
+
+.bookmark-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--text-secondary, #6b7280);
+  border-radius: 8px;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.bookmark-toggle-button:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--text-primary, #1f2937);
+}
+
+.bookmark-toggle-button:active {
+  background: var(--color-bg-active, #e5e7eb);
+}
+
+.bookmark-toggle-button.is-bookmarked {
+  color: var(--primary-color, #6366f1);
+}
+
+.bookmark-toggle-button.is-bookmarked:hover {
+  color: var(--primary-dark, #4f46e5);
 }
 
 .book-selector-button {
@@ -576,6 +616,19 @@ defineExpose({
 /* 다크모드 */
 :root.dark .bible-header {
   background: var(--color-bg-card);
+}
+
+:root.dark .bookmark-toggle-button {
+  color: var(--text-secondary);
+}
+
+:root.dark .bookmark-toggle-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--text-primary);
+}
+
+:root.dark .bookmark-toggle-button.is-bookmarked {
+  color: var(--primary-color);
 }
 
 :root.dark .bible-bottom-area {

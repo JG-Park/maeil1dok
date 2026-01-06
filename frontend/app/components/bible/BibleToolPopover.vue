@@ -25,14 +25,13 @@
           </div>
         </button>
 
-        <!-- 북마크 -->
-        <button class="popover-item" :class="{ active: isBookmarked }" @click="handleBookmark">
+        <!-- 북마크 목록 -->
+        <button class="popover-item" @click="handleBookmarkList">
           <div class="item-icon">
-            <BookmarkFilledIcon v-if="isBookmarked" />
-            <BookmarkOutlineIcon v-else />
+            <BookmarkOutlineIcon />
           </div>
           <div class="item-content">
-            <span class="item-label">{{ isBookmarked ? '북마크됨' : '북마크' }}</span>
+            <span class="item-label">북마크 목록</span>
           </div>
         </button>
 
@@ -104,20 +103,18 @@ const SettingsIcon = defineComponent({
 
 const props = defineProps<{
   noteCount: number;
-  isBookmarked: boolean;
 }>();
 
 const emit = defineEmits<{
   'note-click': [];
-  'bookmark-toggle': [];
   'open-settings': [];
 }>();
 
 const popoverRef = ref<HTMLElement | null>(null);
 const isOpen = ref(false);
 
-// 인디케이터 표시 여부 (노트가 있거나 북마크된 경우)
-const hasIndicator = computed(() => props.noteCount > 0 || props.isBookmarked);
+// 인디케이터 표시 여부 (노트가 있는 경우)
+const hasIndicator = computed(() => props.noteCount > 0);
 
 const togglePopover = () => {
   isOpen.value = !isOpen.value;
@@ -132,9 +129,9 @@ const handleNote = () => {
   closePopover();
 };
 
-const handleBookmark = () => {
-  emit('bookmark-toggle');
+const handleBookmarkList = () => {
   closePopover();
+  navigateTo('/bible/bookmarks');
 };
 
 const handleSettings = () => {
