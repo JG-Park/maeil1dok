@@ -70,6 +70,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { useRuntimeConfig } from 'nuxt/app'
 import { useHead } from '#imports'
+import { useModal } from '~/composables/useModal'
 
 useHead({
   title: '로그인 - 매일일독',
@@ -89,6 +90,7 @@ useHead({
 
 const auth = useAuthStore()
 const config = useRuntimeConfig()
+const modal = useModal()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -103,7 +105,11 @@ const handleSubmit = async () => {
       const redirectPath = String(route.query.redirect || '')
       navigateTo(redirectPath || '/')
     } else {
-      alert('로그인에 실패했습니다.')
+      await modal.alert({
+        title: '로그인 실패',
+        description: '로그인에 실패했습니다.',
+        icon: 'error'
+      })
     }
   } finally {
     loading.value = false
