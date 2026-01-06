@@ -117,6 +117,13 @@
   --highlight-name-color: #7c5a3c;  /* 갈색 (인명) */
   --highlight-place-color: #5a6e54;  /* 올리브 (지명) */
 
+  /* ===== Brand Colors (Primary) ===== */
+  /* App-wide brand identity colors */
+  --primary-color: #617475;
+  --primary-light: #E9ECEC;
+  --primary-dark: #4A5A5B;
+  --background-color: #efece8;
+
   /* ===== Slate Color Palette ===== */
   /* For calendar and modal components */
   --color-slate-50: #F8FAFC;
@@ -203,6 +210,13 @@
   --color-kakao-bg: #FEE500;
   --color-kakao-hover: #FDD835;
   --color-kakao-text: #000000;
+
+  /* ===== Brand Colors (Primary) ===== */
+  /* Dark mode adjustments for brand colors */
+  --primary-color: #8a9e9f;
+  --primary-light: #3a4545;
+  --primary-dark: #a8babb;
+  --background-color: #1a1a1a;
 
   /* ===== Legacy Aliases (for backward compatibility) ===== */
   --bg-primary: var(--color-bg-primary);

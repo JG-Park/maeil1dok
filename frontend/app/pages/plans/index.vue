@@ -612,14 +612,6 @@ onMounted(async () => {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
-:root {
-  --primary-color: #617475;
-  --primary-light: #E9ECEC;
-  --primary-dark: #4A5A5B;
-  --text-primary: #2C3E50;
-  --text-secondary: #666666;
-}
-
 /* 모달 스타일 */
 .modal-overlay {
   position: fixed;
