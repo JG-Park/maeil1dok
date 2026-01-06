@@ -37,6 +37,7 @@
         :is-authenticated="authStore.isAuthenticated"
         :is-bookmarked="isCurrentChapterBookmarked"
         :note-count="currentChapterNoteCount"
+        :highlights="chapterHighlights"
         @back="goBack"
         @prev-chapter="goToPrevChapter"
         @next-chapter="goToNextChapter"

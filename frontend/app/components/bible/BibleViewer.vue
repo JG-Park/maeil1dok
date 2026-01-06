@@ -61,9 +61,7 @@
             </button>
           </template>
           <button class="copy-button cancel" @click="clearClickSelection">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
+            <XMarkIcon :size="14" />
           </button>
         </div>
       </div>
@@ -79,31 +77,19 @@
           @click.stop
         >
           <button class="action-button" @click="handleBookmark">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <BookmarkIcon :size="18" />
             <span>북마크</span>
           </button>
           <button class="action-button" @click="handleHighlight">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <PenIcon :size="18" />
             <span>하이라이트</span>
           </button>
           <button class="action-button" @click="handleCopy">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/>
-            </svg>
+            <CopyIcon :size="18" />
             <span>복사</span>
           </button>
           <button class="action-button" @click="handleShare">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
-              <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-              <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/>
-              <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2"/>
-            </svg>
+            <ShareIcon :size="18" />
             <span>공유</span>
           </button>
         </div>
@@ -116,17 +102,27 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings';
 
+interface Highlight {
+  id: number;
+  start_verse: number;
+  end_verse: number;
+  color: string;
+  memo?: string;
+}
+
 interface Props {
   content: string;
   book: string;
   chapter: number;
   isLoading?: boolean;
   initialScrollPosition?: number;
+  highlights?: Highlight[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   initialScrollPosition: 0,
+  highlights: () => [],
 });
 
 const emit = defineEmits<{
@@ -168,7 +164,14 @@ const viewerStyle = computed(() => ({
   '--reading-text-align': settings.value.textAlign,
 }));
 
-// 본문 렌더링 (절 번호에 data-verse 속성 추가)
+// 특정 절의 하이라이트 찾기
+const getHighlightForVerse = (verseNum: number): Highlight | undefined => {
+  return props.highlights.find(
+    h => verseNum >= h.start_verse && verseNum <= h.end_verse
+  );
+};
+
+// 본문 렌더링 (절 번호에 data-verse 속성 추가 + 하이라이트 적용)
 const renderedContent = computed(() => {
   if (!props.content) return '';
 
@@ -183,6 +186,21 @@ const renderedContent = computed(() => {
     /<sup class="verse-num"/g,
     '<sup class="verse-num clickable"'
   );
+
+  // 하이라이트가 있으면 절에 배경색 적용
+  if (props.highlights.length > 0) {
+    // .verse 요소에 하이라이트 적용 (verse-number에서 절 번호 추출)
+    content = content.replace(
+      /<div class="verse"><span class="verse-number">(\d+)<\/span>/g,
+      (match, verseNum) => {
+        const highlight = getHighlightForVerse(parseInt(verseNum));
+        if (highlight) {
+          return `<div class="verse highlighted" data-highlight-id="${highlight.id}" style="background-color: ${highlight.color}"><span class="verse-number">${verseNum}</span>`;
+        }
+        return match;
+      }
+    );
+  }
 
   return content;
 });
@@ -691,6 +709,30 @@ defineExpose({
 /* 절 본문 스타일 */
 .bible-content :deep(.verse-text) {
   flex: 1;
+}
+
+/* 하이라이트된 절 스타일 */
+.bible-content :deep(.verse.highlighted) {
+  border-radius: 6px;
+  margin: 0.125rem 0;
+  position: relative;
+}
+
+.bible-content :deep(.verse.highlighted)::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: currentColor;
+  border-radius: 2px;
+  opacity: 0.4;
+}
+
+/* 다크모드에서 하이라이트 투명도 조정 */
+.theme-dark .bible-content :deep(.verse.highlighted) {
+  opacity: 0.85;
 }
 
 /* 인명/지명 강조 스타일 (reading.vue 동일) */

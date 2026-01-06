@@ -47,6 +47,7 @@
       :chapter="currentChapter"
       :is-loading="isLoading"
       :initial-scroll-position="scrollPosition"
+      :highlights="highlights"
       @scroll="$emit('scroll', $event)"
       @bookmark="$emit('bookmark', $event)"
       @highlight="$emit('highlight', $event)"
@@ -134,6 +135,15 @@ import CheckCircleOutlineIcon from '~/components/icons/CheckCircleOutlineIcon.vu
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
 import MenuIcon from '~/components/icons/MenuIcon.vue';
 
+// Highlight 인터페이스
+interface Highlight {
+  id: number;
+  start_verse: number;
+  end_verse: number;
+  color: string;
+  memo?: string;
+}
+
 // Props
 interface Props {
   // 콘텐츠
@@ -165,6 +175,9 @@ interface Props {
   isAuthenticated: boolean;
   isBookmarked: boolean;
   noteCount: number;
+
+  // 하이라이트
+  highlights?: Highlight[];
 }
 
 withDefaults(defineProps<Props>(), {
@@ -172,6 +185,7 @@ withDefaults(defineProps<Props>(), {
   tongdokScheduleRange: null,
   isCompleting: false,
   isMarkingRead: false,
+  highlights: () => [],
 });
 
 // Emits
