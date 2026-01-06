@@ -42,6 +42,11 @@
           :is-bookmarked="isCurrentChapterBookmarked"
           @toggle="handleBookmarkToggle"
         />
+        <button class="settings-button" @click="showSettingsModal = true" title="읽기 설정">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
         <button class="version-button" @click="showVersionSelector = true">
           {{ currentVersionName }}
         </button>
@@ -199,6 +204,13 @@
       @add-custom-color="handleAddCustomColor"
     />
 
+    <!-- 읽기 설정 모달 -->
+    <ReadingSettingsModal
+      :is-open="showSettingsModal"
+      :current-version="currentVersion"
+      @close="showSettingsModal = false"
+    />
+
     <!-- 토스트 -->
     <Toast />
     </template>
@@ -229,6 +241,7 @@ import NoteQuickModal from '~/components/bible/NoteQuickModal.vue';
 import HighlightModal from '~/components/bible/HighlightModal.vue';
 import BibleHome from '~/components/bible/BibleHome.vue';
 import BibleTOC from '~/components/bible/BibleTOC.vue';
+import ReadingSettingsModal from '~/components/ReadingSettingsModal.vue';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -311,6 +324,7 @@ const showBookSelector = ref(false);
 const showVersionSelector = ref(false);
 const showTongdokCompleteModal = ref(false);
 const showHighlightModal = ref(false);
+const showSettingsModal = ref(false);
 
 // 하이라이트 선택 상태
 const highlightSelection = ref<{ start: number; end: number } | null>(null);
@@ -1206,17 +1220,19 @@ watch(
   background: var(--color-bg-primary, #f9fafb);
 }
 
-/* 헤더 */
+/* 헤더 (reading.vue 동일) */
 .bible-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: var(--color-bg-card, #fff);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
   position: sticky;
   top: 0;
   z-index: 100;
+  height: 50px;
+  box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  transition: all 0.15s ease;
 }
 
 .back-button {
@@ -1260,6 +1276,20 @@ watch(
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.settings-button {
+  padding: 0.5rem;
+  margin: -0.25rem;
+  color: var(--text-secondary, #6b7280);
+  background: transparent;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.settings-button:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--text-primary, #1f2937);
 }
 
 .version-button {
@@ -1316,7 +1346,7 @@ watch(
   background: rgba(99, 102, 241, 0.1);
 }
 
-/* 하단 영역 */
+/* 하단 영역 (reading.vue 동일) */
 .bible-bottom-area {
   position: fixed;
   bottom: 0;
@@ -1325,7 +1355,9 @@ watch(
   max-width: 768px;
   margin: 0 auto;
   background: var(--color-bg-card, #fff);
-  border-top: 1px solid var(--color-border, #e5e7eb);
+  box-shadow: var(--shadow-md, 0 -4px 6px -1px rgba(0, 0, 0, 0.1));
+  z-index: 20;
+  border-radius: 16px 16px 0 0;
 }
 
 /* 통독모드 액션 영역 */
@@ -1434,28 +1466,45 @@ watch(
   transition: width 0.3s ease;
 }
 
-/* 네비게이션 */
+/* 네비게이션 (reading.vue 동일) */
 .bible-navigation {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.25rem;
+  min-height: 50px;
 }
 
 .nav-button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  color: var(--primary-color, #6366f1);
+  padding: 0.25rem;
+  color: var(--color-slate-600, #475569);
   font-size: 0.875rem;
   font-weight: 500;
   border-radius: 8px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  background: transparent;
+  outline: none;
+}
+
+.nav-button.prev {
+  padding-left: 0.75rem;
+}
+
+.nav-button.next {
+  padding-right: 0.75rem;
 }
 
 .nav-button:hover:not(:disabled) {
-  background: var(--primary-light, #eef2ff);
+  background: var(--color-slate-200, #e2e8f0);
+  color: var(--color-slate-800, #1e293b);
+}
+
+.nav-button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .nav-button:disabled {
@@ -1482,12 +1531,19 @@ watch(
 
 :root.dark .bible-header {
   background: var(--color-bg-card);
-  border-color: var(--color-border);
 }
 
 :root.dark .bible-bottom-area {
   background: var(--color-bg-card);
-  border-color: var(--color-border);
+}
+
+:root.dark .nav-button {
+  color: var(--color-slate-400, #94a3b8);
+}
+
+:root.dark .nav-button:hover:not(:disabled) {
+  background: var(--color-slate-700, #334155);
+  color: var(--color-slate-200, #e2e8f0);
 }
 
 :root.dark .reading-action {
@@ -1501,5 +1557,14 @@ watch(
 
 :root.dark .tongdok-action {
   border-color: var(--color-border);
+}
+
+:root.dark .settings-button {
+  color: var(--text-secondary);
+}
+
+:root.dark .settings-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--text-primary);
 }
 </style>

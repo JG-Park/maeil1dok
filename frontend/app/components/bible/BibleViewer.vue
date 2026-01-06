@@ -646,9 +646,50 @@ defineExpose({
   user-select: text;
 }
 
+/* 절 스타일 (reading.vue 동일) */
+.bible-content :deep(.verse) {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
+  letter-spacing: -0.02em;
+  font-weight: var(--reading-font-weight, normal);
+  transition: background-color 0.3s ease-in-out;
+  padding: 0.25rem 0.35rem;
+  border-radius: 8px;
+}
+
 .bible-content :deep(p),
 .bible-content :deep(.verse-line) {
   margin-bottom: 0.5em;
+}
+
+/* 절 번호 스타일 (reading.vue 동일) */
+.bible-content :deep(.verse-number) {
+  color: var(--verse-number-color, #999999);
+  font-weight: 500;
+  margin-right: 0.3rem;
+  min-width: 0.8em;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 0.75em;
+  font-family: "Pretendard", sans-serif;
+  position: relative;
+  line-height: 2;
+}
+
+/* 절 본문 스타일 */
+.bible-content :deep(.verse-text) {
+  flex: 1;
+}
+
+/* 인명/지명 강조 스타일 (reading.vue 동일) */
+.bible-content :deep(.bible-name) {
+  color: var(--highlight-name-color, #7c5a3c);
+}
+
+.bible-content :deep(.bible-area) {
+  color: var(--highlight-place-color, #5a6e54);
 }
 
 .bible-content :deep(.verse-num) {
@@ -675,13 +716,32 @@ defineExpose({
   display: none;
 }
 
-/* 섹션 제목 */
+/* 섹션 제목 (reading.vue 동일) */
 .bible-content :deep(.section-title),
 .bible-content :deep(h3),
 .bible-content :deep(h4) {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin: 1.5em 0 0.75em;
-  color: var(--text-primary, #1f2937);
+  color: var(--section-title-color, #4a5d4a);
+  margin: 2rem 0 0.25rem;
+  text-align: center;
+}
+
+.bible-content :deep(.section-title:first-child),
+.bible-content :deep(h3:first-child),
+.bible-content :deep(h4:first-child) {
+  margin-top: 0;
+}
+
+/* 섹션 제목 내 참조 */
+.bible-content :deep(.section-title .reference),
+.bible-content :deep(h3 .reference),
+.bible-content :deep(h4 .reference) {
+  font-size: 0.75em;
+  font-weight: 500;
+  color: var(--text-secondary, #6b7280);
+  margin-left: 0.25rem;
 }
 
 /* 에러 메시지 */
@@ -790,6 +850,27 @@ defineExpose({
 
 .theme-dark .action-button:hover {
   background: var(--color-bg-hover-dark, #3d3d3d);
+}
+
+/* 다크모드 인명/지명 색상 */
+.theme-dark .bible-content :deep(.bible-name) {
+  color: var(--highlight-name-color-dark, #c9a67a);
+}
+
+.theme-dark .bible-content :deep(.bible-area) {
+  color: var(--highlight-place-color-dark, #9cb094);
+}
+
+/* 다크모드 섹션 제목 색상 */
+.theme-dark .bible-content :deep(.section-title),
+.theme-dark .bible-content :deep(h3),
+.theme-dark .bible-content :deep(h4) {
+  color: var(--section-title-color-dark, #8ba888);
+}
+
+/* 다크모드 절 번호 색상 */
+.theme-dark .bible-content :deep(.verse-number) {
+  color: var(--verse-number-color-dark, #666666);
 }
 
 /* ====== 절 클릭 선택 스타일 ====== */
