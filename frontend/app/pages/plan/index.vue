@@ -67,8 +67,6 @@ const goToLogin = () => {
 // 구간 선택 핸들러
 interface RangeSelectParams {
   action: 'complete' | 'cancel';
-  startSchedule: any;
-  endSchedule: any;
   scheduleIds: number[];
   planId: number;
 }

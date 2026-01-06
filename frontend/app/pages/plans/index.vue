@@ -133,209 +133,236 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useToast } from '~/composables/useToast'
-import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
-import Toast from '~/components/Toast.vue'
-import PageHeader from '~/components/PageHeader.vue'
-import ConfirmModal from '~/components/ConfirmModal.vue'
-import { useRouter } from 'vue-router'
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useToast } from '~/composables/useToast';
+import { useApi } from '~/composables/useApi';
+import { useAuthStore } from '~/stores/auth';
+import Toast from '~/components/Toast.vue';
+import PageHeader from '~/components/PageHeader.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const toast = useToast()
-const api = useApi()
+// 타입 정의
+interface Subscription {
+  id: number;
+  plan_id: number;
+  plan_name: string;
+  start_date: string;
+  is_active: boolean;
+  is_default: boolean;
+}
 
-const subscriptions = ref([])
-const availablePlans = ref([])
-const isLoading = ref(true)
+interface Plan {
+  id: number;
+  name: string;
+  description: string;
+  is_default: boolean;
+  subscriber_count: number;
+}
+
+interface ReadingData {
+  planId: number;
+  readingId: number;
+}
+
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
+const api = useApi();
+
+const subscriptions = ref<Subscription[]>([]);
+const availablePlans = ref<Plan[]>([]);
+const isLoading = ref(true);
 
 // 모달 관련 상태
-const showModal = ref(false)
-const modalTitle = ref('')
-const modalMessage = ref('')
-const hasReadingData = ref(false)
-const currentReadingData = ref(null)
+const showModal = ref(false);
+const modalTitle = ref('');
+const modalMessage = ref('');
+const hasReadingData = ref(false);
+const currentReadingData = ref<ReadingData | null>(null);
 
 // 구독 취소 관련 상태
-const showUnsubscribeModal = ref(false)
-const currentSubscription = ref(null)
+const showUnsubscribeModal = ref(false);
+const currentSubscription = ref<Subscription | null>(null);
 
 // 날짜 포맷팅
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
   return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  })
-}
+  });
+};
 
 // 사용자 플랜 정보 조회
-const fetchUserPlans = async () => {
-  if (!authStore.isAuthenticated) return
+const fetchUserPlans = async (): Promise<void> => {
+  if (!authStore.isAuthenticated) return;
 
   try {
-    const response = await api.get('/api/v1/todos/plans/user/')
-    const responseData = response.data || response
+    const response = await api.get('/api/v1/todos/plans/user/');
+    const responseData = response.data || response;
 
     if (responseData.subscriptions) {
-      subscriptions.value = responseData.subscriptions
+      subscriptions.value = responseData.subscriptions;
     } else {
-      subscriptions.value = []
+      subscriptions.value = [];
     }
 
     if (responseData.available_plans) {
-      availablePlans.value = responseData.available_plans
+      availablePlans.value = responseData.available_plans;
     } else {
-      availablePlans.value = []
+      availablePlans.value = [];
     }
-  } catch (err) {
-    toast.error('플랜 정보를 불러오는데 실패했습니다.')
+  } catch {
+    toast.error('플랜 정보를 불러오는데 실패했습니다.');
   }
-}
+};
 
 // 플랜 구독
-const subscribe = async (plan) => {
+const subscribe = async (plan: Plan): Promise<void> => {
   try {
     await api.post('/api/v1/todos/plan/', {
       plan: plan.id
-    })
+    });
 
-    toast.success(`${plan.name} 플랜을 구독했습니다.`)
+    toast.success(`${plan.name} 플랜을 구독했습니다.`);
 
     // 목록 새로고침
-    await fetchUserPlans()
-  } catch (err) {
-    if (err.response?.data?.detail) {
-      toast.error(err.response.data.detail)
+    await fetchUserPlans();
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: { detail?: string } } };
+    if (error.response?.data?.detail) {
+      toast.error(error.response.data.detail);
     } else {
-      toast.error('플랜 구독에 실패했습니다.')
+      toast.error('플랜 구독에 실패했습니다.');
     }
   }
-}
+};
 
 // 숨기기/다시 보기 토글
-const toggleHide = async (subscription) => {
+const toggleHide = async (subscription: Subscription): Promise<void> => {
   try {
-    await api.post(`/api/v1/todos/plan/${subscription.id}/toggle-active/`)
+    await api.post(`/api/v1/todos/plan/${subscription.id}/toggle-active/`);
 
     const message = subscription.is_active
       ? `${subscription.plan_name} 플랜을 숨겼습니다.`
-      : `${subscription.plan_name} 플랜을 다시 표시합니다.`
-    toast.success(message)
+      : `${subscription.plan_name} 플랜을 다시 표시합니다.`;
+    toast.success(message);
 
     // 목록 새로고침
-    await fetchUserPlans()
-  } catch (err) {
-    if (err.response?.data?.detail) {
-      toast.error(err.response.data.detail)
+    await fetchUserPlans();
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: { detail?: string } } };
+    if (error.response?.data?.detail) {
+      toast.error(error.response.data.detail);
     } else {
-      toast.error('처리에 실패했습니다.')
+      toast.error('처리에 실패했습니다.');
     }
   }
-}
+};
 
 // 읽기 페이지로 이동
-const goToReading = () => {
+const goToReading = (): void => {
   if (currentReadingData.value) {
     router.push({
       path: '/reading',
       query: {
-        plan_id: currentReadingData.value.planId,
-        reading_id: currentReadingData.value.readingId
+        plan_id: String(currentReadingData.value.planId),
+        reading_id: String(currentReadingData.value.readingId)
       }
-    })
+    });
   }
-  closeModal()
-}
+  closeModal();
+};
 
 // 모달 닫기
-const closeModal = () => {
-  showModal.value = false
-}
+const closeModal = (): void => {
+  showModal.value = false;
+};
 
 // 완전 삭제 확인 모달 표시
-const confirmDelete = (subscription) => {
-  currentSubscription.value = subscription
-  showUnsubscribeModal.value = true
-}
+const confirmDelete = (subscription: Subscription): void => {
+  currentSubscription.value = subscription;
+  showUnsubscribeModal.value = true;
+};
 
 // 삭제 모달 닫기
-const closeUnsubscribeModal = () => {
-  showUnsubscribeModal.value = false
-  currentSubscription.value = null
-}
+const closeUnsubscribeModal = (): void => {
+  showUnsubscribeModal.value = false;
+  currentSubscription.value = null;
+};
 
 // 완전 삭제 실행
-const deletePlan = async () => {
-  if (!currentSubscription.value) return
+const deletePlan = async (): Promise<void> => {
+  if (!currentSubscription.value) return;
 
   try {
     // 플랜 구독 삭제 API 호출
-    await api.delete(`/api/v1/todos/plan/${currentSubscription.value.id}/`)
+    await api.delete(`/api/v1/todos/plan/${currentSubscription.value.id}/`);
 
-    toast.success(`${currentSubscription.value.plan_name} 플랜을 완전히 삭제했습니다.`)
+    toast.success(`${currentSubscription.value.plan_name} 플랜을 완전히 삭제했습니다.`);
 
     // 목록 새로고침
-    await fetchUserPlans()
+    await fetchUserPlans();
 
     // 모달 닫기
-    closeUnsubscribeModal()
-  } catch (err) {
-    if (err.response?.data?.detail) {
-      toast.error(err.response.data.detail)
+    closeUnsubscribeModal();
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: { detail?: string } } };
+    if (error.response?.data?.detail) {
+      toast.error(error.response.data.detail);
     } else {
-      toast.error('삭제에 실패했습니다.')
+      toast.error('삭제에 실패했습니다.');
     }
   }
-}
+};
 
 // 성경통독 일정 페이지로 이동
-const goToReadingPlan = (subscription) => {
+const goToReadingPlan = (subscription: Subscription): void => {
   if (!subscription.is_active) {
-    toast.error('비활성화된 플랜입니다. 먼저 플랜을 다시 구독해주세요.')
-    return
+    toast.error('비활성화된 플랜입니다. 먼저 플랜을 다시 구독해주세요.');
+    return;
   }
 
   router.push({
     path: '/plan',
     query: {
-      plan: subscription.plan_id
+      plan: String(subscription.plan_id)
     }
-  })
-}
+  });
+};
 
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
   // 인증 상태 확인 및 플랜 정보 로드
-  isLoading.value = true
-  
+  isLoading.value = true;
+
   try {
     // authStore가 이미 초기화되었는지 확인
     if (!authStore.user && typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token')
+      const token = localStorage.getItem('access_token');
       if (token) {
         // 토큰이 있으면 사용자 정보 가져오기 시도
         await authStore.fetchUser().catch(() => {
           // 실패하면 토큰이 유효하지 않음
-          authStore.logout()
-        })
+          authStore.logout();
+        });
       }
     }
-    
+
     // 인증된 경우에만 플랜 정보 로드
     if (authStore.isAuthenticated) {
-      await fetchUserPlans()
+      await fetchUserPlans();
     }
-  } catch (error) {
+  } catch {
+    // 초기화 에러는 무시
   } finally {
     // 항상 로딩 상태를 false로 설정
-    isLoading.value = false
+    isLoading.value = false;
   }
-})
+});
 </script>
 
 <style scoped>
