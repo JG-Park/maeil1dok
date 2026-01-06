@@ -310,5 +310,5 @@ const startFresh = () => {
 ## 완료 정보
 
 - **완료일**: 2026-01-06
-- **커밋**: (커밋 후 업데이트)
+- **커밋**: ea271cb
 - **비고**: useReadingPosition composable 수정, localStorage 폴백 추가, bible/index.vue에 통합 완료

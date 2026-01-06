@@ -23,9 +23,9 @@
 |-------|--------|--------|
 | Phase 1 | 기반 작업 | 3/3 ✅ |
 | Phase 2 | 핵심 기능 | 4/4 ✅ |
-| Phase 3 | 부가 기능 | 0/3 |
-| Phase 4 | 설정 및 마무리 | 0/4 |
-| **Total** | | **7/14** |
+| Phase 3 | 부가 기능 | 3/3 ✅ |
+| Phase 4 | 설정 및 마무리 | 1/4 |
+| **Total** | | **11/14** |
 
 ---
 
@@ -46,7 +46,7 @@
 | 2-1 | [성경 뷰어 컴포넌트](./phase-2/task-2-1-bible-viewer.md) | ✅ 완료 | dc0589b |
 | 2-2 | [읽기모드 구현](./phase-2/task-2-2-reading-mode.md) | ✅ 완료 | 3bcafcf |
 | 2-3 | [통독모드 구현](./phase-2/task-2-3-tongdok-mode.md) | ✅ 완료 | b46e491 |
-| 2-4 | [마지막 읽기 위치](./phase-2/task-2-4-reading-position.md) | ✅ 완료 | (커밋 대기) |
+| 2-4 | [마지막 읽기 위치](./phase-2/task-2-4-reading-position.md) | ✅ 완료 | ea271cb |
 
 ---
 
@@ -54,9 +54,9 @@
 
 | # | 태스크 | 상태 | 커밋 |
 |---|--------|------|------|
-| 3-1 | [북마크 기능](./phase-3/task-3-1-bookmark.md) | ⬜ 대기 | - |
-| 3-2 | [묵상노트 기능](./phase-3/task-3-2-notes.md) | ⬜ 대기 | - |
-| 3-3 | [하이라이트 기능](./phase-3/task-3-3-highlight.md) | ⬜ 대기 | - |
+| 3-1 | [북마크 기능](./phase-3/task-3-1-bookmark.md) | ✅ 완료 | ca93ff2 |
+| 3-2 | [묵상노트 기능](./phase-3/task-3-2-notes.md) | ✅ 완료 | 931e073 |
+| 3-3 | [하이라이트 기능](./phase-3/task-3-3-highlight.md) | ✅ 완료 | 80fc08e |
 
 ---
 
@@ -64,7 +64,7 @@
 
 | # | 태스크 | 상태 | 커밋 |
 |---|--------|------|------|
-| 4-1 | [읽기 설정 페이지](./phase-4/task-4-1-settings.md) | ⬜ 대기 | - |
+| 4-1 | [읽기 설정 페이지](./phase-4/task-4-1-settings.md) | ✅ 완료 | c0e8949 |
 | 4-2 | [읽기 기록/통계 페이지](./phase-4/task-4-2-history.md) | ⬜ 대기 | - |
 | 4-3 | [기본 진입점 설정](./phase-4/task-4-3-entry-point.md) | ⬜ 대기 | - |
 | 4-4 | [최종 테스트 및 정리](./phase-4/task-4-4-final.md) | ⬜ 대기 | - |
@@ -81,6 +81,11 @@
 | 2026-01-06 | 2-1 | dc0589b | feat(bible): Task 2-1 BibleViewer 컴포넌트 구현 |
 | 2026-01-06 | 2-2 | 3bcafcf | feat(bible): Task 2-2 읽기모드 구현 |
 | 2026-01-06 | 2-3 | b46e491 | feat(bible): Task 2-3 통독모드 구현 |
+| 2026-01-06 | 2-4 | ea271cb | feat(bible): Task 2-4 마지막 읽기 위치 구현 |
+| 2026-01-06 | 3-1 | ca93ff2 | feat(bible): implement bookmark feature for chapters |
+| 2026-01-06 | 3-2 | 931e073 | feat(bible): implement reflection note feature (Task 3-2) |
+| 2026-01-06 | 3-3 | 80fc08e | feat(bible): implement highlight feature (Task 3-3) |
+| 2026-01-06 | 4-1 | c0e8949 | feat(bible): implement reading settings page (Task 4-1) |
 
 ---
 

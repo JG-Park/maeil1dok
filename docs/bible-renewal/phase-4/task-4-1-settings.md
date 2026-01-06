@@ -427,6 +427,9 @@ const resetAllSettings = () => {
 
 ## 완료 정보
 
-- **완료일**: -
-- **커밋**: -
-- **비고**: -
+- **완료일**: 2026-01-06
+- **커밋**: c0e8949
+- **비고**:
+  - 스토어에 showVerseNumbers, defaultEntryPoint 설정 추가
+  - /bible/settings.vue 페이지 완전 구현 (표시, 동작, 데이터 관리 섹션)
+  - 백엔드 ViewSet에 delete-all 액션 추가 (북마크, 묵상노트, 하이라이트)

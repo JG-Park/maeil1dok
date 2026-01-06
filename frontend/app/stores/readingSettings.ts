@@ -8,6 +8,7 @@ export type FontFamily = 'ridi-batang' | 'noto-serif' | 'kopub-batang' | 'preten
 export type FontWeight = 'normal' | 'medium' | 'bold'
 export type LineHeight = 'compact' | 'normal' | 'wide'
 export type TextAlign = 'left' | 'justify'
+export type DefaultEntryPoint = 'last-position' | 'home' | 'toc'
 
 export interface ReadingSettings {
   // Theme
@@ -20,11 +21,13 @@ export interface ReadingSettings {
   lineHeight: LineHeight
   textAlign: TextAlign
 
-  // Verse joining (통독 모드)
+  // Verse display options
   verseJoining: boolean
+  showVerseNumbers: boolean
 
-  // Tongdok auto-complete (통독모드 자동 완료)
+  // Behavior settings
   tongdokAutoComplete: boolean
+  defaultEntryPoint: DefaultEntryPoint
 
   // View options (existing, migrated from localStorage)
   showDescription: boolean
@@ -50,7 +53,9 @@ const DEFAULT_SETTINGS: ReadingSettings = {
   lineHeight: 'normal',
   textAlign: 'left',
   verseJoining: false,
+  showVerseNumbers: true,
   tongdokAutoComplete: false,
+  defaultEntryPoint: 'last-position',
   showDescription: true,
   showCrossRef: true,
   highlightNames: true,
@@ -222,7 +227,9 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
             lineHeight: serverSettings.line_height || this.settings.lineHeight,
             textAlign: serverSettings.text_align || this.settings.textAlign,
             verseJoining: serverSettings.verse_joining ?? this.settings.verseJoining,
+            showVerseNumbers: serverSettings.show_verse_numbers ?? this.settings.showVerseNumbers,
             tongdokAutoComplete: serverSettings.tongdok_auto_complete ?? this.settings.tongdokAutoComplete,
+            defaultEntryPoint: serverSettings.default_entry_point || this.settings.defaultEntryPoint,
             showDescription: serverSettings.show_description ?? this.settings.showDescription,
             showCrossRef: serverSettings.show_cross_ref ?? this.settings.showCrossRef,
             highlightNames: serverSettings.highlight_names ?? this.settings.highlightNames,
@@ -254,7 +261,9 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
           line_height: this.settings.lineHeight,
           text_align: this.settings.textAlign,
           verse_joining: this.settings.verseJoining,
+          show_verse_numbers: this.settings.showVerseNumbers,
           tongdok_auto_complete: this.settings.tongdokAutoComplete,
+          default_entry_point: this.settings.defaultEntryPoint,
           show_description: this.settings.showDescription,
           show_cross_ref: this.settings.showCrossRef,
           highlight_names: this.settings.highlightNames,

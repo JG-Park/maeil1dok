@@ -2306,6 +2306,15 @@ class BibleBookmarkViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(bookmarks, many=True)
         return Response({'success': True, 'bookmarks': serializer.data})
 
+    @action(detail=False, methods=['delete'], url_path='delete-all')
+    def delete_all(self, request):
+        """모든 북마크 삭제"""
+        count, _ = self.get_queryset().delete()
+        return Response({
+            'success': True,
+            'message': f'{count}개의 북마크가 삭제되었습니다'
+        })
+
 
 class ReflectionNoteViewSet(viewsets.ModelViewSet):
     """묵상노트 CRUD API"""
@@ -2353,6 +2362,15 @@ class ReflectionNoteViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(notes, many=True)
         return Response({'success': True, 'notes': serializer.data})
 
+    @action(detail=False, methods=['delete'], url_path='delete-all')
+    def delete_all(self, request):
+        """모든 묵상노트 삭제"""
+        count, _ = self.get_queryset().delete()
+        return Response({
+            'success': True,
+            'message': f'{count}개의 묵상노트가 삭제되었습니다'
+        })
+
 
 class BibleHighlightViewSet(viewsets.ModelViewSet):
     """하이라이트 CRUD API"""
@@ -2399,6 +2417,15 @@ class BibleHighlightViewSet(viewsets.ModelViewSet):
         highlights = self.get_queryset().filter(book=book, chapter=chapter)
         serializer = self.get_serializer(highlights, many=True)
         return Response({'success': True, 'highlights': serializer.data})
+
+    @action(detail=False, methods=['delete'], url_path='delete-all')
+    def delete_all(self, request):
+        """모든 하이라이트 삭제"""
+        count, _ = self.get_queryset().delete()
+        return Response({
+            'success': True,
+            'message': f'{count}개의 하이라이트가 삭제되었습니다'
+        })
 
 
 # 성경책별 총 장 수
