@@ -2559,4 +2559,17 @@ class PersonalReadingRecordViewSet(viewsets.ModelViewSet):
             'read_chapters': read_chapters,
             'total_chapters': total_chapters,
             'is_completed': len(read_chapters) >= total_chapters if total_chapters > 0 else False
-        }) 
+        })
+
+    @action(detail=False, methods=['get'])
+    def dates(self, request):
+        """읽기 날짜 목록 조회 (캘린더용)"""
+        records = self.get_queryset()
+        dates = list(
+            records.values_list('read_date', flat=True)
+            .distinct()
+            .order_by('-read_date')
+        )
+        # YYYY-MM-DD 포맷으로 변환
+        date_strings = [d.isoformat() for d in dates if d]
+        return Response({'success': True, 'dates': date_strings}) 

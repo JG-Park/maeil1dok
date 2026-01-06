@@ -24,8 +24,8 @@
 | Phase 1 | 기반 작업 | 3/3 ✅ |
 | Phase 2 | 핵심 기능 | 4/4 ✅ |
 | Phase 3 | 부가 기능 | 3/3 ✅ |
-| Phase 4 | 설정 및 마무리 | 1/4 |
-| **Total** | | **11/14** |
+| Phase 4 | 설정 및 마무리 | 2/4 |
+| **Total** | | **12/14** |
 
 ---
 
@@ -65,7 +65,7 @@
 | # | 태스크 | 상태 | 커밋 |
 |---|--------|------|------|
 | 4-1 | [읽기 설정 페이지](./phase-4/task-4-1-settings.md) | ✅ 완료 | c0e8949 |
-| 4-2 | [읽기 기록/통계 페이지](./phase-4/task-4-2-history.md) | ⬜ 대기 | - |
+| 4-2 | [읽기 기록/통계 페이지](./phase-4/task-4-2-history.md) | ✅ 완료 | e028650 |
 | 4-3 | [기본 진입점 설정](./phase-4/task-4-3-entry-point.md) | ⬜ 대기 | - |
 | 4-4 | [최종 테스트 및 정리](./phase-4/task-4-4-final.md) | ⬜ 대기 | - |
 
@@ -86,6 +86,7 @@
 | 2026-01-06 | 3-2 | 931e073 | feat(bible): implement reflection note feature (Task 3-2) |
 | 2026-01-06 | 3-3 | 80fc08e | feat(bible): implement highlight feature (Task 3-3) |
 | 2026-01-06 | 4-1 | c0e8949 | feat(bible): implement reading settings page (Task 4-1) |
+| 2026-01-06 | 4-2 | e028650 | feat(bible): implement reading history/stats page (Task 4-2) |
 
 ---
 
