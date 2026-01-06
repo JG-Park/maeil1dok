@@ -29,16 +29,20 @@
       <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
     </div>
 
-    <!-- 로딩 상태 -->
-    <div v-if="isLoading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>성경을 불러오는 중...</p>
-    </div>
-
-    <!-- 성경 본문 -->
-    <main v-else class="bible-content-wrapper" ref="contentWrapper">
-      <div class="bible-content" :style="{ fontSize: fontSize + 'px' }" v-html="bibleContent"></div>
-    </main>
+    <!-- 성경 본문 뷰어 -->
+    <BibleViewer
+      ref="bibleViewerRef"
+      :content="bibleContent"
+      :book="currentBookName"
+      :chapter="currentChapter"
+      :is-loading="isLoading"
+      :initial-scroll-position="scrollPosition"
+      @scroll="handleScrollPosition"
+      @bookmark="handleBookmarkAction"
+      @highlight="handleHighlightAction"
+      @copy="handleCopyAction"
+      @share="handleShareAction"
+    />
 
     <!-- 하단 네비게이션 -->
     <nav class="bible-navigation">
@@ -91,9 +95,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { useBibleData } from '~/composables/useBibleData';
 import { useBibleFetch } from '~/composables/useBibleFetch';
 import { useTongdokMode } from '~/composables/useTongdokMode';
-import { useReadingSettingsStore } from '~/stores/readingSettings';
 import BookSelector from '~/components/bible/BookSelector.vue';
 import VersionSelector from '~/components/bible/VersionSelector.vue';
+import BibleViewer from '~/components/bible/BibleViewer.vue';
 
 definePageMeta({
   layout: 'default'
@@ -101,7 +105,6 @@ definePageMeta({
 
 const route = useRoute();
 const router = useRouter();
-const readingSettingsStore = useReadingSettingsStore();
 
 // Composables
 const { bookNames, bookChapters, versionNames } = useBibleData();
@@ -126,10 +129,8 @@ const showBookSelector = ref(false);
 const showVersionSelector = ref(false);
 
 // Refs
-const contentWrapper = ref<HTMLElement | null>(null);
-
-// 읽기 설정
-const fontSize = computed(() => readingSettingsStore.settings.fontSize);
+const bibleViewerRef = ref<InstanceType<typeof BibleViewer> | null>(null);
+const scrollPosition = ref(0);
 
 // Computed
 const currentBookName = computed(() => bookNames[currentBook.value] || currentBook.value);
@@ -397,9 +398,40 @@ const goToNextChapter = () => {
 
 const scrollToTop = () => {
   nextTick(() => {
-    contentWrapper.value?.scrollTo({ top: 0, behavior: 'smooth' });
+    bibleViewerRef.value?.restoreScrollPosition();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+};
+
+// BibleViewer 이벤트 핸들러
+const handleScrollPosition = (position: number) => {
+  scrollPosition.value = position;
+};
+
+interface VerseSelection {
+  start: number;
+  end: number;
+  text: string;
+}
+
+const handleBookmarkAction = (verses: VerseSelection) => {
+  // TODO: 북마크 기능 구현 (Phase 3)
+  console.log('Bookmark:', verses);
+};
+
+const handleHighlightAction = (verses: VerseSelection) => {
+  // TODO: 하이라이트 기능 구현 (Phase 3)
+  console.log('Highlight:', verses);
+};
+
+const handleCopyAction = (text: string) => {
+  // 복사 성공 시 토스트 표시 등 (선택적)
+  console.log('Copied:', text);
+};
+
+const handleShareAction = (text: string) => {
+  // 공유 완료 (선택적 핸들링)
+  console.log('Shared:', text);
 };
 
 // 라이프사이클
@@ -528,97 +560,6 @@ watch(
   font-weight: 500;
 }
 
-/* 로딩 */
-.loading-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 2rem;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border, #e5e7eb);
-  border-top-color: var(--primary-color, #6366f1);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-container p {
-  color: var(--text-secondary, #6b7280);
-  font-size: 0.875rem;
-}
-
-/* 본문 */
-.bible-content-wrapper {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-  padding-bottom: 80px;
-}
-
-.bible-content {
-  line-height: 1.8;
-  color: var(--text-primary, #1f2937);
-  word-break: keep-all;
-}
-
-.bible-content :deep(.verse),
-.bible-content :deep(.verse-line) {
-  margin-bottom: 0.5rem;
-}
-
-.bible-content :deep(sup) {
-  color: var(--primary-color, #6366f1);
-  font-weight: 600;
-  margin-right: 0.25rem;
-}
-
-.bible-content :deep(.error-message) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem 1rem;
-  color: var(--text-secondary, #6b7280);
-}
-
-.bible-content :deep(.error-message h3) {
-  margin: 1rem 0 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
-
-.bible-content :deep(.error-message p) {
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
-
-.bible-content :deep(.external-link) {
-  padding: 0.75rem 1.5rem;
-  background: var(--primary-color, #6366f1);
-  color: white;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.2s;
-}
-
-.bible-content :deep(.external-link:hover) {
-  background: var(--primary-dark, #4f46e5);
-}
-
 /* 네비게이션 */
 .bible-navigation {
   display: flex;
@@ -665,10 +606,6 @@ watch(
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .bible-navigation {
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-  }
-
-  .bible-content-wrapper {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
 
