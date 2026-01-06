@@ -45,33 +45,65 @@
     />
 
     <!-- 하단 네비게이션 -->
-    <nav class="bible-navigation">
-      <button
-        class="nav-button prev"
-        :disabled="!hasPrevChapter"
-        @click="goToPrevChapter"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        이전
-      </button>
+    <div class="bible-bottom-area">
+      <!-- 읽기모드: 읽음 표시 영역 -->
+      <div v-if="isReadingMode" class="reading-action">
+        <button
+          class="mark-read-btn"
+          :class="{ 'is-read': isCurrentChapterRead }"
+          :disabled="isMarkingRead"
+          @click="handleMarkAsRead"
+        >
+          <svg v-if="isCurrentChapterRead" width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>{{ isCurrentChapterRead ? '읽음 완료' : '읽음으로 표시' }}</span>
+        </button>
 
-      <div class="chapter-info">
-        {{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}
+        <!-- 진도 표시 -->
+        <ClientOnly>
+          <div v-if="authStore.isAuthenticated && currentBookProgress.total > 0" class="progress-info">
+            <span class="progress-text">{{ currentBookProgress.read }} / {{ currentBookProgress.total }}장</span>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: `${currentBookProgress.percentage}%` }"></div>
+            </div>
+          </div>
+        </ClientOnly>
       </div>
 
-      <button
-        class="nav-button next"
-        :disabled="!hasNextChapter"
-        @click="goToNextChapter"
-      >
-        다음
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-    </nav>
+      <nav class="bible-navigation">
+        <button
+          class="nav-button prev"
+          :disabled="!hasPrevChapter"
+          @click="goToPrevChapter"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          이전
+        </button>
+
+        <div class="chapter-info">
+          {{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}
+        </div>
+
+        <button
+          class="nav-button next"
+          :disabled="!hasNextChapter"
+          @click="goToNextChapter"
+        >
+          다음
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </nav>
+    </div>
 
     <!-- 모달 -->
     <BookSelector
@@ -86,6 +118,9 @@
       :current-version="currentVersion"
       @select="handleVersionSelect"
     />
+
+    <!-- 토스트 -->
+    <Toast />
   </div>
 </template>
 
@@ -95,9 +130,13 @@ import { useRoute, useRouter } from 'vue-router';
 import { useBibleData } from '~/composables/useBibleData';
 import { useBibleFetch } from '~/composables/useBibleFetch';
 import { useTongdokMode } from '~/composables/useTongdokMode';
+import { usePersonalRecord } from '~/composables/usePersonalRecord';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
 import BookSelector from '~/components/bible/BookSelector.vue';
 import VersionSelector from '~/components/bible/VersionSelector.vue';
 import BibleViewer from '~/components/bible/BibleViewer.vue';
+import Toast from '~/components/Toast.vue';
 
 definePageMeta({
   layout: 'default'
@@ -105,9 +144,18 @@ definePageMeta({
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
 
 // Composables
 const { bookNames, bookChapters, versionNames } = useBibleData();
+const {
+  fetchReadChapters,
+  markAsRead,
+  isChapterRead,
+  getBookProgress,
+  isLoading: isMarkingRead
+} = usePersonalRecord();
 const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch();
 const {
   tongdokMode,
@@ -158,6 +206,15 @@ const hasNextChapter = computed(() => {
 const isTongdokMode = computed(() => tongdokMode.value);
 const tongdokScheduleRange = computed(() =>
   getTongdokScheduleRange(currentBook.value, currentChapter.value)
+);
+
+// 읽기모드 관련 (통독모드가 아닐 때)
+const isReadingMode = computed(() => !isTongdokMode.value);
+const isCurrentChapterRead = computed(() =>
+  isChapterRead(currentBook.value, currentChapter.value)
+);
+const currentBookProgress = computed(() =>
+  getBookProgress(currentBook.value, maxChapters.value)
 );
 
 // 쿼리 파라미터에서 초기값 설정
@@ -434,11 +491,38 @@ const handleShareAction = (text: string) => {
   console.log('Shared:', text);
 };
 
+// 읽기모드: 읽음 표시 핸들러
+const handleMarkAsRead = async () => {
+  if (!authStore.isAuthenticated) {
+    // 비로그인 시 로그인 유도
+    toast.info('로그인이 필요합니다');
+    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
+    return;
+  }
+
+  if (isCurrentChapterRead.value) {
+    toast.info('이미 읽음으로 표시되었습니다');
+    return;
+  }
+
+  try {
+    await markAsRead(currentBook.value, currentChapter.value);
+    toast.success(`${currentBookName.value} ${currentChapter.value}${chapterSuffix.value} 읽음 완료!`);
+  } catch (err) {
+    toast.error('읽음 표시에 실패했습니다');
+  }
+};
+
 // 라이프사이클
-onMounted(() => {
+onMounted(async () => {
   initFromQuery();
   initTongdokMode();
   loadBibleContent(currentBook.value, currentChapter.value);
+
+  // 읽기 기록 조회 (로그인 시)
+  if (authStore.isAuthenticated && !isTongdokMode.value) {
+    await fetchReadChapters(currentBook.value);
+  }
 });
 
 // route.query 변경 감지
@@ -448,6 +532,16 @@ watch(
     if (newQuery.book && newQuery.book !== currentBook.value) {
       initFromQuery();
       loadBibleContent(currentBook.value, currentChapter.value);
+    }
+  }
+);
+
+// 책 변경 시 읽기 기록 조회
+watch(
+  () => currentBook.value,
+  async (newBook) => {
+    if (authStore.isAuthenticated && !isTongdokMode.value) {
+      await fetchReadChapters(newBook);
     }
   }
 );
@@ -560,20 +654,96 @@ watch(
   font-weight: 500;
 }
 
-/* 네비게이션 */
-.bible-navigation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border-top: 1px solid var(--color-border, #e5e7eb);
+/* 하단 영역 */
+.bible-bottom-area {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   max-width: 768px;
   margin: 0 auto;
+  background: var(--color-bg-card, #fff);
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* 읽기모드 액션 영역 */
+.reading-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.mark-read-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 280px;
+  padding: 0.75rem 1.25rem;
+  background: var(--primary-color, #6366f1);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.mark-read-btn:hover:not(:disabled) {
+  background: var(--primary-dark, #4f46e5);
+}
+
+.mark-read-btn.is-read {
+  background: var(--color-success, #10b981);
+}
+
+.mark-read-btn.is-read:hover:not(:disabled) {
+  background: var(--color-success-dark, #059669);
+}
+
+.mark-read-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.progress-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 200px;
+}
+
+.progress-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6b7280);
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-bg-tertiary, #e5e7eb);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary-color, #6366f1);
+  transition: width 0.3s ease;
+}
+
+/* 네비게이션 */
+.bible-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
 }
 
 .nav-button {
@@ -604,8 +774,8 @@ watch(
 
 /* iOS 안전영역 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .bible-navigation {
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  .bible-bottom-area {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
@@ -619,8 +789,12 @@ watch(
   border-color: var(--color-border);
 }
 
-:root.dark .bible-navigation {
+:root.dark .bible-bottom-area {
   background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
+:root.dark .reading-action {
   border-color: var(--color-border);
 }
 </style>
