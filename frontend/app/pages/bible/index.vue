@@ -201,7 +201,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useBibleData } from '~/composables/useBibleData';
 // useBibleFetch는 이제 useBibleContent 내부에서 사용됨
 import { useTongdokMode } from '~/composables/useTongdokMode';
 import { usePersonalRecord } from '~/composables/usePersonalRecord';
@@ -211,6 +210,7 @@ import { useNote } from '~/composables/useNote';
 import { useHighlight } from '~/composables/useHighlight';
 import { useBibleModals } from '~/composables/bible/useBibleModals';
 import { useBibleContent } from '~/composables/bible/useBibleContent';
+import { useBiblePageState } from '~/composables/bible/useBiblePageState';
 import { useAuthGuard } from '~/composables/useAuthGuard';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
@@ -247,7 +247,6 @@ const readingSettingsStore = useReadingSettingsStore();
 const toast = useToast();
 
 // Composables
-const { bookNames, bookChapters, versionNames } = useBibleData();
 const {
   fetchReadChapters,
   markAsRead,
@@ -301,11 +300,26 @@ const {
   loadContent: loadBibleContentFromComposable,
 } = useBibleContent();
 
-// 상태
-const viewMode = ref<'reader' | 'home' | 'toc'>('reader');
-const currentBook = ref('gen');
-const currentChapter = ref(1);
-const currentVersion = ref('GAE');
+// 페이지 상태 (useBiblePageState composable)
+const {
+  viewMode,
+  currentBook,
+  currentChapter,
+  currentVersion,
+  currentBookName,
+  currentVersionName,
+  maxChapters,
+  chapterSuffix,
+  hasPrevChapter,
+  hasNextChapter,
+  goBack,
+  goToPrevChapter: goToPrevChapterBase,
+  goToNextChapter: goToNextChapterBase,
+  selectBook,
+  selectVersion,
+  initFromQuery: initFromQueryBase,
+  generateShareUrl,
+} = useBiblePageState();
 
 // 모달 상태 (useBibleModals composable로 통합 관리)
 const {
@@ -322,28 +336,6 @@ const {
 // Refs
 const bibleViewerRef = ref<InstanceType<typeof BibleViewer> | null>(null);
 const scrollPosition = ref(0);
-
-// Computed
-const currentBookName = computed(() => bookNames[currentBook.value] || currentBook.value);
-const currentVersionName = computed(() => versionNames[currentVersion.value] || currentVersion.value);
-const maxChapters = computed(() => bookChapters[currentBook.value] || 1);
-const chapterSuffix = computed(() => currentBook.value === 'psa' ? '편' : '장');
-
-const hasPrevChapter = computed(() => {
-  // 첫 번째 책의 첫 번째 장이 아니면 이전 장이 있음
-  if (currentChapter.value > 1) return true;
-  const allBooks = Object.keys(bookNames);
-  const currentIndex = allBooks.indexOf(currentBook.value);
-  return currentIndex > 0;
-});
-
-const hasNextChapter = computed(() => {
-  // 현재 책의 마지막 장이 아니거나, 마지막 책이 아니면 다음 장이 있음
-  if (currentChapter.value < maxChapters.value) return true;
-  const allBooks = Object.keys(bookNames);
-  const currentIndex = allBooks.indexOf(currentBook.value);
-  return currentIndex < allBooks.length - 1;
-});
 
 // 통독모드 관련
 const isTongdokMode = computed(() => tongdokMode.value);
@@ -389,56 +381,20 @@ const currentSelectionHighlight = computed(() => {
   ) || null;
 });
 
-// 쿼리 파라미터에서 초기값 설정 후 URL 정리
+// 쿼리 파라미터에서 초기값 설정 후 URL 정리 (composable wrapper with tongdok mode)
 const initFromQuery = () => {
-  const { book, chapter, version, tongdok, schedule, plan } = route.query;
+  const { tongdok, schedule, plan } = route.query;
 
-  if (book && typeof book === 'string' && bookNames[book]) {
-    currentBook.value = book;
-  }
+  // 기본 book/chapter/version 초기화는 composable에 위임
+  initFromQueryBase(route.query);
 
-  if (chapter) {
-    const chapterNum = parseInt(chapter as string);
-    if (!isNaN(chapterNum) && chapterNum > 0) {
-      currentChapter.value = Math.min(chapterNum, bookChapters[currentBook.value] || 1);
-    }
-  }
-
-  // version이 없으면 기본값 GAE 사용
-  if (version && typeof version === 'string' && versionNames[version]) {
-    currentVersion.value = version;
-  } else {
-    currentVersion.value = 'GAE';
-  }
-
-  // 통독모드 초기화
+  // 통독모드 초기화 (index.vue에서만 처리)
   if (tongdok === 'true' || plan) {
     tongdokMode.value = true;
     if (schedule) {
       tongdokScheduleId.value = Number(schedule);
     }
   }
-
-  // URL 정리 (쿼리 파라미터 제거)
-  if (Object.keys(route.query).length > 0) {
-    router.replace({ path: '/bible', query: {} });
-  }
-};
-
-// 공유용 URL 생성 (version은 GAE가 아닐 때만 포함)
-const generateShareUrl = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const params = new URLSearchParams();
-
-  params.set('book', currentBook.value);
-  params.set('chapter', String(currentChapter.value));
-
-  // GAE(개역개정)가 아닐 때만 version 포함
-  if (currentVersion.value !== 'GAE') {
-    params.set('version', currentVersion.value);
-  }
-
-  return `${baseUrl}/bible?${params.toString()}`;
 };
 
 // 성경 본문 로드 (composable wrapper)
@@ -446,73 +402,39 @@ const loadBibleContent = async (book: string, chapter: number) => {
   await loadBibleContentFromComposable(book, chapter, currentVersion.value);
 };
 
-// 이벤트 핸들러
-const goBack = () => {
-  if (window.history.length > 1) {
-    router.back();
-  } else {
-    router.push('/');
-  }
-};
+// 이벤트 핸들러 (composable wrapper)
+// goBack은 useBiblePageState에서 직접 사용
 
 // BookSelector는 (book, chapter) 두 개의 개별 인수로 emit
 const handleBookSelect = (book: string, chapter: number) => {
-  currentBook.value = book;
-  currentChapter.value = chapter;
+  selectBook(book, chapter);
   loadBibleContent(book, chapter);
 };
 
 const handleVersionSelect = (version: string) => {
-  currentVersion.value = version;
+  selectVersion(version);
   loadBibleContent(currentBook.value, currentChapter.value);
 };
 
+// 네비게이션 (composable wrapper with content loading)
 const goToPrevChapter = () => {
-  if (currentChapter.value > 1) {
-    currentChapter.value--;
-  } else {
-    // 이전 책의 마지막 장으로
-    const allBooks = Object.keys(bookNames);
-    const currentIndex = allBooks.indexOf(currentBook.value);
-    if (currentIndex > 0) {
-      const prevBook = allBooks[currentIndex - 1];
-      if (prevBook) {
-        currentBook.value = prevBook;
-        currentChapter.value = bookChapters[prevBook] || 1;
-      }
-    }
-  }
+  goToPrevChapterBase();
   loadBibleContent(currentBook.value, currentChapter.value);
   scrollToTop();
 };
 
 const goToNextChapter = async () => {
-  // 통독모드에서 마지막 장인 경우
+  // 통독모드에서 마지막 장인 경우 (tongdok mode는 index.vue에서만 처리)
   if (isTongdokMode.value && isAtLastTongdokChapter.value) {
-    // 자동 완료 설정이 켜져 있으면 바로 완료 처리
     if (tongdokAutoComplete.value) {
       await handleTongdokComplete({ autoComplete: true });
     } else {
-      // 완료 모달 표시
       showTongdokCompleteModal.value = true;
     }
     return;
   }
 
-  if (currentChapter.value < maxChapters.value) {
-    currentChapter.value++;
-  } else {
-    // 다음 책의 첫 장으로
-    const allBooks = Object.keys(bookNames);
-    const currentIndex = allBooks.indexOf(currentBook.value);
-    if (currentIndex < allBooks.length - 1) {
-      const nextBook = allBooks[currentIndex + 1];
-      if (nextBook) {
-        currentBook.value = nextBook;
-        currentChapter.value = 1;
-      }
-    }
-  }
+  goToNextChapterBase();
   loadBibleContent(currentBook.value, currentChapter.value);
   scrollToTop();
 };
