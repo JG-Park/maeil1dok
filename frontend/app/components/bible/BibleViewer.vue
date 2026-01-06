@@ -114,7 +114,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { useReadingSettingsStore, FONT_FAMILIES, LINE_HEIGHTS, FONT_WEIGHTS } from '~/stores/readingSettings';
+import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings';
 
 interface Props {
   content: string;
@@ -164,7 +164,7 @@ const viewerStyle = computed(() => ({
   '--reading-font-family': FONT_FAMILIES[settings.value.fontFamily].css,
   '--reading-font-size': `${settings.value.fontSize}px`,
   '--reading-font-weight': FONT_WEIGHTS[settings.value.fontWeight],
-  '--reading-line-height': LINE_HEIGHTS[settings.value.lineHeight],
+  '--reading-line-height': settings.value.lineHeight,
   '--reading-text-align': settings.value.textAlign,
 }));
 
@@ -882,6 +882,8 @@ defineExpose({
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   z-index: 1000;
+  /* 시스템 폰트 강제 적용 */
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .action-button {
@@ -1022,6 +1024,8 @@ defineExpose({
   width: max-content;
   max-width: 95vw;
   gap: 0.75rem;
+  /* 시스템 폰트 강제 적용 (본문 폰트 상속 방지) */
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .theme-dark .copy-menu {

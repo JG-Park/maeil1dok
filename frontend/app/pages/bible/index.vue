@@ -1068,11 +1068,12 @@ const handleContinueReading = async () => {
   viewMode.value = 'reader';
   loadBibleContent(currentBook.value, currentChapter.value);
 
-  // 읽기 기록 및 노트 조회 (로그인 시)
+  // 읽기 기록, 노트, 북마크 조회 (로그인 시)
   if (authStore.isAuthenticated) {
     await fetchReadChapters(currentBook.value);
     await fetchChapterNotes(currentBook.value, currentChapter.value);
     await fetchChapterHighlights(currentBook.value, currentChapter.value);
+    await loadBookmarks(currentBook.value, currentChapter.value);
   }
 };
 
@@ -1087,6 +1088,7 @@ const handleHomeBookSelect = async (bookId: string, chapter: number = 1) => {
     await fetchReadChapters(currentBook.value);
     await fetchChapterNotes(currentBook.value, currentChapter.value);
     await fetchChapterHighlights(currentBook.value, currentChapter.value);
+    await loadBookmarks(currentBook.value, currentChapter.value);
   }
 };
 
@@ -1101,6 +1103,7 @@ const handleTocBookSelect = async (bookId: string, chapter: number = 1) => {
     await fetchReadChapters(currentBook.value);
     await fetchChapterNotes(currentBook.value, currentChapter.value);
     await fetchChapterHighlights(currentBook.value, currentChapter.value);
+    await loadBookmarks(currentBook.value, currentChapter.value);
   }
 };
 
@@ -1162,13 +1165,14 @@ onMounted(async () => {
     loadBibleContent(currentBook.value, currentChapter.value);
   }
 
-  // 읽기 기록 및 노트 조회 (로그인 시, reader 모드일 때만)
+  // 읽기 기록, 노트, 북마크 조회 (로그인 시, reader 모드일 때만)
   if (authStore.isAuthenticated && viewMode.value === 'reader') {
     if (!isTongdokMode.value) {
       await fetchReadChapters(currentBook.value);
     }
     await fetchChapterNotes(currentBook.value, currentChapter.value);
     await fetchChapterHighlights(currentBook.value, currentChapter.value);
+    await loadBookmarks(currentBook.value, currentChapter.value);
   }
 
   // beforeunload 이벤트 등록 (페이지 이탈 시 위치 저장)
@@ -1218,13 +1222,14 @@ watch(
   }
 );
 
-// 책/장 변경 시 노트 조회
+// 책/장 변경 시 노트, 하이라이트, 북마크 조회
 watch(
   [() => currentBook.value, () => currentChapter.value],
   async ([newBook, newChapter]) => {
     if (authStore.isAuthenticated) {
       await fetchChapterNotes(newBook, newChapter);
       await fetchChapterHighlights(newBook, newChapter);
+      await loadBookmarks(newBook, newChapter);
     }
   }
 );
@@ -1278,33 +1283,57 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   color: var(--text-primary, #1f2937);
-  border-radius: 10px;
+  border-radius: 8px;
   transition: background 0.2s;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
 .back-button:hover {
   background: var(--color-bg-hover, #f3f4f6);
 }
 
+.back-button:active {
+  background: var(--color-bg-active, #e5e7eb);
+}
+
 .book-selector-button {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.375rem;
   padding: 0.5rem 0.75rem;
-  background: var(--color-bg-primary, #f9fafb);
-  border-radius: 8px;
+  background: var(--color-bg-secondary, #f3f4f6);
+  border: 1px solid var(--color-border-light, #e5e7eb);
+  border-radius: 10px;
   font-size: 0.9375rem;
   color: var(--text-primary, #1f2937);
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-width: 0;
 }
 
 .book-selector-button:hover {
-  background: var(--color-bg-hover, #f3f4f6);
+  background: var(--color-bg-hover, #e5e7eb);
+  border-color: var(--color-border, #d1d5db);
+}
+
+.book-selector-button:active {
+  background: var(--color-bg-active, #d1d5db);
+  transform: scale(0.98);
+}
+
+.book-selector-button svg {
+  color: var(--text-secondary, #6b7280);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.book-selector-button:hover svg {
+  transform: translateY(1px);
 }
 
 .book-name {
@@ -1325,11 +1354,11 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   color: var(--text-secondary, #6b7280);
   background: transparent;
-  border-radius: 10px;
+  border-radius: 8px;
   transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1337,6 +1366,10 @@ watch(
 .settings-button:hover {
   background: var(--color-bg-hover, #f3f4f6);
   color: var(--text-primary, #1f2937);
+}
+
+.settings-button:active {
+  background: var(--color-bg-active, #e5e7eb);
 }
 
 .version-button {

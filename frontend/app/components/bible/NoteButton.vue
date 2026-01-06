@@ -49,13 +49,13 @@ const handleClick = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   color: var(--text-secondary, #6b7280);
   cursor: pointer;
-  border-radius: 10px;
+  border-radius: 8px;
   transition: all 0.2s ease;
   /* 터치 타겟 최적화 */
   -webkit-tap-highlight-color: transparent;
