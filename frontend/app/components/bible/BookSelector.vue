@@ -482,6 +482,8 @@ const scrollToSearchedChapter = (chapter: number) => {
 
 .chapter-button {
   aspect-ratio: 1;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;

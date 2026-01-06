@@ -245,6 +245,7 @@ import { useReadingSettingsStore, FONT_FAMILIES, type ThemeMode, type DefaultEnt
 import { useAuthStore } from '~/stores/auth';
 import { useApi } from '~/composables/useApi';
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { useModal } from '~/composables/useModal';
 import { useToast } from '~/composables/useToast';
 import Toast from '~/components/Toast.vue';
 
@@ -256,6 +257,7 @@ const settingsStore = useReadingSettingsStore();
 const authStore = useAuthStore();
 const api = useApi();
 const toast = useToast();
+const modal = useModal();
 const { handleApiError } = useErrorHandler();
 
 const isDeleting = ref(false);
@@ -296,7 +298,15 @@ const deleteAllBookmarks = async () => {
     toast.error('로그인이 필요합니다');
     return;
   }
-  if (!confirm('모든 북마크를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+  const confirmed = await modal.confirm({
+    title: '북마크 전체 삭제',
+    description: '모든 북마크를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+    confirmText: '삭제',
+    cancelText: '취소',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  });
+  if (!confirmed) return;
 
   isDeleting.value = true;
   try {
@@ -315,7 +325,15 @@ const deleteAllNotes = async () => {
     toast.error('로그인이 필요합니다');
     return;
   }
-  if (!confirm('모든 묵상노트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+  const confirmed = await modal.confirm({
+    title: '묵상노트 전체 삭제',
+    description: '모든 묵상노트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+    confirmText: '삭제',
+    cancelText: '취소',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  });
+  if (!confirmed) return;
 
   isDeleting.value = true;
   try {
@@ -334,7 +352,15 @@ const deleteAllHighlights = async () => {
     toast.error('로그인이 필요합니다');
     return;
   }
-  if (!confirm('모든 하이라이트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+  const confirmed = await modal.confirm({
+    title: '하이라이트 전체 삭제',
+    description: '모든 하이라이트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+    confirmText: '삭제',
+    cancelText: '취소',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  });
+  if (!confirmed) return;
 
   isDeleting.value = true;
   try {
@@ -348,8 +374,16 @@ const deleteAllHighlights = async () => {
 };
 
 // 설정 초기화
-const resetAllSettings = () => {
-  if (!confirm('모든 설정을 기본값으로 초기화하시겠습니까?')) return;
+const resetAllSettings = async () => {
+  const confirmed = await modal.confirm({
+    title: '설정 초기화',
+    description: '모든 설정을 기본값으로 초기화하시겠습니까?',
+    confirmText: '초기화',
+    cancelText: '취소',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  });
+  if (!confirmed) return;
   settingsStore.resetToDefaults();
   toast.success('설정이 초기화되었습니다');
 };

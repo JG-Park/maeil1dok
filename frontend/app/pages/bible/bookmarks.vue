@@ -58,6 +58,7 @@ import { useRouter } from 'vue-router';
 import { useBookmark, type Bookmark } from '~/composables/useBookmark';
 import { useAuthStore } from '~/stores/auth';
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { useModal } from '~/composables/useModal';
 import { useApi } from '~/composables/useApi';
 import Toast from '~/components/Toast.vue';
 import BibleSubpageLayout from '~/components/bible/BibleSubpageLayout.vue';
@@ -69,6 +70,7 @@ definePageMeta({
 const router = useRouter();
 const authStore = useAuthStore();
 const { handleApiError } = useErrorHandler();
+const modal = useModal();
 const api = useApi();
 const { getAllBookmarks } = useBookmark();
 const { formatRelativeDate } = useDateFormat();
@@ -122,7 +124,15 @@ const goToBookmark = (bookmark: Bookmark) => {
 };
 
 const handleDelete = async (bookmark: Bookmark) => {
-  if (!confirm('이 북마크를 삭제하시겠습니까?')) return;
+  const confirmed = await modal.confirm({
+    title: '북마크 삭제',
+    description: '이 북마크를 삭제하시겠습니까?',
+    confirmText: '삭제',
+    cancelText: '취소',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  });
+  if (!confirmed) return;
 
   try {
     await api.delete(`/api/v1/todos/bible/bookmarks/${bookmark.id}/`);

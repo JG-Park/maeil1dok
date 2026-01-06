@@ -66,6 +66,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useNote } from '~/composables/useNote';
 import { useBibleData } from '~/composables/useBibleData';
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { useModal } from '~/composables/useModal';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -75,6 +76,7 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 const { handleApiError } = useErrorHandler();
+const modal = useModal();
 const { currentNote: note, isNoteLoading: isLoading, fetchNote, updateNote, deleteNote } = useNote();
 const { getBookName } = useBibleData();
 
@@ -121,7 +123,15 @@ const handleSave = async () => {
 };
 
 const handleDelete = async () => {
-  if (!confirm('묵상노트를 삭제하시겠습니까?')) return;
+  const confirmed = await modal.confirm({
+    title: '묵상노트 삭제',
+    description: '묵상노트를 삭제하시겠습니까?',
+    confirmText: '삭제',
+    cancelText: '취소',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  });
+  if (!confirmed) return;
 
   try {
     await deleteNote(noteId.value);
@@ -131,9 +141,17 @@ const handleDelete = async () => {
   }
 };
 
-const handleBack = () => {
+const handleBack = async () => {
   if (hasChanges.value) {
-    if (confirm('저장하지 않은 변경사항이 있습니다. 나가시겠습니까?')) {
+    const confirmed = await modal.confirm({
+      title: '변경사항 저장 안 됨',
+      description: '저장하지 않은 변경사항이 있습니다. 나가시겠습니까?',
+      confirmText: '나가기',
+      cancelText: '취소',
+      confirmVariant: 'danger',
+      icon: 'warning'
+    });
+    if (confirmed) {
       router.back();
     }
   } else {

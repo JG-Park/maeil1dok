@@ -100,6 +100,7 @@ import { useHighlight, DEFAULT_HIGHLIGHT_COLORS, type Highlight } from '~/compos
 import { useBibleData, BIBLE_BOOKS } from '~/composables/useBibleData';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import { useModal } from '~/composables/useModal';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -109,6 +110,7 @@ definePageMeta({
 const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
+const modal = useModal();
 const { highlights, isHighlightLoading: isLoading, fetchHighlights, deleteHighlight } = useHighlight();
 const { getBookName } = useBibleData();
 
@@ -145,7 +147,15 @@ const goToHighlight = (highlight: Highlight) => {
 };
 
 const handleDelete = async (highlight: Highlight) => {
-  if (!confirm('하이라이트를 삭제하시겠습니까?')) return;
+  const confirmed = await modal.confirm({
+    title: '하이라이트 삭제',
+    description: '하이라이트를 삭제하시겠습니까?',
+    confirmText: '삭제',
+    cancelText: '취소',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  });
+  if (!confirmed) return;
 
   try {
     const success = await deleteHighlight(highlight.id);

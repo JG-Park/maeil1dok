@@ -23,7 +23,7 @@
 | T07 | API 호출 최적화 | P2 | `[x]` Completed | [TASK-07.md](./TASK-07.md) |
 | T08 | 에러 핸들링 표준화 | P2 | `[x]` Completed | [TASK-08.md](./TASK-08.md) |
 | T09 | 로딩/빈 상태 컴포넌트 통일 | P2 | `[x]` Completed | [TASK-09.md](./TASK-09.md) |
-| T10 | 기타 개선 (confirm, magic numbers 등) | P3 | `[ ]` Pending | [TASK-10.md](./TASK-10.md) |
+| T10 | 기타 개선 (confirm, magic numbers 등) | P3 | `[x]` Completed | [TASK-10.md](./TASK-10.md) |
 
 ---
 
@@ -55,7 +55,8 @@
 | T06 | ab6a76f | 2026-01-06 | refactor(bible): integrate BibleViewer selection systems with conflict prevention |
 | T07 | 3e3f3e9 | 2026-01-06 | perf(bible): optimize API calls for BibleHome |
 | T08 | 9a1123f | 2026-01-06 | refactor(bible): standardize error handling with useErrorHandler composable |
-| T09 | 679eac1 | 2026-01-06 | refactor(bible): unify loading and empty state components |
+| T09 | 2288906 | 2026-01-06 | refactor(bible): unify loading and empty state components |
+| T10 | de8d8e0 | 2026-01-06 | refactor(bible): misc improvements - modal confirm, CSS variables, touch targets |
 
 ---
 
