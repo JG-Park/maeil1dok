@@ -1275,11 +1275,15 @@ watch(
 }
 
 .back-button {
-  padding: 0.5rem;
-  margin: -0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   color: var(--text-primary, #1f2937);
-  border-radius: 8px;
+  border-radius: 10px;
   transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .back-button:hover {
@@ -1314,16 +1318,20 @@ watch(
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .settings-button {
-  padding: 0.5rem;
-  margin: -0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   color: var(--text-secondary, #6b7280);
   background: transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .settings-button:hover {
@@ -1385,18 +1393,26 @@ watch(
   background: rgba(99, 102, 241, 0.1);
 }
 
-/* 하단 영역 (reading.vue 동일) */
+/* 하단 영역 - 글래스모피즘 플로팅 디자인 */
 .bible-bottom-area {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-width: 768px;
-  margin: 0 auto;
-  background: var(--color-bg-card, #fff);
-  box-shadow: var(--shadow-md, 0 -4px 6px -1px rgba(0, 0, 0, 0.1));
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 400px;
   z-index: 20;
-  border-radius: 16px 16px 0 0;
+
+  /* 글래스모피즘 */
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* 통독모드 액션 영역 */
@@ -1405,7 +1421,11 @@ watch(
   align-items: center;
   justify-content: center;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:root.dark .tongdok-action {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .tongdok-complete-btn {
@@ -1571,7 +1591,7 @@ watch(
 /* iOS 안전영역 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .bible-bottom-area {
-    padding-bottom: env(safe-area-inset-bottom);
+    bottom: calc(16px + env(safe-area-inset-bottom));
   }
 }
 
@@ -1585,7 +1605,12 @@ watch(
 }
 
 :root.dark .bible-bottom-area {
-  background: var(--color-bg-card);
+  background: rgba(30, 30, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 :root.dark .nav-button {
@@ -1603,10 +1628,6 @@ watch(
 
 :root.dark .tongdok-indicator {
   background: rgba(99, 102, 241, 0.15);
-  border-color: var(--color-border);
-}
-
-:root.dark .tongdok-action {
   border-color: var(--color-border);
 }
 

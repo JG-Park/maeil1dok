@@ -49,14 +49,16 @@ const handleClick = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   background: transparent;
   border: none;
   color: var(--text-secondary, #6b7280);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s ease;
+  /* 터치 타겟 최적화 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .note-btn:hover:not(:disabled) {
