@@ -401,7 +401,7 @@ const currentSelectionHighlight = computed(() => {
   ) || null;
 });
 
-// 쿼리 파라미터에서 초기값 설정
+// 쿼리 파라미터에서 초기값 설정 후 URL 정리
 const initFromQuery = () => {
   const { book, chapter, version, tongdok, schedule, plan } = route.query;
 
@@ -416,8 +416,11 @@ const initFromQuery = () => {
     }
   }
 
+  // version이 없으면 기본값 GAE 사용
   if (version && typeof version === 'string' && versionNames[version]) {
     currentVersion.value = version;
+  } else {
+    currentVersion.value = 'GAE';
   }
 
   // 통독모드 초기화
@@ -427,24 +430,27 @@ const initFromQuery = () => {
       tongdokScheduleId.value = Number(schedule);
     }
   }
+
+  // URL 정리 (쿼리 파라미터 제거)
+  if (Object.keys(route.query).length > 0) {
+    router.replace({ path: '/bible', query: {} });
+  }
 };
 
-// URL 업데이트
-const updateUrl = () => {
-  const query: Record<string, string> = {
-    book: currentBook.value,
-    chapter: String(currentChapter.value),
-    version: currentVersion.value,
-  };
+// 공유용 URL 생성 (version은 GAE가 아닐 때만 포함)
+const generateShareUrl = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const params = new URLSearchParams();
 
-  if (tongdokMode.value) {
-    query.tongdok = 'true';
-    if (tongdokScheduleId.value) {
-      query.schedule = String(tongdokScheduleId.value);
-    }
+  params.set('book', currentBook.value);
+  params.set('chapter', String(currentChapter.value));
+
+  // GAE(개역개정)가 아닐 때만 version 포함
+  if (currentVersion.value !== 'GAE') {
+    params.set('version', currentVersion.value);
   }
 
-  router.replace({ query });
+  return `${baseUrl}/bible?${params.toString()}`;
 };
 
 // 성경 본문 로드
@@ -758,13 +764,11 @@ const goBack = () => {
 const handleBookSelect = (book: string, chapter: number) => {
   currentBook.value = book;
   currentChapter.value = chapter;
-  updateUrl();
   loadBibleContent(book, chapter);
 };
 
 const handleVersionSelect = (version: string) => {
   currentVersion.value = version;
-  updateUrl();
   loadBibleContent(currentBook.value, currentChapter.value);
 };
 
@@ -783,7 +787,6 @@ const goToPrevChapter = () => {
       }
     }
   }
-  updateUrl();
   loadBibleContent(currentBook.value, currentChapter.value);
   scrollToTop();
 };
@@ -815,7 +818,6 @@ const goToNextChapter = async () => {
       }
     }
   }
-  updateUrl();
   loadBibleContent(currentBook.value, currentChapter.value);
   scrollToTop();
 };
@@ -907,8 +909,39 @@ const handleCopyAction = (_text: string) => {
   toast.success('복사 완료');
 };
 
-const handleShareAction = (_text: string) => {
-  // 공유 완료 - 필요시 추가 핸들링
+const handleShareAction = async (text: string) => {
+  const shareUrl = generateShareUrl();
+  const shareData = {
+    title: `${currentBookName.value} ${currentChapter.value}${chapterSuffix.value}`,
+    text: text || `${currentBookName.value} ${currentChapter.value}${chapterSuffix.value}`,
+    url: shareUrl
+  };
+
+  // Web Share API 지원 시 네이티브 공유
+  if (navigator.share && navigator.canShare?.(shareData)) {
+    try {
+      await navigator.share(shareData);
+    } catch (err) {
+      // 사용자가 취소한 경우 무시
+      if ((err as Error).name !== 'AbortError') {
+        // 공유 실패 시 클립보드로 폴백
+        await copyToClipboard(shareUrl);
+      }
+    }
+  } else {
+    // Web Share API 미지원 시 클립보드 복사
+    await copyToClipboard(shareUrl);
+  }
+};
+
+// 클립보드 복사 헬퍼
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success('링크가 복사되었습니다');
+  } catch {
+    toast.error('복사에 실패했습니다');
+  }
 };
 
 // 읽기모드: 읽음 표시 핸들러
@@ -1033,7 +1066,6 @@ const handleContinueReading = async () => {
     scrollPosition.value = lastPos.scroll_position || 0;
   }
   viewMode.value = 'reader';
-  updateUrl();
   loadBibleContent(currentBook.value, currentChapter.value);
 
   // 읽기 기록 및 노트 조회 (로그인 시)
@@ -1049,7 +1081,6 @@ const handleHomeBookSelect = async (bookId: string, chapter: number = 1) => {
   currentBook.value = bookId;
   currentChapter.value = chapter;
   viewMode.value = 'reader';
-  updateUrl();
   loadBibleContent(currentBook.value, currentChapter.value);
 
   if (authStore.isAuthenticated) {
@@ -1064,7 +1095,6 @@ const handleTocBookSelect = async (bookId: string, chapter: number = 1) => {
   currentBook.value = bookId;
   currentChapter.value = chapter;
   viewMode.value = 'reader';
-  updateUrl();
   loadBibleContent(currentBook.value, currentChapter.value);
 
   if (authStore.isAuthenticated) {
@@ -1122,7 +1152,6 @@ onMounted(async () => {
           currentChapter.value = lastPos.chapter;
           currentVersion.value = lastPos.version || 'GAE';
           scrollPosition.value = lastPos.scroll_position || 0;
-          updateUrl();
         }
         loadBibleContent(currentBook.value, currentChapter.value);
         break;
@@ -1167,11 +1196,12 @@ const handleBeforeUnload = () => {
   }
 };
 
-// route.query 변경 감지
+// route.query 변경 감지 (딥링크 처리)
 watch(
   () => route.query,
   (newQuery) => {
-    if (newQuery.book && newQuery.book !== currentBook.value) {
+    // 쿼리 파라미터가 있으면 처리 (딥링크로 접근한 경우)
+    if (newQuery.book || newQuery.chapter || newQuery.tongdok) {
       initFromQuery();
       loadBibleContent(currentBook.value, currentChapter.value);
     }
