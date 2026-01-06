@@ -1086,7 +1086,7 @@ const toggleTask = async (task) => {
   // 성경통독표 버튼 - 일정 체크 없이 바로 이동
   if (task.id === 2 || task.title === "성경통독표") {
     const planId = selectedPlanStore.effectivePlanId;
-    router.push(`/reading-plan?plan=${planId}`);
+    router.push(`/plan?plan=${planId}`);
     return;
   }
 

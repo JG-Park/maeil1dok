@@ -18,6 +18,8 @@ export default defineEventHandler((event) => {
 
   // /reading-plan → /plan 리다이렉트
   if (pathname === '/reading-plan') {
-    return sendRedirect(event, '/plan', 301)
+    const params = url.searchParams.toString()
+    const redirectUrl = params ? `/plan?${params}` : '/plan'
+    return sendRedirect(event, redirectUrl, 301)
   }
 })

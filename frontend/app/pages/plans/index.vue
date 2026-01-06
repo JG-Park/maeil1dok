@@ -327,7 +327,7 @@ const goToReadingPlan = (subscription) => {
   }
 
   router.push({
-    path: '/reading-plan',
+    path: '/plan',
     query: {
       plan: subscription.plan_id
     }

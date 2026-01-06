@@ -62,7 +62,7 @@
                       플랜 관리
                     </NuxtLink>
                     <NuxtLink
-                      to="/reading-plan"
+                      to="/plan"
                       class="dropdown-item"
                       @click="closeProfileMenu"
                     >
