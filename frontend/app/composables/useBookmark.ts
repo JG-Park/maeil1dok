@@ -38,10 +38,10 @@ export const useBookmark = () => {
 
     try {
       isBookmarkLoading.value = true;
-      const response = await api.get('/api/v1/todos/bible/bookmarks/by_chapter/', {
+      const response = await api.get('/api/v1/todos/bible/bookmarks/by-chapter/', {
         params: { book, chapter }
       });
-      currentBookmarks.value = response.data || [];
+      currentBookmarks.value = response.data?.bookmarks || [];
     } catch (error) {
       console.error('북마크 불러오기 실패:', error);
       currentBookmarks.value = [];
