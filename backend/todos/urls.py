@@ -94,4 +94,5 @@ urlpatterns = [
 
     # 성경읽기 기능 관련 URL
     path('bible/reading-position/', views.reading_position_view, name='reading-position'),
+    path('bible/home-stats/', views.get_bible_home_stats, name='bible-home-stats'),
 ] 

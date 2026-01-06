@@ -112,21 +112,14 @@ onMounted(async () => {
     };
   }
 
-  // 카운트 및 최근 기록 로드
+  // 카운트 및 최근 기록 로드 (통합 API로 효율적 조회)
   try {
-    const [bookmarksRes, notesRes, highlightsRes, recordsRes] = await Promise.all([
-      api.get('/api/v1/todos/bible/bookmarks/'),
-      api.get('/api/v1/todos/bible/notes/'),
-      api.get('/api/v1/todos/bible/highlights/'),
-      api.get('/api/v1/todos/bible/personal-records/?limit=5')
-    ]);
-
-    bookmarkCount.value = bookmarksRes.data?.length || 0;
-    noteCount.value = notesRes.data?.length || 0;
-    highlightCount.value = highlightsRes.data?.length || 0;
-
-    if (recordsRes.data?.results) {
-      recentRecords.value = recordsRes.data.results.map((r: any) => ({
+    const statsRes = await api.get('/api/v1/todos/bible/home-stats/');
+    if (statsRes.data) {
+      bookmarkCount.value = statsRes.data.bookmarks || 0;
+      noteCount.value = statsRes.data.notes || 0;
+      highlightCount.value = statsRes.data.highlights || 0;
+      recentRecords.value = (statsRes.data.recent_records || []).map((r: any) => ({
         ...r,
         book_name: getBookName(r.book)
       }));

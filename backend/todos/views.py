@@ -2604,4 +2604,38 @@ class PersonalReadingRecordViewSet(viewsets.ModelViewSet):
         )
         # YYYY-MM-DD 포맷으로 변환
         date_strings = [d.isoformat() for d in dates if d]
-        return Response({'success': True, 'dates': date_strings}) 
+        return Response({'success': True, 'dates': date_strings})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_bible_home_stats(request):
+    """
+    성경 홈 화면용 통합 통계 API
+    북마크, 노트, 하이라이트 카운트와 최근 읽은 기록을 효율적으로 반환
+    """
+    user = request.user
+    limit = int(request.query_params.get('recent_limit', 5))
+
+    # 카운트만 조회 (데이터 전체를 가져오지 않음)
+    bookmark_count = BibleBookmark.objects.filter(user=user).count()
+    note_count = ReflectionNote.objects.filter(user=user).count()
+    highlight_count = BibleHighlight.objects.filter(user=user).count()
+
+    # 최근 읽은 기록 (limit 개수만)
+    recent_records = PersonalReadingRecord.objects.filter(user=user).order_by('-read_date', '-id')[:limit]
+    recent_records_data = [
+        {
+            'book': r.book,
+            'chapter': r.chapter,
+            'read_date': r.read_date.isoformat() if r.read_date else None
+        }
+        for r in recent_records
+    ]
+
+    return Response({
+        'bookmarks': bookmark_count,
+        'notes': note_count,
+        'highlights': highlight_count,
+        'recent_records': recent_records_data
+    }) 

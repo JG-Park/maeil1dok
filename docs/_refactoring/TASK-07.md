@@ -1,7 +1,7 @@
 # TASK-07: API 호출 최적화
 
 > **Priority**: P2 (Minor)
-> **Status**: `[ ]` Pending
+> **Status**: `[x]` Completed
 > **Tracker**: [TRACKER.md](./TRACKER.md)
 
 ---
@@ -61,26 +61,25 @@ api.get('/api/v1/todos/bible/bookmarks/?count_only=true')
 // 백엔드 응답: { count: 15 }
 ```
 
-#### Option B: 통합 stats 엔드포인트 활용
+#### Option B: 통합 stats 엔드포인트 활용 ✅ 선택됨
 
 ```typescript
-// 이미 있을 수 있음
-api.get('/api/v1/todos/bible/stats/')
-// 응답: { bookmarks: 15, notes: 8, highlights: 23 }
+api.get('/api/v1/todos/bible/home-stats/')
+// 응답: { bookmarks: 15, notes: 8, highlights: 23, recent_records: [...] }
 ```
 
-- [ ] 백엔드 API 확인 또는 요청
-- [ ] 프론트엔드에서 효율적인 API 사용
+- [x] 백엔드 API 생성 (`get_bible_home_stats`)
+- [x] 프론트엔드에서 통합 API 사용
 
 ### 2. 동적 import 정리
 
-- [ ] `bookmarks.vue`의 동적 import → 정적 import로 변경
-- [ ] 다른 파일들도 일관된 패턴으로 통일
+- [x] `bookmarks.vue`의 동적 import → 정적 import로 변경
+- [-] 다른 파일들도 일관된 패턴으로 통일 (다른 파일에 동적 import 없음)
 
 ### 3. 데이터 페칭 최적화
 
-- [ ] 불필요한 중복 호출 제거
-- [ ] 캐싱 전략 검토 (선택)
+- [x] 불필요한 중복 호출 제거 (4개 API → 1개 통합 API)
+- [-] 캐싱 전략 검토 (현재 범위 외)
 
 ---
 
@@ -135,18 +134,19 @@ const [bookmarksCount, notesCount, highlightsCount, recordsRes] = await Promise.
 
 | File | Action |
 |------|--------|
-| `components/bible/BibleHome.vue` | Modify |
-| `pages/bible/bookmarks.vue` | Modify |
-| (백엔드) | 확인/수정 필요 |
+| `components/bible/BibleHome.vue` | Modified (통합 API 사용) |
+| `pages/bible/bookmarks.vue` | Modified (동적 import 제거) |
+| `backend/todos/views.py` | Modified (home-stats 엔드포인트 추가) |
+| `backend/todos/urls.py` | Modified (URL 등록) |
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] 카운트만 필요할 때 전체 데이터 fetch 안 함
-- [ ] import 패턴 일관성 확보
-- [ ] 기존 기능 정상 동작
-- [ ] 네트워크 요청 수/크기 감소
+- [x] 카운트만 필요할 때 전체 데이터 fetch 안 함 (COUNT 쿼리 사용)
+- [x] import 패턴 일관성 확보
+- [x] 기존 기능 정상 동작
+- [x] 네트워크 요청 수/크기 감소 (4 API → 1 API)
 
 ---
 
@@ -162,8 +162,8 @@ const [bookmarksCount, notesCount, highlightsCount, recordsRes] = await Promise.
 
 ## Completion
 
-- [ ] 백엔드 API 확인
-- [ ] 코드 변경 완료
-- [ ] 테스트 통과
-- [ ] 커밋 발행
-- [ ] TRACKER.md 상태 업데이트
+- [x] 백엔드 API 생성 (`get_bible_home_stats`)
+- [x] 코드 변경 완료
+- [x] 테스트 통과 (빌드 성공)
+- [x] 커밋 발행
+- [x] TRACKER.md 상태 업데이트

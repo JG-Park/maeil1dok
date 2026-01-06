@@ -20,7 +20,7 @@
 | T04 | CSS 공통화 및 중복 제거 | P1 | `[x]` Completed | [TASK-04.md](./TASK-04.md) |
 | T05 | 타입 정의 중앙화 | P1 | `[x]` Completed | [TASK-05.md](./TASK-05.md) |
 | T06 | BibleViewer 선택 시스템 통합 | P1 | `[x]` Completed | [TASK-06.md](./TASK-06.md) |
-| T07 | API 호출 최적화 | P2 | `[ ]` Pending | [TASK-07.md](./TASK-07.md) |
+| T07 | API 호출 최적화 | P2 | `[x]` Completed | [TASK-07.md](./TASK-07.md) |
 | T08 | 에러 핸들링 표준화 | P2 | `[ ]` Pending | [TASK-08.md](./TASK-08.md) |
 | T09 | 로딩/빈 상태 컴포넌트 통일 | P2 | `[ ]` Pending | [TASK-09.md](./TASK-09.md) |
 | T10 | 기타 개선 (confirm, magic numbers 등) | P3 | `[ ]` Pending | [TASK-10.md](./TASK-10.md) |
@@ -53,6 +53,7 @@
 | T04 | 2af35fe | 2026-01-06 | refactor(bible): consolidate duplicated CSS into global stylesheet |
 | T05 | f19d8f6 | 2026-01-06 | refactor(bible): centralize type definitions into types/bible.ts |
 | T06 | ab6a76f | 2026-01-06 | refactor(bible): integrate BibleViewer selection systems with conflict prevention |
+| T07 | 3e3f3e9 | 2026-01-06 | perf(bible): optimize API calls for BibleHome |
 
 ---
 
