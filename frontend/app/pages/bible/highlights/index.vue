@@ -71,7 +71,7 @@
             <span class="color-dot" :style="{ background: highlight.color }"></span>
             {{ highlight.book_name || getBookName(highlight.book) }} {{ highlight.chapter }}:{{ highlight.start_verse }}<template v-if="highlight.end_verse !== highlight.start_verse">-{{ highlight.end_verse }}</template>
           </span>
-          <span class="highlight-date">{{ formatDate(highlight.created_at) }}</span>
+          <span class="highlight-date">{{ formatRelativeDate(highlight.created_at) }}</span>
         </div>
         <p v-if="highlight.memo" class="highlight-memo">{{ truncate(highlight.memo, 100) }}</p>
         <div class="highlight-actions">
@@ -154,18 +154,7 @@ const handleDelete = async (highlight: Highlight) => {
   }
 };
 
-const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '어제';
-  if (diffDays < 7) return `${diffDays}일 전`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
-  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-};
+const { formatRelativeDate } = useDateFormat();
 
 const truncate = (text: string, length: number): string => {
   if (!text) return '';

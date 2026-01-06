@@ -54,7 +54,7 @@
             {{ bookmark.memo }}
           </div>
           <div class="bookmark-date">
-            {{ formatDate(bookmark.created_at) }}
+            {{ formatRelativeDate(bookmark.created_at) }}
           </div>
         </div>
         <button class="delete-btn" @click.stop="handleDelete(bookmark)" title="삭제">
@@ -112,18 +112,7 @@ const formatLocation = (bookmark: Bookmark): string => {
   return `${bookmark.chapter}장`;
 };
 
-const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '어제';
-  if (diffDays < 7) return `${diffDays}일 전`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
-  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-};
+const { formatRelativeDate } = useDateFormat();
 
 const goToBookmark = (bookmark: Bookmark) => {
   const query: Record<string, string> = {

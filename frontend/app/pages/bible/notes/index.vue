@@ -66,7 +66,7 @@
           <span class="note-location">
             {{ note.book_name || getBookName(note.book) }} {{ note.chapter }}장
           </span>
-          <span class="note-date">{{ formatDate(note.updated_at) }}</span>
+          <span class="note-date">{{ formatRelativeDate(note.updated_at) }}</span>
         </div>
         <p class="note-preview">{{ truncate(note.content, 120) }}</p>
         <div class="note-meta">
@@ -120,18 +120,7 @@ const goToNote = (id: number) => {
   router.push(`/bible/notes/${id}`);
 };
 
-const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '어제';
-  if (diffDays < 7) return `${diffDays}일 전`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
-  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-};
+const { formatRelativeDate } = useDateFormat();
 
 const truncate = (text: string, length: number): string => {
   if (!text) return '';
