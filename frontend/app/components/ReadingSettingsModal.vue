@@ -80,7 +80,7 @@
               <button class="section-header" @click="toggleSection('typography')">
                 <span class="section-title-text">글꼴 설정</span>
                 <span class="section-summary" v-if="!expandedSections.typography">
-                  {{ fontFamilies[settings.fontFamily].name }} · {{ settings.fontSize }}px
+                  {{ fontFamilies[settings.fontFamily].name }} · {{ settings.fontSize }}px · {{ settings.lineHeight.toFixed(1) }}
                 </span>
                 <svg
                   class="chevron"
@@ -131,7 +131,26 @@
                     </div>
                   </div>
 
-                  <!-- Weight + LineHeight + Align (Compact chips) -->
+                  <!-- Line Height Slider -->
+                  <div class="setting-group">
+                    <label class="setting-label">줄간격</label>
+                    <div class="slider-compact">
+                      <span class="slider-icon small">좁</span>
+                      <input
+                        type="range"
+                        :value="settings.lineHeight"
+                        :min="LINE_HEIGHT_MIN"
+                        :max="LINE_HEIGHT_MAX"
+                        :step="LINE_HEIGHT_STEP"
+                        class="font-size-slider"
+                        @input="updateSetting('lineHeight', Number(($event.target as HTMLInputElement).value))"
+                      />
+                      <span class="slider-icon large">넓</span>
+                      <span class="slider-value">{{ settings.lineHeight.toFixed(1) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Weight + Align (Compact chips) -->
                   <div class="setting-chips-row">
                     <div class="chip-group">
                       <label class="chip-label">두께</label>
@@ -142,20 +161,6 @@
                           class="chip-button"
                           :class="{ active: settings.fontWeight === option.value }"
                           @click="updateSetting('fontWeight', option.value)"
-                        >
-                          {{ option.label }}
-                        </button>
-                      </div>
-                    </div>
-                    <div class="chip-group">
-                      <label class="chip-label">줄간격</label>
-                      <div class="chip-buttons">
-                        <button
-                          v-for="option in lineHeightOptions"
-                          :key="option.value"
-                          class="chip-button"
-                          :class="{ active: settings.lineHeight === option.value }"
-                          @click="updateSetting('lineHeight', option.value)"
                         >
                           {{ option.label }}
                         </button>
@@ -274,6 +279,36 @@
             </section>
           </div>
 
+          <!-- Quick Links -->
+          <div class="quick-links">
+            <NuxtLink to="/bible/bookmarks" class="quick-link" @click="close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>북마크</span>
+            </NuxtLink>
+            <NuxtLink to="/bible/notes" class="quick-link" @click="close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="14,2 14,8 20,8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>노트</span>
+            </NuxtLink>
+            <NuxtLink to="/bible/highlights" class="quick-link" @click="close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>하이라이트</span>
+            </NuxtLink>
+            <NuxtLink to="/bible/settings" class="quick-link" @click="close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+              <span>전체 설정</span>
+            </NuxtLink>
+          </div>
+
           <!-- Footer -->
           <div class="settings-footer">
             <button class="reset-button" @click="resetToDefaults">
@@ -291,7 +326,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, reactive } from 'vue'
-import { useReadingSettingsStore, FONT_FAMILIES, LINE_HEIGHTS, FONT_WEIGHTS, type FontFamily, type ThemeMode, type FontWeight, type LineHeight, type TextAlign, type ReadingSettings } from '~/stores/readingSettings'
+import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS, LINE_HEIGHT_MIN, LINE_HEIGHT_MAX, LINE_HEIGHT_STEP, type FontFamily, type ThemeMode, type FontWeight, type TextAlign, type ReadingSettings } from '~/stores/readingSettings'
 
 const props = defineProps<{
   isOpen: boolean
@@ -355,12 +390,6 @@ const fontWeightOptions: Array<{ value: FontWeight; label: string }> = [
   { value: 'bold', label: '굵게' },
 ]
 
-const lineHeightOptions: Array<{ value: LineHeight; label: string }> = [
-  { value: 'compact', label: '좁게' },
-  { value: 'normal', label: '보통' },
-  { value: 'wide', label: '넓게' },
-]
-
 const textAlignOptions: Array<{ value: TextAlign; icon: string }> = [
   {
     value: 'left',
@@ -422,7 +451,7 @@ const previewTextStyles = computed(() => {
     fontFamily: FONT_FAMILIES[settings.value.fontFamily].css,
     fontSize: `${settings.value.fontSize}px`,
     fontWeight: FONT_WEIGHTS[settings.value.fontWeight],
-    lineHeight: LINE_HEIGHTS[settings.value.lineHeight],
+    lineHeight: settings.value.lineHeight,
     textAlign: settings.value.textAlign,
     color: colors.text,
   }
@@ -477,7 +506,7 @@ function resetToDefaults() {
     fontFamily: 'ridi-batang',
     fontSize: 16,
     fontWeight: 'normal',
-    lineHeight: 'normal',
+    lineHeight: 1.8,
     textAlign: 'left',
     verseJoining: false,
     showVerseNumbers: true,
@@ -1063,6 +1092,50 @@ function close() {
   margin: 0 0 8px 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Quick Links */
+.quick-links {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-light, #f0f0f0);
+  flex-shrink: 0;
+}
+
+.quick-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  color: var(--text-secondary, #666);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.quick-link:hover {
+  background: var(--accent-primary-light, #e9f5f0);
+  border-color: var(--accent-primary, #4B9F7E);
+  color: var(--accent-primary, #4B9F7E);
+}
+
+.quick-link:active {
+  transform: scale(0.97);
+}
+
+.quick-link svg {
+  opacity: 0.7;
+}
+
+.quick-link:hover svg {
+  opacity: 1;
 }
 
 /* Footer */

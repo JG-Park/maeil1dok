@@ -6,7 +6,8 @@ import { useAuthStore } from '~/stores/auth'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type FontFamily = 'ridi-batang' | 'noto-serif' | 'kopub-batang' | 'pretendard' | 'noto-sans' | 'system'
 export type FontWeight = 'normal' | 'medium' | 'bold'
-export type LineHeight = 'compact' | 'normal' | 'wide'
+// LineHeight는 이제 숫자형 (1.4 ~ 2.4 범위)
+export type LineHeight = number
 export type TextAlign = 'left' | 'justify'
 export type DefaultEntryPoint = 'last-position' | 'home' | 'toc'
 
@@ -50,7 +51,7 @@ const DEFAULT_SETTINGS: ReadingSettings = {
   fontFamily: 'ridi-batang',
   fontSize: 16,
   fontWeight: 'normal',
-  lineHeight: 'normal',
+  lineHeight: 1.8, // 숫자형 (1.4 ~ 2.4 범위)
   textAlign: 'left',
   verseJoining: false,
   showVerseNumbers: true,
@@ -72,8 +73,13 @@ export const FONT_FAMILIES: Record<FontFamily, { name: string; css: string; type
   'system': { name: '시스템 기본', css: '-apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif', type: 'system' },
 }
 
-// Line height mappings
-export const LINE_HEIGHTS: Record<LineHeight, number> = {
+// Line height 범위 상수
+export const LINE_HEIGHT_MIN = 1.4
+export const LINE_HEIGHT_MAX = 2.4
+export const LINE_HEIGHT_STEP = 0.1
+
+// 기존 문자열 값을 숫자로 변환하는 맵 (마이그레이션용)
+export const LEGACY_LINE_HEIGHTS: Record<string, number> = {
   compact: 1.5,
   normal: 1.8,
   wide: 2.2,
@@ -105,7 +111,7 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
   getters: {
     // Computed CSS values
     fontFamilyCSS: (state): string => FONT_FAMILIES[state.settings.fontFamily].css,
-    lineHeightValue: (state): number => LINE_HEIGHTS[state.settings.lineHeight],
+    lineHeightValue: (state): number => state.settings.lineHeight,
     fontWeightValue: (state): number => FONT_WEIGHTS[state.settings.fontWeight],
 
     // Effective theme (resolves 'system' to actual theme)
@@ -124,7 +130,7 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
       '--reading-font-family': FONT_FAMILIES[state.settings.fontFamily].css,
       '--reading-font-size': `${state.settings.fontSize}px`,
       '--reading-font-weight': FONT_WEIGHTS[state.settings.fontWeight],
-      '--reading-line-height': LINE_HEIGHTS[state.settings.lineHeight],
+      '--reading-line-height': state.settings.lineHeight,
       '--reading-text-align': state.settings.textAlign,
     }),
   },
@@ -155,6 +161,10 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
         const stored = localStorage.getItem(STORAGE_KEY)
         if (stored) {
           const parsed = JSON.parse(stored)
+          // 기존 문자열 lineHeight를 숫자로 변환
+          if (typeof parsed.lineHeight === 'string' && LEGACY_LINE_HEIGHTS[parsed.lineHeight]) {
+            parsed.lineHeight = LEGACY_LINE_HEIGHTS[parsed.lineHeight]
+          }
           this.settings = { ...DEFAULT_SETTINGS, ...parsed }
         }
       } catch (e) {
@@ -217,6 +227,11 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
 
         if (response.data?.success && response.data.settings) {
           const serverSettings = response.data.settings
+          // lineHeight 변환: 문자열이면 숫자로 변환
+          let lineHeight = serverSettings.line_height || this.settings.lineHeight
+          if (typeof lineHeight === 'string' && LEGACY_LINE_HEIGHTS[lineHeight]) {
+            lineHeight = LEGACY_LINE_HEIGHTS[lineHeight]
+          }
           // Merge server settings (snake_case from backend)
           this.settings = {
             ...this.settings,
@@ -224,7 +239,7 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
             fontFamily: serverSettings.font_family || this.settings.fontFamily,
             fontSize: serverSettings.font_size || this.settings.fontSize,
             fontWeight: serverSettings.font_weight || this.settings.fontWeight,
-            lineHeight: serverSettings.line_height || this.settings.lineHeight,
+            lineHeight: lineHeight,
             textAlign: serverSettings.text_align || this.settings.textAlign,
             verseJoining: serverSettings.verse_joining ?? this.settings.verseJoining,
             showVerseNumbers: serverSettings.show_verse_numbers ?? this.settings.showVerseNumbers,
