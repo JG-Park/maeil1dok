@@ -143,13 +143,17 @@ const effectiveTheme = computed(() => settingsStore.effectiveTheme);
 const viewerRef = ref<HTMLElement | null>(null);
 const copyMenuRef = ref<HTMLElement | null>(null);
 
-// 절 클릭 선택 상태 (reading.vue 방식)
+// ====== 선택 시스템 상태 ======
+// 선택 모드: 'click' (절 클릭) | 'drag' (텍스트 드래그) | null
+const selectionMode = ref<'click' | 'drag' | null>(null);
+
+// 절 클릭 선택 상태 (하단 복사 메뉴용)
 const showCopyMenu = ref(false);
 const clickSelectedStart = ref<number | null>(null);
 const clickSelectedEnd = ref<number | null>(null);
 const clickSelectedVerses = ref<Array<{ number: number; text: string }>>([]);
 
-// 텍스트 드래그 선택 상태 (기존 방식)
+// 텍스트 드래그 선택 상태 (플로팅 액션 메뉴용)
 const showActionMenu = ref(false);
 const selectedVerses = ref({ start: 0, end: 0 });
 const selectedText = ref('');
@@ -237,6 +241,26 @@ const clearClickSelection = () => {
   clickSelectedVerses.value = [];
   clickSelectedStart.value = null;
   clickSelectedEnd.value = null;
+  if (selectionMode.value === 'click') {
+    selectionMode.value = null;
+  }
+};
+
+// 텍스트 드래그 선택 초기화
+const clearDragSelection = () => {
+  showActionMenu.value = false;
+  selectedVerses.value = { start: 0, end: 0 };
+  selectedText.value = '';
+  window.getSelection()?.removeAllRanges();
+  if (selectionMode.value === 'drag') {
+    selectionMode.value = null;
+  }
+};
+
+// 모든 선택 초기화
+const clearAllSelections = () => {
+  clearClickSelection();
+  clearDragSelection();
 };
 
 // 절 하이라이트 적용
@@ -312,6 +336,12 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
 
   event.stopPropagation();
 
+  // 드래그 선택이 진행 중이면 무시 (텍스트 선택 후 클릭 시)
+  const browserSelection = window.getSelection();
+  if (browserSelection && !browserSelection.isCollapsed && browserSelection.toString().trim()) {
+    return;
+  }
+
   const numEl = verseEl.querySelector('.verse-number');
   const textEl = verseEl.querySelector('.verse-text');
   if (!numEl || !textEl) return;
@@ -333,10 +363,16 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
     return;
   }
 
+  // 드래그 선택 해제 후 클릭 선택 시작
+  clearDragSelection();
+  selectionMode.value = 'click';
+
   if (clickSelectedStart.value === null) {
     // 시작점 설정
-    clearClickSelection();
+    clearVerseHighlight();
+    clickSelectedVerses.value = [];
     clickSelectedStart.value = num;
+    clickSelectedEnd.value = null;
     clickSelectedVerses.value = [{ number: num, text: txt }];
     highlightVerses(num, num);
     showCopyMenu.value = true;
@@ -378,24 +414,41 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
   }
 };
 
-// ====== 텍스트 드래그 선택 기능 (기존) ======
+// ====== 텍스트 드래그 선택 기능 (플로팅 액션 메뉴) ======
 
 // 텍스트 선택 핸들러
 const handleTextSelection = () => {
   const selection = window.getSelection();
   if (!selection || selection.isCollapsed) {
-    hideActionMenu();
+    // 선택이 해제되면 액션 메뉴 숨김
+    if (selectionMode.value === 'drag') {
+      hideActionMenu();
+    }
     return;
   }
 
   const text = selection.toString().trim();
   if (!text) {
-    hideActionMenu();
+    if (selectionMode.value === 'drag') {
+      hideActionMenu();
+    }
     return;
   }
 
-  // 선택된 텍스트에서 절 번호 추출
+  // 선택 범위가 bible-content 내부인지 확인
   const range = selection.getRangeAt(0);
+  const container = range.commonAncestorContainer;
+  const isInBibleContent = container.parentElement?.closest('.bible-content') ||
+                           (container as Element).closest?.('.bible-content');
+  if (!isInBibleContent) {
+    return;
+  }
+
+  // 클릭 선택 해제 후 드래그 선택 시작
+  clearClickSelection();
+  selectionMode.value = 'drag';
+
+  // 선택된 텍스트에서 절 번호 추출
   const verses = extractVerseNumbers(range);
 
   if (verses.start > 0) {
@@ -469,6 +522,9 @@ const showActionMenuAt = (range: Range) => {
 // 액션 메뉴 숨기기
 const hideActionMenu = () => {
   showActionMenu.value = false;
+  if (selectionMode.value === 'drag') {
+    selectionMode.value = null;
+  }
 };
 
 // 액션 핸들러
@@ -543,7 +599,7 @@ const handleShare = async () => {
 };
 
 const clearSelection = () => {
-  window.getSelection()?.removeAllRanges();
+  clearDragSelection();
 };
 
 // 스크롤 위치 복원
@@ -583,6 +639,10 @@ const handleDocumentClick = (e: MouseEvent) => {
 // 라이프사이클
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick);
+  // 텍스트 드래그 선택 감지 (mouseup)
+  document.addEventListener('mouseup', handleTextSelection);
+  // 터치 디바이스 지원
+  document.addEventListener('touchend', handleTextSelection);
 
   // 초기 스크롤 위치 복원 (컨텐츠 로드 후)
   nextTick(() => {
@@ -592,17 +652,19 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick);
+  document.removeEventListener('mouseup', handleTextSelection);
+  document.removeEventListener('touchend', handleTextSelection);
   if (scrollTimeout) {
     clearTimeout(scrollTimeout);
   }
   // 선택 상태 정리
-  clearClickSelection();
+  clearAllSelections();
 });
 
 // 컨텐츠 변경 시 스크롤 위치 복원 및 선택 상태 초기화
 watch(() => props.content, () => {
-  // 컨텐츠 변경 시 선택 상태 초기화
-  clearClickSelection();
+  // 컨텐츠 변경 시 모든 선택 상태 초기화
+  clearAllSelections();
   nextTick(() => {
     restoreScrollPosition();
   });
