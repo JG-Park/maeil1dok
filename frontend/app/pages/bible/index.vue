@@ -569,55 +569,52 @@ const handleTongdokComplete = async (payload: { autoComplete: boolean }) => {
   }
 };
 
+// 헬퍼: 사용자 데이터 로딩 (인증된 사용자 전용)
+const loadUserDataForChapter = async (book: string, chapter: number, skipReadChapters = false) => {
+  if (!authStore.isAuthenticated) return;
+
+  const promises: Promise<void>[] = [
+    fetchChapterNotes(book, chapter),
+    fetchChapterHighlights(book, chapter),
+    loadBookmarks(book, chapter),
+  ];
+
+  if (!skipReadChapters) {
+    promises.unshift(fetchReadChapters(book));
+  }
+
+  await Promise.all(promises);
+};
+
+// 헬퍼: reader 모드 진입 (공통 로직)
+// Note: 사용자 데이터 로딩은 book/chapter watch에서 자동 처리됨
+const enterReaderMode = async (book: string, chapter: number) => {
+  currentBook.value = book;
+  currentChapter.value = chapter;
+  viewMode.value = 'reader';
+  await loadBibleContent(book, chapter);
+};
+
 // 진입점 모드 핸들러: 홈에서 계속 읽기
 const handleContinueReading = async () => {
   const lastPos = await loadReadingPosition();
   if (lastPos) {
-    currentBook.value = lastPos.book;
-    currentChapter.value = lastPos.chapter;
     currentVersion.value = lastPos.version || 'GAE';
     scrollPosition.value = lastPos.scroll_position || 0;
-  }
-  viewMode.value = 'reader';
-  loadBibleContent(currentBook.value, currentChapter.value);
-
-  // 읽기 기록, 노트, 북마크 조회 (로그인 시)
-  if (authStore.isAuthenticated) {
-    await fetchReadChapters(currentBook.value);
-    await fetchChapterNotes(currentBook.value, currentChapter.value);
-    await fetchChapterHighlights(currentBook.value, currentChapter.value);
-    await loadBookmarks(currentBook.value, currentChapter.value);
+    await enterReaderMode(lastPos.book, lastPos.chapter);
+  } else {
+    await enterReaderMode(currentBook.value, currentChapter.value);
   }
 };
 
 // 진입점 모드 핸들러: 홈에서 책 선택
 const handleHomeBookSelect = async (bookId: string, chapter: number = 1) => {
-  currentBook.value = bookId;
-  currentChapter.value = chapter;
-  viewMode.value = 'reader';
-  loadBibleContent(currentBook.value, currentChapter.value);
-
-  if (authStore.isAuthenticated) {
-    await fetchReadChapters(currentBook.value);
-    await fetchChapterNotes(currentBook.value, currentChapter.value);
-    await fetchChapterHighlights(currentBook.value, currentChapter.value);
-    await loadBookmarks(currentBook.value, currentChapter.value);
-  }
+  await enterReaderMode(bookId, chapter);
 };
 
 // 진입점 모드 핸들러: 목차에서 책 선택
 const handleTocBookSelect = async (bookId: string, chapter: number = 1) => {
-  currentBook.value = bookId;
-  currentChapter.value = chapter;
-  viewMode.value = 'reader';
-  loadBibleContent(currentBook.value, currentChapter.value);
-
-  if (authStore.isAuthenticated) {
-    await fetchReadChapters(currentBook.value);
-    await fetchChapterNotes(currentBook.value, currentChapter.value);
-    await fetchChapterHighlights(currentBook.value, currentChapter.value);
-    await loadBookmarks(currentBook.value, currentChapter.value);
-  }
+  await enterReaderMode(bookId, chapter);
 };
 
 // 진입점 모드 핸들러: 목차에서 뒤로가기
@@ -679,13 +676,12 @@ onMounted(async () => {
   }
 
   // 읽기 기록, 노트, 북마크 조회 (로그인 시, reader 모드일 때만)
-  if (authStore.isAuthenticated && viewMode.value === 'reader') {
-    if (!isTongdokMode.value) {
-      await fetchReadChapters(currentBook.value);
-    }
-    await fetchChapterNotes(currentBook.value, currentChapter.value);
-    await fetchChapterHighlights(currentBook.value, currentChapter.value);
-    await loadBookmarks(currentBook.value, currentChapter.value);
+  if (viewMode.value === 'reader') {
+    await loadUserDataForChapter(
+      currentBook.value,
+      currentChapter.value,
+      isTongdokMode.value // 통독모드일 때 readChapters 스킵
+    );
   }
 
   // beforeunload 이벤트 등록 (페이지 이탈 시 위치 저장)

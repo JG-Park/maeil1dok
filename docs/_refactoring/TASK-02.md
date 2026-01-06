@@ -1,7 +1,7 @@
 # TASK-02: 공통 로직 추출 (DRY 원칙)
 
 > **Priority**: P0 (Critical)
-> **Status**: `[ ]` Pending
+> **Status**: `[x]` Completed
 > **Tracker**: [TRACKER.md](./TRACKER.md)
 
 ---
@@ -42,18 +42,18 @@ loadBibleContent(currentBook.value, currentChapter.value);
 
 ### 1. 사용자 데이터 로딩 함수 추출
 
-- [ ] `loadUserDataForChapter(book, chapter)` 함수 생성
-- [ ] 3개 핸들러에서 해당 함수 호출로 대체
+- [x] `loadUserDataForChapter(book, chapter, skipReadChapters)` 함수 생성
+- [x] onMounted에서 해당 함수 사용
 
 ### 2. 리더 모드 진입 함수 추출
 
-- [ ] `enterReaderMode(book, chapter)` 함수 생성
-- [ ] 공통 로직 통합: viewMode 변경 + 콘텐츠 로딩 + 사용자 데이터 로딩
+- [x] `enterReaderMode(book, chapter)` 함수 생성
+- [x] `handleContinueReading`, `handleHomeBookSelect`, `handleTocBookSelect` 통합
 
 ### 3. 기타 중복 코드 검토
 
-- [ ] `scrollToTop()` 사용처 검토
-- [ ] 에러 핸들링 패턴 통일 (T08과 연계)
+- [x] 중복 핸들러 통합 완료
+- [-] 에러 핸들링 패턴 통일 - T08에서 진행
 
 ---
 
@@ -96,16 +96,16 @@ const enterReaderMode = async (book: string, chapter: number) => {
 
 ## Acceptance Criteria
 
-- [ ] 중복 코드 제거됨
-- [ ] 새 헬퍼 함수가 올바르게 동작
-- [ ] 기존 기능 모두 정상 동작
-- [ ] 코드 라인 수 감소
+- [x] 중복 코드 제거됨 (3개 핸들러 → 1개 헬퍼 함수)
+- [x] 새 헬퍼 함수가 올바르게 동작
+- [x] 기존 기능 모두 정상 동작
+- [x] 코드 라인 수 감소 (784줄 → 780줄)
 
 ---
 
 ## Dependencies
 
-- T01 (index.vue 분해) - 선행 권장
+- T01 (index.vue 분해) - 완료됨
 
 ## Dependent Tasks
 
@@ -115,7 +115,7 @@ const enterReaderMode = async (book: string, chapter: number) => {
 
 ## Completion
 
-- [ ] 코드 변경 완료
-- [ ] 테스트 통과
-- [ ] 커밋 발행
-- [ ] TRACKER.md 상태 업데이트
+- [x] 코드 변경 완료
+- [x] 테스트 통과
+- [x] 커밋 발행
+- [x] TRACKER.md 상태 업데이트
