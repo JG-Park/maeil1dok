@@ -3,7 +3,7 @@ from .models import (
     DailyBibleSchedule, UserBibleProgress, BibleReadingPlan,
     PlanSubscription, VideoBibleIntro, UserPlanDisplaySettings,
     CatchupSession, CatchupSchedule,
-    UserReadingPosition, BibleBookmark, ReflectionNote, PersonalReadingRecord
+    UserReadingPosition, BibleBookmark, ReflectionNote, BibleHighlight, PersonalReadingRecord
 )
 from django.contrib.auth import get_user_model
 from django.core.validators import URLValidator
@@ -371,6 +371,23 @@ class ReflectionNoteSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_book_name(self, obj):
+        return BIBLE_BOOKS_KOR.get(obj.book, obj.book)
+
+
+class BibleHighlightSerializer(serializers.ModelSerializer):
+    """하이라이트 Serializer"""
+    book_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BibleHighlight
+        fields = [
+            'id', 'book', 'book_name', 'chapter',
+            'start_verse', 'end_verse', 'color', 'memo',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'book_name', 'created_at', 'updated_at']
 
     def get_book_name(self, obj):
         return BIBLE_BOOKS_KOR.get(obj.book, obj.book)

@@ -167,6 +167,21 @@
       @go-detail="handleNoteGoDetail"
     />
 
+    <!-- 하이라이트 모달 -->
+    <HighlightModal
+      v-model="showHighlightModal"
+      :book="currentBook"
+      :book-name="currentBookName"
+      :chapter="currentChapter"
+      :start-verse="highlightSelection?.start ?? 1"
+      :end-verse="highlightSelection?.end ?? 1"
+      :existing-highlight="currentSelectionHighlight"
+      :custom-colors="customColors"
+      @save="handleHighlightSave"
+      @delete="handleHighlightDelete"
+      @add-custom-color="handleAddCustomColor"
+    />
+
     <!-- 토스트 -->
     <Toast />
   </div>
@@ -182,6 +197,7 @@ import { usePersonalRecord } from '~/composables/usePersonalRecord';
 import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useBookmark } from '~/composables/useBookmark';
 import { useNote } from '~/composables/useNote';
+import { useHighlight } from '~/composables/useHighlight';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useToast } from '~/composables/useToast';
@@ -192,6 +208,7 @@ import TongdokCompleteModal from '~/components/bible/TongdokCompleteModal.vue';
 import BookmarkButton from '~/components/bible/BookmarkButton.vue';
 import NoteButton from '~/components/bible/NoteButton.vue';
 import NoteQuickModal from '~/components/bible/NoteQuickModal.vue';
+import HighlightModal from '~/components/bible/HighlightModal.vue';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -248,6 +265,17 @@ const {
   saveQuickNote,
   getChapterNoteCount
 } = useNote();
+const {
+  chapterHighlights,
+  isHighlightLoading,
+  customColors,
+  addCustomColor,
+  fetchChapterHighlights,
+  getVerseHighlight,
+  createHighlight,
+  updateHighlight,
+  deleteHighlight
+} = useHighlight();
 
 // 상태
 const currentBook = ref('gen');
@@ -261,6 +289,10 @@ const isLoading = ref(true);
 const showBookSelector = ref(false);
 const showVersionSelector = ref(false);
 const showTongdokCompleteModal = ref(false);
+const showHighlightModal = ref(false);
+
+// 하이라이트 선택 상태
+const highlightSelection = ref<{ start: number; end: number } | null>(null);
 
 // Refs
 const bibleViewerRef = ref<InstanceType<typeof BibleViewer> | null>(null);
@@ -322,6 +354,15 @@ const currentChapterNote = computed(() =>
     n => n.book === currentBook.value && n.chapter === currentChapter.value
   ) || null
 );
+
+// 하이라이트 관련
+const currentSelectionHighlight = computed(() => {
+  if (!highlightSelection.value) return null;
+  return chapterHighlights.value.find(
+    h => h.start_verse === highlightSelection.value!.start &&
+         h.end_verse === highlightSelection.value!.end
+  ) || null;
+});
 
 // 쿼리 파라미터에서 초기값 설정
 const initFromQuery = () => {
@@ -595,8 +636,64 @@ const handleBookmarkAction = (verses: VerseSelection) => {
 };
 
 const handleHighlightAction = (verses: VerseSelection) => {
-  // TODO: 하이라이트 기능 구현 (Phase 3)
-  console.log('Highlight:', verses);
+  if (!authStore.isAuthenticated) {
+    toast.info('로그인이 필요합니다');
+    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
+    return;
+  }
+  highlightSelection.value = { start: verses.start, end: verses.end };
+  showHighlightModal.value = true;
+};
+
+// 하이라이트 저장
+const handleHighlightSave = async (data: { color: string; memo: string }) => {
+  if (!highlightSelection.value) return;
+
+  const existingHighlight = chapterHighlights.value.find(
+    h => h.start_verse === highlightSelection.value!.start &&
+         h.end_verse === highlightSelection.value!.end
+  );
+
+  try {
+    if (existingHighlight) {
+      await updateHighlight(existingHighlight.id, {
+        color: data.color,
+        memo: data.memo
+      });
+      toast.success('하이라이트가 수정되었습니다');
+    } else {
+      await createHighlight({
+        book: currentBook.value,
+        chapter: currentChapter.value,
+        start_verse: highlightSelection.value.start,
+        end_verse: highlightSelection.value.end,
+        color: data.color,
+        memo: data.memo
+      });
+      toast.success('하이라이트가 추가되었습니다');
+    }
+  } catch (error) {
+    toast.error('하이라이트 저장에 실패했습니다');
+  }
+};
+
+// 하이라이트 삭제
+const handleHighlightDelete = async (highlightId: number) => {
+  try {
+    const success = await deleteHighlight(highlightId);
+    if (success) {
+      toast.success('하이라이트가 삭제되었습니다');
+    } else {
+      toast.error('하이라이트 삭제에 실패했습니다');
+    }
+  } catch (error) {
+    toast.error('하이라이트 삭제에 실패했습니다');
+  }
+};
+
+// 사용자 지정 색상 추가
+const handleAddCustomColor = (color: string) => {
+  addCustomColor(color);
 };
 
 const handleCopyAction = (text: string) => {
@@ -752,6 +849,7 @@ onMounted(async () => {
       await fetchReadChapters(currentBook.value);
     }
     await fetchChapterNotes(currentBook.value, currentChapter.value);
+    await fetchChapterHighlights(currentBook.value, currentChapter.value);
   }
 
   // beforeunload 이벤트 등록 (페이지 이탈 시 위치 저장)
@@ -806,6 +904,7 @@ watch(
   async ([newBook, newChapter]) => {
     if (authStore.isAuthenticated) {
       await fetchChapterNotes(newBook, newChapter);
+      await fetchChapterHighlights(newBook, newChapter);
     }
   }
 );

@@ -6,6 +6,7 @@ router = DefaultRouter()
 router.register(r'bible-plans', views.BibleReadingPlanViewSet)
 router.register(r'bible/bookmarks', views.BibleBookmarkViewSet, basename='bible-bookmark')
 router.register(r'bible/notes', views.ReflectionNoteViewSet, basename='reflection-note')
+router.register(r'bible/highlights', views.BibleHighlightViewSet, basename='bible-highlight')
 router.register(r'bible/personal-records', views.PersonalReadingRecordViewSet, basename='personal-record')
 
 urlpatterns = [

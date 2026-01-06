@@ -2214,11 +2214,12 @@ def get_user_hasena_status(request):
 # 성경읽기 기능 API (읽기 위치, 북마크, 묵상노트, 개인 읽기 기록)
 # ============================================
 
-from .models import UserReadingPosition, BibleBookmark, ReflectionNote, PersonalReadingRecord
+from .models import UserReadingPosition, BibleBookmark, ReflectionNote, BibleHighlight, PersonalReadingRecord
 from .serializers import (
     UserReadingPositionSerializer,
     BibleBookmarkSerializer,
     ReflectionNoteSerializer,
+    BibleHighlightSerializer,
     PersonalReadingRecordSerializer
 )
 from collections import defaultdict
@@ -2351,6 +2352,53 @@ class ReflectionNoteViewSet(viewsets.ModelViewSet):
         notes = self.get_queryset().filter(book=book, chapter=chapter)
         serializer = self.get_serializer(notes, many=True)
         return Response({'success': True, 'notes': serializer.data})
+
+
+class BibleHighlightViewSet(viewsets.ModelViewSet):
+    """하이라이트 CRUD API"""
+    serializer_class = BibleHighlightSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return BibleHighlight.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({'success': True, 'message': '하이라이트가 삭제되었습니다'})
+
+    @action(detail=False, methods=['get'], url_path='by-chapter')
+    def by_chapter(self, request):
+        """특정 장의 하이라이트 조회"""
+        book = request.query_params.get('book')
+        chapter = request.query_params.get('chapter')
+        if not book or not chapter:
+            return Response({
+                'success': False,
+                'error': 'book and chapter required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            chapter = int(chapter)
+        except ValueError:
+            return Response({
+                'success': False,
+                'error': 'chapter must be a number'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        highlights = self.get_queryset().filter(book=book, chapter=chapter)
+        serializer = self.get_serializer(highlights, many=True)
+        return Response({'success': True, 'highlights': serializer.data})
 
 
 # 성경책별 총 장 수

@@ -486,6 +486,35 @@ class ReflectionNote(models.Model):
         return f"{self.user.nickname} - {self.book} {self.chapter}"
 
 
+class BibleHighlight(models.Model):
+    """구절 하이라이트 (형광펜)"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='bible_highlights'
+    )
+    book = models.CharField(max_length=10, help_text="성경책 코드")
+    chapter = models.IntegerField()
+    start_verse = models.IntegerField()
+    end_verse = models.IntegerField()
+    color = models.CharField(max_length=7, default='#FEF3C7', help_text="하이라이트 색상 (HEX)")
+    memo = models.TextField(blank=True, help_text="간단한 메모")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'book', 'chapter']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+        verbose_name = "하이라이트"
+        verbose_name_plural = "하이라이트"
+
+    def __str__(self):
+        return f"{self.user.nickname} - {self.book} {self.chapter}:{self.start_verse}-{self.end_verse}"
+
+
 class PersonalReadingRecord(models.Model):
     """개인 성경 읽기 기록 (Plan 무관)"""
     user = models.ForeignKey(
