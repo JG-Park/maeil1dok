@@ -813,6 +813,7 @@ defineExpose({
 .bible-content.verse-joining :deep(.verse),
 .bible-content.verse-joining :deep(.verse-group) {
   display: inline;
+  padding: 0;
 }
 
 .bible-content.verse-joining :deep(.verse-number) {

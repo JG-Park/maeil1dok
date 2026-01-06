@@ -1,7 +1,7 @@
 # TASK-03: SVG 아이콘 컴포넌트화
 
 > **Priority**: P1 (Major)
-> **Status**: `[ ]` Pending
+> **Status**: `[x]` Completed
 > **Tracker**: [TRACKER.md](./TRACKER.md)
 
 ---
@@ -38,36 +38,49 @@
 
 ### 1. 누락된 아이콘 컴포넌트 생성
 
-현재 `components/icons/`에 없는 아이콘:
+25개의 아이콘 컴포넌트 생성 완료:
 
-- [ ] `SettingsIcon.vue` (톱니바퀴)
-- [ ] `BookIcon.vue` (책)
-- [ ] `StarIcon.vue` (별)
-- [ ] `TrashIcon.vue` (휴지통)
-- [ ] `LockIcon.vue` (자물쇠)
-- [ ] `ArrowRightIcon.vue` (오른쪽 화살표)
-- [ ] `ListIcon.vue` (목록)
-- [ ] `EyeIcon.vue` (눈)
-- [ ] `DocumentIcon.vue` (문서)
-- [ ] `LayersIcon.vue` (레이어)
-- [ ] `RefreshIcon.vue` (새로고침)
-- [ ] `WarningIcon.vue` (경고)
+- [x] `SettingsIcon.vue` (톱니바퀴)
+- [x] `BookIcon.vue` (책)
+- [x] `StarIcon.vue` (별)
+- [x] `TrashIcon.vue` (휴지통)
+- [x] `LockIcon.vue` (자물쇠)
+- [x] `ArrowRightIcon.vue` (오른쪽 화살표)
+- [x] `ListIcon.vue` (목록)
+- [x] `EyeIcon.vue` (눈)
+- [x] `DocumentIcon.vue` (문서)
+- [x] `LayersIcon.vue` (레이어)
+- [x] `HistoryIcon.vue` (히스토리/새로고침)
+- [x] `WarningIcon.vue` (경고)
+- [x] `BookmarkIcon.vue` (북마크)
+- [x] `CheckIcon.vue` (체크)
+- [x] `InfoCircleIcon.vue` (정보)
+- [x] `PenIcon.vue` (펜/편집)
+- [x] `CopyIcon.vue` (복사)
+- [x] `ShareIcon.vue` (공유)
+- [x] `SearchIcon.vue` (검색)
+- [x] `SparkleIcon.vue` (AI 스파클)
+- [x] `SunIcon.vue` (라이트 모드)
+- [x] `MoonIcon.vue` (다크 모드)
+- [x] `MonitorIcon.vue` (시스템 모드)
+- [x] `SpinnerIcon.vue` (로딩 스피너)
+- [x] `XCircleIcon.vue` (원형 X 버튼)
 
 ### 2. 파일별 인라인 SVG 교체
 
-- [ ] `BibleHome.vue` - 인라인 SVG → 아이콘 컴포넌트
-- [ ] `history.vue` - 인라인 SVG → 아이콘 컴포넌트
-- [ ] `settings.vue` - 인라인 SVG → 아이콘 컴포넌트
-- [ ] `notes/index.vue` - 인라인 SVG → 아이콘 컴포넌트
-- [ ] `notes/[id].vue` - 인라인 SVG → 아이콘 컴포넌트
-- [ ] `bookmarks.vue` - 인라인 SVG → 아이콘 컴포넌트
-- [ ] `BibleViewer.vue` - 인라인 SVG → 아이콘 컴포넌트
-- [ ] `BookSelector.vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `BibleHome.vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `history.vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `settings.vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `notes/index.vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `notes/[id].vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `bookmarks.vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `BibleViewer.vue` - 인라인 SVG → 아이콘 컴포넌트
+- [x] `BookSelector.vue` - 인라인 SVG → 아이콘 컴포넌트
 
 ### 3. 아이콘 컴포넌트 표준화
 
-- [ ] 모든 아이콘에 `size` prop 추가 (기본값: 20)
-- [ ] 모든 아이콘에 `color` prop 추가 (기본값: currentColor)
+- [x] 모든 아이콘에 `size` prop 추가 (기본값: 20)
+- [x] `stroke="currentColor"` 사용으로 부모 색상 상속
 
 ---
 
@@ -122,10 +135,10 @@ withDefaults(defineProps<{
 
 ## Acceptance Criteria
 
-- [ ] 모든 인라인 SVG가 컴포넌트로 대체됨
-- [ ] 아이콘 컴포넌트가 일관된 API 제공
-- [ ] 기존 UI 동일하게 렌더링
-- [ ] 빌드 에러 없음
+- [x] 모든 인라인 SVG가 컴포넌트로 대체됨
+- [x] 아이콘 컴포넌트가 일관된 API 제공
+- [x] 기존 UI 동일하게 렌더링
+- [x] 빌드 에러 없음
 
 ---
 
@@ -141,7 +154,7 @@ withDefaults(defineProps<{
 
 ## Completion
 
-- [ ] 코드 변경 완료
-- [ ] 테스트 통과
-- [ ] 커밋 발행
-- [ ] TRACKER.md 상태 업데이트
+- [x] 코드 변경 완료
+- [x] 테스트 통과
+- [x] 커밋 발행
+- [x] TRACKER.md 상태 업데이트

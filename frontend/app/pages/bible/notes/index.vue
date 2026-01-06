@@ -2,9 +2,7 @@
   <div class="notes-page">
     <header class="page-header">
       <button class="back-btn" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ChevronLeftIcon :size="20" />
       </button>
       <h1>묵상노트</h1>
     </header>
@@ -34,22 +32,14 @@
 
     <!-- 로그인 필요 -->
     <div v-else-if="!authStore.isAuthenticated" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
-        <polyline points="14,2 14,8 20,8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <DocumentIcon :size="48" class="empty-icon" />
       <p>로그인 후 묵상노트를 확인할 수 있습니다</p>
       <NuxtLink to="/login" class="login-btn">로그인</NuxtLink>
     </div>
 
     <!-- 빈 상태 -->
     <div v-else-if="filteredNotes.length === 0" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
-        <polyline points="14,2 14,8 20,8" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="16" y1="13" x2="8" y2="13" stroke-linecap="round"/>
-        <line x1="16" y1="17" x2="8" y2="17" stroke-linecap="round"/>
-      </svg>
+      <DocumentIcon :size="48" class="empty-icon" />
       <p>{{ filterBook ? '해당 책에 작성된 묵상노트가 없습니다' : '작성된 묵상노트가 없습니다' }}</p>
       <span class="empty-hint">성경을 읽으며 묵상을 기록해보세요</span>
     </div>
@@ -71,10 +61,7 @@
         <p class="note-preview">{{ truncate(note.content, 120) }}</p>
         <div class="note-meta">
           <span v-if="note.is_private" class="private-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M7 11V7a5 5 0 0110 0v4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <LockIcon :size="12" />
             비공개
           </span>
         </div>
@@ -231,7 +218,7 @@ const truncate = (text: string, length: number): string => {
   color: var(--text-secondary, #6b7280);
 }
 
-.empty-state svg {
+.empty-state .empty-icon {
   margin-bottom: 1rem;
   opacity: 0.5;
 }

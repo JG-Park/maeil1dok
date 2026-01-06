@@ -2,9 +2,7 @@
   <div class="settings-page">
     <header class="page-header">
       <button class="back-btn" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ChevronLeftIcon :size="20" />
       </button>
       <h1>읽기 설정</h1>
     </header>
@@ -13,10 +11,7 @@
       <!-- 표시 설정 섹션 -->
       <section class="settings-section">
         <h2 class="section-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
+          <EyeIcon :size="18" />
           표시
         </h2>
 
@@ -83,7 +78,11 @@
               :class="{ active: settings.theme === theme.value }"
               @click="updateSetting('theme', theme.value)"
             >
-              <span class="theme-icon" v-html="theme.icon"></span>
+              <span class="theme-icon">
+                <SunIcon v-if="theme.value === 'light'" :size="16" />
+                <MoonIcon v-else-if="theme.value === 'dark'" :size="16" />
+                <MonitorIcon v-else :size="16" />
+              </span>
               <span>{{ theme.label }}</span>
             </button>
           </div>
@@ -125,12 +124,7 @@
       <!-- 미리보기 -->
       <section class="preview-section">
         <h2 class="section-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
+          <DocumentIcon :size="18" />
           미리보기
         </h2>
         <div
@@ -157,10 +151,7 @@
       <!-- 동작 설정 섹션 -->
       <section class="settings-section">
         <h2 class="section-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <SettingsIcon :size="18" />
           동작
         </h2>
 
@@ -215,42 +206,29 @@
       <!-- 데이터 관리 섹션 -->
       <section class="settings-section danger-section">
         <h2 class="section-title danger">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <WarningIcon :size="18" />
           데이터 관리
         </h2>
         <p class="danger-hint">아래 작업은 되돌릴 수 없습니다.</p>
 
         <div class="danger-buttons">
           <button class="danger-btn" :disabled="isDeleting" @click="deleteAllBookmarks">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <BookmarkIcon :size="16" />
             북마크 전체 삭제
           </button>
 
           <button class="danger-btn" :disabled="isDeleting" @click="deleteAllNotes">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
+            <DocumentIcon :size="16" />
             묵상노트 전체 삭제
           </button>
 
           <button class="danger-btn" :disabled="isDeleting" @click="deleteAllHighlights">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <LayersIcon :size="16" />
             하이라이트 전체 삭제
           </button>
 
           <button class="danger-btn reset" :disabled="isDeleting" @click="resetAllSettings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <TrashIcon :size="16" />
             모든 설정 초기화
           </button>
         </div>
@@ -285,22 +263,10 @@ const settings = computed(() => settingsStore.settings);
 const fontFamilies = FONT_FAMILIES;
 
 // 테마 옵션
-const themeOptions: Array<{ value: ThemeMode; label: string; icon: string }> = [
-  {
-    value: 'light',
-    label: '라이트',
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
-  },
-  {
-    value: 'dark',
-    label: '다크',
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
-  },
-  {
-    value: 'system',
-    label: '자동',
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
-  },
+const themeOptions: Array<{ value: ThemeMode; label: string }> = [
+  { value: 'light', label: '라이트' },
+  { value: 'dark', label: '다크' },
+  { value: 'system', label: '자동' },
 ];
 
 // 줄 간격 옵션 (숫자형)

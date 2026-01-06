@@ -2,17 +2,13 @@
   <div class="history-page">
     <header class="page-header">
       <button class="back-btn" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 18L9 12L15 6" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ChevronLeftIcon :size="20" />
       </button>
       <h1>읽기 기록</h1>
     </header>
 
     <div v-if="isLoading" class="loading">
-      <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round" />
-      </svg>
+      <SpinnerIcon :size="24" />
     </div>
 
     <div v-else class="history-content">
@@ -20,10 +16,7 @@
       <div class="summary-cards">
         <div class="summary-card total">
           <div class="card-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <BookIcon :size="20" />
           </div>
           <div class="card-content">
             <div class="card-value">
@@ -41,9 +34,7 @@
 
         <div class="summary-card streak">
           <div class="card-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2l1.5 5.5h5.5l-4.5 3.5 1.5 5.5-4.5-3.5-4.5 3.5 1.5-5.5-4.5-3.5h5.5z" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <StarIcon :size="20" />
           </div>
           <div class="card-content">
             <div class="card-value">{{ stats.current_streak }}일</div>
@@ -53,9 +44,7 @@
 
         <div class="summary-card books">
           <div class="card-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <CheckIcon :size="20" />
           </div>
           <div class="card-content">
             <div class="card-value">{{ stats.books_completed }} / 66권</div>
@@ -265,17 +254,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 60px);
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
   color: var(--primary-color);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .history-content {

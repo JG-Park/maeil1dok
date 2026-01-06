@@ -9,9 +9,7 @@
   >
     <!-- 빈 상태 아이콘 -->
     <template #empty-icon>
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <BookmarkIcon :size="48" />
     </template>
 
     <!-- 빈 상태 액션 -->
@@ -44,9 +42,7 @@
           </div>
         </div>
         <button class="delete-btn" @click.stop="handleDelete(bookmark)" title="삭제">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <TrashIcon :size="18" />
         </button>
       </li>
     </ul>

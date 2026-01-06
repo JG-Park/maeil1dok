@@ -16,7 +16,7 @@
 |----|------|----------|--------|----------|
 | T01 | index.vue 분해 (모놀리스 해체) | P0 | `[x]` Completed | [TASK-01.md](./TASK-01.md) |
 | T02 | 공통 로직 추출 (DRY 원칙) | P0 | `[x]` Completed | [TASK-02.md](./TASK-02.md) |
-| T03 | SVG 아이콘 컴포넌트화 | P1 | `[ ]` Pending | [TASK-03.md](./TASK-03.md) |
+| T03 | SVG 아이콘 컴포넌트화 | P1 | `[x]` Completed | [TASK-03.md](./TASK-03.md) |
 | T04 | CSS 공통화 및 중복 제거 | P1 | `[ ]` Pending | [TASK-04.md](./TASK-04.md) |
 | T05 | 타입 정의 중앙화 | P1 | `[ ]` Pending | [TASK-05.md](./TASK-05.md) |
 | T06 | BibleViewer 선택 시스템 통합 | P1 | `[ ]` Pending | [TASK-06.md](./TASK-06.md) |
@@ -49,6 +49,7 @@
 |---------|-------------|------|---------|
 | T01 | 9142834 | 2026-01-06 | refactor(bible): extract BibleReaderView component from index.vue |
 | T02 | d306c6e | 2026-01-06 | refactor(bible): extract common logic into helper functions (DRY) |
+| T03 | b623ebc | 2026-01-06 | refactor(bible): extract inline SVG icons to reusable components |
 
 ---
 

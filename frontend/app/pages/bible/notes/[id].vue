@@ -2,15 +2,11 @@
   <div class="note-detail-page">
     <header class="page-header">
       <button class="back-btn" @click="handleBack">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ChevronLeftIcon :size="20" />
       </button>
       <h1>묵상노트</h1>
       <button v-if="note" class="delete-btn" @click="handleDelete" title="삭제">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <TrashIcon :size="20" />
       </button>
     </header>
 
@@ -22,11 +18,7 @@
 
     <!-- 노트 없음 -->
     <div v-else-if="!note" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <InfoCircleIcon :size="48" class="empty-icon" />
       <p>묵상노트를 찾을 수 없습니다</p>
       <NuxtLink to="/bible/notes" class="back-link">목록으로 돌아가기</NuxtLink>
     </div>
@@ -34,14 +26,9 @@
     <!-- 에디터 -->
     <div v-else class="note-editor">
       <div class="note-location" @click="goToBible">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <BookIcon :size="16" />
         <span>{{ note.book_name || getBookName(note.book) }} {{ note.chapter }}장</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <ChevronRightIcon :size="14" />
       </div>
 
       <textarea
@@ -278,7 +265,7 @@ watch([editContent, isPrivate], () => {
   to { transform: rotate(360deg); }
 }
 
-.empty-state svg {
+.empty-state .empty-icon {
   margin-bottom: 1rem;
   opacity: 0.5;
 }

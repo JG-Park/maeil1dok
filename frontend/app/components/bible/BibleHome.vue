@@ -3,10 +3,7 @@
     <header class="home-header">
       <h1>성경</h1>
       <button class="settings-btn" @click="$router.push('/bible/settings')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-        </svg>
+        <SettingsIcon :size="20" />
       </button>
     </header>
 
@@ -19,9 +16,7 @@
             <span class="book-name">{{ lastPosition.book_name }}</span>
             <span class="chapter">{{ lastPosition.chapter }}장</span>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <ArrowRightIcon :size="20" />
         </button>
       </section>
 
@@ -30,32 +25,22 @@
         <h2 class="section-title">빠른 접근</h2>
         <div class="quick-grid">
           <button class="quick-btn" @click="$router.push('/bible/bookmarks')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <BookmarkIcon :size="20" />
             <span>북마크</span>
             <span class="count" v-if="bookmarkCount > 0">{{ bookmarkCount }}</span>
           </button>
           <button class="quick-btn" @click="$router.push('/bible/notes')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <DocumentIcon :size="20" />
             <span>묵상노트</span>
             <span class="count" v-if="noteCount > 0">{{ noteCount }}</span>
           </button>
           <button class="quick-btn" @click="$router.push('/bible/highlights')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <LayersIcon :size="20" />
             <span>하이라이트</span>
             <span class="count" v-if="highlightCount > 0">{{ highlightCount }}</span>
           </button>
           <button class="quick-btn" @click="$router.push('/bible/history')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 3v5h5M21 21v-5h-5" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M21 9A9 9 0 0 0 6.343 6.343L3 9M3 15a9 9 0 0 0 14.657 2.657L21 15" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <HistoryIcon :size="20" />
             <span>읽기 기록</span>
           </button>
         </div>
@@ -83,14 +68,7 @@
       <!-- 성경 전체 보기 -->
       <section class="toc-shortcut">
         <button class="toc-btn" @click="$emit('show-toc')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6" stroke-linecap="round" stroke-linejoin="round" />
-            <line x1="8" y1="12" x2="21" y2="12" stroke-linecap="round" stroke-linejoin="round" />
-            <line x1="8" y1="18" x2="21" y2="18" stroke-linecap="round" stroke-linejoin="round" />
-            <line x1="3" y1="6" x2="3.01" y2="6" stroke-linecap="round" stroke-linejoin="round" />
-            <line x1="3" y1="12" x2="3.01" y2="12" stroke-linecap="round" stroke-linejoin="round" />
-            <line x1="3" y1="18" x2="3.01" y2="18" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <ListIcon :size="20" />
           성경 전체 목차
         </button>
       </section>
