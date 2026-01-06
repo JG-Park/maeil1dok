@@ -1,136 +1,133 @@
 <template>
-  <Teleport to="body">
-    <div v-if="modelValue" class="modal-overlay" @click="close">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>성경 선택</h3>
-          <button class="close-button" @click="close">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+  <UiModalBaseModal
+    :model-value="modelValue"
+    title="성경 선택"
+    size="lg"
+    :no-padding="true"
+    @update:model-value="$emit('update:modelValue', $event)"
+    @close="close"
+  >
+    <template #header-extra>
+      <!-- 검색 입력은 header-extra에 배치하지 않음 -->
+    </template>
+
+    <!-- 검색 섹션 -->
+    <div class="search-section">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+          <path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input
+          ref="searchInputRef"
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="예: 창1:3, ㅊㅅㄱ, 요한 3:16"
+          @keydown="handleSearchKeydown"
+        />
+        <button
+          v-if="searchQuery"
+          class="search-clear-button"
+          @click="searchQuery = ''"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
+            <path d="M15 9L9 15M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 검색 결과 미리보기 -->
+      <div v-if="searchResults.length > 0" class="search-result-preview">
+        <div class="ai-result-label">
+          <svg class="ai-sparkle" width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L13.09 8.26L19 9L13.09 9.74L12 16L10.91 9.74L5 9L10.91 8.26L12 2Z" fill="currentColor"/>
+            <path d="M18 14L18.55 16.45L21 17L18.55 17.55L18 20L17.45 17.55L15 17L17.45 16.45L18 14Z" fill="currentColor" opacity="0.7"/>
+            <path d="M6 16L6.37 17.63L8 18L6.37 18.37L6 20L5.63 18.37L4 18L5.63 17.63L6 16Z" fill="currentColor" opacity="0.5"/>
+          </svg>
+          <span>{{ searchResults.length > 1 ? `${searchResults.length}개를 찾았어요` : 'AI가 찾았어요' }}</span>
+        </div>
+
+        <!-- 여러 후보가 있을 때 -->
+        <div v-if="searchResults.length > 1" class="search-results-list">
+          <button
+            v-for="(result, index) in searchResults"
+            :key="`${result.bookId}-${index}`"
+            :class="['search-result-item', { selected: index === selectedResultIndex }]"
+            @click="selectSearchResult(index)"
+          >
+            <span class="result-book">{{ result.bookName }}</span>
+            <span v-if="result.chapter" class="result-chapter">{{ result.chapter }}장</span>
+            <span v-if="result.verse" class="result-verse">{{ result.verse }}절</span>
           </button>
         </div>
 
-        <!-- 검색 섹션 -->
-        <div class="search-section">
-          <div class="search-input-wrapper">
-            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-              <path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <input
-              ref="searchInputRef"
-              v-model="searchQuery"
-              type="text"
-              class="search-input"
-              placeholder="예: 창1:3, ㅊㅅㄱ, 요한 3:16"
-              @keydown="handleSearchKeydown"
-            />
+        <!-- 선택된 결과로 이동 버튼 -->
+        <button v-if="currentSearchResult" class="search-result-button" @click="goToSearchResult">
+          <span class="result-book">{{ currentSearchResult.bookName }}</span>
+          <span v-if="currentSearchResult.chapter" class="result-chapter">{{ currentSearchResult.chapter }}장</span>
+          <span v-if="currentSearchResult.verse" class="result-verse">{{ currentSearchResult.verse }}절</span>
+          <span v-else-if="!currentSearchResult.chapter" class="result-hint">장을 선택해주세요</span>
+          <span class="result-action">바로가기</span>
+          <svg class="result-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="books-section" ref="booksSection">
+        <div class="testament">
+          <h4>구약</h4>
+          <div class="books-list">
             <button
-              v-if="searchQuery"
-              class="search-clear-button"
-              @click="searchQuery = ''"
+              v-for="book in bibleBooks.old"
+              :key="book.id"
+              :data-id="book.id"
+              :class="['book-button', { active: selectedBookId === book.id }]"
+              @click="selectBook(book.id)"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
-                <path d="M15 9L9 15M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- 검색 결과 미리보기 -->
-          <div v-if="searchResults.length > 0" class="search-result-preview">
-            <div class="ai-result-label">
-              <svg class="ai-sparkle" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L13.09 8.26L19 9L13.09 9.74L12 16L10.91 9.74L5 9L10.91 8.26L12 2Z" fill="currentColor"/>
-                <path d="M18 14L18.55 16.45L21 17L18.55 17.55L18 20L17.45 17.55L15 17L17.45 16.45L18 14Z" fill="currentColor" opacity="0.7"/>
-                <path d="M6 16L6.37 17.63L8 18L6.37 18.37L6 20L5.63 18.37L4 18L5.63 17.63L6 16Z" fill="currentColor" opacity="0.5"/>
-              </svg>
-              <span>{{ searchResults.length > 1 ? `${searchResults.length}개를 찾았어요` : 'AI가 찾았어요' }}</span>
-            </div>
-
-            <!-- 여러 후보가 있을 때 -->
-            <div v-if="searchResults.length > 1" class="search-results-list">
-              <button
-                v-for="(result, index) in searchResults"
-                :key="`${result.bookId}-${index}`"
-                :class="['search-result-item', { selected: index === selectedResultIndex }]"
-                @click="selectSearchResult(index)"
-              >
-                <span class="result-book">{{ result.bookName }}</span>
-                <span v-if="result.chapter" class="result-chapter">{{ result.chapter }}장</span>
-                <span v-if="result.verse" class="result-verse">{{ result.verse }}절</span>
-              </button>
-            </div>
-
-            <!-- 선택된 결과로 이동 버튼 -->
-            <button v-if="currentSearchResult" class="search-result-button" @click="goToSearchResult">
-              <span class="result-book">{{ currentSearchResult.bookName }}</span>
-              <span v-if="currentSearchResult.chapter" class="result-chapter">{{ currentSearchResult.chapter }}장</span>
-              <span v-if="currentSearchResult.verse" class="result-verse">{{ currentSearchResult.verse }}절</span>
-              <span v-else-if="!currentSearchResult.chapter" class="result-hint">장을 선택해주세요</span>
-              <span class="result-action">바로가기</span>
-              <svg class="result-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              {{ book.name }}
             </button>
           </div>
         </div>
-
-        <div class="modal-body">
-          <div class="books-section" ref="booksSection">
-            <div class="testament">
-              <h4>구약</h4>
-              <div class="books-list">
-                <button
-                  v-for="book in bibleBooks.old"
-                  :key="book.id"
-                  :data-id="book.id"
-                  :class="['book-button', { active: selectedBookId === book.id }]"
-                  @click="selectBook(book.id)"
-                >
-                  {{ book.name }}
-                </button>
-              </div>
-            </div>
-            <div class="testament">
-              <h4>신약</h4>
-              <div class="books-list">
-                <button
-                  v-for="book in bibleBooks.new"
-                  :key="book.id"
-                  :data-id="book.id"
-                  :class="['book-button', { active: selectedBookId === book.id }]"
-                  @click="selectBook(book.id)"
-                >
-                  {{ book.name }}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="chapters-section" ref="chaptersSection">
-            <h4>장</h4>
-            <div class="chapters-grid">
-              <button
-                v-for="chapter in chaptersArray"
-                :key="chapter"
-                :data-chapter="chapter"
-                :class="[
-                  'chapter-button',
-                  { active: chapter === currentChapter && selectedBookId === currentBook },
-                  { searched: currentSearchResult && currentSearchResult.chapter === chapter },
-                ]"
-                @click="selectChapter(chapter)"
-              >
-                {{ chapter }}
-              </button>
-            </div>
+        <div class="testament">
+          <h4>신약</h4>
+          <div class="books-list">
+            <button
+              v-for="book in bibleBooks.new"
+              :key="book.id"
+              :data-id="book.id"
+              :class="['book-button', { active: selectedBookId === book.id }]"
+              @click="selectBook(book.id)"
+            >
+              {{ book.name }}
+            </button>
           </div>
         </div>
       </div>
+      <div class="chapters-section" ref="chaptersSection">
+        <h4>장</h4>
+        <div class="chapters-grid">
+          <button
+            v-for="chapter in chaptersArray"
+            :key="chapter"
+            :data-chapter="chapter"
+            :class="[
+              'chapter-button',
+              { active: chapter === currentChapter && selectedBookId === currentBook },
+              { searched: currentSearchResult && currentSearchResult.chapter === chapter },
+            ]"
+            @click="selectChapter(chapter)"
+          >
+            {{ chapter }}
+          </button>
+        </div>
+      </div>
     </div>
-  </Teleport>
+  </UiModalBaseModal>
 </template>
 
 <script setup lang="ts">
@@ -281,57 +278,6 @@ const scrollToSearchedChapter = (chapter: number) => {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: var(--color-bg-card, #fff);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 500px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-}
-
-.modal-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
-
-.close-button {
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  color: var(--text-secondary, #6b7280);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.close-button:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-  color: var(--text-primary, #1f2937);
-}
-
 /* 검색 섹션 */
 .search-section {
   padding: 0.75rem 1rem;
