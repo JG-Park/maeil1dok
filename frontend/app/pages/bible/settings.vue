@@ -263,7 +263,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useReadingSettingsStore, FONT_FAMILIES, LINE_HEIGHTS, type ThemeMode, type LineHeight, type DefaultEntryPoint } from '~/stores/readingSettings';
+import { useReadingSettingsStore, FONT_FAMILIES, type ThemeMode, type DefaultEntryPoint } from '~/stores/readingSettings';
 import { useAuthStore } from '~/stores/auth';
 import { useApi } from '~/composables/useApi';
 import { useToast } from '~/composables/useToast';
@@ -303,18 +303,18 @@ const themeOptions: Array<{ value: ThemeMode; label: string; icon: string }> = [
   },
 ];
 
-// 줄 간격 옵션
-const lineHeightOptions: Array<{ value: LineHeight; label: string }> = [
-  { value: 'compact', label: '좁게' },
-  { value: 'normal', label: '보통' },
-  { value: 'wide', label: '넓게' },
+// 줄 간격 옵션 (숫자형)
+const lineHeightOptions: Array<{ value: number; label: string }> = [
+  { value: 1.5, label: '좁게' },
+  { value: 1.8, label: '보통' },
+  { value: 2.2, label: '넓게' },
 ];
 
 // 미리보기 스타일
 const previewStyles = computed(() => ({
   fontFamily: FONT_FAMILIES[settings.value.fontFamily].css,
   fontSize: `${settings.value.fontSize}px`,
-  lineHeight: LINE_HEIGHTS[settings.value.lineHeight],
+  lineHeight: settings.value.lineHeight,
 }));
 
 // 설정 업데이트
