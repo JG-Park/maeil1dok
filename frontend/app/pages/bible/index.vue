@@ -77,7 +77,39 @@
       @highlight="handleHighlightAction"
       @copy="handleCopyAction"
       @share="handleShareAction"
-    />
+    >
+      <!-- 본문 하단: 읽음 표시 영역 (읽기모드일 때만) -->
+      <template #bottom>
+        <div v-if="isReadingMode && !isLoading" class="content-bottom-action">
+          <button
+            class="mark-read-btn-inline"
+            :class="{ 'is-read': isCurrentChapterRead }"
+            :disabled="isMarkingRead"
+            @click="handleMarkAsRead"
+          >
+            <svg v-if="isCurrentChapterRead" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>{{ isCurrentChapterRead ? '읽음 완료' : '읽음으로 표시' }}</span>
+          </button>
+
+          <!-- 진도 표시 -->
+          <ClientOnly>
+            <div v-if="authStore.isAuthenticated && currentBookProgress.total > 0" class="progress-info-inline">
+              <span class="progress-text">{{ currentBookProgress.read }} / {{ currentBookProgress.total }}장 완독</span>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: `${currentBookProgress.percentage}%` }"></div>
+              </div>
+            </div>
+          </ClientOnly>
+        </div>
+      </template>
+    </BibleViewer>
 
     <!-- 하단 네비게이션 -->
     <div class="bible-bottom-area">
@@ -94,36 +126,6 @@
           </svg>
           <span>통독 완료</span>
         </button>
-      </div>
-
-      <!-- 읽기모드: 읽음 표시 영역 -->
-      <div v-else-if="isReadingMode" class="reading-action">
-        <button
-          class="mark-read-btn"
-          :class="{ 'is-read': isCurrentChapterRead }"
-          :disabled="isMarkingRead"
-          @click="handleMarkAsRead"
-        >
-          <svg v-if="isCurrentChapterRead" width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span>{{ isCurrentChapterRead ? '읽음 완료' : '읽음으로 표시' }}</span>
-        </button>
-
-        <!-- 진도 표시 -->
-        <ClientOnly>
-          <div v-if="authStore.isAuthenticated && currentBookProgress.total > 0" class="progress-info">
-            <span class="progress-text">{{ currentBookProgress.read }} / {{ currentBookProgress.total }}장</span>
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: `${currentBookProgress.percentage}%` }"></div>
-            </div>
-          </div>
-        </ClientOnly>
       </div>
 
       <nav class="bible-navigation">
@@ -1394,76 +1396,88 @@ watch(
   cursor: not-allowed;
 }
 
-/* 읽기모드 액션 영역 */
-.reading-action {
+/* 본문 하단 읽음 표시 영역 (인라인) */
+.content-bottom-action {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  gap: 1rem;
+  padding: 2rem 1rem 1rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
 }
 
-.mark-read-btn {
+.mark-read-btn-inline {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  max-width: 280px;
-  padding: 0.75rem 1.25rem;
+  max-width: 260px;
+  padding: 0.875rem 1.5rem;
   background: var(--primary-color, #6366f1);
   color: white;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 0.9375rem;
   font-weight: 500;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
-.mark-read-btn:hover:not(:disabled) {
+.mark-read-btn-inline:hover:not(:disabled) {
   background: var(--primary-dark, #4f46e5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.mark-read-btn.is-read {
+.mark-read-btn-inline:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.mark-read-btn-inline.is-read {
   background: var(--color-success, #10b981);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
 }
 
-.mark-read-btn.is-read:hover:not(:disabled) {
+.mark-read-btn-inline.is-read:hover:not(:disabled) {
   background: var(--color-success-dark, #059669);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.mark-read-btn:disabled {
+.mark-read-btn-inline:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
-.progress-info {
+.progress-info-inline {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
   max-width: 200px;
 }
 
-.progress-text {
-  font-size: 0.75rem;
+.progress-info-inline .progress-text {
+  font-size: 0.8125rem;
   color: var(--text-secondary, #6b7280);
   white-space: nowrap;
-  min-width: 60px;
 }
 
-.progress-bar {
-  flex: 1;
-  height: 4px;
+.progress-info-inline .progress-bar {
+  width: 100%;
+  height: 6px;
   background: var(--color-bg-tertiary, #e5e7eb);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
-.progress-fill {
+.progress-info-inline .progress-fill {
   height: 100%;
   background: var(--primary-color, #6366f1);
   transition: width 0.3s ease;
+  border-radius: 3px;
 }
 
 /* 네비게이션 (reading.vue 동일) */
@@ -1566,5 +1580,13 @@ watch(
 :root.dark .settings-button:hover {
   background: var(--color-bg-hover);
   color: var(--text-primary);
+}
+
+:root.dark .content-bottom-action {
+  border-color: var(--color-border);
+}
+
+:root.dark .progress-info-inline .progress-bar {
+  background: var(--color-bg-tertiary);
 }
 </style>

@@ -13,12 +13,16 @@
     </div>
 
     <!-- 성경 본문 -->
-    <div
-      v-else
-      class="bible-content"
-      @click="handleVerseClick"
-      v-html="renderedContent"
-    ></div>
+    <template v-else>
+      <div
+        class="bible-content"
+        @click="handleVerseClick"
+        v-html="renderedContent"
+      ></div>
+
+      <!-- 본문 하단 슬롯 (읽음 표시 버튼 등) -->
+      <slot name="bottom"></slot>
+    </template>
 
     <!-- 절 클릭 복사 메뉴 -->
     <Transition name="copy-menu-fade">
