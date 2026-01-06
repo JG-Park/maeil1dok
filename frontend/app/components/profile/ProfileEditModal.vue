@@ -97,6 +97,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useProfileStore } from '~/stores/profile'
+import { useModal } from '~/composables/useModal'
 
 interface ProfileData {
   user: {
@@ -118,6 +119,7 @@ const emit = defineEmits<{
 }>()
 
 const profileStore = useProfileStore()
+const modal = useModal()
 
 const bio = ref('')
 const isPublic = ref(true)
@@ -143,10 +145,18 @@ const handleSubmit = async () => {
       emit('saved')
       emit('close')
     } else {
-      alert(result.error || '프로필 저장에 실패했습니다.')
+      await modal.alert({
+        title: '저장 실패',
+        description: result.error || '프로필 저장에 실패했습니다.',
+        icon: 'error'
+      })
     }
   } catch (error) {
-    alert('프로필 저장 중 오류가 발생했습니다.')
+    await modal.alert({
+      title: '오류 발생',
+      description: '프로필 저장 중 오류가 발생했습니다.',
+      icon: 'error'
+    })
   } finally {
     isSaving.value = false
   }
