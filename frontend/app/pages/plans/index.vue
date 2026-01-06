@@ -105,44 +105,31 @@
     <!-- 토스트 -->
     <Toast />
 
-    <!-- 모달 -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal-container" @click.stop>
-        <div class="modal-header">
-          <h3>{{ modalTitle }}</h3>
-          <button @click="closeModal" class="close-button">
-            <XMarkIcon :size="20" />
-          </button>
-        </div>
-        <div class="modal-content">
-          <p>{{ modalMessage }}</p>
-        </div>
-        <div class="modal-footer">
-          <button @click="closeModal" class="modal-button">확인</button>
-          <button v-if="hasReadingData" @click="goToReading" class="modal-button primary">읽기 페이지로 이동</button>
-        </div>
-      </div>
-    </div>
+    <!-- 정보 모달 -->
+    <ConfirmModal
+      :show="showModal"
+      :title="modalTitle"
+      :show-cancel="hasReadingData"
+      :confirm-text="hasReadingData ? '읽기 페이지로 이동' : '확인'"
+      cancel-text="확인"
+      @confirm="hasReadingData ? goToReading() : closeModal()"
+      @cancel="closeModal"
+    >
+      <p>{{ modalMessage }}</p>
+    </ConfirmModal>
 
     <!-- 완전 삭제 확인 모달 -->
-    <div v-if="showUnsubscribeModal" class="modal-overlay" @click="closeUnsubscribeModal">
-      <div class="modal-container" @click.stop>
-        <div class="modal-header">
-          <h3>완전 삭제 확인</h3>
-          <button @click="closeUnsubscribeModal" class="close-button">
-            <XMarkIcon :size="20" />
-          </button>
-        </div>
-        <div class="modal-content">
-          <p class="mb-4 text-red-600 font-bold">정말 삭제하시겠어요?</p>
-          <p>지금까지 진행된 읽기 기록이 전부 삭제되며, <strong>복구할 수 없습니다.</strong></p>
-        </div>
-        <div class="modal-footer">
-          <button @click="closeUnsubscribeModal" class="modal-button">취소</button>
-          <button @click="deletePlan" class="modal-button primary bg-red-600 hover:bg-red-700">완전 삭제</button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      :show="showUnsubscribeModal"
+      title="완전 삭제 확인"
+      confirm-text="완전 삭제"
+      confirm-variant="danger"
+      @confirm="deletePlan"
+      @cancel="closeUnsubscribeModal"
+    >
+      <p class="mb-4 text-red-600 font-bold">정말 삭제하시겠어요?</p>
+      <p>지금까지 진행된 읽기 기록이 전부 삭제되며, <strong>복구할 수 없습니다.</strong></p>
+    </ConfirmModal>
   </div>
 </template>
 
@@ -153,7 +140,7 @@ import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import Toast from '~/components/Toast.vue'
 import PageHeader from '~/components/PageHeader.vue'
-import XMarkIcon from '~/components/icons/XMarkIcon.vue'
+import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -561,94 +548,5 @@ onMounted(async () => {
 .fade-in {
   opacity: 0;
   animation: fadeIn 0.4s ease-out forwards;
-}
-
-/* 모달 스타일 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 50;
-}
-
-.modal-container {
-  background-color: white;
-  border-radius: 0.5rem;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #E5E7EB;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: white;
-}
-
-.modal-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.close-button {
-  color: var(--text-secondary);
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: all 0.2s;
-}
-
-.close-button:hover {
-  background-color: #F3F4F6;
-}
-
-.modal-content {
-  padding: 1.5rem 1rem;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-top: 1px solid #E5E7EB;
-}
-
-.modal-button {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  background-color: #F3F4F6;
-  color: var(--text-primary);
-  transition: all 0.2s;
-}
-
-.modal-button:hover {
-  background-color: #E5E7EB;
-}
-
-.modal-button.primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.modal-button.primary:hover {
-  background-color: var(--primary-dark);
 }
 </style>
