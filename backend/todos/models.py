@@ -448,6 +448,20 @@ class BibleBookmark(models.Model):
             models.Index(fields=['user', 'book', 'chapter']),
             models.Index(fields=['user', 'bookmark_type']),
         ]
+        constraints = [
+            # 장 북마크는 user, book, chapter 조합이 유일해야 함
+            models.UniqueConstraint(
+                fields=['user', 'book', 'chapter'],
+                condition=models.Q(bookmark_type='chapter'),
+                name='unique_chapter_bookmark'
+            ),
+            # 절 북마크는 user, book, chapter, start_verse, end_verse 조합이 유일해야 함
+            models.UniqueConstraint(
+                fields=['user', 'book', 'chapter', 'start_verse', 'end_verse'],
+                condition=models.Q(bookmark_type='verse'),
+                name='unique_verse_bookmark'
+            ),
+        ]
         verbose_name = "북마크"
         verbose_name_plural = "북마크"
 

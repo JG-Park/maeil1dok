@@ -2274,6 +2274,38 @@ class BibleBookmarkViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
+            # 중복 북마크 체크
+            data = serializer.validated_data
+            bookmark_type = data.get('bookmark_type', 'chapter')
+            book = data.get('book')
+            chapter = data.get('chapter')
+
+            existing_query = self.get_queryset().filter(
+                book=book,
+                chapter=chapter,
+                bookmark_type=bookmark_type
+            )
+
+            if bookmark_type == 'verse':
+                start_verse = data.get('start_verse')
+                end_verse = data.get('end_verse')
+                existing_query = existing_query.filter(
+                    start_verse=start_verse,
+                    end_verse=end_verse
+                )
+
+            if existing_query.exists():
+                # 이미 존재하는 북마크 반환 (중복 생성 방지)
+                existing_bookmark = existing_query.first()
+                return Response({
+                    'id': existing_bookmark.id,
+                    'book': existing_bookmark.book,
+                    'chapter': existing_bookmark.chapter,
+                    'bookmark_type': existing_bookmark.bookmark_type,
+                    'title': existing_bookmark.title,
+                    'already_exists': True
+                }, status=status.HTTP_200_OK)
+
             self.perform_create(serializer)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
