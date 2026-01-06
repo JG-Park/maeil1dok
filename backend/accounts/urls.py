@@ -37,4 +37,8 @@ urlpatterns = [
     
     # 사용자 검색
     path('search/', profile_views.search_users, name='search_users'),
+
+    # 읽기 설정
+    path('reading-settings/', profile_views.get_reading_settings, name='get_reading_settings'),
+    path('reading-settings/update/', profile_views.update_reading_settings, name='update_reading_settings'),
 ]

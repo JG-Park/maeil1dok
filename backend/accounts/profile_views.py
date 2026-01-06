@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, F
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .models import User, UserProfile, Follow, UserAchievement
+from .models import User, UserProfile, Follow, UserAchievement, UserReadingSettings
 from .serializers import (
     UserProfileSerializer, FollowSerializer,
     UserAchievementSerializer, UserCalendarDataSerializer,
@@ -423,4 +423,78 @@ def get_user_achievements(request, user_id):
     return StandardResponse.success(
         data={'achievements': all_achievements},
         message='업적을 조회했습니다.'
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@handle_api_exception
+def get_reading_settings(request):
+    """사용자 읽기 설정 조회"""
+    settings, created = UserReadingSettings.objects.get_or_create(user=request.user)
+
+    settings_data = {
+        'theme': settings.theme,
+        'font_family': settings.font_family,
+        'font_size': settings.font_size,
+        'font_weight': settings.font_weight,
+        'line_height': settings.line_height,
+        'text_align': settings.text_align,
+        'verse_joining': settings.verse_joining,
+        'show_verse_numbers': settings.show_verse_numbers,
+        'show_description': settings.show_description,
+        'show_cross_ref': settings.show_cross_ref,
+        'highlight_names': settings.highlight_names,
+        'show_footnotes': settings.show_footnotes,
+        'tongdok_auto_complete': settings.tongdok_auto_complete,
+        'default_entry_point': settings.default_entry_point,
+    }
+
+    return StandardResponse.success(
+        data={'settings': settings_data},
+        message='읽기 설정을 조회했습니다.'
+    )
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+@handle_api_exception
+def update_reading_settings(request):
+    """사용자 읽기 설정 업데이트"""
+    settings, created = UserReadingSettings.objects.get_or_create(user=request.user)
+
+    # 업데이트 가능한 필드 목록
+    updatable_fields = [
+        'theme', 'font_family', 'font_size', 'font_weight',
+        'line_height', 'text_align', 'verse_joining', 'show_verse_numbers',
+        'show_description', 'show_cross_ref', 'highlight_names', 'show_footnotes',
+        'tongdok_auto_complete', 'default_entry_point'
+    ]
+
+    for field in updatable_fields:
+        if field in request.data:
+            setattr(settings, field, request.data[field])
+
+    settings.save()
+
+    settings_data = {
+        'theme': settings.theme,
+        'font_family': settings.font_family,
+        'font_size': settings.font_size,
+        'font_weight': settings.font_weight,
+        'line_height': settings.line_height,
+        'text_align': settings.text_align,
+        'verse_joining': settings.verse_joining,
+        'show_verse_numbers': settings.show_verse_numbers,
+        'show_description': settings.show_description,
+        'show_cross_ref': settings.show_cross_ref,
+        'highlight_names': settings.highlight_names,
+        'show_footnotes': settings.show_footnotes,
+        'tongdok_auto_complete': settings.tongdok_auto_complete,
+        'default_entry_point': settings.default_entry_point,
+    }
+
+    return StandardResponse.success(
+        data={'settings': settings_data},
+        message='읽기 설정이 업데이트되었습니다.'
     )
