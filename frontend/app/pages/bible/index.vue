@@ -232,6 +232,7 @@ import { useNote } from '~/composables/useNote';
 import { useHighlight } from '~/composables/useHighlight';
 import { useBibleModals } from '~/composables/bible/useBibleModals';
 import { useBibleContent } from '~/composables/bible/useBibleContent';
+import { useAuthGuard } from '~/composables/useAuthGuard';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useToast } from '~/composables/useToast';
@@ -255,6 +256,7 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const { requireAuth } = useAuthGuard();
 const readingSettingsStore = useReadingSettingsStore();
 const toast = useToast();
 
@@ -561,11 +563,7 @@ const handleBookmarkAction = (verses: VerseSelection) => {
 };
 
 const handleHighlightAction = (verses: VerseSelection) => {
-  if (!authStore.isAuthenticated) {
-    toast.info('로그인이 필요합니다');
-    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
-    return;
-  }
+  if (!requireAuth()) return;
   openHighlightModal({ start: verses.start, end: verses.end });
 };
 
@@ -661,12 +659,7 @@ const copyToClipboard = async (text: string) => {
 
 // 읽기모드: 읽음 표시 핸들러
 const handleMarkAsRead = async () => {
-  if (!authStore.isAuthenticated) {
-    // 비로그인 시 로그인 유도
-    toast.info('로그인이 필요합니다');
-    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
-    return;
-  }
+  if (!requireAuth()) return;
 
   if (isCurrentChapterRead.value) {
     toast.info('이미 읽음으로 표시되었습니다');
@@ -689,11 +682,7 @@ const handleExitTongdok = () => {
 
 // 북마크: 토글 핸들러
 const handleBookmarkToggle = async () => {
-  if (!authStore.isAuthenticated) {
-    toast.info('로그인이 필요합니다');
-    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
-    return;
-  }
+  if (!requireAuth()) return;
 
   try {
     const result = await toggleChapterBookmark(
@@ -716,11 +705,7 @@ const handleBookmarkToggle = async () => {
 
 // 노트: 클릭 핸들러
 const handleNoteClick = () => {
-  if (!authStore.isAuthenticated) {
-    toast.info('로그인이 필요합니다');
-    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
-    return;
-  }
+  if (!requireAuth()) return;
   showNoteModal.value = true;
 };
 
