@@ -311,7 +311,6 @@ const {
 // 콘텐츠 로딩 (useBibleContent composable)
 const {
   content: bibleContent,
-  chapterTitle,
   isLoading,
   loadContent: loadBibleContentFromComposable,
 } = useBibleContent();
@@ -550,7 +549,7 @@ interface VerseSelection {
   text: string;
 }
 
-const handleBookmarkAction = (verses: VerseSelection) => {
+const handleBookmarkAction = (_verses: VerseSelection) => {
   // 북마크 기능: 현재 장 단위 북마크만 지원, 절 단위는 추후 구현 예정
 };
 
@@ -718,7 +717,7 @@ const handleNoteSave = async (content: string) => {
 };
 
 // 노트: 상세 편집으로 이동
-const handleNoteGoDetail = (noteId?: number, content?: string) => {
+const handleNoteGoDetail = (noteId?: number, _content?: string) => {
   if (noteId) {
     router.push(`/bible/notes/${noteId}`);
   } else {
