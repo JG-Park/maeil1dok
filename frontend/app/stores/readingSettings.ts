@@ -23,6 +23,9 @@ export interface ReadingSettings {
   // Verse joining (통독 모드)
   verseJoining: boolean
 
+  // Tongdok auto-complete (통독모드 자동 완료)
+  tongdokAutoComplete: boolean
+
   // View options (existing, migrated from localStorage)
   showDescription: boolean
   showCrossRef: boolean
@@ -47,6 +50,7 @@ const DEFAULT_SETTINGS: ReadingSettings = {
   lineHeight: 'normal',
   textAlign: 'left',
   verseJoining: false,
+  tongdokAutoComplete: false,
   showDescription: true,
   showCrossRef: true,
   highlightNames: true,
@@ -218,6 +222,7 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
             lineHeight: serverSettings.line_height || this.settings.lineHeight,
             textAlign: serverSettings.text_align || this.settings.textAlign,
             verseJoining: serverSettings.verse_joining ?? this.settings.verseJoining,
+            tongdokAutoComplete: serverSettings.tongdok_auto_complete ?? this.settings.tongdokAutoComplete,
             showDescription: serverSettings.show_description ?? this.settings.showDescription,
             showCrossRef: serverSettings.show_cross_ref ?? this.settings.showCrossRef,
             highlightNames: serverSettings.highlight_names ?? this.settings.highlightNames,
@@ -249,6 +254,7 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
           line_height: this.settings.lineHeight,
           text_align: this.settings.textAlign,
           verse_joining: this.settings.verseJoining,
+          tongdok_auto_complete: this.settings.tongdokAutoComplete,
           show_description: this.settings.showDescription,
           show_cross_ref: this.settings.showCrossRef,
           highlight_names: this.settings.highlightNames,

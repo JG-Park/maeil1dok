@@ -27,6 +27,11 @@
     <div v-if="isTongdokMode && tongdokScheduleRange" class="tongdok-indicator">
       <span class="tongdok-badge">통독</span>
       <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
+      <button class="tongdok-close" @click="handleExitTongdok" title="통독모드 종료">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
 
     <!-- 성경 본문 뷰어 -->
@@ -46,8 +51,23 @@
 
     <!-- 하단 네비게이션 -->
     <div class="bible-bottom-area">
+      <!-- 통독모드: 완료 버튼 영역 -->
+      <div v-if="isTongdokMode" class="tongdok-action">
+        <button
+          class="tongdok-complete-btn"
+          :disabled="isCompleting"
+          @click="showTongdokCompleteModal = true"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>통독 완료</span>
+        </button>
+      </div>
+
       <!-- 읽기모드: 읽음 표시 영역 -->
-      <div v-if="isReadingMode" class="reading-action">
+      <div v-else-if="isReadingMode" class="reading-action">
         <button
           class="mark-read-btn"
           :class="{ 'is-read': isCurrentChapterRead }"
@@ -119,6 +139,15 @@
       @select="handleVersionSelect"
     />
 
+    <!-- 통독 완료 모달 -->
+    <TongdokCompleteModal
+      v-model="showTongdokCompleteModal"
+      :schedule-range="fullTongdokRange"
+      :initial-auto-complete="tongdokAutoComplete"
+      :is-loading="isCompleting"
+      @confirm="handleTongdokComplete"
+    />
+
     <!-- 토스트 -->
     <Toast />
   </div>
@@ -132,10 +161,12 @@ import { useBibleFetch } from '~/composables/useBibleFetch';
 import { useTongdokMode } from '~/composables/useTongdokMode';
 import { usePersonalRecord } from '~/composables/usePersonalRecord';
 import { useAuthStore } from '~/stores/auth';
+import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useToast } from '~/composables/useToast';
 import BookSelector from '~/components/bible/BookSelector.vue';
 import VersionSelector from '~/components/bible/VersionSelector.vue';
 import BibleViewer from '~/components/bible/BibleViewer.vue';
+import TongdokCompleteModal from '~/components/bible/TongdokCompleteModal.vue';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -145,6 +176,7 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const readingSettingsStore = useReadingSettingsStore();
 const toast = useToast();
 
 // Composables
@@ -160,8 +192,14 @@ const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch(
 const {
   tongdokMode,
   tongdokScheduleId,
+  tongdokPlanId,
+  isCompleting,
   initTongdokMode,
-  getTongdokScheduleRange
+  getTongdokScheduleRange,
+  getFullScheduleRange,
+  isLastChapterInTongdok,
+  disableTongdokMode,
+  completeReading
 } = useTongdokMode();
 
 // 상태
@@ -175,6 +213,7 @@ const isLoading = ref(true);
 // 모달 상태
 const showBookSelector = ref(false);
 const showVersionSelector = ref(false);
+const showTongdokCompleteModal = ref(false);
 
 // Refs
 const bibleViewerRef = ref<InstanceType<typeof BibleViewer> | null>(null);
@@ -206,6 +245,13 @@ const hasNextChapter = computed(() => {
 const isTongdokMode = computed(() => tongdokMode.value);
 const tongdokScheduleRange = computed(() =>
   getTongdokScheduleRange(currentBook.value, currentChapter.value)
+);
+const fullTongdokRange = computed(() => getFullScheduleRange());
+const isAtLastTongdokChapter = computed(() =>
+  isLastChapterInTongdok(currentBook.value, currentChapter.value)
+);
+const tongdokAutoComplete = computed(() =>
+  readingSettingsStore.settings.tongdokAutoComplete
 );
 
 // 읽기모드 관련 (통독모드가 아닐 때)
@@ -433,7 +479,19 @@ const goToPrevChapter = () => {
   scrollToTop();
 };
 
-const goToNextChapter = () => {
+const goToNextChapter = async () => {
+  // 통독모드에서 마지막 장인 경우
+  if (isTongdokMode.value && isAtLastTongdokChapter.value) {
+    // 자동 완료 설정이 켜져 있으면 바로 완료 처리
+    if (tongdokAutoComplete.value) {
+      await handleTongdokComplete({ autoComplete: true });
+    } else {
+      // 완료 모달 표시
+      showTongdokCompleteModal.value = true;
+    }
+    return;
+  }
+
   if (currentChapter.value < maxChapters.value) {
     currentChapter.value++;
   } else {
@@ -510,6 +568,33 @@ const handleMarkAsRead = async () => {
     toast.success(`${currentBookName.value} ${currentChapter.value}${chapterSuffix.value} 읽음 완료!`);
   } catch (err) {
     toast.error('읽음 표시에 실패했습니다');
+  }
+};
+
+// 통독모드: 종료 핸들러
+const handleExitTongdok = () => {
+  disableTongdokMode();
+  toast.info('통독모드를 종료했습니다');
+};
+
+// 통독모드: 완료 처리 핸들러
+const handleTongdokComplete = async (payload: { autoComplete: boolean }) => {
+  // 자동 완료 설정 저장
+  if (payload.autoComplete !== tongdokAutoComplete.value) {
+    readingSettingsStore.updateSetting('tongdokAutoComplete', payload.autoComplete);
+  }
+
+  // API 호출
+  const success = await completeReading();
+
+  showTongdokCompleteModal.value = false;
+
+  if (success) {
+    toast.success('오늘 통독을 완료했습니다!');
+    // /plan 페이지로 이동
+    router.push('/plan');
+  } else {
+    toast.error('완료 처리에 실패했습니다');
   }
 };
 
@@ -649,9 +734,23 @@ watch(
 }
 
 .tongdok-range {
+  flex: 1;
   font-size: 0.875rem;
   color: var(--primary-color, #6366f1);
   font-weight: 500;
+}
+
+.tongdok-close {
+  padding: 0.375rem;
+  margin: -0.375rem;
+  margin-left: 0.5rem;
+  color: var(--primary-color, #6366f1);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.tongdok-close:hover {
+  background: rgba(99, 102, 241, 0.1);
 }
 
 /* 하단 영역 */
@@ -664,6 +763,40 @@ watch(
   margin: 0 auto;
   background: var(--color-bg-card, #fff);
   border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* 통독모드 액션 영역 */
+.tongdok-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.tongdok-complete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 280px;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-success, #10b981);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tongdok-complete-btn:hover:not(:disabled) {
+  background: var(--color-success-dark, #059669);
+}
+
+.tongdok-complete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 읽기모드 액션 영역 */
@@ -795,6 +928,15 @@ watch(
 }
 
 :root.dark .reading-action {
+  border-color: var(--color-border);
+}
+
+:root.dark .tongdok-indicator {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--color-border);
+}
+
+:root.dark .tongdok-action {
   border-color: var(--color-border);
 }
 </style>
