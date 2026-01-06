@@ -109,6 +109,8 @@ watch(state.isOpen, (isOpen) => {
   position: fixed;
   inset: 0;
   background: var(--modal-overlay-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   pointer-events: auto;
 }
 
