@@ -49,7 +49,7 @@
 |---------|-------------|------|---------|
 | T01 | 9142834 | 2026-01-06 | refactor(bible): extract BibleReaderView component from index.vue |
 | T02 | d306c6e | 2026-01-06 | refactor(bible): extract common logic into helper functions (DRY) |
-| T03 | b623ebc | 2026-01-06 | refactor(bible): extract inline SVG icons to reusable components |
+| T03 | 866c9d0 | 2026-01-06 | refactor(bible): extract inline SVG icons to reusable components |
 
 ---
 
