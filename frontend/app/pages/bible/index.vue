@@ -20,17 +20,13 @@
     <!-- 헤더 -->
     <header class="bible-header">
       <button class="back-button" @click="goBack">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ChevronLeftIcon />
       </button>
 
       <button class="book-selector-button" @click="showBookSelector = true">
         <span class="book-name">{{ currentBookName }}</span>
         <span class="chapter-number">{{ currentChapter }}{{ chapterSuffix }}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ChevronDownIcon />
       </button>
 
       <div class="header-actions">
@@ -43,9 +39,7 @@
           @toggle="handleBookmarkToggle"
         />
         <button class="settings-button" @click="showSettingsModal = true" title="읽기 설정">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
+          <MenuIcon />
         </button>
         <button class="version-button" @click="showVersionSelector = true">
           {{ currentVersionName }}
@@ -58,9 +52,7 @@
       <span class="tongdok-badge">통독</span>
       <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
       <button class="tongdok-close" @click="handleExitTongdok" title="통독모드 종료">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <XMarkIcon />
       </button>
     </div>
 
@@ -87,14 +79,8 @@
             :disabled="isMarkingRead"
             @click="handleMarkAsRead"
           >
-            <svg v-if="isCurrentChapterRead" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <CheckCircleIcon v-if="isCurrentChapterRead" />
+            <CheckCircleOutlineIcon v-else />
             <span>{{ isCurrentChapterRead ? '읽음 완료' : '읽음으로 표시' }}</span>
           </button>
 
@@ -120,10 +106,7 @@
           :disabled="isCompleting"
           @click="showTongdokCompleteModal = true"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <CheckCircleOutlineIcon />
           <span>통독 완료</span>
         </button>
       </div>
@@ -134,9 +117,7 @@
           :disabled="!hasPrevChapter"
           @click="goToPrevChapter"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <ChevronLeftIcon />
           이전
         </button>
 
@@ -150,9 +131,7 @@
           @click="goToNextChapter"
         >
           다음
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <ChevronRightIcon />
         </button>
       </nav>
     </div>
@@ -248,6 +227,13 @@ import BibleHome from '~/components/bible/BibleHome.vue';
 import BibleTOC from '~/components/bible/BibleTOC.vue';
 import ReadingSettingsModal from '~/components/ReadingSettingsModal.vue';
 import Toast from '~/components/Toast.vue';
+import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue';
+import ChevronRightIcon from '~/components/icons/ChevronRightIcon.vue';
+import ChevronDownIcon from '~/components/icons/ChevronDownIcon.vue';
+import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue';
+import CheckCircleOutlineIcon from '~/components/icons/CheckCircleOutlineIcon.vue';
+import XMarkIcon from '~/components/icons/XMarkIcon.vue';
+import MenuIcon from '~/components/icons/MenuIcon.vue';
 
 definePageMeta({
   layout: 'default'
