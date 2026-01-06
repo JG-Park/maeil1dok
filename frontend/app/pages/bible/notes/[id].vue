@@ -1,27 +1,197 @@
 <template>
   <div class="note-detail-page">
     <header class="page-header">
-      <button class="back-btn" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <button class="back-btn" @click="handleBack">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
       <h1>묵상노트</h1>
+      <button v-if="note" class="delete-btn" @click="handleDelete" title="삭제">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </header>
 
-    <div class="placeholder">
-      <i class="fa-regular fa-pen-to-square placeholder-icon"></i>
-      <p>노트 ID: {{ $route.params.id }}</p>
-      <p class="sub">Task 3-2에서 구현 예정</p>
+    <!-- 로딩 -->
+    <div v-if="isLoading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>묵상노트를 불러오는 중...</p>
     </div>
+
+    <!-- 노트 없음 -->
+    <div v-else-if="!note" class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p>묵상노트를 찾을 수 없습니다</p>
+      <NuxtLink to="/bible/notes" class="back-link">목록으로 돌아가기</NuxtLink>
+    </div>
+
+    <!-- 에디터 -->
+    <div v-else class="note-editor">
+      <div class="note-location" @click="goToBible">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>{{ note.book_name || getBookName(note.book) }} {{ note.chapter }}장</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <textarea
+        ref="textareaRef"
+        v-model="editContent"
+        placeholder="묵상 내용을 적어보세요..."
+        class="content-editor"
+      />
+
+      <div class="note-options">
+        <label class="private-toggle">
+          <input type="checkbox" v-model="isPrivate" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">비공개</span>
+        </label>
+        <span class="last-updated">{{ formatDate(note.updated_at) }} 수정됨</span>
+      </div>
+
+      <div class="action-bar">
+        <button
+          class="save-btn"
+          @click="handleSave"
+          :disabled="!hasChanges || isSaving"
+        >
+          <span v-if="isSaving" class="loading-spinner-small"></span>
+          <span v-else>{{ hasChanges ? '저장' : '저장됨' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <Toast />
   </div>
 </template>
 
-<script setup>
-// Task 3-2에서 구현 예정
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useNote } from '~/composables/useNote';
+import { useBibleData } from '~/composables/useBibleData';
+import { useToast } from '~/composables/useToast';
+import Toast from '~/components/Toast.vue';
+
 definePageMeta({
   layout: 'default'
-})
+});
+
+const route = useRoute();
+const router = useRouter();
+const toast = useToast();
+const { currentNote: note, isNoteLoading: isLoading, fetchNote, updateNote, deleteNote } = useNote();
+const { getBookName } = useBibleData();
+
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const editContent = ref('');
+const isPrivate = ref(true);
+const isSaving = ref(false);
+const originalContent = ref('');
+const originalPrivate = ref(true);
+
+const noteId = computed(() => parseInt(route.params.id as string));
+
+onMounted(async () => {
+  const loaded = await fetchNote(noteId.value);
+  if (loaded) {
+    editContent.value = loaded.content;
+    isPrivate.value = loaded.is_private;
+    originalContent.value = loaded.content;
+    originalPrivate.value = loaded.is_private;
+  }
+});
+
+const hasChanges = computed(() => {
+  return editContent.value !== originalContent.value ||
+         isPrivate.value !== originalPrivate.value;
+});
+
+const handleSave = async () => {
+  if (!hasChanges.value) return;
+
+  isSaving.value = true;
+  try {
+    await updateNote(noteId.value, {
+      content: editContent.value,
+      is_private: isPrivate.value
+    });
+    originalContent.value = editContent.value;
+    originalPrivate.value = isPrivate.value;
+    toast.success('저장되었습니다');
+  } catch (error) {
+    toast.error('저장에 실패했습니다');
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const handleDelete = async () => {
+  if (!confirm('묵상노트를 삭제하시겠습니까?')) return;
+
+  try {
+    await deleteNote(noteId.value);
+    toast.success('삭제되었습니다');
+    router.push('/bible/notes');
+  } catch (error) {
+    toast.error('삭제에 실패했습니다');
+  }
+};
+
+const handleBack = () => {
+  if (hasChanges.value) {
+    if (confirm('저장하지 않은 변경사항이 있습니다. 나가시겠습니까?')) {
+      router.back();
+    }
+  } else {
+    router.back();
+  }
+};
+
+const goToBible = () => {
+  if (note.value) {
+    router.push({
+      path: '/bible',
+      query: {
+        book: note.value.book,
+        chapter: String(note.value.chapter)
+      }
+    });
+  }
+};
+
+const formatDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// 자동 저장 (디바운스)
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+watch([editContent, isPrivate], () => {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  if (hasChanges.value && !isSaving.value) {
+    saveTimeout = setTimeout(async () => {
+      await handleSave();
+    }, 3000);
+  }
+});
 </script>
 
 <style scoped>
@@ -30,7 +200,9 @@ definePageMeta({
   margin: 0 auto;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--background-color);
+  background: var(--color-bg-primary, #f9fafb);
+  display: flex;
+  flex-direction: column;
 }
 
 .page-header {
@@ -38,17 +210,18 @@ definePageMeta({
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--color-bg-card);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-card, #fff);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.back-btn {
+.back-btn,
+.delete-btn {
   padding: 0.5rem;
   margin: -0.5rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #1f2937);
   cursor: pointer;
   border-radius: 8px;
   transition: all 0.2s ease;
@@ -56,40 +229,253 @@ definePageMeta({
   border: none;
 }
 
-.back-btn:hover {
-  background: var(--primary-light);
+.back-btn:hover,
+.delete-btn:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+}
+
+.delete-btn {
+  margin-left: auto;
+  margin-right: -0.5rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.delete-btn:hover {
+  color: var(--color-error, #ef4444);
+  background: var(--color-error-light, #fef2f2);
 }
 
 .page-header h1 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #1f2937);
 }
 
-.placeholder {
+/* 로딩/빈 상태 */
+.loading-state,
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 60px);
+  flex: 1;
   padding: 2rem;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #6b7280);
 }
 
-.placeholder-icon {
-  font-size: 3rem;
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border, #e5e7eb);
+  border-top-color: var(--primary-color, #6366f1);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state svg {
   margin-bottom: 1rem;
   opacity: 0.5;
 }
 
-.placeholder p {
+.back-link {
+  margin-top: 1rem;
+  color: var(--primary-color, #6366f1);
   font-size: 0.875rem;
+  text-decoration: none;
 }
 
-.placeholder .sub {
-  margin-top: 0.5rem;
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* 에디터 */
+.note-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.note-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--color-bg-card, #fff);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  color: var(--primary-color, #6366f1);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.note-location:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+}
+
+.note-location svg:last-child {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.content-editor {
+  flex: 1;
+  width: 100%;
+  min-height: 300px;
+  padding: 1rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 12px;
+  font-size: 1rem;
+  color: var(--text-primary, #1f2937);
+  background: var(--color-bg-card, #fff);
+  resize: none;
+  font-family: inherit;
+  line-height: 1.75;
+}
+
+.content-editor:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.note-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding: 0 0.25rem;
+}
+
+.private-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.private-toggle input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 40px;
+  height: 22px;
+  background: var(--color-border, #e5e7eb);
+  border-radius: 11px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.private-toggle input:checked + .toggle-slider {
+  background: var(--primary-color, #6366f1);
+}
+
+.private-toggle input:checked + .toggle-slider::after {
+  transform: translateX(18px);
+}
+
+.toggle-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.last-updated {
   font-size: 0.75rem;
-  opacity: 0.7;
+  color: var(--text-muted, #9ca3af);
+}
+
+.action-bar {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-color, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: var(--primary-dark, #4f46e5);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* 다크모드 */
+:root.dark .note-detail-page {
+  background: var(--color-bg-primary);
+}
+
+:root.dark .page-header {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
+:root.dark .delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+:root.dark .note-location {
+  background: var(--color-bg-card);
+}
+
+:root.dark .note-location:hover {
+  background: var(--color-bg-hover);
+}
+
+:root.dark .content-editor {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+  color: var(--text-primary);
+}
+
+:root.dark .toggle-slider {
+  background: var(--color-border);
 }
 </style>

@@ -5,11 +5,15 @@
  */
 import { ref, type Ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { useApi } from './useApi';
 
 export interface Note {
   id: number;
   book: string;
+  book_name?: string;
   chapter: number;
+  start_verse?: number;
+  end_verse?: number;
   content: string;
   is_private: boolean;
   created_at: string;
@@ -21,27 +25,168 @@ export const useNote = () => {
   const api = useApi();
 
   // 상태
-  const currentNotes: Ref<Note[]> = ref([]);
+  const notes: Ref<Note[]> = ref([]);
+  const currentChapterNotes: Ref<Note[]> = ref([]);
+  const currentNote: Ref<Note | null> = ref(null);
   const isNoteLoading = ref(false);
   const showNoteModal = ref(false);
   const editingNote: Ref<Note | null> = ref(null);
   const noteContent = ref('');
 
   /**
-   * 현재 장의 묵상노트 불러오기
+   * 전체 묵상노트 목록 불러오기
    */
-  const loadNotes = async (book: string, chapter: number): Promise<void> => {
-    if (!authStore.isAuthenticated) return;
+  const fetchNotes = async (): Promise<Note[]> => {
+    if (!authStore.isAuthenticated) return [];
 
     try {
       isNoteLoading.value = true;
-      const response = await api.get('/api/v1/bible/notes/by_chapter/', {
+      const response = await api.get('/api/v1/todos/bible/notes/');
+      notes.value = response.data || [];
+      return notes.value;
+    } catch (error) {
+      console.error('노트 목록 조회 실패:', error);
+      notes.value = [];
+      return [];
+    } finally {
+      isNoteLoading.value = false;
+    }
+  };
+
+  /**
+   * 현재 장의 묵상노트 불러오기
+   */
+  const fetchChapterNotes = async (book: string, chapter: number): Promise<Note[]> => {
+    if (!authStore.isAuthenticated) return [];
+
+    try {
+      const response = await api.get('/api/v1/todos/bible/notes/by_chapter/', {
         params: { book, chapter }
       });
-      currentNotes.value = response.data || [];
+      currentChapterNotes.value = response.data || [];
+      return currentChapterNotes.value;
     } catch (error) {
-      console.error('묵상노트 불러오기 실패:', error);
-      currentNotes.value = [];
+      console.error('장별 노트 조회 실패:', error);
+      currentChapterNotes.value = [];
+      return [];
+    }
+  };
+
+  /**
+   * 노트 상세 조회
+   */
+  const fetchNote = async (id: number): Promise<Note | null> => {
+    if (!authStore.isAuthenticated) return null;
+
+    try {
+      isNoteLoading.value = true;
+      const response = await api.get(`/api/v1/todos/bible/notes/${id}/`);
+      currentNote.value = response.data;
+      return response.data;
+    } catch (error) {
+      console.error('노트 조회 실패:', error);
+      currentNote.value = null;
+      return null;
+    } finally {
+      isNoteLoading.value = false;
+    }
+  };
+
+  /**
+   * 노트 생성
+   */
+  const createNote = async (data: {
+    book: string;
+    chapter: number;
+    start_verse?: number;
+    end_verse?: number;
+    content: string;
+    is_private?: boolean;
+  }): Promise<Note | null> => {
+    if (!authStore.isAuthenticated) {
+      throw new Error('로그인이 필요합니다');
+    }
+
+    try {
+      isNoteLoading.value = true;
+      const response = await api.post('/api/v1/todos/bible/notes/', {
+        is_private: true,
+        ...data
+      });
+      const newNote = response.data;
+      currentChapterNotes.value.push(newNote);
+      return newNote;
+    } catch (error) {
+      console.error('노트 생성 실패:', error);
+      throw error;
+    } finally {
+      isNoteLoading.value = false;
+    }
+  };
+
+  /**
+   * 노트 수정
+   */
+  const updateNote = async (id: number, data: Partial<Note>): Promise<Note | null> => {
+    if (!authStore.isAuthenticated) {
+      throw new Error('로그인이 필요합니다');
+    }
+
+    try {
+      isNoteLoading.value = true;
+      const response = await api.patch(`/api/v1/todos/bible/notes/${id}/`, data);
+      const updatedNote = response.data;
+
+      // 목록 업데이트
+      const index = notes.value.findIndex(n => n.id === id);
+      if (index !== -1) {
+        notes.value[index] = updatedNote;
+      }
+
+      // 현재 장 노트 업데이트
+      const chapterIndex = currentChapterNotes.value.findIndex(n => n.id === id);
+      if (chapterIndex !== -1) {
+        currentChapterNotes.value[chapterIndex] = updatedNote;
+      }
+
+      currentNote.value = updatedNote;
+      return updatedNote;
+    } catch (error) {
+      console.error('노트 수정 실패:', error);
+      throw error;
+    } finally {
+      isNoteLoading.value = false;
+    }
+  };
+
+  /**
+   * 노트 삭제
+   */
+  const deleteNote = async (id: number, book?: string, chapter?: number): Promise<boolean> => {
+    if (!authStore.isAuthenticated) {
+      throw new Error('로그인이 필요합니다');
+    }
+
+    try {
+      isNoteLoading.value = true;
+      await api.delete(`/api/v1/todos/bible/notes/${id}/`);
+
+      notes.value = notes.value.filter(n => n.id !== id);
+      currentChapterNotes.value = currentChapterNotes.value.filter(n => n.id !== id);
+
+      if (currentNote.value?.id === id) {
+        currentNote.value = null;
+      }
+
+      // 장별 노트 새로고침
+      if (book && chapter) {
+        await fetchChapterNotes(book, chapter);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('노트 삭제 실패:', error);
+      return false;
     } finally {
       isNoteLoading.value = false;
     }
@@ -51,16 +196,23 @@ export const useNote = () => {
    * 특정 장에 노트가 있는지 확인
    */
   const hasNoteForChapter = (book: string, chapter: number): boolean => {
-    return currentNotes.value.some(
+    return currentChapterNotes.value.some(
       n => n.book === book && n.chapter === chapter
     );
   };
 
   /**
-   * 묵상노트 모달 열기
+   * 현재 장의 노트 개수
+   */
+  const getChapterNoteCount = (): number => {
+    return currentChapterNotes.value.length;
+  };
+
+  /**
+   * 묵상노트 모달 열기 (빠른 메모용)
    */
   const openNoteModal = (book: string, chapter: number): void => {
-    const existingNote = currentNotes.value.find(
+    const existingNote = currentChapterNotes.value.find(
       n => n.book === book && n.chapter === chapter
     );
 
@@ -85,10 +237,10 @@ export const useNote = () => {
   };
 
   /**
-   * 묵상노트 저장
+   * 빠른 메모 저장
    */
-  const saveNote = async (book: string, chapter: number): Promise<boolean> => {
-    if (!noteContent.value.trim()) return false;
+  const saveQuickNote = async (book: string, chapter: number, content: string): Promise<boolean> => {
+    if (!content.trim()) return false;
     if (!authStore.isAuthenticated) return false;
 
     try {
@@ -96,21 +248,19 @@ export const useNote = () => {
 
       if (editingNote.value) {
         // 수정
-        await api.patch(`/api/v1/bible/notes/${editingNote.value.id}/`, {
-          content: noteContent.value
-        });
+        await updateNote(editingNote.value.id, { content });
       } else {
         // 새로 작성
-        await api.post('/api/v1/bible/notes/', {
+        await createNote({
           book,
           chapter,
-          content: noteContent.value,
+          content,
           is_private: true
         });
       }
 
       closeNoteModal();
-      await loadNotes(book, chapter);
+      await fetchChapterNotes(book, chapter);
       return true;
     } catch (error) {
       console.error('묵상노트 저장 실패:', error);
@@ -120,73 +270,27 @@ export const useNote = () => {
     }
   };
 
-  /**
-   * 묵상노트 삭제
-   */
-  const deleteNote = async (book: string, chapter: number): Promise<boolean> => {
-    if (!editingNote.value) return false;
-    if (!authStore.isAuthenticated) return false;
-
-    try {
-      isNoteLoading.value = true;
-      await api.delete(`/api/v1/bible/notes/${editingNote.value.id}/`);
-      closeNoteModal();
-      await loadNotes(book, chapter);
-      return true;
-    } catch (error) {
-      console.error('묵상노트 삭제 실패:', error);
-      return false;
-    } finally {
-      isNoteLoading.value = false;
-    }
-  };
-
-  /**
-   * 전체 묵상노트 목록 불러오기
-   */
-  const getAllNotes = async (): Promise<Note[]> => {
-    if (!authStore.isAuthenticated) return [];
-
-    try {
-      const response = await api.get('/api/v1/bible/notes/');
-      return response.data || [];
-    } catch (error) {
-      console.error('전체 묵상노트 불러오기 실패:', error);
-      return [];
-    }
-  };
-
-  /**
-   * 특정 노트 상세 조회
-   */
-  const getNoteById = async (noteId: number): Promise<Note | null> => {
-    if (!authStore.isAuthenticated) return null;
-
-    try {
-      const response = await api.get(`/api/v1/bible/notes/${noteId}/`);
-      return response.data || null;
-    } catch (error) {
-      console.error('묵상노트 조회 실패:', error);
-      return null;
-    }
-  };
-
   return {
     // 상태
-    currentNotes,
+    notes,
+    currentChapterNotes,
+    currentNote,
     isNoteLoading,
     showNoteModal,
     editingNote,
     noteContent,
 
     // 함수
-    loadNotes,
+    fetchNotes,
+    fetchChapterNotes,
+    fetchNote,
+    createNote,
+    updateNote,
+    deleteNote,
     hasNoteForChapter,
+    getChapterNoteCount,
     openNoteModal,
     closeNoteModal,
-    saveNote,
-    deleteNote,
-    getAllNotes,
-    getNoteById,
+    saveQuickNote,
   };
 };

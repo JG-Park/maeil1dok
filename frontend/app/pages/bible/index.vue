@@ -17,6 +17,10 @@
       </button>
 
       <div class="header-actions">
+        <NoteButton
+          :note-count="currentChapterNoteCount"
+          @click="handleNoteClick"
+        />
         <BookmarkButton
           :is-bookmarked="isCurrentChapterBookmarked"
           @toggle="handleBookmarkToggle"
@@ -152,6 +156,17 @@
       @confirm="handleTongdokComplete"
     />
 
+    <!-- 노트 빠른 메모 모달 -->
+    <NoteQuickModal
+      v-model="showNoteModal"
+      :book="currentBook"
+      :book-name="currentBookName"
+      :chapter="currentChapter"
+      :existing-note="currentChapterNote"
+      @save="handleNoteSave"
+      @go-detail="handleNoteGoDetail"
+    />
+
     <!-- 토스트 -->
     <Toast />
   </div>
@@ -166,6 +181,7 @@ import { useTongdokMode } from '~/composables/useTongdokMode';
 import { usePersonalRecord } from '~/composables/usePersonalRecord';
 import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useBookmark } from '~/composables/useBookmark';
+import { useNote } from '~/composables/useNote';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useToast } from '~/composables/useToast';
@@ -174,6 +190,8 @@ import VersionSelector from '~/components/bible/VersionSelector.vue';
 import BibleViewer from '~/components/bible/BibleViewer.vue';
 import TongdokCompleteModal from '~/components/bible/TongdokCompleteModal.vue';
 import BookmarkButton from '~/components/bible/BookmarkButton.vue';
+import NoteButton from '~/components/bible/NoteButton.vue';
+import NoteQuickModal from '~/components/bible/NoteQuickModal.vue';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -221,6 +239,15 @@ const {
   isChapterBookmarked,
   toggleChapterBookmark
 } = useBookmark();
+const {
+  currentChapterNotes,
+  isNoteLoading,
+  showNoteModal,
+  editingNote,
+  fetchChapterNotes,
+  saveQuickNote,
+  getChapterNoteCount
+} = useNote();
 
 // 상태
 const currentBook = ref('gen');
@@ -286,6 +313,14 @@ const currentBookProgress = computed(() =>
 // 북마크 관련
 const isCurrentChapterBookmarked = computed(() =>
   isChapterBookmarked(currentBook.value, currentChapter.value)
+);
+
+// 노트 관련
+const currentChapterNoteCount = computed(() => getChapterNoteCount());
+const currentChapterNote = computed(() =>
+  currentChapterNotes.value.find(
+    n => n.book === currentBook.value && n.chapter === currentChapter.value
+  ) || null
 );
 
 // 쿼리 파라미터에서 초기값 설정
@@ -629,6 +664,42 @@ const handleBookmarkToggle = async () => {
   }
 };
 
+// 노트: 클릭 핸들러
+const handleNoteClick = () => {
+  if (!authStore.isAuthenticated) {
+    toast.info('로그인이 필요합니다');
+    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
+    return;
+  }
+  showNoteModal.value = true;
+};
+
+// 노트: 저장 핸들러
+const handleNoteSave = async (content: string) => {
+  try {
+    const success = await saveQuickNote(
+      currentBook.value,
+      currentChapter.value,
+      content
+    );
+    if (success) {
+      toast.success('묵상노트가 저장되었습니다');
+    }
+  } catch (error) {
+    toast.error('저장에 실패했습니다');
+  }
+};
+
+// 노트: 상세 편집으로 이동
+const handleNoteGoDetail = (noteId?: number, content?: string) => {
+  if (noteId) {
+    router.push(`/bible/notes/${noteId}`);
+  } else {
+    // 새 노트 작성 후 목록으로
+    router.push('/bible/notes');
+  }
+};
+
 // 통독모드: 완료 처리 핸들러
 const handleTongdokComplete = async (payload: { autoComplete: boolean }) => {
   // 자동 완료 설정 저장
@@ -675,9 +746,12 @@ onMounted(async () => {
 
   loadBibleContent(currentBook.value, currentChapter.value);
 
-  // 읽기 기록 조회 (로그인 시)
-  if (authStore.isAuthenticated && !isTongdokMode.value) {
-    await fetchReadChapters(currentBook.value);
+  // 읽기 기록 및 노트 조회 (로그인 시)
+  if (authStore.isAuthenticated) {
+    if (!isTongdokMode.value) {
+      await fetchReadChapters(currentBook.value);
+    }
+    await fetchChapterNotes(currentBook.value, currentChapter.value);
   }
 
   // beforeunload 이벤트 등록 (페이지 이탈 시 위치 저장)
@@ -722,6 +796,16 @@ watch(
   async (newBook) => {
     if (authStore.isAuthenticated && !isTongdokMode.value) {
       await fetchReadChapters(newBook);
+    }
+  }
+);
+
+// 책/장 변경 시 노트 조회
+watch(
+  [() => currentBook.value, () => currentChapter.value],
+  async ([newBook, newChapter]) => {
+    if (authStore.isAuthenticated) {
+      await fetchChapterNotes(newBook, newChapter);
     }
   }
 );
