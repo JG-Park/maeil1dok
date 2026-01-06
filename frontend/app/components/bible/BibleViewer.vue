@@ -666,18 +666,12 @@ defineExpose({
 .bible-content :deep(.verse) {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 0.5rem;
   font-family: var(--reading-font-family, "RIDIBatang", serif);
   letter-spacing: -0.02em;
   font-weight: var(--reading-font-weight, normal);
   transition: background-color 0.3s ease-in-out;
   padding: 0.25rem 0.35rem;
   border-radius: 8px;
-}
-
-.bible-content :deep(p),
-.bible-content :deep(.verse-line) {
-  margin-bottom: 0.5em;
 }
 
 /* 절 번호 스타일 (reading.vue 동일) */
