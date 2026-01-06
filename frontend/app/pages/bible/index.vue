@@ -652,8 +652,7 @@ interface VerseSelection {
 }
 
 const handleBookmarkAction = (verses: VerseSelection) => {
-  // TODO: 북마크 기능 구현 (Phase 3)
-  console.log('Bookmark:', verses);
+  // 북마크 기능: 현재 장 단위 북마크만 지원, 절 단위는 추후 구현 예정
 };
 
 const handleHighlightAction = (verses: VerseSelection) => {
@@ -717,14 +716,12 @@ const handleAddCustomColor = (color: string) => {
   addCustomColor(color);
 };
 
-const handleCopyAction = (text: string) => {
-  // 복사 성공 시 토스트 표시 등 (선택적)
-  console.log('Copied:', text);
+const handleCopyAction = (_text: string) => {
+  // 복사 완료 - 필요시 토스트 표시
 };
 
-const handleShareAction = (text: string) => {
-  // 공유 완료 (선택적 핸들링)
-  console.log('Shared:', text);
+const handleShareAction = (_text: string) => {
+  // 공유 완료 - 필요시 추가 핸들링
 };
 
 // 읽기모드: 읽음 표시 핸들러
