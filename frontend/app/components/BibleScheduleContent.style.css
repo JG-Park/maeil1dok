@@ -347,8 +347,8 @@
 
 /* 오늘 배지 기본 스타일 */
 .today-badge {
-  background: #405e9f;
-  color: white;
+  background: var(--color-schedule-today-bg);
+  color: var(--color-text-inverse);
   padding: 0.05rem 0.25rem;
   border-radius: 4px;
   font-size: 0.65rem;
@@ -358,13 +358,13 @@
 /* 읽음 상태일 때 오늘 배지 스타일 */
 .schedule-item.completed .today-badge {
   background: var(--primary-color);
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 /* 현재 위치이면서 읽음 상태일 때 오늘 배지 스타일 */
 .schedule-item.current-location.completed .today-badge {
   background: var(--primary-color);
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 .schedule-reading {
@@ -378,67 +378,67 @@
 
 /* 상태별 스타일 */
 .schedule-item.completed {
-  background: #f0fdf4;
-  border-color: #c3e0cd;
+  background: var(--color-schedule-completed-bg);
+  border-color: var(--color-schedule-completed-border);
 }
 
 .schedule-item.completed .schedule-reading .bible-text {
-  color: #166534;
+  color: var(--color-schedule-completed-text);
   text-decoration: line-through;
   text-decoration-color: rgba(22, 101, 52, 0.4);
   text-decoration-thickness: 2px;
 }
 
 .schedule-item.current-location.completed {
-  background: #f0fdf4;
-  border-color: #c3e0cd;
+  background: var(--color-schedule-completed-bg);
+  border-color: var(--color-schedule-completed-border);
 }
 
 .schedule-item.current-location.completed .schedule-reading .bible-text {
-  color: #166534;
+  color: var(--color-schedule-completed-text);
   text-decoration: line-through;
   text-decoration-color: rgba(22, 101, 52, 0.4);
   text-decoration-thickness: 2px;
 }
 
 .schedule-item.current-location.completed .current-location-badge {
-  color: #997b1b;
+  color: var(--color-schedule-location-text);
   text-decoration: none;
-  border: 1px solid #e5d87b;
-  background: #fef9c3;
+  border: 1px solid var(--color-schedule-location-border-dark);
+  background: var(--color-schedule-location-bg-light);
 }
 
 .schedule-item.current-location.completed .status-text {
-  color: #166534;
+  color: var(--color-schedule-completed-text);
 }
 
 .schedule-item.current {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: var(--color-schedule-current-bg);
+  border-color: var(--color-schedule-current-border);
 }
 
 .schedule-item.current .schedule-reading {
-  color: #546395;
+  color: var(--color-schedule-current-text);
 }
 
 .schedule-item.not_completed {
-  background: #fef2f2;
-  border-color: #dabbbb;
+  background: var(--color-schedule-missed-bg);
+  border-color: var(--color-schedule-missed-border);
 }
 
 .schedule-item.not_completed .schedule-reading,
 .schedule-item.not_completed .status-text {
-  color: #991b1b;
+  color: var(--color-schedule-missed-text);
 }
 
 .schedule-item.upcoming {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: var(--color-slate-50);
+  border-color: var(--color-slate-200);
 }
 
 .schedule-item.upcoming .schedule-reading,
 .schedule-item.upcoming .status-text {
-  color: #64748b;
+  color: var(--color-slate-500);
 }
 
 .checkbox {
@@ -569,15 +569,7 @@
   }
 }
 
-/* CSS 변수 */
-:root {
-  --primary-color: #617475;
-  --primary-light: #e9ecec;
-  --primary-dark: #4a5a5b;
-  --text-primary: #2c3e50;
-  --text-secondary: #666666;
-  --background-color: #efece8;
-}
+/* CSS 변수는 themes.css에서 정의됨 (SSOT) */
 
 .progress-card {
   position: relative;
@@ -709,7 +701,7 @@
 .confirm-button {
   background: var(--primary-color);
   border: none;
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 .cancel-button:hover {
@@ -744,67 +736,66 @@
 }
 
 .current-location-badge {
-  background: #fef9c3;
-  color: #997b1b;
-  padding: 0.125rem 0.375rem;
+  background: var(--color-schedule-location-bg-light);
+  color: var(--color-schedule-location-text);
   padding: 0.05rem 0.25rem;
   border-radius: 4px;
   font-size: 0.65rem;
   font-weight: 600;
-  border: 1px solid #e5d87b;
+  border: 1px solid var(--color-schedule-location-border-dark);
 }
 
 .schedule-item.current-location {
-  background: #fefce8;
-  border-color: #fef08a;
+  background: var(--color-schedule-location-bg);
+  border-color: var(--color-schedule-location-border);
 }
 
 .schedule-item.current-location .schedule-reading {
-  color: #997b1b;
+  color: var(--color-schedule-location-text);
 }
 
 .schedule-item.current-location.current {
-  background: #fefce8;
-  border-color: #e5d87b;
+  background: var(--color-schedule-location-bg);
+  border-color: var(--color-schedule-location-border-dark);
 }
 
 .schedule-item.current-location.current .schedule-reading {
-  color: #997b1b;
+  color: var(--color-schedule-location-text);
 }
 
 .schedule-item.current-location.current .today-badge {
-  background: #fef9c3;
-  color: #997b1b;
-  border: 1px solid #e5d87b;
+  background: var(--color-schedule-location-bg-light);
+  color: var(--color-schedule-location-text);
+  border: 1px solid var(--color-schedule-location-border-dark);
 }
 
 /* 현재 위치 배지도 같은 스타일로 통일 */
 .schedule-item.current-location.current .current-location-badge {
-  background: #fef9c3;
-  color: #997b1b;
-  border: 1px solid #e5d87b;
+  background: var(--color-schedule-location-bg-light);
+  color: var(--color-schedule-location-text);
+  border: 1px solid var(--color-schedule-location-border-dark);
 }
 
 /* 상태별 스케줄 항목의 호버 효과 개선 */
 .schedule-item.completed:hover {
-  background: #e7f9ed;
+  background: var(--color-schedule-completed-hover);
 }
 
 .schedule-item.not_completed:hover {
-  background: #feeaea;
+  background: var(--color-schedule-missed-hover);
 }
 
 .schedule-item.current:hover {
-  background: #e5f0ff;
+  background: var(--color-schedule-current-hover);
 }
 
 .schedule-item.upcoming:hover {
-  background: #f3f6fb;
+  background: var(--color-schedule-upcoming-hover);
 }
 
 .schedule-item.current-location:hover {
-  background: #fdf7d7;
-  border-color: #f9e79f;
+  background: var(--color-schedule-location-hover);
+  border-color: var(--color-schedule-location-border);
 }
 
 /* 플랜 미선택 상태 스타일 */
@@ -1078,7 +1069,7 @@
 }
 
 .action-button.cancel {
-  color: #991b1b;
+  color: var(--color-schedule-missed-text);
 }
 
 .action-divider {
@@ -1138,12 +1129,12 @@
 
 /* 기본 플랜 안내 메시지 스타일 */
 .default-plan-indicator {
-  background: #f0f9ff;
-  border-color: #bae6fd;
+  background: var(--color-schedule-info-bg);
+  border-color: var(--color-schedule-info-border);
 }
 
 .default-plan-indicator .bulk-edit-message {
-  color: #0284c7;
+  color: var(--color-schedule-info-text);
 }
 
 .default-plan-indicator strong {
@@ -1176,7 +1167,7 @@
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: var(--primary-color);
-  color: white;
+  color: var(--color-text-inverse);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;

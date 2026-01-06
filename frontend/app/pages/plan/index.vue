@@ -5,16 +5,19 @@
       <PageHeader title="성경통독표">
         <template #right>
           <ClientOnly>
-            <button v-if="authStore.isAuthenticated" class="edit-mode-button" @click="toggleBulkEditMode">
+            <button
+              v-if="authStore.isAuthenticated"
+              class="edit-mode-button"
+              :class="{ active: isBulkEditMode }"
+              @click="toggleBulkEditMode"
+            >
               {{ isBulkEditMode ? '완료' : '일괄수정' }}
             </button>
             <button v-else class="edit-mode-button" @click="goToLogin">
               로그인
             </button>
             <template #fallback>
-              <button class="edit-mode-button" disabled>
-                ...
-              </button>
+              <button class="edit-mode-button" disabled>...</button>
             </template>
           </ClientOnly>
         </template>
@@ -26,71 +29,54 @@
       <BibleScheduleContent
         :is-bulk-edit-mode="isBulkEditMode"
         :use-default-plan="false"
-        :use-new-bible-route="true"
         @range-select="handleRangeSelect"
       />
     </div>
+
     <Toast />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useAuthStore } from '~/stores/auth';
 import { useRouter, useRoute } from 'vue-router';
+import { useAuthStore } from '~/stores/auth';
+import { useScheduleApi } from '~/composables/useScheduleApi';
+import { useToast } from '~/composables/useToast';
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue';
 import PageHeader from '~/components/PageHeader.vue';
-import { useApi } from '~/composables/useApi';
-import { useToast } from '~/composables/useToast';
 import Toast from '~/components/Toast.vue';
+import type { RangeSelectPayload } from '~/types/plan';
 
 definePageMeta({
-  layout: 'default'
+  layout: 'default',
 });
 
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const scheduleApi = useScheduleApi();
+const toast = useToast();
+
 const isBulkEditMode = ref(false);
-const api = useApi();
-const { success, error } = useToast();
 
-const toggleBulkEditMode = () => {
+function toggleBulkEditMode() {
   isBulkEditMode.value = !isBulkEditMode.value;
-};
-
-// 로그인 페이지로 이동
-const goToLogin = () => {
-  router.push('/login?redirect=' + encodeURIComponent(route.fullPath));
-};
-
-// 구간 선택 핸들러
-interface RangeSelectParams {
-  action: 'complete' | 'cancel';
-  scheduleIds: number[];
-  planId: number;
 }
 
-const handleRangeSelect = async ({ action, scheduleIds, planId }: RangeSelectParams) => {
-  try {
-    // API 호출
-    const { data } = await api.post('/api/v1/todos/reading/update/', {
-      plan_id: planId,
-      schedule_ids: scheduleIds,
-      action: action === 'complete' ? 'complete' : 'cancel'
-    });
+function goToLogin() {
+  router.push('/login?redirect=' + encodeURIComponent(route.fullPath));
+}
 
-    // 성공 시 토스트 메시지 표시
-    if (data && data.success) {
-      success(action === 'complete' ? '읽음으로 저장되었습니다.' : '읽지 않음으로 저장되었습니다.');
-    }
-  } catch (err) {
-    error('일괄 수정 중 오류가 발생했습니다.');
-  } finally {
-    // 일괄 수정 모드 종료
+async function handleRangeSelect({ action, scheduleIds, planId }: RangeSelectPayload) {
+  if (!planId) return;
+
+  const success = await scheduleApi.updateBulkReadingStatus(planId, scheduleIds, action);
+
+  if (success) {
     isBulkEditMode.value = false;
   }
-};
+}
 </script>
 
 <style scoped>
@@ -141,7 +127,8 @@ const handleRangeSelect = async ({ action, scheduleIds, planId }: RangeSelectPar
 
 .edit-mode-button:active,
 .edit-mode-button.active {
-  background: var(--color-slate-300);
-  color: var(--color-slate-700);
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
 }
 </style>

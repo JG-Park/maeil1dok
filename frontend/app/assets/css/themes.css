@@ -124,6 +124,56 @@
   --primary-dark: #4A5A5B;
   --background-color: #efece8;
 
+  /* ===== Red Color Palette (for danger/delete actions) ===== */
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+
+  /* ===== Schedule Status Colors ===== */
+  /* Completed status (green) */
+  --color-schedule-completed-bg: #f0fdf4;
+  --color-schedule-completed-border: #c3e0cd;
+  --color-schedule-completed-text: #166534;
+  --color-schedule-completed-hover: #e7f9ed;
+
+  /* Current status (blue) */
+  --color-schedule-current-bg: #eff6ff;
+  --color-schedule-current-border: #bfdbfe;
+  --color-schedule-current-text: #546395;
+  --color-schedule-current-hover: #e5f0ff;
+
+  /* Missed/Not completed status (red) */
+  --color-schedule-missed-bg: #fef2f2;
+  --color-schedule-missed-border: #dabbbb;
+  --color-schedule-missed-text: #991b1b;
+  --color-schedule-missed-hover: #feeaea;
+
+  /* Upcoming status (uses slate palette) */
+  --color-schedule-upcoming-hover: #f3f6fb;
+
+  /* Current location (yellow) */
+  --color-schedule-location-bg: #fefce8;
+  --color-schedule-location-bg-light: #fef9c3;
+  --color-schedule-location-border: #fef08a;
+  --color-schedule-location-border-dark: #e5d87b;
+  --color-schedule-location-text: #997b1b;
+  --color-schedule-location-hover: #fdf7d7;
+
+  /* Today badge */
+  --color-schedule-today-bg: #405e9f;
+
+  /* Info indicator (light blue) */
+  --color-schedule-info-bg: #f0f9ff;
+  --color-schedule-info-border: #bae6fd;
+  --color-schedule-info-text: #0284c7;
+
   /* ===== Slate Color Palette ===== */
   /* For calendar and modal components */
   --color-slate-50: #F8FAFC;
@@ -256,6 +306,56 @@
   /* Highlight colors for names/places - 다크모드용 부드러운 색상 */
   --highlight-name-color: #c9a67a;  /* 밝은 갈색 (인명) */
   --highlight-place-color: #9cb094;  /* 밝은 올리브 (지명) */
+
+  /* ===== Red Color Palette (dark mode - inverted) ===== */
+  --color-red-50: #7f1d1d;
+  --color-red-100: #991b1b;
+  --color-red-200: #b91c1c;
+  --color-red-300: #dc2626;
+  --color-red-400: #ef4444;
+  --color-red-500: #f87171;
+  --color-red-600: #fca5a5;
+  --color-red-700: #fecaca;
+  --color-red-800: #fee2e2;
+  --color-red-900: #fef2f2;
+
+  /* ===== Schedule Status Colors (dark mode) ===== */
+  /* Completed status (green - darker) */
+  --color-schedule-completed-bg: #14532d;
+  --color-schedule-completed-border: #166534;
+  --color-schedule-completed-text: #86efac;
+  --color-schedule-completed-hover: #15803d;
+
+  /* Current status (blue - darker) */
+  --color-schedule-current-bg: #1e3a5f;
+  --color-schedule-current-border: #1d4ed8;
+  --color-schedule-current-text: #93c5fd;
+  --color-schedule-current-hover: #1e40af;
+
+  /* Missed/Not completed status (red - darker) */
+  --color-schedule-missed-bg: #450a0a;
+  --color-schedule-missed-border: #7f1d1d;
+  --color-schedule-missed-text: #fca5a5;
+  --color-schedule-missed-hover: #7f1d1d;
+
+  /* Upcoming status */
+  --color-schedule-upcoming-hover: #334155;
+
+  /* Current location (yellow - darker) */
+  --color-schedule-location-bg: #422006;
+  --color-schedule-location-bg-light: #713f12;
+  --color-schedule-location-border: #a16207;
+  --color-schedule-location-border-dark: #ca8a04;
+  --color-schedule-location-text: #fde047;
+  --color-schedule-location-hover: #854d0e;
+
+  /* Today badge */
+  --color-schedule-today-bg: #3b82f6;
+
+  /* Info indicator (light blue - darker) */
+  --color-schedule-info-bg: #1e3a5f;
+  --color-schedule-info-border: #1d4ed8;
+  --color-schedule-info-text: #93c5fd;
 
   /* ===== Slate Color Palette (inverted for dark mode) ===== */
   --color-slate-50: #1e293b;

@@ -5,20 +5,18 @@
 
     <!-- 스크롤 영역 -->
     <div class="scroll-area">
-      <div v-if="isLoading" class="login-prompt fade-in" style="animation-delay: 0.2s">
-        <p class="text-lg text-gray-600 mb-4">
-          로딩 중...
-        </p>
-      </div>
-      
-      <div v-else-if="!authStore.isAuthenticated" class="login-prompt fade-in" style="animation-delay: 0.2s">
-        <p class="text-lg text-gray-600 mb-4">
-          플랜을 구독하려면 로그인이 필요합니다.
-        </p>
-        <button @click="$router.push('/login')" class="login-button">로그인하기</button>
+      <div v-if="isLoading" class="login-prompt fade-in">
+        <p class="loading-text">로딩 중...</p>
       </div>
 
-      <div v-else class="content-section fade-in" style="animation-delay: 0.2s">
+      <div v-else-if="!authStore.isAuthenticated" class="login-prompt fade-in">
+        <p class="prompt-text">플랜을 구독하려면 로그인이 필요합니다.</p>
+        <button class="login-button" @click="$router.push('/login')">
+          로그인하기
+        </button>
+      </div>
+
+      <div v-else class="content-section fade-in">
         <!-- 구독 중인 플랜 -->
         <section class="plan-section">
           <h2 class="section-title">
@@ -33,30 +31,45 @@
           </div>
 
           <div v-else class="plan-grid">
-            <div v-for="sub in subscriptions" :key="sub.id" class="plan-card" :class="{ 'hidden-plan': !sub.is_active }">
+            <div
+              v-for="sub in subscriptions"
+              :key="sub.id"
+              class="plan-card"
+              :class="{ 'hidden-plan': !sub.is_active }"
+            >
               <div class="plan-card-content">
-                <div class="flex justify-between items-start">
-                  <div>
+                <div class="plan-card-layout">
+                  <div class="plan-info">
                     <h3 class="plan-title">
                       {{ sub.plan_name }}
                       <span v-if="sub.is_default" class="default-badge">기본 플랜</span>
                       <span v-if="!sub.is_active" class="hidden-badge">숨김</span>
                     </h3>
-                    <p class="text-sm text-gray-600 mt-1">
+                    <p class="plan-meta">
                       구독 시작일: {{ formatDate(sub.start_date) }}
                     </p>
                   </div>
-                  <div class="flex flex-col gap-2">
-                    <button v-if="sub.is_active" @click="goToReadingPlan(sub)" class="action-button today-reading">성경통독표</button>
-                    <!-- 숨기기/다시 보기 버튼 -->
-                    <button v-if="!sub.is_default" @click="toggleHide(sub)" :class="[
-                      'action-button',
-                      sub.is_active ? 'hide' : 'resume'
-                    ]">
+                  <div class="plan-actions">
+                    <button
+                      v-if="sub.is_active"
+                      class="action-button today-reading"
+                      @click="goToReadingPlan(sub)"
+                    >
+                      성경통독표
+                    </button>
+                    <button
+                      v-if="!sub.is_default"
+                      class="action-button"
+                      :class="sub.is_active ? 'hide' : 'resume'"
+                      @click="handleToggleHide(sub)"
+                    >
                       {{ sub.is_active ? '숨기기' : '다시 보기' }}
                     </button>
-                    <!-- 완전 삭제 버튼 (숨겨진 플랜만) -->
-                    <button v-if="!sub.is_default && !sub.is_active" @click="confirmDelete(sub)" class="action-button delete">
+                    <button
+                      v-if="!sub.is_default && !sub.is_active"
+                      class="action-button delete"
+                      @click="confirmDelete(sub)"
+                    >
                       완전 삭제
                     </button>
                   </div>
@@ -82,8 +95,8 @@
           <div v-else class="plan-grid">
             <div v-for="plan in availablePlans" :key="plan.id" class="plan-card">
               <div class="plan-card-content">
-                <div class="flex justify-between items-start">
-                  <div>
+                <div class="plan-card-layout">
+                  <div class="plan-info">
                     <h3 class="plan-title">
                       {{ plan.name }}
                       <span v-if="plan.is_default" class="default-badge">기본 플랜</span>
@@ -93,7 +106,12 @@
                       구독한 사람: {{ plan.subscriber_count }}명
                     </p>
                   </div>
-                  <button @click="subscribe(plan)" class="action-button subscribe">구독하기</button>
+                  <button
+                    class="action-button subscribe"
+                    @click="handleSubscribe(plan)"
+                  >
+                    구독하기
+                  </button>
                 </div>
               </div>
             </div>
@@ -102,225 +120,112 @@
       </div>
     </div>
 
-    <!-- 토스트 -->
     <Toast />
-
-    <!-- 정보 모달 -->
-    <ConfirmModal
-      :show="showModal"
-      :title="modalTitle"
-      :show-cancel="hasReadingData"
-      :confirm-text="hasReadingData ? '읽기 페이지로 이동' : '확인'"
-      cancel-text="확인"
-      @confirm="hasReadingData ? goToReading() : closeModal()"
-      @cancel="closeModal"
-    >
-      <p>{{ modalMessage }}</p>
-    </ConfirmModal>
 
     <!-- 완전 삭제 확인 모달 -->
     <ConfirmModal
-      :show="showUnsubscribeModal"
+      :show="showDeleteModal"
       title="완전 삭제 확인"
       confirm-text="완전 삭제"
       confirm-variant="danger"
-      @confirm="deletePlan"
-      @cancel="closeUnsubscribeModal"
+      @confirm="handleDelete"
+      @cancel="closeDeleteModal"
     >
-      <p class="mb-4 text-red-600 font-bold">정말 삭제하시겠어요?</p>
-      <p>지금까지 진행된 읽기 기록이 전부 삭제되며, <strong>복구할 수 없습니다.</strong></p>
+      <p class="delete-warning">정말 삭제하시겠어요?</p>
+      <p class="delete-description">
+        지금까지 진행된 읽기 기록이 전부 삭제되며, <strong>복구할 수 없습니다.</strong>
+      </p>
     </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useToast } from '~/composables/useToast';
-import { useApi } from '~/composables/useApi';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
-import Toast from '~/components/Toast.vue';
+import { usePlanApi } from '~/composables/usePlanApi';
+import { useToast } from '~/composables/useToast';
+import { formatKoreanDate } from '~/utils/dateFormat';
 import PageHeader from '~/components/PageHeader.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
-import { useRouter } from 'vue-router';
-
-// 타입 정의
-interface Subscription {
-  id: number;
-  plan_id: number;
-  plan_name: string;
-  start_date: string;
-  is_active: boolean;
-  is_default: boolean;
-}
-
-interface Plan {
-  id: number;
-  name: string;
-  description: string;
-  is_default: boolean;
-  subscriber_count: number;
-}
-
-interface ReadingData {
-  planId: number;
-  readingId: number;
-}
+import Toast from '~/components/Toast.vue';
+import type { Plan, Subscription } from '~/types/plan';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const planApi = usePlanApi();
 const toast = useToast();
-const api = useApi();
 
 const subscriptions = ref<Subscription[]>([]);
 const availablePlans = ref<Plan[]>([]);
 const isLoading = ref(true);
 
-// 모달 관련 상태
-const showModal = ref(false);
-const modalTitle = ref('');
-const modalMessage = ref('');
-const hasReadingData = ref(false);
-const currentReadingData = ref<ReadingData | null>(null);
-
-// 구독 취소 관련 상태
-const showUnsubscribeModal = ref(false);
+const showDeleteModal = ref(false);
 const currentSubscription = ref<Subscription | null>(null);
 
 // 날짜 포맷팅
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-};
+function formatDate(dateString: string): string {
+  return formatKoreanDate(dateString);
+}
 
 // 사용자 플랜 정보 조회
-const fetchUserPlans = async (): Promise<void> => {
+async function fetchUserPlans() {
   if (!authStore.isAuthenticated) return;
 
-  try {
-    const response = await api.get('/api/v1/todos/plans/user/');
-    const responseData = response.data || response;
-
-    if (responseData.subscriptions) {
-      subscriptions.value = responseData.subscriptions;
-    } else {
-      subscriptions.value = [];
-    }
-
-    if (responseData.available_plans) {
-      availablePlans.value = responseData.available_plans;
-    } else {
-      availablePlans.value = [];
-    }
-  } catch {
-    toast.error('플랜 정보를 불러오는데 실패했습니다.');
+  const data = await planApi.fetchUserPlans();
+  if (data) {
+    subscriptions.value = data.subscriptions;
+    availablePlans.value = data.available_plans;
   }
-};
+}
 
 // 플랜 구독
-const subscribe = async (plan: Plan): Promise<void> => {
-  try {
-    await api.post('/api/v1/todos/plan/', {
-      plan: plan.id
-    });
-
+async function handleSubscribe(plan: Plan) {
+  const success = await planApi.subscribeToPlan(plan.id);
+  if (success) {
     toast.success(`${plan.name} 플랜을 구독했습니다.`);
-
-    // 목록 새로고침
     await fetchUserPlans();
-  } catch (err: unknown) {
-    const error = err as { response?: { data?: { detail?: string } } };
-    if (error.response?.data?.detail) {
-      toast.error(error.response.data.detail);
-    } else {
-      toast.error('플랜 구독에 실패했습니다.');
-    }
   }
-};
+}
 
 // 숨기기/다시 보기 토글
-const toggleHide = async (subscription: Subscription): Promise<void> => {
-  try {
-    await api.post(`/api/v1/todos/plan/${subscription.id}/toggle-active/`);
-
+async function handleToggleHide(subscription: Subscription) {
+  const success = await planApi.togglePlanActive(subscription.id);
+  if (success) {
     const message = subscription.is_active
       ? `${subscription.plan_name} 플랜을 숨겼습니다.`
       : `${subscription.plan_name} 플랜을 다시 표시합니다.`;
     toast.success(message);
-
-    // 목록 새로고침
     await fetchUserPlans();
-  } catch (err: unknown) {
-    const error = err as { response?: { data?: { detail?: string } } };
-    if (error.response?.data?.detail) {
-      toast.error(error.response.data.detail);
-    } else {
-      toast.error('처리에 실패했습니다.');
-    }
   }
-};
-
-// 읽기 페이지로 이동
-const goToReading = (): void => {
-  if (currentReadingData.value) {
-    router.push({
-      path: '/reading',
-      query: {
-        plan_id: String(currentReadingData.value.planId),
-        reading_id: String(currentReadingData.value.readingId)
-      }
-    });
-  }
-  closeModal();
-};
-
-// 모달 닫기
-const closeModal = (): void => {
-  showModal.value = false;
-};
+}
 
 // 완전 삭제 확인 모달 표시
-const confirmDelete = (subscription: Subscription): void => {
+function confirmDelete(subscription: Subscription) {
   currentSubscription.value = subscription;
-  showUnsubscribeModal.value = true;
-};
+  showDeleteModal.value = true;
+}
 
 // 삭제 모달 닫기
-const closeUnsubscribeModal = (): void => {
-  showUnsubscribeModal.value = false;
+function closeDeleteModal() {
+  showDeleteModal.value = false;
   currentSubscription.value = null;
-};
+}
 
 // 완전 삭제 실행
-const deletePlan = async (): Promise<void> => {
+async function handleDelete() {
   if (!currentSubscription.value) return;
 
-  try {
-    // 플랜 구독 삭제 API 호출
-    await api.delete(`/api/v1/todos/plan/${currentSubscription.value.id}/`);
-
+  const success = await planApi.deletePlanSubscription(currentSubscription.value.id);
+  if (success) {
     toast.success(`${currentSubscription.value.plan_name} 플랜을 완전히 삭제했습니다.`);
-
-    // 목록 새로고침
     await fetchUserPlans();
-
-    // 모달 닫기
-    closeUnsubscribeModal();
-  } catch (err: unknown) {
-    const error = err as { response?: { data?: { detail?: string } } };
-    if (error.response?.data?.detail) {
-      toast.error(error.response.data.detail);
-    } else {
-      toast.error('삭제에 실패했습니다.');
-    }
+    closeDeleteModal();
   }
-};
+}
 
 // 성경통독 일정 페이지로 이동
-const goToReadingPlan = (subscription: Subscription): void => {
+function goToReadingPlan(subscription: Subscription) {
   if (!subscription.is_active) {
     toast.error('비활성화된 플랜입니다. 먼저 플랜을 다시 구독해주세요.');
     return;
@@ -328,15 +233,12 @@ const goToReadingPlan = (subscription: Subscription): void => {
 
   router.push({
     path: '/plan',
-    query: {
-      plan: String(subscription.plan_id)
-    }
+    query: { plan: String(subscription.plan_id) },
   });
-};
+}
 
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
-  // 인증 상태 확인 및 플랜 정보 로드
   isLoading.value = true;
 
   try {
@@ -344,22 +246,16 @@ onMounted(async () => {
     if (!authStore.user && typeof window !== 'undefined') {
       const token = localStorage.getItem('access_token');
       if (token) {
-        // 토큰이 있으면 사용자 정보 가져오기 시도
         await authStore.fetchUser().catch(() => {
-          // 실패하면 토큰이 유효하지 않음
           authStore.logout();
         });
       }
     }
 
-    // 인증된 경우에만 플랜 정보 로드
     if (authStore.isAuthenticated) {
       await fetchUserPlans();
     }
-  } catch {
-    // 초기화 에러는 무시
   } finally {
-    // 항상 로딩 상태를 false로 설정
     isLoading.value = false;
   }
 });
@@ -385,9 +281,20 @@ onMounted(async () => {
   padding: 3rem 1rem;
 }
 
+.loading-text {
+  font-size: 1rem;
+  color: var(--color-slate-500);
+}
+
+.prompt-text {
+  font-size: 1rem;
+  color: var(--color-slate-600);
+  margin-bottom: 1rem;
+}
+
 .login-button {
   background: var(--primary-color);
-  color: white;
+  color: var(--color-text-inverse);
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 500;
@@ -422,9 +329,9 @@ onMounted(async () => {
 .empty-state {
   text-align: center;
   padding: 2rem;
-  background: #f2f2f2 !important;
+  background: var(--color-slate-100);
   border-radius: 0.5rem;
-  color: #64748B;
+  color: var(--color-slate-500);
 }
 
 .plan-grid {
@@ -432,18 +339,17 @@ onMounted(async () => {
   gap: 1rem;
 }
 
-.plan-card,
-.empty-state {
+.plan-card {
   min-height: 80px;
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-slate-200);
   border-radius: 0.5rem;
   overflow: hidden;
   transition: all 0.2s;
 }
 
 .plan-card:hover {
-  border-color: #D1D5DB;
+  border-color: var(--color-slate-300);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -451,15 +357,14 @@ onMounted(async () => {
   padding: 1rem;
 }
 
-/* 플랜 카드 내부 레이아웃 수정 */
-.plan-card-content>div {
+.plan-card-layout {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
 }
 
-.plan-card-content>div>div:first-child {
+.plan-info {
   flex: 1;
 }
 
@@ -471,18 +376,16 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  /* 긴 제목 처리 */
 }
 
 .default-badge {
   font-size: 0.65rem;
   padding: 0.15em 0.75em;
-  background-color: #F1F5F9;
+  background: var(--color-slate-100);
   border-radius: 6px;
   font-weight: 600;
-  background: #F1F5F9;
-  color: #64748B;
-  border: 1px solid #CBD5E1;
+  color: var(--color-slate-500);
+  border: 1px solid var(--color-slate-300);
 }
 
 .hidden-badge {
@@ -490,14 +393,20 @@ onMounted(async () => {
   padding: 0.15em 0.75em;
   border-radius: 6px;
   font-weight: 600;
-  background: #9CA3AF;
-  color: white;
+  background: var(--color-slate-400);
+  color: var(--color-text-inverse);
 }
 
 .hidden-plan {
   opacity: 0.6;
   border-style: dashed;
-  background: #F9FAFB;
+  background: var(--color-slate-50);
+}
+
+.plan-meta {
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
 }
 
 .plan-description {
@@ -505,13 +414,18 @@ onMounted(async () => {
   margin-top: 0.5rem;
   font-size: 0.875rem;
   word-break: break-word;
-  /* 긴 설명 텍스트 처리 */
 }
 
 .subscriber-count {
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin-top: 0.5rem;
+}
+
+.plan-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .action-button {
@@ -526,24 +440,24 @@ onMounted(async () => {
 
 .action-button.subscribe {
   background: var(--primary-color);
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 .action-button.hide {
-  background: #F3F4F6;
-  border: #D1D5DB 1px solid;
-  color: #4B5563;
+  background: var(--color-slate-100);
+  border: 1px solid var(--color-slate-300);
+  color: var(--color-slate-600);
 }
 
 .action-button.resume {
   background: var(--primary-color);
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 .action-button.delete {
-  background: #FEF2F2;
-  border: #FECACA 1px solid;
-  color: #DC2626;
+  background: var(--color-red-50);
+  border: 1px solid var(--color-red-200);
+  color: var(--color-red-600);
 }
 
 .action-button:hover {
@@ -557,15 +471,29 @@ onMounted(async () => {
 .action-button.today-reading {
   background: var(--primary-light);
   color: var(--primary-color);
-  border: var(--primary-color) 1px solid;
+  border: 1px solid var(--primary-color);
 }
 
+.delete-warning {
+  margin-bottom: 1rem;
+  color: var(--color-red-600);
+  font-weight: 600;
+}
+
+.delete-description {
+  color: var(--text-secondary);
+}
+
+.delete-description strong {
+  color: var(--text-primary);
+}
+
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -573,7 +501,6 @@ onMounted(async () => {
 }
 
 .fade-in {
-  opacity: 0;
   animation: fadeIn 0.4s ease-out forwards;
 }
 </style>
