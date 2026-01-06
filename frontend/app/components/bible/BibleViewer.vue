@@ -16,12 +16,49 @@
     <div
       v-else
       class="bible-content"
-      @mouseup="handleTextSelection"
-      @touchend="handleTextSelection"
+      @click="handleVerseClick"
       v-html="renderedContent"
     ></div>
 
-    <!-- 절 선택 액션 메뉴 -->
+    <!-- 절 클릭 복사 메뉴 -->
+    <Transition name="copy-menu-fade">
+      <div v-if="showCopyMenu" class="copy-menu" ref="copyMenuRef">
+        <span class="copy-menu-label">
+          {{ clickSelectedVerses.length === 1 ? '복사' : '구간 복사' }}
+        </span>
+        <div class="copy-menu-buttons">
+          <template v-if="clickSelectedVerses.length === 1">
+            <button class="copy-button" @click="handleClickCopy('includeLocation')">
+              위치 포함
+            </button>
+            <span class="action-divider">|</span>
+            <button class="copy-button" @click="handleClickCopy('numOnly')">
+              절 번호만
+            </button>
+            <span class="action-divider">|</span>
+            <button class="copy-button" @click="handleClickCopy('textOnly')">
+              내용만
+            </button>
+          </template>
+          <template v-else>
+            <button class="copy-button" @click="handleClickCopy('includeLocationRange')">
+              위치 포함
+            </button>
+            <span class="action-divider">|</span>
+            <button class="copy-button" @click="handleClickCopy('excludeLocationRange')">
+              절 번호만
+            </button>
+          </template>
+          <button class="copy-button cancel" @click="clearClickSelection">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 텍스트 드래그 선택 액션 메뉴 (기존) -->
     <Teleport to="body">
       <Transition name="action-menu">
         <div
@@ -97,8 +134,15 @@ const effectiveTheme = computed(() => settingsStore.effectiveTheme);
 
 // Refs
 const viewerRef = ref<HTMLElement | null>(null);
+const copyMenuRef = ref<HTMLElement | null>(null);
 
-// 절 선택 상태
+// 절 클릭 선택 상태 (reading.vue 방식)
+const showCopyMenu = ref(false);
+const clickSelectedStart = ref<number | null>(null);
+const clickSelectedEnd = ref<number | null>(null);
+const clickSelectedVerses = ref<Array<{ number: number; text: string }>>([]);
+
+// 텍스트 드래그 선택 상태 (기존 방식)
 const showActionMenu = ref(false);
 const selectedVerses = ref({ start: 0, end: 0 });
 const selectedText = ref('');
@@ -147,6 +191,165 @@ const handleScroll = () => {
     }
   }, 100);
 };
+
+// ====== 절 클릭 선택 기능 (reading.vue 방식) ======
+
+// 절 하이라이트 해제
+const clearVerseHighlight = () => {
+  if (!viewerRef.value) return;
+  viewerRef.value.querySelectorAll('.verse.selected-verse')
+    .forEach(el => el.classList.remove('selected-verse'));
+};
+
+// 절 클릭 선택 초기화
+const clearClickSelection = () => {
+  showCopyMenu.value = false;
+  clearVerseHighlight();
+  clickSelectedVerses.value = [];
+  clickSelectedStart.value = null;
+  clickSelectedEnd.value = null;
+};
+
+// 절 하이라이트 적용
+const highlightVerses = (start: number, end: number) => {
+  if (!viewerRef.value) return;
+  viewerRef.value.querySelectorAll('.verse').forEach((el) => {
+    const numEl = el.querySelector('.verse-number');
+    if (!numEl) return;
+    const n = parseInt(numEl.textContent?.trim() || '0', 10);
+    if (n >= start && n <= end) {
+      el.classList.add('selected-verse');
+    } else {
+      el.classList.remove('selected-verse');
+    }
+  });
+};
+
+// 복사 텍스트 생성
+const getCopyText = (type: string): string => {
+  if (!clickSelectedVerses.value.length) return '';
+  const bookName = props.book;
+  const chapter = props.chapter;
+
+  if (clickSelectedVerses.value.length === 1) {
+    const { number, text } = clickSelectedVerses.value[0];
+    if (type === 'includeLocation') {
+      return `[${bookName}${chapter}:${number}] ${text}`;
+    } else if (type === 'numOnly') {
+      return `${number} ${text}`;
+    } else if (type === 'textOnly') {
+      return text;
+    }
+  } else {
+    const start = clickSelectedVerses.value[0].number;
+    const end = clickSelectedVerses.value[clickSelectedVerses.value.length - 1].number;
+    const versesTexts = clickSelectedVerses.value.map(v => `${v.number} ${v.text}`);
+    if (type === 'includeLocationRange') {
+      return `[${bookName}${chapter}:${start}-${end}]\n${versesTexts.join('\n')}`;
+    } else if (type === 'excludeLocationRange') {
+      return versesTexts.join('\n');
+    }
+  }
+  return '';
+};
+
+// 절 클릭 복사 핸들러
+const handleClickCopy = async (type: string) => {
+  const text = getCopyText(type);
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    emit('copy', text);
+  } catch {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    emit('copy', text);
+  }
+
+  clearClickSelection();
+};
+
+// 절 클릭 핸들러
+const handleVerseClick = (event: MouseEvent | TouchEvent) => {
+  const target = event.target as HTMLElement;
+  const verseEl = target.closest('.verse');
+  if (!verseEl) return;
+
+  event.stopPropagation();
+
+  const numEl = verseEl.querySelector('.verse-number');
+  const textEl = verseEl.querySelector('.verse-text');
+  if (!numEl || !textEl) return;
+
+  const num = parseInt(numEl.textContent?.trim() || '0', 10);
+  const txt = textEl.textContent?.trim() || '';
+
+  // 단일 절 선택 상태에서 같은 절을 다시 클릭하면 해제
+  if (
+    clickSelectedStart.value !== null &&
+    clickSelectedEnd.value === null &&
+    clickSelectedStart.value === num &&
+    clickSelectedVerses.value.length === 1
+  ) {
+    showCopyMenu.value = false;
+    setTimeout(() => {
+      clearClickSelection();
+    }, 250);
+    return;
+  }
+
+  if (clickSelectedStart.value === null) {
+    // 시작점 설정
+    clearClickSelection();
+    clickSelectedStart.value = num;
+    clickSelectedVerses.value = [{ number: num, text: txt }];
+    highlightVerses(num, num);
+    showCopyMenu.value = true;
+  } else if (clickSelectedEnd.value === null) {
+    // 끝점 설정 및 범위 선택
+    clickSelectedEnd.value = num;
+    const start = Math.min(clickSelectedStart.value, clickSelectedEnd.value);
+    const end = Math.max(clickSelectedStart.value, clickSelectedEnd.value);
+    highlightVerses(start, end);
+
+    // 선택 구간의 number/text 저장
+    const versesArray: Array<{ number: number; text: string }> = [];
+    if (viewerRef.value) {
+      viewerRef.value.querySelectorAll('.verse').forEach((el) => {
+        const nEl = el.querySelector('.verse-number');
+        const tEl = el.querySelector('.verse-text');
+        if (!nEl || !tEl) return;
+        const n = parseInt(nEl.textContent?.trim() || '0', 10);
+        if (n >= start && n <= end) {
+          versesArray.push({
+            number: n,
+            text: tEl.textContent?.trim() || ''
+          });
+        }
+      });
+    }
+    clickSelectedVerses.value = versesArray;
+    showCopyMenu.value = true;
+  } else {
+    // 재선택: 메뉴를 닫고 새로 열기
+    clearClickSelection();
+    showCopyMenu.value = false;
+    setTimeout(() => {
+      clickSelectedStart.value = num;
+      clickSelectedVerses.value = [{ number: num, text: txt }];
+      highlightVerses(num, num);
+      showCopyMenu.value = true;
+    }, 250);
+  }
+};
+
+// ====== 텍스트 드래그 선택 기능 (기존) ======
 
 // 텍스트 선택 핸들러
 const handleTextSelection = () => {
@@ -336,8 +539,15 @@ const scrollToVerse = (verseNumber: number) => {
 // 문서 클릭 시 메뉴 닫기
 const handleDocumentClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
+
+  // 텍스트 드래그 선택 메뉴 닫기
   if (!target.closest('.verse-action-menu')) {
     hideActionMenu();
+  }
+
+  // 절 클릭 복사 메뉴 닫기 (메뉴 외부 클릭 시)
+  if (showCopyMenu.value && !target.closest('.copy-menu') && !target.closest('.verse')) {
+    clearClickSelection();
   }
 };
 
@@ -356,10 +566,14 @@ onUnmounted(() => {
   if (scrollTimeout) {
     clearTimeout(scrollTimeout);
   }
+  // 선택 상태 정리
+  clearClickSelection();
 });
 
-// 컨텐츠 변경 시 스크롤 위치 복원
+// 컨텐츠 변경 시 스크롤 위치 복원 및 선택 상태 초기화
 watch(() => props.content, () => {
+  // 컨텐츠 변경 시 선택 상태 초기화
+  clearClickSelection();
   nextTick(() => {
     restoreScrollPosition();
   });
@@ -576,5 +790,145 @@ defineExpose({
 
 .theme-dark .action-button:hover {
   background: var(--color-bg-hover-dark, #3d3d3d);
+}
+
+/* ====== 절 클릭 선택 스타일 ====== */
+
+/* 선택된 절 하이라이트 */
+.bible-content :deep(.verse.selected-verse) {
+  background-color: var(--color-slate-200, #e2e8f0) !important;
+  transition: background-color 0.2s ease;
+  border-radius: 8px;
+}
+
+.theme-dark .bible-content :deep(.verse.selected-verse) {
+  background-color: var(--color-slate-700, #334155) !important;
+}
+
+/* 절 hover 효과 */
+.bible-content :deep(.verse:hover) {
+  background-color: var(--color-slate-100, #f1f5f9);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 8px;
+}
+
+.theme-dark .bible-content :deep(.verse:hover) {
+  background-color: var(--color-slate-800, #1e293b);
+}
+
+/* 터치 디바이스에서는 hover 배경색 비활성화 */
+@media (hover: none) and (pointer: coarse) {
+  .bible-content :deep(.verse:hover):not(.selected-verse) {
+    background-color: inherit !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (hover: none) {
+    .bible-content :deep(.verse:hover):not(.selected-verse) {
+      background-color: inherit !important;
+    }
+  }
+}
+
+/* 복사 메뉴 */
+.copy-menu {
+  position: sticky;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-card, #fff);
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 50;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border, #e5e7eb);
+  min-width: 200px;
+  width: max-content;
+  max-width: 95vw;
+  gap: 0.75rem;
+  margin: 0 auto;
+}
+
+.theme-dark .copy-menu {
+  background: var(--color-bg-card-dark, #2d2d2d);
+  border-color: var(--color-border-dark, #404040);
+}
+
+.copy-menu-label {
+  font-size: 0.875rem;
+  color: var(--primary-color, #6366f1);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.copy-menu-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.copy-button {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: none;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.copy-button:hover {
+  color: var(--text-primary, #1f2937);
+}
+
+.theme-dark .copy-button {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+.theme-dark .copy-button:hover {
+  color: var(--text-primary-dark, #e5e5e5);
+}
+
+.copy-button.cancel {
+  color: #dc2626;
+  padding: 0.25rem;
+}
+
+.copy-button.cancel:hover {
+  color: #b91c1c;
+}
+
+.action-divider {
+  color: var(--color-border, #d1d5db);
+  font-size: 0.75rem;
+}
+
+/* 복사 메뉴 애니메이션 */
+.copy-menu-fade-enter-active,
+.copy-menu-fade-leave-active {
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.copy-menu-fade-enter-from,
+.copy-menu-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(16px) scale(0.98);
+}
+
+.copy-menu-fade-enter-to,
+.copy-menu-fade-leave-from {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 </style>
