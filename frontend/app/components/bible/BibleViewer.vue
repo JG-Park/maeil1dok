@@ -2,7 +2,13 @@
   <div
     ref="viewerRef"
     class="bible-viewer"
-    :class="[`theme-${effectiveTheme}`, { 'verse-joining': settings.verseJoining }]"
+    :class="[
+      `theme-${effectiveTheme}`,
+      {
+        'verse-joining': settings.verseJoining,
+        'hide-highlight-names': !settings.highlightNames
+      }
+    ]"
     :style="viewerStyle"
     @scroll="handleScroll"
   >
@@ -16,6 +22,7 @@
     <template v-else>
       <div
         class="bible-content"
+        :class="{ 'verse-joining': settings.verseJoining }"
         @click="handleVerseClick"
         v-html="renderedContent"
       ></div>
@@ -648,6 +655,11 @@ defineExpose({
   word-break: keep-all;
   -webkit-user-select: text;
   user-select: text;
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
+  font-size: var(--reading-font-size, 16px);
+  font-weight: var(--reading-font-weight, 400);
+  line-height: var(--reading-line-height, 1.8);
+  text-align: var(--reading-text-align, left);
 }
 
 /* 절 스타일 (reading.vue 동일) */
@@ -696,6 +708,12 @@ defineExpose({
   color: var(--highlight-place-color, #5a6e54);
 }
 
+/* 인명/지명 강조 비활성화 */
+.hide-highlight-names .bible-content :deep(.bible-name),
+.hide-highlight-names .bible-content :deep(.bible-area) {
+  color: inherit;
+}
+
 .bible-content :deep(.verse-num) {
   color: var(--primary-color, #6366f1);
   font-weight: 700;
@@ -712,12 +730,48 @@ defineExpose({
 
 /* 절 연결 모드 */
 .verse-joining .bible-content :deep(p),
-.verse-joining .bible-content :deep(.verse-line) {
+.verse-joining .bible-content :deep(.verse-line),
+.bible-content.verse-joining :deep(p),
+.bible-content.verse-joining :deep(.verse-line) {
   display: inline;
 }
 
-.verse-joining .bible-content :deep(br) {
+.verse-joining .bible-content :deep(br),
+.bible-content.verse-joining :deep(br) {
   display: none;
+}
+
+/* 절 붙임 모드에서 절 스타일 */
+.bible-content.verse-joining :deep(.verse),
+.bible-content.verse-joining :deep(.verse-group) {
+  display: inline;
+}
+
+.bible-content.verse-joining :deep(.verse-number) {
+  display: inline;
+  font-size: 0.65em;
+  vertical-align: super;
+  margin: 0 0.1em;
+  min-width: auto;
+  text-align: left;
+  line-height: 1;
+}
+
+.bible-content.verse-joining :deep(.verse-text) {
+  display: inline;
+}
+
+.bible-content.verse-joining :deep(.verse-text)::after {
+  content: " ";
+}
+
+/* 섹션 타이틀에서 단락 분리 */
+.bible-content.verse-joining :deep(.section-title),
+.bible-content.verse-joining :deep(h3),
+.bible-content.verse-joining :deep(h4) {
+  display: block;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
 }
 
 /* 섹션 제목 (reading.vue 동일) */
@@ -881,25 +935,25 @@ defineExpose({
 
 /* 선택된 절 하이라이트 */
 .bible-content :deep(.verse.selected-verse) {
-  background-color: var(--color-slate-200, #e2e8f0) !important;
+  background-color: rgba(99, 102, 241, 0.12) !important;
   transition: background-color 0.2s ease;
   border-radius: 8px;
 }
 
 .theme-dark .bible-content :deep(.verse.selected-verse) {
-  background-color: var(--color-slate-700, #334155) !important;
+  background-color: rgba(99, 102, 241, 0.2) !important;
 }
 
 /* 절 hover 효과 */
 .bible-content :deep(.verse:hover) {
-  background-color: var(--color-slate-100, #f1f5f9);
+  background-color: rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: background-color 0.2s ease;
   border-radius: 8px;
 }
 
 .theme-dark .bible-content :deep(.verse:hover) {
-  background-color: var(--color-slate-800, #1e293b);
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 /* 터치 디바이스에서는 hover 배경색 비활성화 */
@@ -919,7 +973,7 @@ defineExpose({
 
 /* 복사 메뉴 */
 .copy-menu {
-  position: sticky;
+  position: fixed;
   bottom: 120px;
   left: 50%;
   transform: translateX(-50%);
@@ -929,14 +983,13 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  z-index: 50;
+  z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--color-border, #e5e7eb);
   min-width: 200px;
   width: max-content;
   max-width: 95vw;
   gap: 0.75rem;
-  margin: 0 auto;
 }
 
 .theme-dark .copy-menu {
