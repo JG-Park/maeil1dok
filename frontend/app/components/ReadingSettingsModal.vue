@@ -375,8 +375,8 @@ const textAlignOptions: Array<{ value: TextAlign; icon: string }> = [
 // 테마별 색상 (themes.css와 동일)
 const themeColors = {
   light: {
-    bg: '#faf8f6',
-    text: '#2a1111',
+    bg: '#f9fafb',
+    text: '#1f2937',
     verseNumber: '#999999',
     sectionTitle: '#4a5d4a',
     highlightName: '#7c5a3c',

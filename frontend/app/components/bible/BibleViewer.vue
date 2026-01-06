@@ -602,7 +602,7 @@ defineExpose({
 
 /* 테마 */
 .theme-light {
-  background: var(--color-bg-primary, #faf8f6);
+  background: var(--color-bg-primary, #f9fafb);
   color: var(--text-primary, #1f2937);
 }
 
