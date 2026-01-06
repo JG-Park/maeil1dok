@@ -206,10 +206,12 @@ import Card from '~/components/common/Card.vue'
 import LoadingState from '~/components/LoadingState.vue'
 import EmptyState from '~/components/common/EmptyState.vue'
 import GroupPlanCalendar from '~/components/groups/GroupPlanCalendar.vue'
+import { useModal } from '~/composables/useModal'
 
 const route = useRoute()
 const groupsStore = useGroupsStore()
 const authStore = useAuthStore()
+const modal = useModal()
 
 const groupId = computed(() => parseInt(route.params.id as string))
 const isAuthenticated = computed(() => authStore.isAuthenticated)
@@ -259,7 +261,11 @@ const loadGroupData = async () => {
 // 그룹 가입
 const handleJoinGroup = async () => {
   if (!isAuthenticated.value) {
-    alert('로그인이 필요합니다.')
+    await modal.alert({
+      title: '로그인 필요',
+      description: '로그인이 필요합니다.',
+      icon: 'warning'
+    })
     navigateTo('/login')
     return
   }
@@ -273,10 +279,18 @@ const handleJoinGroup = async () => {
       // 그룹 정보 다시 로드
       await loadGroupData()
     } else {
-      alert(result.error || '그룹 가입에 실패했습니다.')
+      await modal.alert({
+        title: '가입 실패',
+        description: result.error || '그룹 가입에 실패했습니다.',
+        icon: 'error'
+      })
     }
   } catch (err: any) {
-    alert(err.message || '그룹 가입에 실패했습니다.')
+    await modal.alert({
+      title: '가입 실패',
+      description: err.message || '그룹 가입에 실패했습니다.',
+      icon: 'error'
+    })
   } finally {
     isActionLoading.value = false
   }
@@ -284,9 +298,14 @@ const handleJoinGroup = async () => {
 
 // 그룹 탈퇴
 const handleLeaveGroup = async () => {
-  if (!confirm('정말로 이 그룹에서 탈퇴하시겠습니까?')) {
-    return
-  }
+  const confirmed = await modal.confirm({
+    title: '그룹 탈퇴',
+    description: '정말로 이 그룹에서 탈퇴하시겠습니까?',
+    confirmText: '탈퇴',
+    cancelText: '취소',
+    icon: 'warning'
+  })
+  if (!confirmed) return
 
   isActionLoading.value = true
 
@@ -297,10 +316,18 @@ const handleLeaveGroup = async () => {
       // 그룹 목록으로 이동
       navigateTo('/groups')
     } else {
-      alert(result.error || '그룹 탈퇴에 실패했습니다.')
+      await modal.alert({
+        title: '탈퇴 실패',
+        description: result.error || '그룹 탈퇴에 실패했습니다.',
+        icon: 'error'
+      })
     }
   } catch (err: any) {
-    alert(err.message || '그룹 탈퇴에 실패했습니다.')
+    await modal.alert({
+      title: '탈퇴 실패',
+      description: err.message || '그룹 탈퇴에 실패했습니다.',
+      icon: 'error'
+    })
   } finally {
     isActionLoading.value = false
   }

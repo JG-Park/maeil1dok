@@ -90,9 +90,11 @@ import PageLayout from '~/components/common/PageLayout.vue'
 import EmptyState from '~/components/common/EmptyState.vue'
 import LoadingState from '~/components/LoadingState.vue'
 import GroupCard from '~/components/groups/GroupCard.vue'
+import { useModal } from '~/composables/useModal'
 
 const groupsStore = useGroupsStore()
 const authStore = useAuthStore()
+const modal = useModal()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const isLoading = computed(() => groupsStore.isLoading)
@@ -151,7 +153,11 @@ const joinGroup = async (groupId: number) => {
     // 그룹 목록 새로고침
     loadGroups()
   } else {
-    alert(result.error || '그룹 가입에 실패했습니다.')
+    await modal.alert({
+      title: '가입 실패',
+      description: result.error || '그룹 가입에 실패했습니다.',
+      icon: 'error'
+    })
   }
 }
 
