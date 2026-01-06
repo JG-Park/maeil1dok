@@ -73,3 +73,15 @@ logo/
 
 # Serena MCP
 .serena/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Claude Code
+.claude/
+
+# Audit temp files
+**/audit_tmp/
+
+# Temporary docs
+docs/global-ui-infrastructure/

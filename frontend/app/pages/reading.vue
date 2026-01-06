@@ -56,6 +56,27 @@ const isUpdatingStatus = ref(false);
 const currentAction = ref("complete");
 const showTopButton = ref(false);
 
+// 마지막 읽기 위치 관련 상태
+const lastReadingPosition = ref(null);
+const showResumeModal = ref(false);
+const isSavingPosition = ref(false);
+const lastSavedScrollPosition = ref(0);
+
+// 북마크 관련 상태
+const currentBookmarks = ref([]);
+const isBookmarkLoading = ref(false);
+
+// 묵상노트 관련 상태
+const currentNotes = ref([]);
+const showNoteModal = ref(false);
+const editingNote = ref(null);
+const noteContent = ref('');
+const isNoteLoading = ref(false);
+
+// 통독모드 관련 상태
+const tongdokMode = ref(false);
+const tongdokScheduleId = ref(null);
+
 // 글자 크기 기본값 (스토어에서 관리)
 const DEFAULT_FONT_SIZE = 16;
 
@@ -709,6 +730,420 @@ const loadBibleContent = async (book, chapter) => {
     loadUIInfo(book, chapter);
   }
 };
+
+// ==================== 마지막 읽기 위치 관련 함수 ====================
+
+// 마지막 읽기 위치 불러오기
+const loadReadingPosition = async () => {
+  if (!authStore.isAuthenticated) return null;
+
+  try {
+    const response = await api.get('/api/v1/bible/reading-position/');
+    // API 응답: { success: true, position: {...} | null }
+    return response.data?.position || null;
+  } catch (error) {
+    console.error('읽기 위치 불러오기 실패:', error);
+    return null;
+  }
+};
+
+// 마지막 읽기 위치 저장 (debounced)
+let savePositionTimeout = null;
+const saveReadingPosition = async (immediate = false) => {
+  if (!authStore.isAuthenticated || isSavingPosition.value) return;
+
+  // 현재 스크롤 위치 계산
+  const scrollPosition = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight) || 0;
+
+  // 이전 저장 위치와 차이가 작으면 저장하지 않음 (5% 미만)
+  if (!immediate && Math.abs(scrollPosition - lastSavedScrollPosition.value) < 0.05) return;
+
+  // debounce 처리
+  if (savePositionTimeout) {
+    clearTimeout(savePositionTimeout);
+  }
+
+  const doSave = async () => {
+    isSavingPosition.value = true;
+    try {
+      await api.post('/api/v1/bible/reading-position/', {
+        book: currentBook.value,
+        chapter: currentChapter.value,
+        scroll_position: scrollPosition,
+        version: currentVersion.value
+      });
+      lastSavedScrollPosition.value = scrollPosition;
+    } catch (error) {
+      console.error('읽기 위치 저장 실패:', error);
+    } finally {
+      isSavingPosition.value = false;
+    }
+  };
+
+  if (immediate) {
+    await doSave();
+  } else {
+    savePositionTimeout = setTimeout(doSave, 2000); // 2초 debounce
+  }
+};
+
+// 저장된 위치로 이동
+const resumeToSavedPosition = () => {
+  if (!lastReadingPosition.value) return;
+
+  const { book, chapter, scroll_position, version } = lastReadingPosition.value;
+
+  // 역본 변경
+  if (version && versionNames[version]) {
+    currentVersion.value = version;
+  }
+
+  // 현재 위치와 같으면 스크롤만
+  if (book === currentBook.value && chapter === currentChapter.value) {
+    nextTick(() => {
+      const scrollTarget = scroll_position * (document.documentElement.scrollHeight - window.innerHeight);
+      window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+    });
+  } else {
+    // 다른 위치면 페이지 이동 후 스크롤
+    router.replace({
+      query: { ...route.query, book, chapter }
+    });
+    currentBook.value = book;
+    currentChapter.value = chapter;
+
+    loadBibleContent(book, chapter).then(() => {
+      nextTick(() => {
+        setTimeout(() => {
+          const scrollTarget = scroll_position * (document.documentElement.scrollHeight - window.innerHeight);
+          window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+        }, 100);
+      });
+    });
+  }
+
+  showResumeModal.value = false;
+};
+
+// 새로 시작하기 (모달 닫기)
+const startFresh = () => {
+  showResumeModal.value = false;
+  lastReadingPosition.value = null;
+};
+
+// ==================== 마지막 읽기 위치 관련 함수 끝 ====================
+
+// ==================== 북마크 관련 함수 ====================
+
+// 현재 장의 북마크 목록 불러오기
+const loadBookmarks = async () => {
+  if (!authStore.isAuthenticated) return;
+
+  try {
+    isBookmarkLoading.value = true;
+    const response = await api.get('/api/v1/bible/bookmarks/by_chapter/', {
+      params: {
+        book: currentBook.value,
+        chapter: currentChapter.value
+      }
+    });
+    currentBookmarks.value = response.data || [];
+  } catch (error) {
+    console.error('북마크 불러오기 실패:', error);
+    currentBookmarks.value = [];
+  } finally {
+    isBookmarkLoading.value = false;
+  }
+};
+
+// 현재 장이 북마크되어 있는지 확인
+const isCurrentChapterBookmarked = computed(() => {
+  return currentBookmarks.value.some(
+    b => b.book === currentBook.value &&
+         b.chapter === currentChapter.value &&
+         b.bookmark_type === 'chapter'
+  );
+});
+
+// 북마크 토글 (장 단위)
+const toggleBookmark = async () => {
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true;
+    return;
+  }
+
+  try {
+    isBookmarkLoading.value = true;
+
+    if (isCurrentChapterBookmarked.value) {
+      // 북마크 삭제
+      const existingBookmark = currentBookmarks.value.find(
+        b => b.book === currentBook.value &&
+             b.chapter === currentChapter.value &&
+             b.bookmark_type === 'chapter'
+      );
+      if (existingBookmark) {
+        await api.delete(`/api/v1/bible/bookmarks/${existingBookmark.id}/`);
+        if (toast.value) {
+          toast.value.show('북마크가 삭제되었습니다', 'success');
+        }
+      }
+    } else {
+      // 북마크 추가
+      await api.post('/api/v1/bible/bookmarks/', {
+        bookmark_type: 'chapter',
+        book: currentBook.value,
+        chapter: currentChapter.value,
+        title: `${bookNames[currentBook.value]} ${currentChapter.value}장`
+      });
+      if (toast.value) {
+        toast.value.show('북마크에 추가되었습니다', 'success');
+      }
+    }
+
+    // 북마크 목록 새로고침
+    await loadBookmarks();
+  } catch (error) {
+    console.error('북마크 토글 실패:', error);
+    if (toast.value) {
+      toast.value.show('북마크 처리 중 오류가 발생했습니다', 'error');
+    }
+  } finally {
+    isBookmarkLoading.value = false;
+  }
+};
+
+// ==================== 북마크 관련 함수 끝 ====================
+
+// ==================== 묵상노트 관련 함수 ====================
+
+// 현재 장의 묵상노트 불러오기
+const loadNotes = async () => {
+  if (!authStore.isAuthenticated) return;
+
+  try {
+    isNoteLoading.value = true;
+    const response = await api.get('/api/v1/bible/notes/by_chapter/', {
+      params: {
+        book: currentBook.value,
+        chapter: currentChapter.value
+      }
+    });
+    currentNotes.value = response.data || [];
+  } catch (error) {
+    console.error('묵상노트 불러오기 실패:', error);
+    currentNotes.value = [];
+  } finally {
+    isNoteLoading.value = false;
+  }
+};
+
+// 현재 장에 묵상노트가 있는지 확인
+const hasNotesForCurrentChapter = computed(() => {
+  return currentNotes.value.some(
+    n => n.book === currentBook.value && n.chapter === currentChapter.value
+  );
+});
+
+// 묵상노트 모달 열기
+const openNoteModal = () => {
+  if (!authStore.isAuthenticated) {
+    showLoginModal.value = true;
+    return;
+  }
+
+  // 현재 장의 기존 노트가 있으면 수정 모드
+  const existingNote = currentNotes.value.find(
+    n => n.book === currentBook.value && n.chapter === currentChapter.value
+  );
+
+  if (existingNote) {
+    editingNote.value = existingNote;
+    noteContent.value = existingNote.content;
+  } else {
+    editingNote.value = null;
+    noteContent.value = '';
+  }
+
+  showNoteModal.value = true;
+};
+
+// 묵상노트 모달 닫기
+const closeNoteModal = () => {
+  showNoteModal.value = false;
+  editingNote.value = null;
+  noteContent.value = '';
+};
+
+// 묵상노트 저장
+const saveNote = async () => {
+  if (!noteContent.value.trim()) {
+    if (toast.value) {
+      toast.value.show('묵상노트 내용을 입력해주세요', 'error');
+    }
+    return;
+  }
+
+  try {
+    isNoteLoading.value = true;
+
+    if (editingNote.value) {
+      // 수정
+      await api.patch(`/api/v1/bible/notes/${editingNote.value.id}/`, {
+        content: noteContent.value
+      });
+      if (toast.value) {
+        toast.value.show('묵상노트가 수정되었습니다', 'success');
+      }
+    } else {
+      // 새로 작성
+      await api.post('/api/v1/bible/notes/', {
+        book: currentBook.value,
+        chapter: currentChapter.value,
+        content: noteContent.value,
+        is_private: true
+      });
+      if (toast.value) {
+        toast.value.show('묵상노트가 저장되었습니다', 'success');
+      }
+    }
+
+    closeNoteModal();
+    await loadNotes();
+  } catch (error) {
+    console.error('묵상노트 저장 실패:', error);
+    if (toast.value) {
+      toast.value.show('묵상노트 저장 중 오류가 발생했습니다', 'error');
+    }
+  } finally {
+    isNoteLoading.value = false;
+  }
+};
+
+// 묵상노트 삭제
+const deleteNote = async () => {
+  if (!editingNote.value) return;
+
+  try {
+    isNoteLoading.value = true;
+    await api.delete(`/api/v1/bible/notes/${editingNote.value.id}/`);
+    if (toast.value) {
+      toast.value.show('묵상노트가 삭제되었습니다', 'success');
+    }
+    closeNoteModal();
+    await loadNotes();
+  } catch (error) {
+    console.error('묵상노트 삭제 실패:', error);
+    if (toast.value) {
+      toast.value.show('묵상노트 삭제 중 오류가 발생했습니다', 'error');
+    }
+  } finally {
+    isNoteLoading.value = false;
+  }
+};
+
+// ==================== 묵상노트 관련 함수 끝 ====================
+
+// ==================== 개인 읽기 기록 함수 ====================
+
+// 개인 읽기 기록 저장 (장 이동 시 자동 호출)
+const savePersonalReadingRecord = async () => {
+  if (!authStore.isAuthenticated) return;
+
+  try {
+    await api.post('/api/v1/bible/personal-records/', {
+      book: currentBook.value,
+      chapter: currentChapter.value
+    });
+  } catch (error) {
+    // 이미 기록이 있는 경우 (unique_together 위반) 무시
+    if (error.response?.status !== 400) {
+      console.error('개인 읽기 기록 저장 실패:', error);
+    }
+  }
+};
+
+// ==================== 개인 읽기 기록 함수 끝 ====================
+
+// ==================== 통독모드 관련 함수 ====================
+
+// 통독모드 초기화 (URL 파라미터 확인)
+const initTongdokMode = () => {
+  const { tongdok, schedule } = route.query;
+  tongdokMode.value = tongdok === 'true';
+  tongdokScheduleId.value = schedule ? Number(schedule) : null;
+};
+
+// 통독모드 현재 일정 범위 표시용 computed
+const tongdokScheduleRange = computed(() => {
+  if (!tongdokMode.value || !readingDetailResponse.value?.data?.plan_detail) {
+    return null;
+  }
+
+  const planDetails = readingDetailResponse.value.data.plan_detail;
+  if (planDetails.length === 0) return null;
+
+  // 현재 장이 속한 구간 찾기
+  const currentDetail = planDetails.find(detail =>
+    detail.book === currentBook.value &&
+    currentChapter.value >= detail.start_chapter &&
+    currentChapter.value <= detail.end_chapter
+  );
+
+  if (!currentDetail) return null;
+
+  const bookName = bookNames[currentDetail.book] || currentDetail.book;
+  const chapters = currentDetail.start_chapter === currentDetail.end_chapter
+    ? `${currentDetail.start_chapter}장`
+    : `${currentDetail.start_chapter}-${currentDetail.end_chapter}장`;
+
+  return `${bookName} ${chapters}`;
+});
+
+// 통독모드에서 마지막 장인지 확인
+const isLastChapterInTongdok = computed(() => {
+  if (!tongdokMode.value || !readingDetailResponse.value?.data?.plan_detail) {
+    return false;
+  }
+
+  const planDetails = readingDetailResponse.value.data.plan_detail;
+  if (planDetails.length === 0) return false;
+
+  // 마지막 구간의 마지막 장인지 확인
+  const lastDetail = planDetails[planDetails.length - 1];
+  return currentBook.value === lastDetail.book &&
+         currentChapter.value === lastDetail.end_chapter;
+});
+
+// 통독모드 자동 완료 처리
+const handleTongdokAutoComplete = async () => {
+  if (!tongdokMode.value || !isLastChapterInTongdok.value) return;
+  if (!authStore.isAuthenticated) return;
+  if (!route.query.plan) return;
+
+  try {
+    // 자동으로 읽기 완료 처리
+    await confirmCompleteReading();
+
+    if (toast.value) {
+      toast.value.show('통독 완료! 오늘의 읽기가 기록되었습니다', 'success');
+    }
+  } catch (error) {
+    console.error('통독모드 자동 완료 실패:', error);
+  }
+};
+
+// 통독모드 끄기
+const disableTongdokMode = () => {
+  tongdokMode.value = false;
+  tongdokScheduleId.value = null;
+
+  // URL에서 통독 관련 파라미터 제거
+  const { tongdok, schedule, ...restQuery } = route.query;
+  router.replace({ query: restQuery });
+};
+
+// ==================== 통독모드 관련 함수 끝 ====================
 
 // 새한글성경(KNT) 전용 로드 함수 - failback 지원
 const loadKntBibleContent = async (book, chapter) => {
@@ -1982,10 +2417,10 @@ const toggleBodyScroll = (isModalOpen) => {
 
 // 모든 모달 상태를 감시하는 watch
 watch(
-  [showLoginModal, showModal, showScheduleModal, showVersionModal, showReadingSettingsModal],
-  ([newLoginModal, newShowModal, newScheduleModal, newVersionModal, newReadingSettingsModal]) => {
+  [showLoginModal, showModal, showScheduleModal, showVersionModal, showReadingSettingsModal, showResumeModal, showNoteModal],
+  ([newLoginModal, newShowModal, newScheduleModal, newVersionModal, newReadingSettingsModal, newResumeModal, newNoteModal]) => {
     toggleBodyScroll(
-      newLoginModal || newShowModal || newScheduleModal || newVersionModal || newReadingSettingsModal
+      newLoginModal || newShowModal || newScheduleModal || newVersionModal || newReadingSettingsModal || newResumeModal || newNoteModal
     );
   }
 );
@@ -1996,6 +2431,32 @@ watch(
   () => {
     if (currentBook.value && currentChapter.value) {
       loadBibleContent(currentBook.value, currentChapter.value);
+    }
+  }
+);
+
+// 책/장 변경 시 북마크, 묵상노트 불러오기 및 개인 읽기 기록 저장
+watch(
+  [currentBook, currentChapter],
+  () => {
+    if (currentBook.value && currentChapter.value && authStore.isAuthenticated) {
+      loadBookmarks();
+      loadNotes();
+      savePersonalReadingRecord();
+    }
+  }
+);
+
+// 통독모드: 마지막 장 도달 시 자동 완료 처리
+watch(
+  [isLastChapterInTongdok, isLoading],
+  ([isLastChapter, loading]) => {
+    // 로딩이 완료되고 마지막 장에 도달했을 때 자동 완료
+    if (isLastChapter && !loading && tongdokMode.value && readingStatus.value !== 'completed') {
+      // 잠시 대기 후 자동 완료 처리 (사용자가 본문을 볼 시간)
+      setTimeout(() => {
+        handleTongdokAutoComplete();
+      }, 1500);
     }
   }
 );
@@ -2036,10 +2497,23 @@ const detectTouchDevice = () => {
 
   return isTouchDevice;
 };
+// 스크롤 이벤트 핸들러 (읽기 위치 저장용)
+const handleScrollForPosition = () => {
+  saveReadingPosition();
+};
+
 // 페이지 마운트 시 터치 디바이스 감지 실행
 onMounted(async () => {
   detectTouchDevice();
   window.addEventListener("scroll", handleScroll, { passive: true });
+
+  // 읽기 위치 저장을 위한 스크롤 이벤트 추가
+  if (authStore.isAuthenticated) {
+    window.addEventListener("scroll", handleScrollForPosition, { passive: true });
+  }
+
+  // 통독모드 초기화
+  initTongdokMode();
 
   // 읽기 설정 스토어 초기화
   await readingSettingsStore.initialize();
@@ -2075,7 +2549,14 @@ onMounted(async () => {
       return;
     }
 
-    // 파라미터가 없는 경우 기본값 설정
+    // 파라미터가 없는 경우: 저장된 읽기 위치가 있으면 복원 제안
+    const savedPosition = await loadReadingPosition();
+    if (savedPosition && !book && !chapter) {
+      lastReadingPosition.value = savedPosition;
+      showResumeModal.value = true;
+    }
+
+    // 기본값 설정
     const defaultBook = "gen";
     const defaultChapter = "1";
 
@@ -2633,10 +3114,16 @@ const handleScroll = () => {
 onUnmounted(() => {
   if (process.client) {
     window.removeEventListener("scroll", handleScroll);
+    window.removeEventListener("scroll", handleScrollForPosition);
     document.removeEventListener("click", hideCopyMenuOnOutsideClick);
-    
+
     // 혹시 존재할 수 있는 타이머 제거
     clearSelection();
+
+    // 페이지 이탈 시 마지막 읽기 위치 저장
+    if (authStore.isAuthenticated) {
+      saveReadingPosition(true);
+    }
   }
 });
 
@@ -2871,9 +3358,20 @@ onUnmounted(() => {
         </svg>
       </button>
       <h1>성경일독</h1>
-      <button class="share-button" @click="copyCurrentUrl" title="링크 공유">
-        <i class="fa-solid fa-share-nodes"></i>
-      </button>
+      <div class="header-actions">
+        <button
+          class="bookmark-button"
+          :class="{ active: isCurrentChapterBookmarked }"
+          @click="toggleBookmark"
+          :disabled="isBookmarkLoading"
+          title="북마크"
+        >
+          <i :class="isCurrentChapterBookmarked ? 'fa-solid' : 'fa-regular'" class="fa-bookmark"></i>
+        </button>
+        <button class="share-button" @click="copyCurrentUrl" title="링크 공유">
+          <i class="fa-solid fa-share-nodes"></i>
+        </button>
+      </div>
     </div>
 
     <div class="today-reading fade-in" style="animation-delay: 0.1s" v-if="readingDetailResponse?.data">
@@ -3018,6 +3516,19 @@ onUnmounted(() => {
                 <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
+            <!-- 묵상노트 버튼 -->
+            <button
+              class="note-button"
+              :class="{ 'has-note': hasNotesForCurrentChapter }"
+              @click="openNoteModal"
+              :disabled="isNoteLoading"
+              title="묵상노트"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
           <div class="chapter-select-button-wrapper right">
             <div class="font-size-controls">
@@ -3050,6 +3561,22 @@ onUnmounted(() => {
           v-html="bibleContent"
           @click="onBibleClick"></div>
       </div>
+    </div>
+
+    <!-- 통독모드 표시기 -->
+    <div v-if="tongdokMode" class="tongdok-indicator fade-in">
+      <div class="tongdok-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        통독모드
+      </div>
+      <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
+      <button class="tongdok-close" @click="disableTongdokMode" title="통독모드 끄기">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
 
     <div class="navigation-controls fade-in" style="animation-delay: 0.3s">
@@ -3429,6 +3956,97 @@ onUnmounted(() => {
       </div>
     </Teleport>
 
+    <!-- 이어 읽기 모달 -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showResumeModal" class="modal-overlay" @click="startFresh">
+          <div class="modal-content resume-modal" @click.stop>
+            <div class="modal-body">
+              <button class="close-button absolute-close" @click="startFresh">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="modal-content-wrapper">
+                <div class="modal-icon resume-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="modal-text">
+                  <h3>이어서 읽으시겠어요?</h3>
+                  <p v-if="lastReadingPosition">
+                    {{ bookNames[lastReadingPosition.book] || lastReadingPosition.book }} {{ lastReadingPosition.chapter }}장에서<br />
+                    마지막으로 읽으셨어요.
+                  </p>
+                </div>
+                <div class="modal-actions">
+                  <button class="confirm-button resume-button" @click="resumeToSavedPosition">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    이어 읽기
+                  </button>
+                  <button class="cancel-button" @click="startFresh">
+                    처음부터 읽기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- 묵상노트 모달 -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showNoteModal" class="modal-overlay" @click="closeNoteModal">
+          <div class="modal-content note-modal" @click.stop>
+            <div class="modal-header">
+              <h3>{{ editingNote ? '묵상노트 수정' : '묵상노트 작성' }}</h3>
+              <button class="close-button" @click="closeNoteModal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </button>
+            </div>
+            <div class="note-modal-body">
+              <div class="note-chapter-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ bookNames[currentBook] }} {{ currentChapter }}장</span>
+              </div>
+              <textarea
+                v-model="noteContent"
+                class="note-textarea"
+                placeholder="이 장을 읽고 느낀 점, 깨달은 점을 기록해보세요..."
+                rows="8"
+              ></textarea>
+              <div class="note-modal-actions">
+                <button v-if="editingNote" class="delete-button" @click="deleteNote" :disabled="isNoteLoading">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  삭제
+                </button>
+                <button class="save-button" @click="saveNote" :disabled="isNoteLoading || !noteContent.trim()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="7,3 7,8 15,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- BibleScheduleContent 컴포넌트를 숨김 처리 -->
     <div class="hidden-schedule-content">
       <BibleScheduleContent v-if="readingDetailResponse?.data" ref="scheduleContentRef"
@@ -3528,12 +4146,18 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.bookmark-button,
 .share-button {
   background: none;
   border: none;
   padding: 0.375rem;
-  margin: -0.375rem;
-  margin-left: auto;
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -3541,14 +4165,26 @@ onUnmounted(() => {
   opacity: 0.7;
 }
 
+.bookmark-button:hover,
 .share-button:hover {
   background: rgba(0, 0, 0, 0.05);
   opacity: 1;
 }
 
+.bookmark-button:active,
 .share-button:active {
   transform: scale(0.95);
   background: rgba(0, 0, 0, 0.1);
+}
+
+.bookmark-button.active {
+  color: var(--primary-color);
+  opacity: 1;
+}
+
+.bookmark-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .header h1 {
@@ -4844,6 +5480,259 @@ onUnmounted(() => {
 .absolute-close:hover {
   color: var(--text-primary);
   background: rgba(0, 0, 0, 0.05);
+}
+
+/* 이어 읽기 모달 */
+.resume-modal {
+  max-width: 320px;
+  width: 90%;
+  text-align: center;
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  margin: 1rem;
+  padding: 1rem;
+  animation: slideUp 0.3s ease-out;
+}
+
+.resume-icon {
+  color: var(--primary-color);
+}
+
+.resume-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resume-button:hover {
+  background: var(--primary-dark);
+}
+
+.resume-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 묵상노트 버튼 */
+.note-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--color-slate-100);
+  color: var(--color-slate-600);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.note-button:hover {
+  background: var(--color-slate-200);
+  color: var(--color-slate-700);
+}
+
+.note-button:active {
+  transform: scale(0.95);
+}
+
+.note-button.has-note {
+  background: var(--primary-color);
+  color: white;
+}
+
+.note-button.has-note:hover {
+  background: var(--primary-dark);
+}
+
+.note-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 묵상노트 모달 */
+.note-modal {
+  max-width: 480px;
+  width: 90%;
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+.note-modal-body {
+  padding: 1rem;
+}
+
+.note-chapter-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--color-slate-50);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.note-textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--color-slate-200);
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 150px;
+  background: var(--color-bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.note-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.note-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.note-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.note-modal-actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.note-modal-actions .delete-button {
+  background: var(--color-slate-100);
+  color: var(--color-red-600);
+  border: none;
+}
+
+.note-modal-actions .delete-button:hover {
+  background: var(--color-red-50);
+}
+
+.note-modal-actions .save-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.note-modal-actions .save-button:hover {
+  background: var(--primary-dark);
+}
+
+.note-modal-actions .save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .note-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .note-button svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* 통독모드 표시기 */
+.tongdok-indicator {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  animation: slideUp 0.3s ease-out;
+}
+
+.tongdok-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-right: 0.5rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.tongdok-range {
+  opacity: 0.9;
+}
+
+.tongdok-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s ease;
+  margin-left: 0.25rem;
+}
+
+.tongdok-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tongdok-close svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 640px) {
+  .tongdok-indicator {
+    bottom: 70px;
+    font-size: 0.75rem;
+    padding: 0.375rem 0.625rem;
+  }
 }
 
 .chapter-select-button {
