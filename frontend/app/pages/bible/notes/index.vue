@@ -1,7 +1,7 @@
 <template>
-  <div class="notes-page">
-    <header class="page-header">
-      <button class="back-btn" @click="$router.back()">
+  <div class="bible-page notes-page">
+    <header class="bible-page-header">
+      <button class="bible-back-btn" @click="$router.back()">
         <ChevronLeftIcon :size="20" />
       </button>
       <h1>묵상노트</h1>
@@ -25,20 +25,20 @@
     </div>
 
     <!-- 로딩 -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="loading-spinner"></div>
+    <div v-if="isLoading" class="bible-loading-state">
+      <SpinnerIcon :size="32" />
       <p>묵상노트를 불러오는 중...</p>
     </div>
 
     <!-- 로그인 필요 -->
-    <div v-else-if="!authStore.isAuthenticated" class="empty-state">
+    <div v-else-if="!authStore.isAuthenticated" class="bible-empty-state">
       <DocumentIcon :size="48" class="empty-icon" />
       <p>로그인 후 묵상노트를 확인할 수 있습니다</p>
-      <NuxtLink to="/login" class="login-btn">로그인</NuxtLink>
+      <NuxtLink to="/login" class="bible-login-btn">로그인</NuxtLink>
     </div>
 
     <!-- 빈 상태 -->
-    <div v-else-if="filteredNotes.length === 0" class="empty-state">
+    <div v-else-if="filteredNotes.length === 0" class="bible-empty-state">
       <DocumentIcon :size="48" class="empty-icon" />
       <p>{{ filterBook ? '해당 책에 작성된 묵상노트가 없습니다' : '작성된 묵상노트가 없습니다' }}</p>
       <span class="empty-hint">성경을 읽으며 묵상을 기록해보세요</span>
@@ -117,46 +117,10 @@ const truncate = (text: string, length: number): string => {
 </script>
 
 <style scoped>
-.notes-page {
-  max-width: 768px;
-  margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--color-bg-primary, #f9fafb);
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.back-btn {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary, #1f2937);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: none;
-}
-
-.back-btn:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-}
-
-.page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
+/*
+ * Notes List Page specific styles
+ * 공통 스타일은 bible-page.css에서 관리됨
+ */
 
 /* 필터 */
 .filter-bar {
@@ -179,74 +143,6 @@ const truncate = (text: string, length: number): string => {
 .filter-select:focus {
   outline: none;
   border-color: var(--primary-color, #6366f1);
-}
-
-/* 로딩 상태 */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 120px);
-  padding: 2rem;
-  color: var(--text-secondary, #6b7280);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border, #e5e7eb);
-  border-top-color: var(--primary-color, #6366f1);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 빈 상태 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 120px);
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-secondary, #6b7280);
-}
-
-.empty-state .empty-icon {
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 0.9375rem;
-  margin-bottom: 0.5rem;
-}
-
-.empty-hint {
-  font-size: 0.8125rem;
-  opacity: 0.7;
-}
-
-.login-btn {
-  margin-top: 1rem;
-  padding: 0.625rem 1.25rem;
-  background: var(--primary-color, #6366f1);
-  color: white;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.2s;
-}
-
-.login-btn:hover {
-  background: var(--primary-dark, #4f46e5);
 }
 
 /* 노트 목록 */
@@ -317,15 +213,6 @@ const truncate = (text: string, length: number): string => {
 }
 
 /* 다크모드 */
-:root.dark .notes-page {
-  background: var(--color-bg-primary);
-}
-
-:root.dark .page-header {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
-}
-
 :root.dark .filter-bar {
   background: var(--color-bg-card);
   border-color: var(--color-border);

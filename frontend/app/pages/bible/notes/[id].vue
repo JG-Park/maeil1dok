@@ -1,23 +1,23 @@
 <template>
-  <div class="note-detail-page">
-    <header class="page-header">
-      <button class="back-btn" @click="handleBack">
+  <div class="bible-page note-detail-page">
+    <header class="bible-page-header">
+      <button class="bible-back-btn" @click="handleBack">
         <ChevronLeftIcon :size="20" />
       </button>
       <h1>묵상노트</h1>
-      <button v-if="note" class="delete-btn" @click="handleDelete" title="삭제">
+      <button v-if="note" class="bible-header-btn danger" @click="handleDelete" title="삭제">
         <TrashIcon :size="20" />
       </button>
     </header>
 
     <!-- 로딩 -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="loading-spinner"></div>
+    <div v-if="isLoading" class="bible-loading-state">
+      <SpinnerIcon :size="32" />
       <p>묵상노트를 불러오는 중...</p>
     </div>
 
     <!-- 노트 없음 -->
-    <div v-else-if="!note" class="empty-state">
+    <div v-else-if="!note" class="bible-empty-state">
       <InfoCircleIcon :size="48" class="empty-icon" />
       <p>묵상노트를 찾을 수 없습니다</p>
       <NuxtLink to="/bible/notes" class="back-link">목록으로 돌아가기</NuxtLink>
@@ -182,92 +182,21 @@ watch([editContent, isPrivate], () => {
 </script>
 
 <style scoped>
+/*
+ * Note Detail Page specific styles
+ * 공통 스타일은 bible-page.css에서 관리됨
+ */
+
 .note-detail-page {
-  max-width: 768px;
-  margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--color-bg-primary, #f9fafb);
   display: flex;
   flex-direction: column;
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.back-btn,
-.delete-btn {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary, #1f2937);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: none;
-}
-
-.back-btn:hover,
-.delete-btn:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-}
-
-.delete-btn {
-  margin-left: auto;
-  margin-right: -0.5rem;
-  color: var(--text-secondary, #6b7280);
-}
-
-.delete-btn:hover {
-  color: var(--color-error, #ef4444);
-  background: var(--color-error-light, #fef2f2);
-}
-
-.page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
-
-/* 로딩/빈 상태 */
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+/* 로딩/빈 상태가 flex: 1을 차지하도록 */
+.note-detail-page .bible-loading-state,
+.note-detail-page .bible-empty-state {
   flex: 1;
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-secondary, #6b7280);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border, #e5e7eb);
-  border-top-color: var(--primary-color, #6366f1);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-state .empty-icon {
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  min-height: auto;
 }
 
 .back-link {
@@ -435,19 +364,6 @@ watch([editContent, isPrivate], () => {
 }
 
 /* 다크모드 */
-:root.dark .note-detail-page {
-  background: var(--color-bg-primary);
-}
-
-:root.dark .page-header {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
-}
-
-:root.dark .delete-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
-}
-
 :root.dark .note-location {
   background: var(--color-bg-card);
 }

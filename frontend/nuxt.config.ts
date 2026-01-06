@@ -52,7 +52,8 @@ export default defineNuxtConfig({
     '~/assets/css/main.css',
     '~/assets/css/global.css',
     '~/assets/css/mobile-nav.css',
-    '~/assets/css/themes.css'
+    '~/assets/css/themes.css',
+    '~/assets/css/bible-page.css'
   ],
   runtimeConfig: {
     public: {

@@ -14,7 +14,7 @@
 
     <!-- 빈 상태 액션 -->
     <template #empty-action>
-      <NuxtLink v-if="!authStore.isAuthenticated" to="/login" class="login-btn">로그인</NuxtLink>
+      <NuxtLink v-if="!authStore.isAuthenticated" to="/login" class="bible-login-btn">로그인</NuxtLink>
     </template>
 
     <!-- 북마크 목록 -->
@@ -137,21 +137,10 @@ const handleDelete = async (bookmark: Bookmark) => {
 </script>
 
 <style scoped>
-.login-btn {
-  margin-top: 1rem;
-  padding: 0.625rem 1.25rem;
-  background: var(--primary-color, #6366f1);
-  color: white;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.2s;
-}
-
-.login-btn:hover {
-  background: var(--primary-dark, #4f46e5);
-}
+/*
+ * Bookmarks Page specific styles
+ * 공통 스타일은 bible-page.css에서 관리됨
+ */
 
 /* 북마크 목록 */
 .bookmark-list {

@@ -1,7 +1,7 @@
 # TASK-04: CSS 공통화 및 중복 제거
 
 > **Priority**: P1 (Major)
-> **Status**: `[ ]` Pending
+> **Status**: `[x]` Completed
 > **Tracker**: [TRACKER.md](./TRACKER.md)
 
 ---
@@ -85,23 +85,30 @@
 
 ### 1. 글로벌 유틸리티 클래스 생성
 
-- [ ] `assets/css/components/page-header.css` 생성
-- [ ] `assets/css/components/buttons.css` 생성
-- [ ] `assets/css/components/loading.css` 생성
-- [ ] `assets/css/components/empty-state.css` 생성
+- [x] `assets/css/bible-page.css` 생성 (통합 파일)
+  - `.bible-page` - 페이지 컨테이너
+  - `.bible-page-header` - 페이지 헤더
+  - `.bible-back-btn` - 뒤로가기 버튼
+  - `.bible-loading-state` - 로딩 상태
+  - `.bible-loading-spinner` - 로딩 스피너
+  - `.bible-empty-state` - 빈 상태
+  - `.bible-login-btn` - 로그인 버튼
+  - `.bible-header-actions` - 헤더 액션 버튼들
+  - `.bible-header-btn` - 헤더 버튼
 
-### 2. BibleSubpageLayout 활용 확대
+### 2. BibleSubpageLayout 업데이트
 
-현재 `bookmarks.vue`만 `BibleSubpageLayout` 사용 중
-
-- [ ] `history.vue` → `BibleSubpageLayout` 사용으로 전환
-- [ ] `settings.vue` → `BibleSubpageLayout` 사용으로 전환
-- [ ] `notes/index.vue` → 이미 직접 구현, Layout 전환 검토
+- [x] 인라인 SVG를 아이콘 컴포넌트로 교체 (ChevronLeftIcon, SpinnerIcon, InfoCircleIcon)
+- [x] 전역 CSS 클래스 사용으로 전환
+- [x] 중복 scoped CSS 제거
 
 ### 3. 각 파일에서 중복 스타일 제거
 
-- [ ] 글로벌 클래스 import 후 scoped 스타일 제거
-- [ ] 파일별 고유 스타일만 유지
+- [x] `history.vue` - page-header, back-btn, loading 스타일 제거
+- [x] `settings.vue` - page-header, back-btn 스타일 제거
+- [x] `notes/index.vue` - page-header, back-btn, loading, empty-state, login-btn 스타일 제거
+- [x] `notes/[id].vue` - page-header, back-btn, loading, empty-state 스타일 제거
+- [x] `bookmarks.vue` - login-btn 스타일 제거
 
 ---
 
@@ -171,11 +178,11 @@ assets/css/
 
 ## Acceptance Criteria
 
-- [ ] 중복 CSS 제거됨
-- [ ] 공통 스타일이 한 곳에서 관리됨
-- [ ] 기존 UI 동일하게 렌더링
-- [ ] 다크모드 정상 동작
-- [ ] 빌드 에러 없음
+- [x] 중복 CSS 제거됨
+- [x] 공통 스타일이 한 곳에서 관리됨 (`bible-page.css`)
+- [x] 기존 UI 동일하게 렌더링
+- [x] 다크모드 정상 동작
+- [x] 빌드 에러 없음
 
 ---
 
@@ -191,7 +198,7 @@ assets/css/
 
 ## Completion
 
-- [ ] 코드 변경 완료
-- [ ] 테스트 통과
-- [ ] 커밋 발행
-- [ ] TRACKER.md 상태 업데이트
+- [x] 코드 변경 완료
+- [x] 테스트 통과
+- [x] 커밋 발행
+- [x] TRACKER.md 상태 업데이트

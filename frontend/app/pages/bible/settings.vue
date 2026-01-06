@@ -1,7 +1,7 @@
 <template>
-  <div class="settings-page">
-    <header class="page-header">
-      <button class="back-btn" @click="$router.back()">
+  <div class="bible-page settings-page">
+    <header class="bible-page-header">
+      <button class="bible-back-btn" @click="$router.back()">
         <ChevronLeftIcon :size="20" />
       </button>
       <h1>읽기 설정</h1>
@@ -354,46 +354,10 @@ const resetAllSettings = () => {
 </script>
 
 <style scoped>
-.settings-page {
-  max-width: 768px;
-  margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--color-bg-primary, #f9fafb);
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.back-btn {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary, #1f2937);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: none;
-}
-
-.back-btn:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-}
-
-.page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
+/*
+ * Settings Page specific styles
+ * 공통 스타일은 bible-page.css에서 관리됨
+ */
 
 /* 설정 컨텐츠 */
 .settings-content {
@@ -802,15 +766,6 @@ const resetAllSettings = () => {
 }
 
 /* 다크모드 */
-:root.dark .settings-page {
-  background: var(--color-bg-primary);
-}
-
-:root.dark .page-header {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
-}
-
 :root.dark .settings-section {
   background: var(--color-bg-card);
 }

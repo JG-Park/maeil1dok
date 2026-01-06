@@ -1,14 +1,14 @@
 <template>
-  <div class="history-page">
-    <header class="page-header">
-      <button class="back-btn" @click="$router.back()">
+  <div class="bible-page history-page">
+    <header class="bible-page-header">
+      <button class="bible-back-btn" @click="$router.back()">
         <ChevronLeftIcon :size="20" />
       </button>
       <h1>읽기 기록</h1>
     </header>
 
-    <div v-if="isLoading" class="loading">
-      <SpinnerIcon :size="24" />
+    <div v-if="isLoading" class="bible-loading-state">
+      <SpinnerIcon :size="32" />
     </div>
 
     <div v-else class="history-content">
@@ -208,54 +208,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.history-page {
-  max-width: 768px;
-  margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--background-color);
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card);
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.back-btn {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-primary);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: none;
-}
-
-.back-btn:hover {
-  background: var(--primary-light);
-}
-
-.page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 60px);
-  color: var(--primary-color);
-}
+/*
+ * History Page specific styles
+ * 공통 스타일은 bible-page.css에서 관리됨
+ */
 
 .history-content {
   padding: 1rem;
