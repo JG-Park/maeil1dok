@@ -88,11 +88,13 @@ import { ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter, navigateTo } from '#app'
 import { useAuthStore } from '@/stores/auth'
 import { useApi } from '~/composables/useApi'
+import { useModal } from '~/composables/useModal'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const api = useApi()
+const modal = useModal()
 
 const nickname = ref(route.query.suggested_nickname || '')
 const loading = ref(false)
@@ -136,10 +138,14 @@ const checkNickname = async () => {
 
 const handleSubmit = async () => {
   if (!isNicknameChecked.value) {
-    alert('닉네임 중복 확인이 필요합니다.')
+    await modal.alert({
+      title: '확인 필요',
+      description: '닉네임 중복 확인이 필요합니다.',
+      icon: 'warning'
+    })
     return
   }
-  
+
   loading.value = true
   try {
     // 카카오 회원가입 완료 API 호출
@@ -147,7 +153,7 @@ const handleSubmit = async () => {
       nickname: nickname.value,
       ...route.query  // 카카오에서 받은 정보 포함
     })
-    
+
     if (response.access) {
       auth.setTokens(response.access, response.refresh)
       auth.setUser(response.user)
@@ -155,7 +161,11 @@ const handleSubmit = async () => {
       navigateTo('/')
     }
   } catch (error) {
-    alert('회원가입 중 오류가 발생했습니다.')
+    await modal.alert({
+      title: '오류 발생',
+      description: '회원가입 중 오류가 발생했습니다.',
+      icon: 'error'
+    })
   } finally {
     loading.value = false
   }
