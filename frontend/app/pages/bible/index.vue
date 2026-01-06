@@ -154,12 +154,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useBibleData } from '~/composables/useBibleData';
 import { useBibleFetch } from '~/composables/useBibleFetch';
 import { useTongdokMode } from '~/composables/useTongdokMode';
 import { usePersonalRecord } from '~/composables/usePersonalRecord';
+import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useToast } from '~/composables/useToast';
@@ -201,6 +202,12 @@ const {
   disableTongdokMode,
   completeReading
 } = useTongdokMode();
+const {
+  lastReadingPosition,
+  loadReadingPosition,
+  saveReadingPosition,
+  cleanup: cleanupReadingPosition
+} = useReadingPosition();
 
 // 상태
 const currentBook = ref('gen');
@@ -600,15 +607,58 @@ const handleTongdokComplete = async (payload: { autoComplete: boolean }) => {
 
 // 라이프사이클
 onMounted(async () => {
-  initFromQuery();
   initTongdokMode();
+
+  // URL에 book/chapter가 있으면 그것을 사용
+  const hasQueryParams = route.query.book || route.query.chapter;
+
+  if (hasQueryParams) {
+    initFromQuery();
+  } else if (!tongdokMode.value) {
+    // 쿼리 파라미터가 없고 통독모드가 아니면 마지막 위치 로드
+    const lastPos = await loadReadingPosition();
+    if (lastPos) {
+      currentBook.value = lastPos.book;
+      currentChapter.value = lastPos.chapter;
+      currentVersion.value = lastPos.version || 'GAE';
+      scrollPosition.value = lastPos.scroll_position || 0;
+      updateUrl();
+    }
+  } else {
+    initFromQuery();
+  }
+
   loadBibleContent(currentBook.value, currentChapter.value);
 
   // 읽기 기록 조회 (로그인 시)
   if (authStore.isAuthenticated && !isTongdokMode.value) {
     await fetchReadChapters(currentBook.value);
   }
+
+  // beforeunload 이벤트 등록 (페이지 이탈 시 위치 저장)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', handleBeforeUnload);
+  }
 });
+
+onBeforeUnmount(() => {
+  // cleanup
+  cleanupReadingPosition();
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  }
+  // 페이지 이탈 시 위치 저장
+  if (!tongdokMode.value) {
+    saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value, true);
+  }
+});
+
+// beforeunload 핸들러
+const handleBeforeUnload = () => {
+  if (!tongdokMode.value) {
+    saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value, true);
+  }
+};
 
 // route.query 변경 감지
 watch(
@@ -629,6 +679,17 @@ watch(
       await fetchReadChapters(newBook);
     }
   }
+);
+
+// 책/장/역본 변경 시 위치 저장 (통독모드가 아닐 때)
+watch(
+  [() => currentBook.value, () => currentChapter.value, () => currentVersion.value],
+  () => {
+    if (!tongdokMode.value) {
+      saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value);
+    }
+  },
+  { flush: 'post' }
 );
 </script>
 

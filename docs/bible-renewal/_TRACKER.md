@@ -22,10 +22,10 @@
 | Phase | 태스크 | 진행률 |
 |-------|--------|--------|
 | Phase 1 | 기반 작업 | 3/3 ✅ |
-| Phase 2 | 핵심 기능 | 3/4 |
+| Phase 2 | 핵심 기능 | 4/4 ✅ |
 | Phase 3 | 부가 기능 | 0/3 |
 | Phase 4 | 설정 및 마무리 | 0/4 |
-| **Total** | | **6/14** |
+| **Total** | | **7/14** |
 
 ---
 
@@ -45,8 +45,8 @@
 |---|--------|------|------|
 | 2-1 | [성경 뷰어 컴포넌트](./phase-2/task-2-1-bible-viewer.md) | ✅ 완료 | dc0589b |
 | 2-2 | [읽기모드 구현](./phase-2/task-2-2-reading-mode.md) | ✅ 완료 | 3bcafcf |
-| 2-3 | [통독모드 구현](./phase-2/task-2-3-tongdok-mode.md) | ⬜ 대기 | - |
-| 2-4 | [마지막 읽기 위치](./phase-2/task-2-4-reading-position.md) | ⬜ 대기 | - |
+| 2-3 | [통독모드 구현](./phase-2/task-2-3-tongdok-mode.md) | ✅ 완료 | b46e491 |
+| 2-4 | [마지막 읽기 위치](./phase-2/task-2-4-reading-position.md) | ✅ 완료 | (커밋 대기) |
 
 ---
 
@@ -80,6 +80,7 @@
 | 2026-01-06 | 1-3 | e3e7b96 | feat(bible): implement /bible and /plan pages with basic structure |
 | 2026-01-06 | 2-1 | dc0589b | feat(bible): Task 2-1 BibleViewer 컴포넌트 구현 |
 | 2026-01-06 | 2-2 | 3bcafcf | feat(bible): Task 2-2 읽기모드 구현 |
+| 2026-01-06 | 2-3 | b46e491 | feat(bible): Task 2-3 통독모드 구현 |
 
 ---
 
