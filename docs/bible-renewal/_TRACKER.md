@@ -21,11 +21,11 @@
 
 | Phase | 태스크 | 진행률 |
 |-------|--------|--------|
-| Phase 1 | 기반 작업 | 2/3 |
+| Phase 1 | 기반 작업 | 3/3 ✅ |
 | Phase 2 | 핵심 기능 | 0/4 |
 | Phase 3 | 부가 기능 | 0/3 |
 | Phase 4 | 설정 및 마무리 | 0/4 |
-| **Total** | | **2/14** |
+| **Total** | | **3/14** |
 
 ---
 
@@ -35,7 +35,7 @@
 |---|--------|------|------|
 | 1-1 | [라우트 구조 및 리다이렉트](./phase-1/task-1-1-routes.md) | ✅ 완료 | 89c1c38 |
 | 1-2 | [reading.vue 컴포넌트 분리](./phase-1/task-1-2-component-split.md) | ✅ 완료 | 5126f68 |
-| 1-3 | [/bible 페이지 기본 구조](./phase-1/task-1-3-bible-page.md) | ⬜ 대기 | - |
+| 1-3 | [/bible 페이지 기본 구조](./phase-1/task-1-3-bible-page.md) | ✅ 완료 | e3e7b96 |
 
 ---
 
@@ -77,6 +77,7 @@
 |------|--------|----------|--------|
 | 2026-01-06 | 1-1 | 89c1c38 | feat(bible): Task 1-1 라우트 구조 및 리다이렉트 구현 |
 | 2026-01-06 | 1-2 | 5126f68 | refactor(bible): extract reusable composables and UI components |
+| 2026-01-06 | 1-3 | e3e7b96 | feat(bible): implement /bible and /plan pages with basic structure |
 
 ---
 

@@ -1,17 +1,424 @@
 <template>
   <div class="bible-page">
-    <div class="placeholder">
-      <h1>성경</h1>
-      <p>Task 1-3에서 구현 예정</p>
+    <!-- 헤더 -->
+    <header class="bible-header">
+      <button class="back-button" @click="goBack">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+
+      <button class="book-selector-button" @click="showBookSelector = true">
+        <span class="book-name">{{ currentBookName }}</span>
+        <span class="chapter-number">{{ currentChapter }}{{ chapterSuffix }}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+
+      <div class="header-actions">
+        <button class="version-button" @click="showVersionSelector = true">
+          {{ currentVersionName }}
+        </button>
+      </div>
+    </header>
+
+    <!-- 통독모드 인디케이터 -->
+    <div v-if="isTongdokMode && tongdokScheduleRange" class="tongdok-indicator">
+      <span class="tongdok-badge">통독</span>
+      <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
     </div>
+
+    <!-- 로딩 상태 -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>성경을 불러오는 중...</p>
+    </div>
+
+    <!-- 성경 본문 -->
+    <main v-else class="bible-content-wrapper" ref="contentWrapper">
+      <div class="bible-content" :style="{ fontSize: fontSize + 'px' }" v-html="bibleContent"></div>
+    </main>
+
+    <!-- 하단 네비게이션 -->
+    <nav class="bible-navigation">
+      <button
+        class="nav-button prev"
+        :disabled="!hasPrevChapter"
+        @click="goToPrevChapter"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        이전
+      </button>
+
+      <div class="chapter-info">
+        {{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}
+      </div>
+
+      <button
+        class="nav-button next"
+        :disabled="!hasNextChapter"
+        @click="goToNextChapter"
+      >
+        다음
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </nav>
+
+    <!-- 모달 -->
+    <BookSelector
+      v-model="showBookSelector"
+      :current-book="currentBook"
+      :current-chapter="currentChapter"
+      @select="handleBookSelect"
+    />
+
+    <VersionSelector
+      v-model="showVersionSelector"
+      :current-version="currentVersion"
+      @select="handleVersionSelect"
+    />
   </div>
 </template>
 
-<script setup>
-// Task 1-3에서 구현 예정
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useBibleData } from '~/composables/useBibleData';
+import { useBibleFetch } from '~/composables/useBibleFetch';
+import { useTongdokMode } from '~/composables/useTongdokMode';
+import { useReadingSettingsStore } from '~/stores/readingSettings';
+import BookSelector from '~/components/bible/BookSelector.vue';
+import VersionSelector from '~/components/bible/VersionSelector.vue';
+
 definePageMeta({
   layout: 'default'
-})
+});
+
+const route = useRoute();
+const router = useRouter();
+const readingSettingsStore = useReadingSettingsStore();
+
+// Composables
+const { bookNames, bookChapters, versionNames } = useBibleData();
+const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch();
+const {
+  tongdokMode,
+  tongdokScheduleId,
+  initTongdokMode,
+  getTongdokScheduleRange
+} = useTongdokMode();
+
+// 상태
+const currentBook = ref('gen');
+const currentChapter = ref(1);
+const currentVersion = ref('GAE');
+const bibleContent = ref('');
+const chapterTitle = ref('');
+const isLoading = ref(true);
+
+// 모달 상태
+const showBookSelector = ref(false);
+const showVersionSelector = ref(false);
+
+// Refs
+const contentWrapper = ref<HTMLElement | null>(null);
+
+// 읽기 설정
+const fontSize = computed(() => readingSettingsStore.settings.fontSize);
+
+// Computed
+const currentBookName = computed(() => bookNames[currentBook.value] || currentBook.value);
+const currentVersionName = computed(() => versionNames[currentVersion.value] || currentVersion.value);
+const maxChapters = computed(() => bookChapters[currentBook.value] || 1);
+const chapterSuffix = computed(() => currentBook.value === 'psa' ? '편' : '장');
+
+const hasPrevChapter = computed(() => {
+  // 첫 번째 책의 첫 번째 장이 아니면 이전 장이 있음
+  if (currentChapter.value > 1) return true;
+  const allBooks = Object.keys(bookNames);
+  const currentIndex = allBooks.indexOf(currentBook.value);
+  return currentIndex > 0;
+});
+
+const hasNextChapter = computed(() => {
+  // 현재 책의 마지막 장이 아니거나, 마지막 책이 아니면 다음 장이 있음
+  if (currentChapter.value < maxChapters.value) return true;
+  const allBooks = Object.keys(bookNames);
+  const currentIndex = allBooks.indexOf(currentBook.value);
+  return currentIndex < allBooks.length - 1;
+});
+
+// 통독모드 관련
+const isTongdokMode = computed(() => tongdokMode.value);
+const tongdokScheduleRange = computed(() =>
+  getTongdokScheduleRange(currentBook.value, currentChapter.value)
+);
+
+// 쿼리 파라미터에서 초기값 설정
+const initFromQuery = () => {
+  const { book, chapter, version, tongdok, schedule, plan } = route.query;
+
+  if (book && typeof book === 'string' && bookNames[book]) {
+    currentBook.value = book;
+  }
+
+  if (chapter) {
+    const chapterNum = parseInt(chapter as string);
+    if (!isNaN(chapterNum) && chapterNum > 0) {
+      currentChapter.value = Math.min(chapterNum, bookChapters[currentBook.value] || 1);
+    }
+  }
+
+  if (version && typeof version === 'string' && versionNames[version]) {
+    currentVersion.value = version;
+  }
+
+  // 통독모드 초기화
+  if (tongdok === 'true' || plan) {
+    tongdokMode.value = true;
+    if (schedule) {
+      tongdokScheduleId.value = Number(schedule);
+    }
+  }
+};
+
+// URL 업데이트
+const updateUrl = () => {
+  const query: Record<string, string> = {
+    book: currentBook.value,
+    chapter: String(currentChapter.value),
+    version: currentVersion.value,
+  };
+
+  if (tongdokMode.value) {
+    query.tongdok = 'true';
+    if (tongdokScheduleId.value) {
+      query.schedule = String(tongdokScheduleId.value);
+    }
+  }
+
+  router.replace({ query });
+};
+
+// 성경 본문 로드
+const loadBibleContent = async (book: string, chapter: number) => {
+  isLoading.value = true;
+
+  try {
+    if (currentVersion.value === 'KNT') {
+      await loadKntContent(book, chapter);
+    } else {
+      await loadStandardContent(book, chapter);
+    }
+  } catch (error) {
+    console.error('성경 본문 로드 실패:', error);
+    showErrorContent(book, chapter);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// KNT(새한글성경) 로드
+const loadKntContent = async (book: string, chapter: number) => {
+  const result = await fetchKntContent(book, chapter);
+
+  if (result.source === 'error') {
+    showErrorContent(book, chapter);
+    return;
+  }
+
+  try {
+    const jsonData = JSON.parse(result.content);
+    if (jsonData.found) {
+      parseKntContent(jsonData, book, chapter);
+    } else {
+      showErrorContent(book, chapter);
+    }
+  } catch {
+    showErrorContent(book, chapter);
+  }
+};
+
+// 표준 역본 로드
+const loadStandardContent = async (book: string, chapter: number) => {
+  const result = await fetchStandardContent(currentVersion.value, book, chapter);
+
+  if (result.source === 'error') {
+    showErrorContent(book, chapter);
+    return;
+  }
+
+  parseStandardContent(result.content, book, chapter);
+};
+
+// KNT 파싱
+const parseKntContent = (jsonData: any, book: string, chapter: number) => {
+  const suffix = book === 'psa' ? '편' : '장';
+  chapterTitle.value = `${bookNames[book]} ${chapter}${suffix}`;
+
+  if (!jsonData.html) {
+    bibleContent.value = '<p class="no-content">내용을 찾을 수 없습니다.</p>';
+    return;
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(jsonData.html, 'text/html');
+
+  // 본문 추출
+  const contentEl = doc.querySelector('.content') || doc.body;
+  const verses: string[] = [];
+
+  contentEl.querySelectorAll('p, .verse').forEach((el) => {
+    const text = el.textContent?.trim();
+    if (text) {
+      verses.push(`<p class="verse">${text}</p>`);
+    }
+  });
+
+  bibleContent.value = verses.length > 0
+    ? verses.join('')
+    : '<p class="no-content">내용을 찾을 수 없습니다.</p>';
+};
+
+// 표준 역본 파싱
+const parseStandardContent = (htmlText: string, book: string, chapter: number) => {
+  const suffix = book === 'psa' ? '편' : '장';
+  chapterTitle.value = `${bookNames[book]} ${chapter}${suffix}`;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlText, 'text/html');
+  const bibleElement = doc.getElementById('tdBible1');
+
+  if (!bibleElement) {
+    showErrorContent(book, chapter);
+    return;
+  }
+
+  // 불필요한 요소 제거
+  bibleElement.querySelectorAll('script, style, .hidden').forEach(el => el.remove());
+
+  // 본문 추출
+  const verses: string[] = [];
+  bibleElement.querySelectorAll('p, div').forEach((el) => {
+    const html = el.innerHTML?.trim();
+    if (html && html.length > 0) {
+      verses.push(`<div class="verse-line">${html}</div>`);
+    }
+  });
+
+  bibleContent.value = verses.length > 0
+    ? verses.join('')
+    : bibleElement.innerHTML || '<p class="no-content">내용을 찾을 수 없습니다.</p>';
+};
+
+// 에러 표시
+const showErrorContent = (book: string, chapter: number) => {
+  const fallbackUrl = getFallbackUrl(currentVersion.value, book, chapter);
+  bibleContent.value = `
+    <div class="error-message">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>성경을 불러오는데 문제가 발생했습니다</h3>
+      <p>잠시 후 다시 시도하거나, 대한성서공회 사이트에서 직접 확인해주세요.</p>
+      <a href="${fallbackUrl}" target="_blank" class="external-link">
+        대한성서공회에서 보기
+      </a>
+    </div>
+  `;
+};
+
+// 이벤트 핸들러
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/');
+  }
+};
+
+const handleBookSelect = (selection: { book: string; chapter: number }) => {
+  currentBook.value = selection.book;
+  currentChapter.value = selection.chapter;
+  updateUrl();
+  loadBibleContent(selection.book, selection.chapter);
+};
+
+const handleVersionSelect = (version: string) => {
+  currentVersion.value = version;
+  updateUrl();
+  loadBibleContent(currentBook.value, currentChapter.value);
+};
+
+const goToPrevChapter = () => {
+  if (currentChapter.value > 1) {
+    currentChapter.value--;
+  } else {
+    // 이전 책의 마지막 장으로
+    const allBooks = Object.keys(bookNames);
+    const currentIndex = allBooks.indexOf(currentBook.value);
+    if (currentIndex > 0) {
+      const prevBook = allBooks[currentIndex - 1];
+      if (prevBook) {
+        currentBook.value = prevBook;
+        currentChapter.value = bookChapters[prevBook] || 1;
+      }
+    }
+  }
+  updateUrl();
+  loadBibleContent(currentBook.value, currentChapter.value);
+  scrollToTop();
+};
+
+const goToNextChapter = () => {
+  if (currentChapter.value < maxChapters.value) {
+    currentChapter.value++;
+  } else {
+    // 다음 책의 첫 장으로
+    const allBooks = Object.keys(bookNames);
+    const currentIndex = allBooks.indexOf(currentBook.value);
+    if (currentIndex < allBooks.length - 1) {
+      const nextBook = allBooks[currentIndex + 1];
+      if (nextBook) {
+        currentBook.value = nextBook;
+        currentChapter.value = 1;
+      }
+    }
+  }
+  updateUrl();
+  loadBibleContent(currentBook.value, currentChapter.value);
+  scrollToTop();
+};
+
+const scrollToTop = () => {
+  nextTick(() => {
+    contentWrapper.value?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+};
+
+// 라이프사이클
+onMounted(() => {
+  initFromQuery();
+  initTongdokMode();
+  loadBibleContent(currentBook.value, currentChapter.value);
+});
+
+// route.query 변경 감지
+watch(
+  () => route.query,
+  (newQuery) => {
+    if (newQuery.book && newQuery.book !== currentBook.value) {
+      initFromQuery();
+      loadBibleContent(currentBook.value, currentChapter.value);
+    }
+  }
+);
 </script>
 
 <style scoped>
@@ -20,28 +427,263 @@ definePageMeta({
   margin: 0 auto;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--background-color);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-primary, #f9fafb);
 }
 
-.placeholder {
+/* 헤더 */
+.bible-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-card, #fff);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.back-button {
+  padding: 0.5rem;
+  margin: -0.5rem;
+  color: var(--text-primary, #1f2937);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.back-button:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+}
+
+.book-selector-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-bg-primary, #f9fafb);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  color: var(--text-primary, #1f2937);
+  transition: background 0.2s;
+}
+
+.book-selector-button:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+}
+
+.book-name {
+  font-weight: 600;
+}
+
+.chapter-number {
+  color: var(--text-secondary, #6b7280);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.version-button {
+  padding: 0.375rem 0.75rem;
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary-color, #6366f1);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.version-button:hover {
+  background: var(--primary-color, #6366f1);
+  color: white;
+}
+
+/* 통독 인디케이터 */
+.tongdok-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--primary-light, #eef2ff);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.tongdok-badge {
+  padding: 0.125rem 0.5rem;
+  background: var(--primary-color, #6366f1);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tongdok-range {
+  font-size: 0.875rem;
+  color: var(--primary-color, #6366f1);
+  font-weight: 500;
+}
+
+/* 로딩 */
+.loading-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  gap: 1rem;
   padding: 2rem;
-  text-align: center;
 }
 
-.placeholder h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border, #e5e7eb);
+  border-top-color: var(--primary-color, #6366f1);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.875rem;
+}
+
+/* 본문 */
+.bible-content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  padding-bottom: 80px;
+}
+
+.bible-content {
+  line-height: 1.8;
+  color: var(--text-primary, #1f2937);
+  word-break: keep-all;
+}
+
+.bible-content :deep(.verse),
+.bible-content :deep(.verse-line) {
   margin-bottom: 0.5rem;
 }
 
-.placeholder p {
-  color: var(--text-secondary);
+.bible-content :deep(sup) {
+  color: var(--primary-color, #6366f1);
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.bible-content :deep(.error-message) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.bible-content :deep(.error-message h3) {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+
+.bible-content :deep(.error-message p) {
+  margin-bottom: 1rem;
   font-size: 0.875rem;
+}
+
+.bible-content :deep(.external-link) {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-color, #6366f1);
+  color: white;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.bible-content :deep(.external-link:hover) {
+  background: var(--primary-dark, #4f46e5);
+}
+
+/* 네비게이션 */
+.bible-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-card, #fff);
+  border-top: 1px solid var(--color-border, #e5e7eb);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--primary-color, #6366f1);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.nav-button:hover:not(:disabled) {
+  background: var(--primary-light, #eef2ff);
+}
+
+.nav-button:disabled {
+  color: var(--text-muted, #9ca3af);
+  cursor: not-allowed;
+}
+
+.chapter-info {
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+/* iOS 안전영역 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bible-navigation {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .bible-content-wrapper {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 다크모드 */
+:root.dark .bible-page {
+  background: var(--color-bg-primary);
+}
+
+:root.dark .bible-header {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
+:root.dark .bible-navigation {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
 }
 </style>

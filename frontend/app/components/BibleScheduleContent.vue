@@ -351,6 +351,10 @@ const props = defineProps({
   isBulkEditMode: {
     type: Boolean,
     default: false
+  },
+  useNewBibleRoute: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -901,7 +905,7 @@ const confirmGoToSchedule = () => {
     }
 
     router.push({
-      path: '/reading',
+      path: props.useNewBibleRoute ? '/bible' : '/reading',
       query: Object.fromEntries(queryParams)
     })
 
