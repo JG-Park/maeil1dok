@@ -244,6 +244,7 @@ import { ref, computed } from 'vue';
 import { useReadingSettingsStore, FONT_FAMILIES, type ThemeMode, type DefaultEntryPoint } from '~/stores/readingSettings';
 import { useAuthStore } from '~/stores/auth';
 import { useApi } from '~/composables/useApi';
+import { useErrorHandler } from '~/composables/useErrorHandler';
 import { useToast } from '~/composables/useToast';
 import Toast from '~/components/Toast.vue';
 
@@ -255,6 +256,7 @@ const settingsStore = useReadingSettingsStore();
 const authStore = useAuthStore();
 const api = useApi();
 const toast = useToast();
+const { handleApiError } = useErrorHandler();
 
 const isDeleting = ref(false);
 
@@ -301,7 +303,7 @@ const deleteAllBookmarks = async () => {
     await api.delete('/api/v1/todos/bible/bookmarks/delete-all/');
     toast.success('북마크가 모두 삭제되었습니다');
   } catch (error) {
-    toast.error('삭제 중 오류가 발생했습니다');
+    handleApiError(error, '북마크 삭제');
   } finally {
     isDeleting.value = false;
   }
@@ -320,7 +322,7 @@ const deleteAllNotes = async () => {
     await api.delete('/api/v1/todos/bible/notes/delete-all/');
     toast.success('묵상노트가 모두 삭제되었습니다');
   } catch (error) {
-    toast.error('삭제 중 오류가 발생했습니다');
+    handleApiError(error, '묵상노트 삭제');
   } finally {
     isDeleting.value = false;
   }
@@ -339,7 +341,7 @@ const deleteAllHighlights = async () => {
     await api.delete('/api/v1/todos/bible/highlights/delete-all/');
     toast.success('하이라이트가 모두 삭제되었습니다');
   } catch (error) {
-    toast.error('삭제 중 오류가 발생했습니다');
+    handleApiError(error, '하이라이트 삭제');
   } finally {
     isDeleting.value = false;
   }

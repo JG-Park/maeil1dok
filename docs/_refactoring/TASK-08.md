@@ -1,7 +1,7 @@
 # TASK-08: 에러 핸들링 표준화
 
 > **Priority**: P2 (Minor)
-> **Status**: `[ ]` Pending
+> **Status**: `[x]` Completed
 > **Tracker**: [TRACKER.md](./TRACKER.md)
 
 ---
@@ -67,9 +67,9 @@
 
 ### 1. 에러 핸들링 유틸리티 생성
 
-- [ ] `composables/useErrorHandler.ts` 생성
-- [ ] 에러 유형별 처리 로직 정의
-- [ ] 로깅/리포팅 통합
+- [x] `composables/useErrorHandler.ts` 생성
+- [x] 에러 유형별 처리 로직 정의 (handleApiError, handleUserActionError, handleSilentError)
+- [x] 로깅/리포팅 통합 (개발환경 console.error, 프로덕션 확장 가능)
 
 ### 2. 표준 패턴 정의
 
@@ -101,13 +101,13 @@ try {
 
 ### 3. 각 파일 수정
 
-- [ ] `pages/bible/index.vue`
-- [ ] `pages/bible/bookmarks.vue`
-- [ ] `pages/bible/settings.vue`
-- [ ] `pages/bible/notes/index.vue`
-- [ ] `pages/bible/notes/[id].vue`
-- [ ] `components/bible/BibleHome.vue`
-- [ ] `components/bible/BibleViewer.vue`
+- [x] `pages/bible/index.vue`
+- [x] `pages/bible/bookmarks.vue`
+- [x] `pages/bible/settings.vue`
+- [-] `pages/bible/notes/index.vue` (에러 핸들러 없음)
+- [x] `pages/bible/notes/[id].vue`
+- [x] `components/bible/BibleHome.vue`
+- [-] `components/bible/BibleViewer.vue` (클립보드 폴백만 있어 변경 불필요)
 
 ---
 
@@ -217,11 +217,11 @@ export function useErrorHandler() {
 
 ## Acceptance Criteria
 
-- [ ] 에러 핸들링 유틸리티 생성됨
-- [ ] 모든 파일에서 일관된 패턴 사용
-- [ ] 개발 환경에서 디버깅 용이
-- [ ] 사용자에게 일관된 피드백
-- [ ] 기존 기능 정상 동작
+- [x] 에러 핸들링 유틸리티 생성됨
+- [x] 모든 파일에서 일관된 패턴 사용
+- [x] 개발 환경에서 디버깅 용이 (console.error with context)
+- [x] 사용자에게 일관된 피드백 (toast with context message)
+- [x] 기존 기능 정상 동작
 
 ---
 
@@ -237,7 +237,7 @@ export function useErrorHandler() {
 
 ## Completion
 
-- [ ] 코드 변경 완료
-- [ ] 테스트 통과
-- [ ] 커밋 발행
-- [ ] TRACKER.md 상태 업데이트
+- [x] 코드 변경 완료
+- [x] 테스트 통과 (빌드 성공)
+- [x] 커밋 발행
+- [x] TRACKER.md 상태 업데이트

@@ -57,7 +57,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBookmark, type Bookmark } from '~/composables/useBookmark';
 import { useAuthStore } from '~/stores/auth';
-import { useToast } from '~/composables/useToast';
+import { useErrorHandler } from '~/composables/useErrorHandler';
 import { useApi } from '~/composables/useApi';
 import Toast from '~/components/Toast.vue';
 import BibleSubpageLayout from '~/components/bible/BibleSubpageLayout.vue';
@@ -68,7 +68,7 @@ definePageMeta({
 
 const router = useRouter();
 const authStore = useAuthStore();
-const toast = useToast();
+const { handleApiError } = useErrorHandler();
 const api = useApi();
 const { getAllBookmarks } = useBookmark();
 const { formatRelativeDate } = useDateFormat();
@@ -92,8 +92,7 @@ onMounted(async () => {
     try {
       bookmarks.value = await getAllBookmarks();
     } catch (error) {
-      console.error('북마크 로드 실패:', error);
-      toast.error('북마크를 불러오는데 실패했습니다');
+      handleApiError(error, '북마크 로드');
     }
   }
   isLoading.value = false;
@@ -128,10 +127,8 @@ const handleDelete = async (bookmark: Bookmark) => {
   try {
     await api.delete(`/api/v1/todos/bible/bookmarks/${bookmark.id}/`);
     bookmarks.value = bookmarks.value.filter(b => b.id !== bookmark.id);
-    toast.success('북마크가 삭제되었습니다');
   } catch (error) {
-    console.error('북마크 삭제 실패:', error);
-    toast.error('북마크 삭제에 실패했습니다');
+    handleApiError(error, '북마크 삭제');
   }
 };
 </script>

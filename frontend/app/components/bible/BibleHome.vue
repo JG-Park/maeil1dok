@@ -82,12 +82,14 @@ import { useRouter } from 'vue-router';
 import { useApi } from '~/composables/useApi';
 import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useBibleData } from '~/composables/useBibleData';
+import { useErrorHandler } from '~/composables/useErrorHandler';
 import type { BiblePosition, RecentRecord } from '~/types/bible';
 
 const router = useRouter();
 const api = useApi();
 const { loadReadingPosition, lastReadingPosition } = useReadingPosition();
 const { getBookName } = useBibleData();
+const { handleSilentError } = useErrorHandler();
 
 const emit = defineEmits<{
   (e: 'continue-reading'): void;
@@ -125,7 +127,7 @@ onMounted(async () => {
       }));
     }
   } catch (error) {
-    console.error('홈 데이터 로드 실패:', error);
+    handleSilentError(error, '홈 데이터 로드');
   }
 });
 

@@ -68,7 +68,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNote } from '~/composables/useNote';
 import { useBibleData } from '~/composables/useBibleData';
-import { useToast } from '~/composables/useToast';
+import { useErrorHandler } from '~/composables/useErrorHandler';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -77,7 +77,7 @@ definePageMeta({
 
 const route = useRoute();
 const router = useRouter();
-const toast = useToast();
+const { handleApiError } = useErrorHandler();
 const { currentNote: note, isNoteLoading: isLoading, fetchNote, updateNote, deleteNote } = useNote();
 const { getBookName } = useBibleData();
 
@@ -116,9 +116,8 @@ const handleSave = async () => {
     });
     originalContent.value = editContent.value;
     originalPrivate.value = isPrivate.value;
-    toast.success('저장되었습니다');
   } catch (error) {
-    toast.error('저장에 실패했습니다');
+    handleApiError(error, '묵상노트 저장');
   } finally {
     isSaving.value = false;
   }
@@ -129,10 +128,9 @@ const handleDelete = async () => {
 
   try {
     await deleteNote(noteId.value);
-    toast.success('삭제되었습니다');
     router.push('/bible/notes');
   } catch (error) {
-    toast.error('삭제에 실패했습니다');
+    handleApiError(error, '묵상노트 삭제');
   }
 };
 

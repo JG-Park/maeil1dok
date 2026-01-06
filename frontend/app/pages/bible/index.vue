@@ -169,6 +169,7 @@ const readingSettingsStore = useReadingSettingsStore();
 const selectedPlanStore = useSelectedPlanStore();
 const toast = useToast();
 const api = useApi();
+const { handleApiError, handleUserActionError } = useErrorHandler();
 
 // Composables
 const {
@@ -414,7 +415,7 @@ const handleHighlightSave = async (data: { color: string; memo: string }) => {
       toast.success('하이라이트가 추가되었습니다');
     }
   } catch (error) {
-    toast.error('하이라이트 저장에 실패했습니다');
+    handleApiError(error, '하이라이트 저장');
   }
 };
 
@@ -428,7 +429,7 @@ const handleHighlightDelete = async (highlightId: number) => {
       toast.error('하이라이트 삭제에 실패했습니다');
     }
   } catch (error) {
-    toast.error('하이라이트 삭제에 실패했습니다');
+    handleApiError(error, '하이라이트 삭제');
   }
 };
 
@@ -454,11 +455,8 @@ const handleShareAction = async (text: string) => {
     try {
       await navigator.share(shareData);
     } catch (err) {
-      // 사용자가 취소한 경우 무시
-      if ((err as Error).name !== 'AbortError') {
-        // 공유 실패 시 클립보드로 폴백
-        await copyToClipboard(shareUrl);
-      }
+      // 사용자 취소 무시, 실패 시 클립보드로 폴백
+      handleUserActionError(err, '공유', () => copyToClipboard(shareUrl));
     }
   } else {
     // Web Share API 미지원 시 클립보드 복사
@@ -471,8 +469,8 @@ const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text);
     toast.success('링크가 복사되었습니다');
-  } catch {
-    toast.error('복사에 실패했습니다');
+  } catch (error) {
+    handleApiError(error, '복사');
   }
 };
 
@@ -488,8 +486,8 @@ const handleMarkAsRead = async () => {
   try {
     await markAsRead(currentBook.value, currentChapter.value);
     toast.success(`${currentBookName.value} ${currentChapter.value}${chapterSuffix.value} 읽음 완료!`);
-  } catch (err) {
-    toast.error('읽음 표시에 실패했습니다');
+  } catch (error) {
+    handleApiError(error, '읽음 표시');
   }
 };
 
@@ -533,8 +531,7 @@ const handleTodayTongdok = async () => {
       toast.info('오늘 예정된 통독 일정이 없습니다');
     }
   } catch (error) {
-    console.error('오늘의 통독 조회 실패:', error);
-    toast.error('통독 일정을 불러오는데 실패했습니다');
+    handleApiError(error, '통독 일정 로드');
   }
 };
 
@@ -557,7 +554,7 @@ const handleBookmarkToggle = async () => {
       }
     }
   } catch (error) {
-    toast.error('북마크 처리에 실패했습니다');
+    handleApiError(error, '북마크 처리');
   }
 };
 
@@ -579,7 +576,7 @@ const handleNoteSave = async (content: string) => {
       toast.success('묵상노트가 저장되었습니다');
     }
   } catch (error) {
-    toast.error('저장에 실패했습니다');
+    handleApiError(error, '묵상노트 저장');
   }
 };
 
