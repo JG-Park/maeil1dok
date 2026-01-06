@@ -1,5 +1,22 @@
 <template>
   <div class="bible-page">
+    <!-- 홈/대시보드 뷰 -->
+    <BibleHome
+      v-if="viewMode === 'home'"
+      @continue-reading="handleContinueReading"
+      @select-book="handleHomeBookSelect"
+      @show-toc="viewMode = 'toc'"
+    />
+
+    <!-- 목차 뷰 -->
+    <BibleTOC
+      v-else-if="viewMode === 'toc'"
+      @select-book="handleTocBookSelect"
+      @back="handleTocBack"
+    />
+
+    <!-- 성경 리더 뷰 -->
+    <template v-else>
     <!-- 헤더 -->
     <header class="bible-header">
       <button class="back-button" @click="goBack">
@@ -184,6 +201,7 @@
 
     <!-- 토스트 -->
     <Toast />
+    </template>
   </div>
 </template>
 
@@ -209,6 +227,8 @@ import BookmarkButton from '~/components/bible/BookmarkButton.vue';
 import NoteButton from '~/components/bible/NoteButton.vue';
 import NoteQuickModal from '~/components/bible/NoteQuickModal.vue';
 import HighlightModal from '~/components/bible/HighlightModal.vue';
+import BibleHome from '~/components/bible/BibleHome.vue';
+import BibleTOC from '~/components/bible/BibleTOC.vue';
 import Toast from '~/components/Toast.vue';
 
 definePageMeta({
@@ -278,6 +298,7 @@ const {
 } = useHighlight();
 
 // 상태
+const viewMode = ref<'reader' | 'home' | 'toc'>('reader');
 const currentBook = ref('gen');
 const currentChapter = ref(1);
 const currentVersion = ref('GAE');
@@ -818,33 +839,118 @@ const handleTongdokComplete = async (payload: { autoComplete: boolean }) => {
   }
 };
 
-// 라이프사이클
-onMounted(async () => {
-  initTongdokMode();
-
-  // URL에 book/chapter가 있으면 그것을 사용
-  const hasQueryParams = route.query.book || route.query.chapter;
-
-  if (hasQueryParams) {
-    initFromQuery();
-  } else if (!tongdokMode.value) {
-    // 쿼리 파라미터가 없고 통독모드가 아니면 마지막 위치 로드
-    const lastPos = await loadReadingPosition();
-    if (lastPos) {
-      currentBook.value = lastPos.book;
-      currentChapter.value = lastPos.chapter;
-      currentVersion.value = lastPos.version || 'GAE';
-      scrollPosition.value = lastPos.scroll_position || 0;
-      updateUrl();
-    }
-  } else {
-    initFromQuery();
+// 진입점 모드 핸들러: 홈에서 계속 읽기
+const handleContinueReading = async () => {
+  const lastPos = await loadReadingPosition();
+  if (lastPos) {
+    currentBook.value = lastPos.book;
+    currentChapter.value = lastPos.chapter;
+    currentVersion.value = lastPos.version || 'GAE';
+    scrollPosition.value = lastPos.scroll_position || 0;
   }
-
+  viewMode.value = 'reader';
+  updateUrl();
   loadBibleContent(currentBook.value, currentChapter.value);
 
   // 읽기 기록 및 노트 조회 (로그인 시)
   if (authStore.isAuthenticated) {
+    await fetchReadChapters(currentBook.value);
+    await fetchChapterNotes(currentBook.value, currentChapter.value);
+    await fetchChapterHighlights(currentBook.value, currentChapter.value);
+  }
+};
+
+// 진입점 모드 핸들러: 홈에서 책 선택
+const handleHomeBookSelect = async (bookId: string, chapter: number = 1) => {
+  currentBook.value = bookId;
+  currentChapter.value = chapter;
+  viewMode.value = 'reader';
+  updateUrl();
+  loadBibleContent(currentBook.value, currentChapter.value);
+
+  if (authStore.isAuthenticated) {
+    await fetchReadChapters(currentBook.value);
+    await fetchChapterNotes(currentBook.value, currentChapter.value);
+    await fetchChapterHighlights(currentBook.value, currentChapter.value);
+  }
+};
+
+// 진입점 모드 핸들러: 목차에서 책 선택
+const handleTocBookSelect = async (bookId: string, chapter: number = 1) => {
+  currentBook.value = bookId;
+  currentChapter.value = chapter;
+  viewMode.value = 'reader';
+  updateUrl();
+  loadBibleContent(currentBook.value, currentChapter.value);
+
+  if (authStore.isAuthenticated) {
+    await fetchReadChapters(currentBook.value);
+    await fetchChapterNotes(currentBook.value, currentChapter.value);
+    await fetchChapterHighlights(currentBook.value, currentChapter.value);
+  }
+};
+
+// 진입점 모드 핸들러: 목차에서 뒤로가기
+const handleTocBack = () => {
+  const entryPoint = readingSettingsStore.settings.defaultEntryPoint || 'last-position';
+  if (entryPoint === 'home') {
+    viewMode.value = 'home';
+  } else {
+    // 기본 진입점이 toc인 경우 뒤로가기는 이전 페이지로
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  }
+};
+
+// 라이프사이클
+onMounted(async () => {
+  initTongdokMode();
+
+  // URL에 book/chapter/plan/tongdok이 있으면 그것을 사용 (바로 reader로)
+  const hasQueryParams = route.query.book || route.query.chapter || route.query.plan || route.query.tongdok;
+
+  if (hasQueryParams) {
+    viewMode.value = 'reader';
+    initFromQuery();
+    loadBibleContent(currentBook.value, currentChapter.value);
+  } else if (!tongdokMode.value) {
+    // 쿼리 파라미터가 없고 통독모드가 아니면 설정에 따른 진입점
+    const entryPoint = readingSettingsStore.settings.defaultEntryPoint || 'last-position';
+
+    switch (entryPoint) {
+      case 'home':
+        viewMode.value = 'home';
+        // 홈 뷰에서는 본문 로드 불필요
+        break;
+      case 'toc':
+        viewMode.value = 'toc';
+        // 목차 뷰에서는 본문 로드 불필요
+        break;
+      case 'last-position':
+      default:
+        viewMode.value = 'reader';
+        const lastPos = await loadReadingPosition();
+        if (lastPos) {
+          currentBook.value = lastPos.book;
+          currentChapter.value = lastPos.chapter;
+          currentVersion.value = lastPos.version || 'GAE';
+          scrollPosition.value = lastPos.scroll_position || 0;
+          updateUrl();
+        }
+        loadBibleContent(currentBook.value, currentChapter.value);
+        break;
+    }
+  } else {
+    viewMode.value = 'reader';
+    initFromQuery();
+    loadBibleContent(currentBook.value, currentChapter.value);
+  }
+
+  // 읽기 기록 및 노트 조회 (로그인 시, reader 모드일 때만)
+  if (authStore.isAuthenticated && viewMode.value === 'reader') {
     if (!isTongdokMode.value) {
       await fetchReadChapters(currentBook.value);
     }
