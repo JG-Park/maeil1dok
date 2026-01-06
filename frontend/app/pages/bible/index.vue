@@ -273,7 +273,6 @@ const {
 const {
   tongdokMode,
   tongdokScheduleId,
-  tongdokPlanId,
   isCompleting,
   initTongdokMode,
   getTongdokScheduleRange,
@@ -283,34 +282,27 @@ const {
   completeReading
 } = useTongdokMode();
 const {
-  lastReadingPosition,
   loadReadingPosition,
   saveReadingPosition,
   cleanup: cleanupReadingPosition
 } = useReadingPosition();
 const {
-  currentBookmarks,
-  isBookmarkLoading,
   loadBookmarks,
   isChapterBookmarked,
   toggleChapterBookmark
 } = useBookmark();
 const {
   currentChapterNotes,
-  isNoteLoading,
   showNoteModal,
-  editingNote,
   fetchChapterNotes,
   saveQuickNote,
   getChapterNoteCount
 } = useNote();
 const {
   chapterHighlights,
-  isHighlightLoading,
   customColors,
   addCustomColor,
   fetchChapterHighlights,
-  getVerseHighlight,
   createHighlight,
   updateHighlight,
   deleteHighlight
