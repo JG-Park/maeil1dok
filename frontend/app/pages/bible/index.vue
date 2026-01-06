@@ -1249,7 +1249,14 @@ watch(
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary, #f9fafb);
+  background: var(--color-bg-card, #ffffff);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 768px) {
+  .bible-page {
+    box-shadow: none;
+  }
 }
 
 /* 헤더 (reading.vue 동일) */
