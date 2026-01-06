@@ -54,6 +54,7 @@
         @share="handleShareAction"
         @exit-tongdok="handleExitTongdok"
         @tongdok-complete-click="showTongdokCompleteModal = true"
+        @today-tongdok="handleTodayTongdok"
       />
 
       <!-- 모달 -->
@@ -134,7 +135,9 @@ import { useBiblePageState } from '~/composables/bible/useBiblePageState';
 import { useAuthGuard } from '~/composables/useAuthGuard';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
+import { useSelectedPlanStore } from '~/stores/selectedPlan';
 import { useToast } from '~/composables/useToast';
+import { useApi } from '~/composables/useApi';
 // 뷰 컴포넌트
 import BibleHome from '~/components/bible/BibleHome.vue';
 import BibleTOC from '~/components/bible/BibleTOC.vue';
@@ -163,7 +166,9 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { requireAuth } = useAuthGuard();
 const readingSettingsStore = useReadingSettingsStore();
+const selectedPlanStore = useSelectedPlanStore();
 const toast = useToast();
+const api = useApi();
 
 // Composables
 const {
@@ -177,13 +182,16 @@ const {
 const {
   tongdokMode,
   tongdokScheduleId,
+  tongdokPlanId,
   isCompleting,
   initTongdokMode,
   getTongdokScheduleRange,
   getFullScheduleRange,
   isLastChapterInTongdok,
   disableTongdokMode,
-  completeReading
+  enableTongdokMode,
+  completeReading,
+  setReadingDetailResponse
 } = useTongdokMode();
 const {
   loadReadingPosition,
@@ -489,6 +497,45 @@ const handleMarkAsRead = async () => {
 const handleExitTongdok = () => {
   disableTongdokMode();
   toast.info('통독모드를 종료했습니다');
+};
+
+// 통독모드: 오늘의 통독 시작 핸들러
+const handleTodayTongdok = async () => {
+  try {
+    // 선택된 플랜 ID 확인
+    const planId = selectedPlanStore.effectivePlanId;
+    if (!planId) {
+      toast.error('선택된 플랜이 없습니다. 메인 화면에서 플랜을 선택해주세요.');
+      return;
+    }
+
+    // 오늘의 스케줄 조회
+    const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${planId}`);
+
+    if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
+      const schedule = response.data.schedules[0];
+
+      // 통독모드 활성화
+      tongdokMode.value = true;
+      tongdokScheduleId.value = schedule.id;
+      tongdokPlanId.value = planId;
+
+      // 읽기 상세 정보 설정 (plan_detail이 있는 경우)
+      if (schedule.plan_detail) {
+        setReadingDetailResponse({ data: { plan_detail: schedule.plan_detail } });
+      }
+
+      // 해당 책/장으로 이동
+      handleBookSelect(schedule.book_code, schedule.start_chapter);
+
+      toast.success('오늘의 통독을 시작합니다');
+    } else {
+      toast.info('오늘 예정된 통독 일정이 없습니다');
+    }
+  } catch (error) {
+    console.error('오늘의 통독 조회 실패:', error);
+    toast.error('통독 일정을 불러오는데 실패했습니다');
+  }
 };
 
 // 북마크: 토글 핸들러

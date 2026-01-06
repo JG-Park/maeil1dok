@@ -27,6 +27,7 @@
           :note-count="noteCount"
           @note-click="$emit('note-click')"
           @open-settings="$emit('open-settings')"
+          @today-tongdok="$emit('today-tongdok')"
         />
         <button class="version-button" @click="$emit('open-version-selector')">
           {{ currentVersionName }}
@@ -219,6 +220,7 @@ defineEmits<{
   // 통독모드
   'exit-tongdok': [];
   'tongdok-complete-click': [];
+  'today-tongdok': [];
 }>();
 
 // Refs
