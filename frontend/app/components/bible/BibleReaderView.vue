@@ -13,17 +13,13 @@
       </button>
 
       <div class="header-actions">
-        <NoteButton
+        <BibleToolPopover
           :note-count="noteCount"
-          @click="$emit('note-click')"
-        />
-        <BookmarkButton
           :is-bookmarked="isBookmarked"
-          @toggle="$emit('bookmark-toggle')"
+          @note-click="$emit('note-click')"
+          @bookmark-toggle="$emit('bookmark-toggle')"
+          @open-settings="$emit('open-settings')"
         />
-        <button class="settings-button" @click="$emit('open-settings')" title="읽기 설정">
-          <MenuIcon />
-        </button>
         <button class="version-button" @click="$emit('open-version-selector')">
           {{ currentVersionName }}
         </button>
@@ -125,15 +121,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import BibleViewer from '~/components/bible/BibleViewer.vue';
-import BookmarkButton from '~/components/bible/BookmarkButton.vue';
-import NoteButton from '~/components/bible/NoteButton.vue';
+import BibleToolPopover from '~/components/bible/BibleToolPopover.vue';
 import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue';
 import ChevronRightIcon from '~/components/icons/ChevronRightIcon.vue';
 import ChevronDownIcon from '~/components/icons/ChevronDownIcon.vue';
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue';
 import CheckCircleOutlineIcon from '~/components/icons/CheckCircleOutlineIcon.vue';
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
-import MenuIcon from '~/components/icons/MenuIcon.vue';
 
 // Highlight 인터페이스
 interface Highlight {
@@ -321,28 +315,6 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.25rem;
-}
-
-.settings-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  color: var(--text-secondary, #6b7280);
-  background: transparent;
-  border-radius: 8px;
-  transition: all 0.2s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.settings-button:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-  color: var(--text-primary, #1f2937);
-}
-
-.settings-button:active {
-  background: var(--color-bg-active, #e5e7eb);
 }
 
 .version-button {
@@ -627,15 +599,6 @@ defineExpose({
 :root.dark .tongdok-indicator {
   background: rgba(99, 102, 241, 0.15);
   border-color: var(--color-border);
-}
-
-:root.dark .settings-button {
-  color: var(--text-secondary);
-}
-
-:root.dark .settings-button:hover {
-  background: var(--color-bg-hover);
-  color: var(--text-primary);
 }
 
 :root.dark .content-bottom-action {
