@@ -24,6 +24,16 @@
           </div>
         </button>
 
+        <!-- 성경통독표 -->
+        <button class="popover-item" @click="handleReadingPlan">
+          <div class="item-icon">
+            <ListCheckIcon />
+          </div>
+          <div class="item-content">
+            <span class="item-label">성경통독표</span>
+          </div>
+        </button>
+
         <div class="popover-divider"></div>
 
         <!-- 노트 -->
@@ -125,6 +135,19 @@ const CalendarCheckIcon = defineComponent({
   }
 });
 
+const ListCheckIcon = defineComponent({
+  render() {
+    return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('path', { d: 'M11 6h9', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      h('path', { d: 'M11 12h9', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      h('path', { d: 'M11 18h9', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      h('path', { d: 'M4 6l2 2 4-4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      h('path', { d: 'M4 12l2 2 4-4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      h('path', { d: 'M4 18l2 2 4-4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+    ]);
+  }
+});
+
 const props = defineProps<{
   noteCount: number;
 }>();
@@ -133,6 +156,7 @@ const emit = defineEmits<{
   'note-click': [];
   'open-settings': [];
   'today-tongdok': [];
+  'reading-plan-click': [];
 }>();
 
 const popoverRef = ref<HTMLElement | null>(null);
@@ -166,6 +190,11 @@ const handleSettings = () => {
 
 const handleTodayTongdok = () => {
   emit('today-tongdok');
+  closePopover();
+};
+
+const handleReadingPlan = () => {
+  emit('reading-plan-click');
   closePopover();
 };
 

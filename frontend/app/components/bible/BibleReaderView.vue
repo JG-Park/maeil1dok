@@ -28,6 +28,7 @@
           @note-click="$emit('note-click')"
           @open-settings="$emit('open-settings')"
           @today-tongdok="$emit('today-tongdok')"
+          @reading-plan-click="$emit('reading-plan-click')"
         />
         <button class="version-button" @click="$emit('open-version-selector')">
           {{ currentVersionName }}
@@ -37,11 +38,43 @@
 
     <!-- 통독모드 인디케이터 -->
     <div v-if="isTongdokMode && tongdokScheduleRange" class="tongdok-indicator">
-      <span class="tongdok-badge">통독</span>
-      <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
-      <button class="tongdok-close" @click="$emit('exit-tongdok')" title="통독모드 종료">
-        <XMarkIcon />
-      </button>
+      <div class="tongdok-info">
+        <span class="tongdok-badge">통독</span>
+        <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
+      </div>
+      <div class="tongdok-actions">
+        <a
+          v-if="tongdokAudioLink"
+          href="#"
+          class="tongdok-link audio"
+          @click.prevent="$emit('audio-link-click', tongdokAudioLink)"
+          title="오디오"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M9 18V6l12 6-12 6z" fill="currentColor" />
+          </svg>
+        </a>
+        <a
+          v-if="tongdokGuideLink"
+          :href="tongdokGuideLink"
+          target="_blank"
+          class="tongdok-link guide"
+          title="해설"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
+        <button class="tongdok-close" @click="$emit('exit-tongdok')" title="통독모드 종료">
+          <XMarkIcon />
+        </button>
+      </div>
     </div>
 
     <!-- 성경 본문 뷰어 -->
@@ -86,6 +119,14 @@
       </template>
     </BibleViewer>
 
+    <!-- 첫 방문 온보딩 팁 -->
+    <FirstVisitTip
+      tip-key="highlight_drag"
+      tip-text="텍스트를 드래그하면 하이라이트, 복사, 공유 메뉴가 나타나요!"
+      :duration="10000"
+      :delay="2000"
+    />
+
     <!-- 하단 네비게이션 -->
     <div class="bible-bottom-area">
       <!-- 통독모드: 완료 버튼 영역 -->
@@ -111,7 +152,13 @@
         </button>
 
         <div class="chapter-info">
-          {{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}
+          <template v-if="isTongdokMode && formattedScheduleDate">
+            <span class="schedule-date">{{ formattedScheduleDate }}</span>
+            <span class="schedule-range">{{ tongdokScheduleRange }}</span>
+          </template>
+          <template v-else>
+            {{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}
+          </template>
         </div>
 
         <button
@@ -128,9 +175,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import BibleViewer from '~/components/bible/BibleViewer.vue';
 import BibleToolPopover from '~/components/bible/BibleToolPopover.vue';
+import FirstVisitTip from '~/components/bible/FirstVisitTip.vue';
 import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue';
 import ChevronRightIcon from '~/components/icons/ChevronRightIcon.vue';
 import ChevronDownIcon from '~/components/icons/ChevronDownIcon.vue';
@@ -169,6 +217,9 @@ interface Props {
   // 통독모드
   isTongdokMode: boolean;
   tongdokScheduleRange?: string | null;
+  tongdokScheduleDate?: string | null;
+  tongdokAudioLink?: string | null;
+  tongdokGuideLink?: string | null;
   isCompleting?: boolean;
 
   // 읽기모드
@@ -185,13 +236,28 @@ interface Props {
   highlights?: Highlight[];
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   scrollPosition: 0,
   tongdokScheduleRange: null,
+  tongdokScheduleDate: null,
+  tongdokAudioLink: null,
+  tongdokGuideLink: null,
   isCompleting: false,
   isMarkingRead: false,
   highlights: () => [],
 });
+
+const formatScheduleDate = (dateString: string | null): string => {
+  if (!dateString) return '';
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const date = new Date(dateString);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dayOfWeek = days[date.getDay()];
+  return `${month}/${day}(${dayOfWeek})`;
+};
+
+const formattedScheduleDate = computed(() => formatScheduleDate(props.tongdokScheduleDate));
 
 // Emits
 defineEmits<{
@@ -221,6 +287,8 @@ defineEmits<{
   'exit-tongdok': [];
   'tongdok-complete-click': [];
   'today-tongdok': [];
+  'audio-link-click': [url: string];
+  'reading-plan-click': [];
 }>();
 
 // Refs
@@ -378,10 +446,19 @@ defineExpose({
 .tongdok-indicator {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background: var(--primary-light, #eef2ff);
   border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.tongdok-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .tongdok-badge {
@@ -391,19 +468,63 @@ defineExpose({
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .tongdok-range {
-  flex: 1;
   font-size: 0.875rem;
   color: var(--primary-color, #6366f1);
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tongdok-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.tongdok-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--primary-color, #6366f1);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.tongdok-link:hover {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.tongdok-link:active {
+  background: rgba(99, 102, 241, 0.25);
+  transform: scale(0.95);
+}
+
+.tongdok-link.audio {
+  color: var(--color-success, #10b981);
+}
+
+.tongdok-link.audio:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.tongdok-link.guide {
+  color: var(--primary-color, #6366f1);
 }
 
 .tongdok-close {
-  padding: 0.375rem;
-  margin: -0.375rem;
-  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   color: var(--primary-color, #6366f1);
   border-radius: 6px;
   transition: all 0.2s;
@@ -604,8 +725,24 @@ defineExpose({
 }
 
 .chapter-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
   font-size: 0.8125rem;
   color: var(--text-secondary, #6b7280);
+}
+
+.chapter-info .schedule-date {
+  font-size: 0.75rem;
+  color: var(--primary-color, #6366f1);
+  font-weight: 500;
+}
+
+.chapter-info .schedule-range {
+  font-size: 0.8125rem;
+  color: var(--text-primary, #1f2937);
+  font-weight: 500;
 }
 
 /* iOS 안전영역 */
