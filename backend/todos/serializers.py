@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import serializers
 from .models import (
     DailyBibleSchedule, UserBibleProgress, BibleReadingPlan,
@@ -396,6 +398,7 @@ class BibleHighlightSerializer(serializers.ModelSerializer):
 class PersonalReadingRecordSerializer(serializers.ModelSerializer):
     """개인 읽기 기록 Serializer"""
     book_name = serializers.SerializerMethodField()
+    read_date = serializers.DateField(default=date.today)
 
     class Meta:
         model = PersonalReadingRecord
