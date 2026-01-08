@@ -144,6 +144,20 @@
         </button>
       </div>
 
+      <!-- 통독 시작 버튼 (로그인 사용자, 비통독 모드일 때) -->
+      <div v-else-if="isAuthenticated" class="tongdok-start-area">
+        <button class="tongdok-start-btn" @click="$emit('today-tongdok')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <path d="M9 16l2 2 4-4"/>
+          </svg>
+          <span>오늘의 통독</span>
+        </button>
+      </div>
+
       <nav class="bible-navigation">
         <button
           class="nav-button prev"
@@ -608,6 +622,57 @@ defineExpose({
 .tongdok-complete-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* 통독 시작 버튼 영역 */
+.tongdok-start-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:root.dark .tongdok-start-area {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.tongdok-start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary-color, #6366f1);
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tongdok-start-btn:hover {
+  background: var(--primary-color, #6366f1);
+  color: white;
+}
+
+.tongdok-start-btn:active {
+  transform: scale(0.97);
+}
+
+.tongdok-start-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+:root.dark .tongdok-start-btn {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+:root.dark .tongdok-start-btn:hover {
+  background: var(--primary-color, #6366f1);
+  color: white;
 }
 
 /* 본문 하단 읽음 표시 영역 (인라인) */

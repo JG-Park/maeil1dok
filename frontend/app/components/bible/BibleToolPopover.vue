@@ -14,15 +14,17 @@
     <!-- 팝오버 -->
     <Transition name="popover-fade">
       <div v-if="isOpen" class="popover-content" @click.stop>
-        <!-- 오늘의 통독 -->
-        <button class="popover-item tongdok-item" @click="handleTodayTongdok">
-          <div class="item-icon">
-            <CalendarCheckIcon />
-          </div>
-          <div class="item-content">
-            <span class="item-label">오늘의 통독</span>
-          </div>
-        </button>
+        <!-- 오늘의 통독 (로그인 사용자만) -->
+        <template v-if="isAuthenticated">
+          <button class="popover-item tongdok-item" @click="handleTodayTongdok">
+            <div class="item-icon">
+              <CalendarCheckIcon />
+            </div>
+            <div class="item-content">
+              <span class="item-label">오늘의 통독</span>
+            </div>
+          </button>
+        </template>
 
         <!-- 성경통독표 -->
         <button class="popover-item" @click="handleReadingPlan">
@@ -75,6 +77,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, defineComponent, h } from 'vue';
+import { useAuthStore } from '~/stores/auth';
 
 // 아이콘 컴포넌트들
 const EllipsisIcon = defineComponent({
@@ -154,10 +157,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'note-click': [];
-  'open-settings': [];
   'today-tongdok': [];
   'reading-plan-click': [];
 }>();
+
+const authStore = useAuthStore();
+const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 const popoverRef = ref<HTMLElement | null>(null);
 const isOpen = ref(false);
@@ -184,8 +189,8 @@ const handleBookmarkList = () => {
 };
 
 const handleSettings = () => {
-  emit('open-settings');
   closePopover();
+  navigateTo('/bible/settings');
 };
 
 const handleTodayTongdok = () => {
