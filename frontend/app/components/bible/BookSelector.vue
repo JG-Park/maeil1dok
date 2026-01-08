@@ -121,6 +121,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useBibleData, type SearchResult } from '~/composables/useBibleData';
+import SearchIcon from '~/components/icons/SearchIcon.vue';
+import XCircleIcon from '~/components/icons/XCircleIcon.vue';
+import SparkleIcon from '~/components/icons/SparkleIcon.vue';
+import ArrowRightIcon from '~/components/icons/ArrowRightIcon.vue';
 
 const props = defineProps<{
   modelValue: boolean;

@@ -6,6 +6,7 @@
     :empty="isEmpty"
     :empty-text="emptyText"
     :empty-hint="emptyHint"
+    :empty-guide="emptyGuide"
   >
     <!-- 빈 상태 아이콘 -->
     <template #empty-icon>
@@ -86,7 +87,16 @@ const emptyText = computed(() =>
     : '저장된 북마크가 없습니다'
 );
 const emptyHint = computed(() =>
-  authStore.isAuthenticated ? '성경을 읽으며 중요한 구절을 북마크해보세요' : ''
+  authStore.isAuthenticated ? '자주 찾는 장을 저장해두세요' : ''
+);
+const emptyGuide = computed(() =>
+  authStore.isAuthenticated
+    ? [
+        '성경 읽기 화면으로 이동하세요',
+        '상단의 북마크 아이콘(🔖)을 탭하세요',
+        '현재 장이 북마크에 저장됩니다'
+      ]
+    : undefined
 );
 
 onMounted(async () => {

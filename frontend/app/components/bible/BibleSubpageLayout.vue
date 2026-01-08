@@ -17,11 +17,14 @@
     <LoadingSpinner v-if="loading" :text="loadingText" />
 
     <!-- 빈 상태 -->
-    <EmptyState v-else-if="empty" :text="emptyText" :hint="emptyHint">
+    <EmptyState v-else-if="empty" :text="emptyText" :hint="emptyHint" :guide="emptyGuide">
       <template #icon>
         <slot name="empty-icon">
           <InfoCircleIcon :size="48" />
         </slot>
+      </template>
+      <template #guide>
+        <slot name="empty-guide" />
       </template>
       <template #action>
         <slot name="empty-action" />
@@ -43,6 +46,7 @@ interface Props {
   empty?: boolean;
   emptyText?: string;
   emptyHint?: string;
+  emptyGuide?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -51,6 +55,7 @@ const props = withDefaults(defineProps<Props>(), {
   empty: false,
   emptyText: '데이터가 없습니다',
   emptyHint: '',
+  emptyGuide: undefined,
 });
 
 const router = useRouter();

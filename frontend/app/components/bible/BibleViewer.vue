@@ -99,6 +99,12 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings';
 import { ACTION_MENU, TIMING } from '~/constants/bible';
+import LoadingSpinner from '~/components/common/LoadingSpinner.vue';
+import XMarkIcon from '~/components/icons/XMarkIcon.vue';
+import BookmarkIcon from '~/components/icons/BookmarkIcon.vue';
+import PenIcon from '~/components/icons/PenIcon.vue';
+import CopyIcon from '~/components/icons/CopyIcon.vue';
+import ShareIcon from '~/components/icons/ShareIcon.vue';
 
 interface Highlight {
   id: number;

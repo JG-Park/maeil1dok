@@ -45,7 +45,8 @@
     <EmptyState
       v-else-if="filteredNotes.length === 0"
       :text="filterBook ? '해당 책에 작성된 묵상노트가 없습니다' : '작성된 묵상노트가 없습니다'"
-      hint="성경을 읽으며 묵상을 기록해보세요"
+      hint="말씀을 읽고 묵상을 기록해보세요"
+      :guide="!filterBook ? ['성경 읽기 화면으로 이동하세요', '상단 메뉴(⋮)를 탭하세요', '묵상노트 버튼을 선택하세요'] : undefined"
       fullscreen
     >
       <template #icon>

@@ -6,6 +6,7 @@
     :empty="isEmpty"
     :empty-text="emptyText"
     :empty-hint="emptyHint"
+    :empty-guide="emptyGuide"
   >
     <!-- 빈 상태 아이콘 -->
     <template #empty-icon>
@@ -118,7 +119,16 @@ const emptyText = computed(() => {
     : '하이라이트가 없습니다';
 });
 const emptyHint = computed(() =>
-  authStore.isAuthenticated ? '성경을 읽으며 중요한 구절을 하이라이트해보세요' : ''
+  authStore.isAuthenticated ? '중요한 구절에 색상을 입혀보세요' : ''
+);
+const emptyGuide = computed(() =>
+  authStore.isAuthenticated && !filterBook.value && !filterColor.value
+    ? [
+        '성경 읽기 화면에서 텍스트를 드래그하세요',
+        '나타나는 메뉴에서 "하이라이트"를 선택하세요',
+        '원하는 색상을 선택하면 저장됩니다'
+      ]
+    : undefined
 );
 
 onMounted(async () => {
