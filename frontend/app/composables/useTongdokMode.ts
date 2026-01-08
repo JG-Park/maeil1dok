@@ -10,20 +10,28 @@ import { useApi } from './useApi';
 
 export interface PlanDetail {
   book: string;
+  book_kor?: string;
   start_chapter: number;
   end_chapter: number;
   is_complete: boolean;
+  schedule_id?: number;
+  date?: string;
+}
+
+export interface ReadingDetailData {
+  book?: string;
+  chapter?: number;
+  plan_id?: number;
+  plan_detail?: PlanDetail[];
+  audio_link?: string;
+  guide_link?: string;
+  schedule_date?: string;
+  message?: string;
+  is_complete?: boolean;
 }
 
 export interface ReadingDetailResponse {
-  data?: {
-    plan_detail?: PlanDetail[];
-    audio_link?: string;
-    guide_link?: string;
-    schedule_date?: string;
-    message?: string;
-    is_complete?: boolean;
-  };
+  data?: ReadingDetailData;
 }
 
 export const useTongdokMode = () => {
@@ -150,6 +158,54 @@ export const useTongdokMode = () => {
     readingDetailResponse.value = response;
   };
 
+  const loadReadingDetail = async (
+    planId: number | null,
+    book: string,
+    chapter: number
+  ): Promise<ReadingDetailData | null> => {
+    if (!planId) {
+      console.warn('Plan ID is missing for loadReadingDetail');
+      return null;
+    }
+
+    try {
+      const hasSameData =
+        readingDetailResponse.value?.data &&
+        readingDetailResponse.value.data.book === book &&
+        readingDetailResponse.value.data.chapter === chapter;
+
+      if (hasSameData) {
+        return readingDetailResponse.value?.data || null;
+      }
+
+      const response = await api.get('/api/v1/todos/detail/', {
+        params: {
+          plan_id: planId,
+          book,
+          chapter,
+        },
+      });
+
+      readingDetailResponse.value = response;
+      return response.data || null;
+    } catch (error) {
+      console.error('Failed to load reading detail:', error);
+      return null;
+    }
+  };
+
+  const getAudioLink = (): string | null => {
+    return readingDetailResponse.value?.data?.audio_link || null;
+  };
+
+  const getGuideLink = (): string | null => {
+    return readingDetailResponse.value?.data?.guide_link || null;
+  };
+
+  const getScheduleDate = (): string | null => {
+    return readingDetailResponse.value?.data?.schedule_date || null;
+  };
+
   /**
    * 현재 일정의 구간 정보 가져오기
    */
@@ -216,14 +272,12 @@ export const useTongdokMode = () => {
   };
 
   return {
-    // 상태
     tongdokMode,
     tongdokScheduleId,
     tongdokPlanId,
     readingDetailResponse,
     isCompleting,
 
-    // 함수
     initTongdokMode,
     getTongdokScheduleRange,
     getFullScheduleRange,
@@ -234,5 +288,9 @@ export const useTongdokMode = () => {
     setReadingDetailResponse,
     getCurrentSectionChapters,
     completeReading,
+    loadReadingDetail,
+    getAudioLink,
+    getGuideLink,
+    getScheduleDate,
   };
 };
