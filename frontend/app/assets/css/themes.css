@@ -116,6 +116,46 @@
   --highlight-name-color: #7c5a3c;  /* 갈색 (인명) */
   --highlight-place-color: #5a6e54;  /* 올리브 (지명) */
 
+  /* ===== Schedule Status Colors ===== */
+  /* For BibleScheduleContent and ScheduleItem components */
+  
+  /* Completed (읽음) - Green tones */
+  --color-schedule-completed-bg: #f0fdf4;
+  --color-schedule-completed-border: #c3e0cd;
+  --color-schedule-completed-text: #166534;
+  --color-schedule-completed-hover: #e6f7ec;
+  
+  /* Missed/Not completed (미완료) - Red tones */
+  --color-schedule-missed-bg: #fef2f2;
+  --color-schedule-missed-border: #dabbbb;
+  --color-schedule-missed-text: #991b1b;
+  --color-schedule-missed-hover: #fee8e8;
+  
+  /* Current (오늘) - Blue tones */
+  --color-schedule-current-bg: #eff6ff;
+  --color-schedule-current-border: #bfdbfe;
+  --color-schedule-current-text: #546395;
+  --color-schedule-current-hover: #dbeafe;
+  
+  /* Upcoming - Slate tones */
+  --color-schedule-upcoming-hover: #f1f5f9;
+  
+  /* Current location (현재 위치) - Yellow tones */
+  --color-schedule-location-bg: #fefce8;
+  --color-schedule-location-border: #fef08a;
+  --color-schedule-location-border-dark: #e5d87b;
+  --color-schedule-location-bg-light: #fef9c3;
+  --color-schedule-location-text: #997b1b;
+  --color-schedule-location-hover: #fef9c3;
+  
+  /* Today badge */
+  --color-schedule-today-bg: #405e9f;
+  
+  /* Info indicator */
+  --color-schedule-info-bg: #eff6ff;
+  --color-schedule-info-border: #bfdbfe;
+  --color-schedule-info-text: #1e40af;
+
   /* ===== Slate Color Palette ===== */
   /* For calendar and modal components */
   --color-slate-50: #F8FAFC;
@@ -227,6 +267,37 @@
   --button-hover-bg: var(--color-button-hover);
   --button-active-bg: var(--color-accent-primary);
   --button-active-text: var(--color-text-inverse);
+
+  /* ===== Schedule Status Colors (Dark) ===== */
+  --color-schedule-completed-bg: #0d2818;
+  --color-schedule-completed-border: #1a4028;
+  --color-schedule-completed-text: #86efac;
+  --color-schedule-completed-hover: #14532d;
+  
+  --color-schedule-missed-bg: #2a1515;
+  --color-schedule-missed-border: #4a2828;
+  --color-schedule-missed-text: #fca5a5;
+  --color-schedule-missed-hover: #3b1c1c;
+  
+  --color-schedule-current-bg: #1e2a3a;
+  --color-schedule-current-border: #2d4a6f;
+  --color-schedule-current-text: #93c5fd;
+  --color-schedule-current-hover: #1e3a5f;
+  
+  --color-schedule-upcoming-hover: #2d3748;
+  
+  --color-schedule-location-bg: #2a2a1a;
+  --color-schedule-location-border: #4a4a28;
+  --color-schedule-location-border-dark: #6a6a38;
+  --color-schedule-location-bg-light: #3a3a20;
+  --color-schedule-location-text: #fde047;
+  --color-schedule-location-hover: #3a3a20;
+  
+  --color-schedule-today-bg: #3b5998;
+  
+  --color-schedule-info-bg: #1e3a5f;
+  --color-schedule-info-border: #2d4a6f;
+  --color-schedule-info-text: #93c5fd;
 
   /* ===== Bible Content Specific ===== */
   --bible-bg: #1a1a1a;

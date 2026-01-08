@@ -289,14 +289,41 @@ function handleGroupClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.125rem;
+  min-width: 32px;
+  min-height: 32px;
+  margin: -8px 8px -8px -8px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.checkbox:hover {
+  background: rgba(97, 116, 117, 0.08);
 }
 
 .checkbox input[type='checkbox'] {
-  width: 1.125rem;
-  height: 1.125rem;
-  accent-color: var(--primary-color);
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 2px solid var(--color-slate-300);
+  appearance: none;
+  -webkit-appearance: none;
   cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--color-bg-card);
+}
+
+.checkbox input[type='checkbox']:hover {
+  border-color: var(--primary-color);
+}
+
+.checkbox input[type='checkbox']:checked {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17L4 12'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* 일정 정보 */
@@ -346,6 +373,20 @@ function handleGroupClick() {
 
 .schedule-reading-item.current-location {
   background: var(--color-schedule-location-bg);
+}
+
+/* 다중 구간 내 작은 체크박스 */
+.schedule-reading-item > .checkbox {
+  min-width: auto;
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.schedule-reading-item > .checkbox input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
 }
 
 .current-location-badge {
