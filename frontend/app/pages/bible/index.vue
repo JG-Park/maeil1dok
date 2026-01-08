@@ -30,6 +30,9 @@
         :has-next-chapter="hasNextChapter"
         :is-tongdok-mode="isTongdokMode"
         :tongdok-schedule-range="tongdokScheduleRange"
+        :tongdok-schedule-date="tongdokScheduleDate"
+        :tongdok-audio-link="tongdokAudioLink"
+        :tongdok-guide-link="tongdokGuideLink"
         :is-completing="isCompleting"
         :is-current-chapter-read="isCurrentChapterRead"
         :is-marking-read="isMarkingRead"
@@ -55,6 +58,8 @@
         @exit-tongdok="handleExitTongdok"
         @tongdok-complete-click="showTongdokCompleteModal = true"
         @today-tongdok="handleTodayTongdok"
+        @audio-link-click="handleAudioLink"
+        @reading-plan-click="showScheduleModal = true"
       />
 
       <!-- 모달 -->
@@ -113,6 +118,33 @@
         @close="showSettingsModal = false"
       />
 
+      <!-- 성경통독표 모달 -->
+      <Teleport to="body">
+        <Transition name="modal-fade">
+          <div v-if="showScheduleModal" class="schedule-modal-overlay" @click="showScheduleModal = false">
+            <Transition name="modal-slide">
+              <div class="schedule-modal-content" @click.stop>
+                <div class="schedule-modal-header">
+                  <h3>성경통독표</h3>
+                  <button class="schedule-close-button" @click="showScheduleModal = false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </div>
+                <BibleScheduleContent
+                  v-if="showScheduleModal"
+                  :is-modal="true"
+                  :current-book="currentBook"
+                  :current-chapter="currentChapter"
+                  @schedule-select="handleScheduleSelect"
+                />
+              </div>
+            </Transition>
+          </div>
+        </Transition>
+      </Teleport>
+
       <!-- 토스트 -->
       <Toast />
     </template>
@@ -150,6 +182,7 @@ import TongdokCompleteModal from '~/components/bible/TongdokCompleteModal.vue';
 import NoteQuickModal from '~/components/bible/NoteQuickModal.vue';
 import HighlightModal from '~/components/bible/HighlightModal.vue';
 import ReadingSettingsModal from '~/components/ReadingSettingsModal.vue';
+import BibleScheduleContent from '~/components/BibleScheduleContent.vue';
 
 // 기타
 import Toast from '~/components/Toast.vue';
@@ -192,7 +225,11 @@ const {
   disableTongdokMode,
   enableTongdokMode,
   completeReading,
-  setReadingDetailResponse
+  setReadingDetailResponse,
+  loadReadingDetail,
+  getAudioLink,
+  getGuideLink,
+  getScheduleDate,
 } = useTongdokMode();
 const {
   loadReadingPosition,
@@ -264,6 +301,7 @@ const {
 // Refs
 const bibleReaderViewRef = ref<InstanceType<typeof BibleReaderView> | null>(null);
 const scrollPosition = ref(0);
+const showScheduleModal = ref(false);
 
 // 통독모드 관련
 const isTongdokMode = computed(() => tongdokMode.value);
@@ -277,6 +315,9 @@ const isAtLastTongdokChapter = computed(() =>
 const tongdokAutoComplete = computed(() =>
   readingSettingsStore.settings.tongdokAutoComplete
 );
+const tongdokAudioLink = computed(() => getAudioLink());
+const tongdokGuideLink = computed(() => getGuideLink());
+const tongdokScheduleDate = computed(() => getScheduleDate());
 
 // 읽기모드 관련 (통독모드가 아닐 때)
 const isCurrentChapterRead = computed(() =>
@@ -497,6 +538,33 @@ const handleExitTongdok = () => {
   toast.info('통독모드를 종료했습니다');
 };
 
+// 통독모드: 오디오 링크 핸들러
+const handleAudioLink = (audioLink: string) => {
+  const videoId = audioLink.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/
+  )?.[1];
+
+  if (!videoId) {
+    window.open(audioLink, '_blank');
+    return;
+  }
+
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    const youtubeAppUrl = `vnd.youtube://${videoId}`;
+    const webUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+    window.location.href = youtubeAppUrl;
+
+    setTimeout(() => {
+      window.location.href = webUrl;
+    }, 1000);
+  } else {
+    window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+  }
+};
+
 // 통독모드: 오늘의 통독 시작 핸들러
 const handleTodayTongdok = async () => {
   try {
@@ -533,6 +601,33 @@ const handleTodayTongdok = async () => {
   } catch (error) {
     handleApiError(error, '통독 일정 로드');
   }
+};
+
+// 성경통독표에서 일정 선택 핸들러
+interface ScheduleSelectPayload {
+  book: string;
+  start_chapter: number;
+  id: number;
+  plan_detail?: Array<{
+    book: string;
+    start_chapter: number;
+    end_chapter: number;
+    is_complete: boolean;
+  }>;
+}
+
+const handleScheduleSelect = (schedule: ScheduleSelectPayload) => {
+  showScheduleModal.value = false;
+
+  tongdokMode.value = true;
+  tongdokScheduleId.value = schedule.id;
+  tongdokPlanId.value = selectedPlanStore.effectivePlanId;
+
+  if (schedule.plan_detail) {
+    setReadingDetailResponse({ data: { plan_detail: schedule.plan_detail } });
+  }
+
+  handleBookSelect(schedule.book, schedule.start_chapter);
 };
 
 // 북마크: 토글 핸들러
@@ -726,6 +821,11 @@ onMounted(async () => {
     );
   }
 
+  // 통독모드일 때 읽기 상세 정보 로드
+  if (isTongdokMode.value && tongdokPlanId.value) {
+    await loadReadingDetail(tongdokPlanId.value, currentBook.value, currentChapter.value);
+  }
+
   // beforeunload 이벤트 등록 (페이지 이탈 시 위치 저장)
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -795,6 +895,16 @@ watch(
   },
   { flush: 'post' }
 );
+
+// 통독모드에서 책/장 변경 시 읽기 상세 정보 로드
+watch(
+  [() => currentBook.value, () => currentChapter.value, () => tongdokMode.value],
+  async ([newBook, newChapter, isTongdok]) => {
+    if (isTongdok && tongdokPlanId.value) {
+      await loadReadingDetail(tongdokPlanId.value, newBook, newChapter);
+    }
+  }
+);
 </script>
 
 <style scoped>
@@ -818,5 +928,101 @@ watch(
 /* 다크모드 */
 :root.dark .bible-page {
   background: var(--color-bg-primary);
+}
+
+/* 성경통독표 모달 */
+.schedule-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.schedule-modal-content {
+  width: 100%;
+  max-width: 768px;
+  max-height: 85vh;
+  background: var(--color-bg-card, #fff);
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.schedule-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.schedule-modal-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+
+.schedule-close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-secondary, #6b7280);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.schedule-close-button:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--text-primary, #1f2937);
+}
+
+/* 모달 애니메이션 */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-slide-enter-active,
+.modal-slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.modal-slide-enter-from,
+.modal-slide-leave-to {
+  transform: translateY(100%);
+}
+
+/* 다크모드 - 모달 */
+:root.dark .schedule-modal-content {
+  background: var(--color-bg-card);
+}
+
+:root.dark .schedule-modal-header {
+  border-bottom-color: var(--color-border);
+}
+
+:root.dark .schedule-modal-header h3 {
+  color: var(--text-primary);
+}
+
+:root.dark .schedule-close-button {
+  color: var(--text-secondary);
+}
+
+:root.dark .schedule-close-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--text-primary);
 }
 </style>
