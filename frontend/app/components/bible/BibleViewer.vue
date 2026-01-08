@@ -151,17 +151,20 @@ const copyMenuRef = ref<HTMLElement | null>(null);
 // 선택 모드: 'click' (절 클릭) | 'drag' (텍스트 드래그) | null
 const selectionMode = ref<'click' | 'drag' | null>(null);
 
-// 절 클릭 선택 상태 (하단 복사 메뉴용)
+// 절 클릭 선택 상태 (복사 메뉴용 데이터)
 const showCopyMenu = ref(false);
 const clickSelectedStart = ref<number | null>(null);
 const clickSelectedEnd = ref<number | null>(null);
 const clickSelectedVerses = ref<Array<{ number: number; text: string }>>([]);
 
-// 텍스트 드래그 선택 상태 (플로팅 액션 메뉴용)
+// 텍스트 드래그/클릭 선택 상태 (플로팅 액션 메뉴용)
 const showActionMenu = ref(false);
 const selectedVerses = ref({ start: 0, end: 0 });
 const selectedText = ref('');
 const actionMenuPosition = ref({ top: '0px', left: '0px' });
+
+// 클릭된 절 요소 참조 (액션 메뉴 위치 계산용)
+const clickedVerseElement = ref<Element | null>(null);
 
 // 스타일 계산
 const viewerStyle = computed(() => ({
@@ -332,7 +335,7 @@ const handleClickCopy = async (type: string) => {
   clearClickSelection();
 };
 
-// 절 클릭 핸들러
+// 절 클릭 핸들러 - 액션 메뉴 표시
 const handleVerseClick = (event: MouseEvent | TouchEvent) => {
   const target = event.target as HTMLElement;
   const verseEl = target.closest('.verse');
@@ -360,7 +363,7 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
     clickSelectedStart.value === num &&
     clickSelectedVerses.value.length === 1
   ) {
-    showCopyMenu.value = false;
+    hideActionMenu();
     setTimeout(() => {
       clearClickSelection();
     }, TIMING.VERSE_RESELECT_DELAY);
@@ -379,7 +382,14 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
     clickSelectedEnd.value = null;
     clickSelectedVerses.value = [{ number: num, text: txt }];
     highlightVerses(num, num);
-    showCopyMenu.value = true;
+    
+    // 액션 메뉴용 데이터 설정
+    selectedVerses.value = { start: num, end: num };
+    selectedText.value = txt;
+    clickedVerseElement.value = verseEl;
+    
+    // 절 요소 위치에 액션 메뉴 표시
+    showActionMenuAtElement(verseEl);
   } else if (clickSelectedEnd.value === null) {
     // 끝점 설정 및 범위 선택
     clickSelectedEnd.value = num;
@@ -389,6 +399,7 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
 
     // 선택 구간의 number/text 저장
     const versesArray: Array<{ number: number; text: string }> = [];
+    let combinedText = '';
     if (viewerRef.value) {
       viewerRef.value.querySelectorAll('.verse').forEach((el) => {
         const nEl = el.querySelector('.verse-number');
@@ -396,24 +407,35 @@ const handleVerseClick = (event: MouseEvent | TouchEvent) => {
         if (!nEl || !tEl) return;
         const n = parseInt(nEl.textContent?.trim() || '0', 10);
         if (n >= start && n <= end) {
-          versesArray.push({
-            number: n,
-            text: tEl.textContent?.trim() || ''
-          });
+          const verseText = tEl.textContent?.trim() || '';
+          versesArray.push({ number: n, text: verseText });
+          combinedText += (combinedText ? ' ' : '') + verseText;
         }
       });
     }
     clickSelectedVerses.value = versesArray;
-    showCopyMenu.value = true;
+    
+    // 액션 메뉴용 데이터 설정
+    selectedVerses.value = { start, end };
+    selectedText.value = combinedText;
+    
+    // 클릭한 절 위치에 액션 메뉴 표시
+    showActionMenuAtElement(verseEl);
   } else {
     // 재선택: 메뉴를 닫고 새로 열기
     clearClickSelection();
-    showCopyMenu.value = false;
+    hideActionMenu();
     setTimeout(() => {
       clickSelectedStart.value = num;
       clickSelectedVerses.value = [{ number: num, text: txt }];
       highlightVerses(num, num);
-      showCopyMenu.value = true;
+      
+      // 액션 메뉴용 데이터 설정
+      selectedVerses.value = { start: num, end: num };
+      selectedText.value = txt;
+      clickedVerseElement.value = verseEl;
+      
+      showActionMenuAtElement(verseEl);
     }, TIMING.VERSE_RESELECT_DELAY);
   }
 };
@@ -500,9 +522,20 @@ const extractVerseNumbers = (range: Range): { start: number; end: number } => {
   return { start, end };
 };
 
-// 액션 메뉴 표시
+// 액션 메뉴 표시 (Range 기반 - 드래그 선택용)
 const showActionMenuAt = (range: Range) => {
   const rect = range.getBoundingClientRect();
+  positionActionMenu(rect);
+};
+
+// 액션 메뉴 표시 (Element 기반 - 클릭 선택용)
+const showActionMenuAtElement = (element: Element) => {
+  const rect = element.getBoundingClientRect();
+  positionActionMenu(rect);
+};
+
+// 액션 메뉴 위치 계산 공통 함수
+const positionActionMenu = (rect: DOMRect) => {
   const viewportWidth = window.innerWidth;
 
   // 메뉴 위치 계산 (선택 영역 위)
@@ -557,28 +590,52 @@ const handleHighlight = () => {
 };
 
 const handleCopy = async () => {
-  const bookName = props.book;
-  const verseRef = selectedVerses.value.start === selectedVerses.value.end
-    ? `${selectedVerses.value.start}절`
-    : `${selectedVerses.value.start}-${selectedVerses.value.end}절`;
-  const copyText = `${selectedText.value}\n\n- ${bookName} ${props.chapter}장 ${verseRef}`;
-
-  try {
-    await navigator.clipboard.writeText(copyText);
-    emit('copy', copyText);
-  } catch {
-    // Fallback for older browsers
-    const textarea = document.createElement('textarea');
-    textarea.value = copyText;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    emit('copy', copyText);
-  }
-
+  // 액션 메뉴를 숨기고 복사 메뉴 표시
   hideActionMenu();
-  clearSelection();
+  
+  // 클릭 선택 모드에서는 복사 메뉴 표시
+  if (selectionMode.value === 'click') {
+    showCopyMenu.value = true;
+    return;
+  }
+  
+  // 드래그 선택 모드에서는 clickSelectedVerses 데이터 설정 후 복사 메뉴 표시
+  if (selectionMode.value === 'drag') {
+    // 드래그 선택 데이터를 클릭 선택 형식으로 변환
+    clickSelectedStart.value = selectedVerses.value.start;
+    clickSelectedEnd.value = selectedVerses.value.start === selectedVerses.value.end 
+      ? null 
+      : selectedVerses.value.end;
+    
+    // 단일 절 선택
+    if (selectedVerses.value.start === selectedVerses.value.end) {
+      clickSelectedVerses.value = [{
+        number: selectedVerses.value.start,
+        text: selectedText.value
+      }];
+    } else {
+      // 범위 선택 - viewerRef에서 각 절 텍스트 추출
+      const versesArray: Array<{ number: number; text: string }> = [];
+      if (viewerRef.value) {
+        viewerRef.value.querySelectorAll('.verse').forEach((el) => {
+          const nEl = el.querySelector('.verse-number');
+          const tEl = el.querySelector('.verse-text');
+          if (!nEl || !tEl) return;
+          const n = parseInt(nEl.textContent?.trim() || '0', 10);
+          if (n >= selectedVerses.value.start && n <= selectedVerses.value.end) {
+            versesArray.push({
+              number: n,
+              text: tEl.textContent?.trim() || ''
+            });
+          }
+        });
+      }
+      clickSelectedVerses.value = versesArray;
+    }
+    
+    selectionMode.value = 'click'; // 복사 메뉴는 클릭 모드로 처리
+    showCopyMenu.value = true;
+  }
 };
 
 const handleShare = async () => {
@@ -633,12 +690,13 @@ const scrollToVerse = (verseNumber: number) => {
 const handleDocumentClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
 
-  // 텍스트 드래그 선택 메뉴 닫기
-  if (!target.closest('.verse-action-menu')) {
+  // 액션 메뉴 외부 클릭 시 닫기
+  if (showActionMenu.value && !target.closest('.verse-action-menu') && !target.closest('.verse')) {
     hideActionMenu();
+    clearClickSelection();
   }
 
-  // 절 클릭 복사 메뉴 닫기 (메뉴 외부 클릭 시)
+  // 복사 메뉴 외부 클릭 시 닫기
   if (showCopyMenu.value && !target.closest('.copy-menu') && !target.closest('.verse')) {
     clearClickSelection();
   }
