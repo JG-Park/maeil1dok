@@ -469,22 +469,27 @@ const extractVerseNumbers = (range: Range): { start: number; end: number } => {
 
   if (!parent) return { start: 0, end: 0 };
 
-  // 선택 범위 내의 절 번호 찾기
-  const allVerseNums = parent.querySelectorAll('.verse-num[data-verse]');
+  // 선택 범위 내의 절 번호 찾기 (.verse-number 클래스 사용)
+  const allVerseNums = parent.querySelectorAll('.verse-number');
   let start = 0;
   let end = 0;
 
   allVerseNums.forEach((el) => {
-    const verseNum = parseInt(el.getAttribute('data-verse') || '0');
+    // 절 번호는 텍스트 콘텐츠에서 추출
+    const verseNum = parseInt(el.textContent?.trim() || '0', 10);
     if (verseNum === 0) return;
 
     // 선택 범위와 비교
-    const position = range.comparePoint(el, 0);
-    if (position <= 0 && start === 0) {
-      start = verseNum;
-    }
-    if (position <= 0) {
-      end = verseNum;
+    try {
+      const position = range.comparePoint(el, 0);
+      if (position <= 0 && start === 0) {
+        start = verseNum;
+      }
+      if (position <= 0) {
+        end = verseNum;
+      }
+    } catch {
+      // comparePoint가 실패하는 경우 (다른 문서 등) 무시
     }
   });
 
