@@ -51,10 +51,10 @@ export const useNote = () => {
     if (!authStore.isAuthenticated) return [];
 
     try {
-      const response = await api.get('/api/v1/todos/bible/notes/by_chapter/', {
+      const response = await api.get('/api/v1/todos/bible/notes/by-chapter/', {
         params: { book, chapter }
       });
-      currentChapterNotes.value = response.data || [];
+      currentChapterNotes.value = response.data?.notes || [];
       return currentChapterNotes.value;
     } catch (error) {
       console.error('장별 노트 조회 실패:', error);

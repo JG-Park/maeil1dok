@@ -83,7 +83,7 @@ export const useHighlight = () => {
     }
 
     try {
-      const response = await api.get('/api/v1/todos/bible/highlights/by_chapter/', {
+      const response = await api.get('/api/v1/todos/bible/highlights/by-chapter/', {
         params: { book, chapter }
       });
       chapterHighlights.value = response.data?.highlights || [];
