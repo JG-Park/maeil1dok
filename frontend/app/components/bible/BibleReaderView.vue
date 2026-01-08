@@ -41,6 +41,9 @@
       <div class="tongdok-info">
         <span class="tongdok-badge">통독</span>
         <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
+        <span v-if="tongdokProgress" class="tongdok-progress">
+          {{ tongdokProgress.current }}/{{ tongdokProgress.total }}장
+        </span>
       </div>
       <div class="tongdok-actions">
         <a
@@ -220,6 +223,7 @@ interface Props {
   tongdokScheduleDate?: string | null;
   tongdokAudioLink?: string | null;
   tongdokGuideLink?: string | null;
+  tongdokProgress?: { current: number; total: number } | null;
   isCompleting?: boolean;
 
   // 읽기모드
@@ -242,6 +246,7 @@ const props = withDefaults(defineProps<Props>(), {
   tongdokScheduleDate: null,
   tongdokAudioLink: null,
   tongdokGuideLink: null,
+  tongdokProgress: null,
   isCompleting: false,
   isMarkingRead: false,
   highlights: () => [],
@@ -478,6 +483,17 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tongdok-progress {
+  padding: 0.125rem 0.375rem;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary-color, #6366f1);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tongdok-actions {

@@ -33,6 +33,7 @@
         :tongdok-schedule-date="tongdokScheduleDate"
         :tongdok-audio-link="tongdokAudioLink"
         :tongdok-guide-link="tongdokGuideLink"
+        :tongdok-progress="tongdokProgress"
         :is-completing="isCompleting"
         :is-current-chapter-read="isCurrentChapterRead"
         :is-marking-read="isMarkingRead"
@@ -230,6 +231,7 @@ const {
   getAudioLink,
   getGuideLink,
   getScheduleDate,
+  getTongdokProgress,
 } = useTongdokMode();
 const {
   loadReadingPosition,
@@ -318,6 +320,9 @@ const tongdokAutoComplete = computed(() =>
 const tongdokAudioLink = computed(() => getAudioLink());
 const tongdokGuideLink = computed(() => getGuideLink());
 const tongdokScheduleDate = computed(() => getScheduleDate());
+const tongdokProgress = computed(() =>
+  getTongdokProgress(currentBook.value, currentChapter.value)
+);
 
 // 읽기모드 관련 (통독모드가 아닐 때)
 const isCurrentChapterRead = computed(() =>
@@ -937,19 +942,21 @@ watch(
   background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  padding: 1rem;
 }
 
 .schedule-modal-content {
   width: 100%;
-  max-width: 768px;
-  max-height: 85vh;
+  max-width: 600px;
+  max-height: 80vh;
   background: var(--color-bg-card, #fff);
-  border-radius: 20px 20px 0 0;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
 .schedule-modal-header {
@@ -996,12 +1003,13 @@ watch(
 
 .modal-slide-enter-active,
 .modal-slide-leave-active {
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .modal-slide-enter-from,
 .modal-slide-leave-to {
-  transform: translateY(100%);
+  transform: scale(0.95);
+  opacity: 0;
 }
 
 /* 다크모드 - 모달 */

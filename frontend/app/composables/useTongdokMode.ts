@@ -207,6 +207,48 @@ export const useTongdokMode = () => {
   };
 
   /**
+   * 통독 진행 상황 계산
+   * @returns { current: 현재 장 순번(1부터), total: 전체 장 수 }
+   */
+  const getTongdokProgress = (currentBook: string, currentChapter: number): { current: number; total: number } | null => {
+    if (!tongdokMode.value || !readingDetailResponse.value?.data?.plan_detail) {
+      return null;
+    }
+
+    const planDetails = readingDetailResponse.value.data.plan_detail;
+    if (planDetails.length === 0) return null;
+
+    let total = 0;
+    let current = 0;
+    let foundCurrent = false;
+
+    for (const detail of planDetails) {
+      const chapterCount = detail.end_chapter - detail.start_chapter + 1;
+      total += chapterCount;
+
+      if (!foundCurrent) {
+        if (detail.book === currentBook &&
+            currentChapter >= detail.start_chapter &&
+            currentChapter <= detail.end_chapter) {
+          // 현재 장이 이 구간에 있음
+          current += (currentChapter - detail.start_chapter + 1);
+          foundCurrent = true;
+        } else {
+          // 이전 구간들은 모두 카운트
+          current += chapterCount;
+        }
+      }
+    }
+
+    if (!foundCurrent) {
+      // 현재 위치를 찾지 못한 경우 (범위 밖)
+      return { current: 1, total };
+    }
+
+    return { current, total };
+  };
+
+  /**
    * 현재 일정의 구간 정보 가져오기
    */
   const getCurrentSectionChapters = (currentBook: string): Array<{
@@ -292,5 +334,6 @@ export const useTongdokMode = () => {
     getAudioLink,
     getGuideLink,
     getScheduleDate,
+    getTongdokProgress,
   };
 };
