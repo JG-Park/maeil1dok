@@ -36,8 +36,8 @@
           </div>
         </section>
 
-        <!-- 이메일 인증 섹션 (이메일이 있고 미인증인 경우만) -->
-        <section v-if="user?.email && !user?.email_verified" class="settings-section">
+        <!-- 이메일 인증 섹션 (이메일 가입 사용자 중 미인증인 경우만) -->
+        <section v-if="user?.email && user?.has_usable_password_flag && !user?.email_verified" class="settings-section">
           <h2 class="section-title">이메일 인증</h2>
           <div class="section-content">
             <div class="setting-item verification-item">
@@ -63,8 +63,8 @@
           </div>
         </section>
 
-        <!-- 이메일 인증 완료 상태 (인증된 경우) -->
-        <section v-else-if="user?.email && user?.email_verified" class="settings-section">
+        <!-- 이메일 인증 완료 상태 (이메일 가입 사용자 중 인증 완료) -->
+        <section v-else-if="user?.email && user?.has_usable_password_flag && user?.email_verified" class="settings-section">
           <h2 class="section-title">이메일 인증</h2>
           <div class="section-content">
             <div class="setting-item">

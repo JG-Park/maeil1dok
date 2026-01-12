@@ -41,12 +41,13 @@ const resending = ref(false)
 const cooldown = ref(0)
 let cooldownTimer: NodeJS.Timeout | null = null
 
-// Show banner only for logged-in users with email who haven't verified
+// Show banner only for email-registered users who haven't verified
 const showBanner = computed(() => {
   if (dismissed.value) return false
   if (!auth.user) return false
-  // Only show for email-based accounts (not social-only)
+  // Only show for email-based accounts (has password set)
   if (!auth.user.email) return false
+  if (!auth.user.has_usable_password_flag) return false  // 소셜 로그인 사용자는 제외
   // Don't show for already verified users
   if (auth.user.email_verified) return false
   return true

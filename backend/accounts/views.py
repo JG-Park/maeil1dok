@@ -439,6 +439,12 @@ def social_login_v2(request):
                 extra_data=social_info
             )
             
+            # 소셜 로그인은 이메일 인증 완료 처리
+            if email and not legacy_user.email_verified:
+                legacy_user.email = email
+                legacy_user.email_verified = True
+                legacy_user.save(update_fields=['email', 'email_verified'])
+            
             refresh = RefreshToken.for_user(legacy_user)
             response = Response({
                 'refresh': str(refresh),
@@ -488,11 +494,12 @@ def complete_social_signup(request):
             return Response({'error': '이미 가입된 소셜 계정입니다.'}, status=400)
         
         with transaction.atomic():
-            # 사용자 생성
+            # 사용자 생성 (소셜 로그인은 이메일 인증 완료 처리)
             user = User.objects.create(
                 username=f"{provider}_{provider_id}",
                 nickname=nickname,
                 email=email,
+                email_verified=True,  # 소셜 로그인은 이미 인증됨
                 profile_image=profile_image,
                 is_social=True,
                 social_provider=provider,

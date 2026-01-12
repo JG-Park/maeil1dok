@@ -1,0 +1,3 @@
+Explore the backend OAuth implementation in backend/accounts/views.py and backend/accounts/urls.py. Focus on how the 'code' is exchanged for user info and how JWT tokens are generated and returned.
+Search for JWT token storage (localStorage/cookies) and refresh mechanism in frontend/app/stores/auth.ts and any axios interceptors in frontend/app/plugins/ or frontend/app/composables/useApi.ts.
+Extract all OAuth-related environment variables from frontend/.env.example and backend/.env.example and identify the expected redirect URI patterns.
