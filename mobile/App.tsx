@@ -128,24 +128,49 @@ export default function App() {
     }
   };
 
-  // 카카오 로그인
+  // 카카오 로그인 (웹 redirect_uri 사용 - 카카오도 커스텀 스킴 미지원)
   const handleKakaoLogin = async () => {
     try {
-      const redirectUri = AuthSession.makeRedirectUri({
-        scheme: APP_SCHEME,
-        path: 'auth/kakao/callback',
-      });
-
-      const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
+      // 웹 redirect_uri 사용 (카카오 OAuth 제약)
+      const webRedirectUri = `${WEB_APP_URL}/auth/kakao/callback`;
+      // 앱에서 왔음을 표시하는 state 파라미터
+      const state = encodeURIComponent(JSON.stringify({ from: 'app', scheme: APP_SCHEME }));
       
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(webRedirectUri)}&response_type=code&state=${state}`;
+      
+      // WebBrowser로 열고, 앱으로 돌아오는 딥링크 대기
+      const appRedirectUri = `${APP_SCHEME}://auth/kakao/callback`;
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, appRedirectUri);
       
       if (result.type === 'success' && result.url) {
         const url = new URL(result.url);
-        const code = url.searchParams.get('code');
+        // 웹에서 딥링크로 전달된 토큰 처리
+        const access = url.searchParams.get('access');
+        const refresh = url.searchParams.get('refresh');
+        const userJson = url.searchParams.get('user');
+        const needsSignup = url.searchParams.get('needsSignup');
         
-        if (code) {
-          await handleSocialLoginCode('kakao', code, redirectUri);
+        if (access && refresh && userJson) {
+          // 로그인 성공
+          const user = JSON.parse(decodeURIComponent(userJson));
+          await saveAuthState({
+            isLoggedIn: true,
+            accessToken: access,
+            refreshToken: refresh,
+            user: user,
+          });
+          setShowLogin(false);
+        } else if (needsSignup === 'true') {
+          // 회원가입 필요 - WebView로 이동
+          const provider = url.searchParams.get('provider');
+          const providerId = url.searchParams.get('provider_id');
+          const email = url.searchParams.get('email') || '';
+          const nickname = url.searchParams.get('suggested_nickname') || '';
+          const profileImage = url.searchParams.get('profile_image') || '';
+          
+          const signupUrl = `${WEB_APP_URL}/auth/kakao/setup?provider=${provider}&provider_id=${providerId}&email=${email}&suggested_nickname=${encodeURIComponent(nickname)}&profile_image=${encodeURIComponent(profileImage)}`;
+          setShowLogin(false);
+          webViewRef.current?.injectJavaScript(`window.location.href = '${signupUrl}';`);
         }
       }
     } catch (error) {
