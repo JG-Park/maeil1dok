@@ -2,7 +2,7 @@
   <BaseModal
     v-model="isOpen"
     title="플랜 선택"
-    size="sm"
+    size="md"
     @close="handleClose"
   >
     <div class="plan-list">
@@ -145,6 +145,8 @@ function handleManage() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .check-icon-wrapper {
@@ -163,6 +165,9 @@ function handleManage() {
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .plan-badges {

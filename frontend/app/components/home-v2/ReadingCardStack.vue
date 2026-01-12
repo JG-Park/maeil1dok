@@ -53,7 +53,7 @@
     </div>
 
     <!-- 모두 완료 상태 (칭찬 + 다음 통독 미리보기) -->
-    <div v-else-if="cardType === 'allDone'" class="reading-card main-card all-done-card">
+    <div v-else-if="cardType === 'allDone'" class="reading-card main-card all-done-card" @click="startRandomReading">
       <div class="card-header">
         <span class="card-label">AMAZING!</span>
         <span class="completed-badge">
@@ -65,10 +65,10 @@
       <div class="chapter-range">정말 대단해요! 내일도 함께해요</div>
       
       <div class="action-buttons">
-        <button v-if="nextSchedule" class="start-btn" @click="startNextReading">
+        <button v-if="nextSchedule" class="start-btn" @click.stop="startNextReading">
           📖 내일 본문 미리 읽기
         </button>
-        <button class="start-btn secondary" @click="startRandomReading">
+        <button class="start-btn secondary">
           🎲 랜덤 말씀 뽑기
         </button>
       </div>
