@@ -7,7 +7,20 @@
         </svg>
       </button>
       <h1>읽기 설정</h1>
-      <div class="header-spacer"></div>
+      <button 
+        class="save-btn" 
+        :class="{ saving: isSaving, inactive: !hasChanges && !isSaving }"
+        :disabled="isSaving || !hasChanges"
+        @click="saveSettings"
+      >
+        <template v-if="isSaving">
+          <span class="save-spinner"></span>
+          저장 중
+        </template>
+        <template v-else>
+          저장
+        </template>
+      </button>
     </header>
 
     <div class="settings-content">
@@ -249,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { 
   useReadingSettingsStore, 
   FONT_FAMILIES, 
@@ -282,8 +295,44 @@ const modal = useModal();
 const { handleApiError } = useErrorHandler();
 
 const isDeleting = ref(false);
+const isSaving = ref(false);
 
 const settings = computed(() => settingsStore.settings);
+
+// 저장된 설정 (서버 상태) 추적
+const savedSettings = ref<string>('');
+
+// 변경사항 감지
+const hasChanges = computed(() => {
+  if (!savedSettings.value) return false;
+  return JSON.stringify(settings.value) !== savedSettings.value;
+});
+
+// 페이지 로드 시 현재 설정을 저장된 상태로 기록
+onMounted(() => {
+  savedSettings.value = JSON.stringify(settings.value);
+});
+
+// 저장 버튼 클릭
+const saveSettings = async () => {
+  if (!authStore.isAuthenticated) {
+    toast.info('로그인하면 설정이 서버에 저장됩니다');
+    return;
+  }
+  
+  if (!hasChanges.value) return;
+  
+  isSaving.value = true;
+  try {
+    await settingsStore.syncToServer();
+    savedSettings.value = JSON.stringify(settings.value);
+    toast.success('저장되었습니다');
+  } catch (error) {
+    toast.error('저장에 실패했습니다');
+  } finally {
+    isSaving.value = false;
+  }
+};
 
 const fontFamilies = FONT_FAMILIES;
 const fontFamilyOrder = FONT_FAMILY_ORDER;
@@ -471,8 +520,53 @@ const resetAllSettings = async () => {
   color: var(--color-text-primary);
 }
 
-.header-spacer {
-  width: 36px;
+/* 저장 버튼 */
+.save-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.875rem;
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 70px;
+  justify-content: center;
+}
+
+.save-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.save-btn:disabled {
+  cursor: not-allowed;
+}
+
+.save-btn.saving {
+  background-color: var(--color-text-muted);
+}
+
+.save-btn.inactive {
+  background-color: var(--color-border-default);
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.save-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .bible-page-header h1 {
@@ -1010,6 +1104,20 @@ const resetAllSettings = async () => {
 [data-theme="dark"] .bible-back-btn:hover {
   background-color: var(--color-bg-hover);
   color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .save-btn {
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+}
+
+[data-theme="dark"] .save-btn.saving {
+  background-color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .save-btn.inactive {
+  background-color: var(--color-border-dark);
+  color: var(--color-text-muted);
 }
 
 /* 미리보기 섹션 */
