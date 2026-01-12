@@ -1289,6 +1289,13 @@ defineExpose({
   }
 }
 
+/* iOS Safari 전용 - safe-area만 사용 (추가 마진 최소화) */
+@supports (-webkit-touch-callout: none) {
+  .bible-bottom-area {
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
 /* ==========================================
    다크모드 스타일 - [data-theme="dark"] 셀렉터 사용
    프로젝트 전체 테마 시스템과 일관성 유지
