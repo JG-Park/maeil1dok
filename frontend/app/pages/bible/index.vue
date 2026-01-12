@@ -746,6 +746,12 @@ const handleNoteGoDetail = (noteId?: number, _content?: string) => {
 
 // 통독모드: 완료 처리 핸들러
 const handleTongdokComplete = async (payload: { autoComplete: boolean }) => {
+  // 비로그인 사용자는 로그인 페이지로 안내
+  if (!requireAuth('로그인해야 통독 기록을 저장할 수 있습니다')) {
+    closeTongdokCompleteModal();
+    return;
+  }
+
   // 자동 완료 설정 저장
   if (payload.autoComplete !== tongdokAutoComplete.value) {
     readingSettingsStore.updateSetting('tongdokAutoComplete', payload.autoComplete);
