@@ -97,6 +97,7 @@ export default function App() {
         console.error('Failed to load auth state:', error);
       } finally {
         setIsAuthLoading(false);
+        SplashScreen.hideAsync();
       }
     };
     loadAuthState();
