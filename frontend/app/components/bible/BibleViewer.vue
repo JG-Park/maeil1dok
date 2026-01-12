@@ -676,13 +676,55 @@ const restoreScrollPosition = () => {
   }
 };
 
-// 특정 절로 스크롤
+// 검색 결과 강조용 타이머
+let searchHighlightTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// 특정 절로 스크롤 및 강조
 const scrollToVerse = (verseNumber: number) => {
   if (!viewerRef.value) return;
 
-  const verseEl = viewerRef.value.querySelector(`[data-verse="${verseNumber}"]`);
-  if (verseEl) {
-    verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // 기존 강조 제거
+  if (searchHighlightTimeout) {
+    clearTimeout(searchHighlightTimeout);
+    searchHighlightTimeout = null;
+  }
+  viewerRef.value.querySelectorAll('.verse.search-highlight')
+    .forEach(el => el.classList.remove('search-highlight'));
+
+  // .verse-number 요소에서 해당 절 번호를 가진 것을 찾음
+  const verseElements = viewerRef.value.querySelectorAll('.verse');
+  let targetVerse: Element | null = null;
+
+  verseElements.forEach((el) => {
+    const numEl = el.querySelector('.verse-number');
+    if (numEl) {
+      const num = parseInt(numEl.textContent?.trim() || '0', 10);
+      if (num === verseNumber) {
+        targetVerse = el;
+      }
+    }
+  });
+
+  // 찾지 못하면 data-verse 속성으로 재시도 (sup 태그)
+  if (!targetVerse) {
+    const supEl = viewerRef.value.querySelector(`[data-verse="${verseNumber}"]`);
+    if (supEl) {
+      targetVerse = supEl.closest('.verse') || supEl;
+    }
+  }
+
+  if (targetVerse) {
+    // 스크롤
+    targetVerse.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // 강조 스타일 적용
+    targetVerse.classList.add('search-highlight');
+    
+    // 3초 후 강조 제거
+    searchHighlightTimeout = setTimeout(() => {
+      targetVerse?.classList.remove('search-highlight');
+      searchHighlightTimeout = null;
+    }, 3000);
   }
 };
 
@@ -722,6 +764,10 @@ onUnmounted(() => {
   document.removeEventListener('touchend', handleTextSelection);
   if (scrollTimeout) {
     clearTimeout(scrollTimeout);
+  }
+  // 검색 강조 타이머 정리
+  if (searchHighlightTimeout) {
+    clearTimeout(searchHighlightTimeout);
   }
   // 선택 상태 정리
   clearAllSelections();
@@ -1102,6 +1148,32 @@ defineExpose({
   color: var(--verse-number-color-dark, #666666);
 }
 
+/* ====== 검색 결과 강조 스타일 ====== */
+
+/* 검색으로 이동한 절 강조 */
+.bible-content :deep(.verse.search-highlight) {
+  background-color: rgba(251, 191, 36, 0.25) !important;
+  animation: search-pulse 0.6s ease-out;
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.4);
+}
+
+.theme-dark .bible-content :deep(.verse.search-highlight) {
+  background-color: rgba(251, 191, 36, 0.2) !important;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+}
+
+@keyframes search-pulse {
+  0% {
+    background-color: rgba(251, 191, 36, 0.5);
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: rgba(251, 191, 36, 0.25);
+    transform: scale(1);
+  }
+}
+
 /* ====== 절 클릭 선택 스타일 ====== */
 
 /* 선택된 절 하이라이트 */
@@ -1241,5 +1313,257 @@ defineExpose({
 .copy-menu-fade-leave-from {
   opacity: 1;
   transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* ====== 새한글(KNT) 전용 스타일 ====== */
+
+/* 구절 그룹 (시적 구조) */
+.bible-content :deep(.verse-group) {
+  margin: 0.25rem 0;
+}
+
+.bible-content :deep(.verse-line) {
+  font-family: var(--reading-font-family, "RIDIBatang", serif);
+  display: flex;
+  align-items: flex-start;
+  line-height: var(--reading-line-height, 1.8);
+  font-weight: var(--reading-font-weight, normal);
+  letter-spacing: -0.02em;
+  transition: background-color 0.3s ease-in-out;
+  padding: 0.125rem 0.35rem;
+  border-radius: 8px;
+}
+
+.bible-content :deep(.verse-line:hover) {
+  background-color: rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+}
+
+.theme-dark .bible-content :deep(.verse-line:hover) {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* 후속 줄 (continuation) */
+.bible-content :deep(.verse-line.continuation) {
+  padding-left: 1.3em;
+}
+
+/* 시적 구조 들여쓰기 */
+.bible-content :deep(.verse-line.q1) {
+  padding-left: 1.5em;
+}
+
+.bible-content :deep(.verse-line.continuation.q1) {
+  padding-left: calc(1.3em + 1.5em);
+}
+
+.bible-content :deep(.verse-line.q2) {
+  padding-left: 2.5em;
+}
+
+.bible-content :deep(.verse-line.continuation.q2) {
+  padding-left: calc(1.3em + 2.5em);
+}
+
+.bible-content :deep(.verse-line.q3) {
+  padding-left: 3.5em;
+}
+
+.bible-content :deep(.verse-line.continuation.q3) {
+  padding-left: calc(1.3em + 3.5em);
+}
+
+.bible-content :deep(.verse-line.q4) {
+  padding-left: 4.5em;
+}
+
+.bible-content :deep(.verse-line.continuation.q4) {
+  padding-left: calc(1.3em + 4.5em);
+}
+
+.bible-content :deep(.verse-line.m) {
+  padding-left: 0.5em;
+}
+
+.bible-content :deep(.verse-line.continuation.m) {
+  padding-left: calc(1.3em + 0.5em);
+}
+
+/* 부제목 */
+.bible-content :deep(.sub-title) {
+  font-size: 0.875rem;
+  color: var(--section-title-color, #4a5d4a);
+  font-style: italic;
+  margin: 1rem 0 0.5rem;
+  text-align: center;
+}
+
+.theme-dark .bible-content :deep(.sub-title) {
+  color: var(--section-title-color-dark, #8ba888);
+}
+
+/* 설명/주석 (시편 머리말, 음악 지시어 등) */
+.bible-content :deep(.description) {
+  font-style: italic;
+  font-size: 0.9em;
+  color: var(--text-secondary, #6b7280);
+  margin: 0.5rem 0 1rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--color-border, #e5e7eb);
+  line-height: 1.6;
+}
+
+.theme-dark .bible-content :deep(.description) {
+  color: var(--text-secondary-dark, #9ca3af);
+  border-left-color: var(--color-border-dark, #404040);
+}
+
+/* 교차 참조 */
+.bible-content :deep(.cross-ref) {
+  font-size: 0.85em;
+  color: var(--text-secondary, #6b7280);
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.theme-dark .bible-content :deep(.cross-ref) {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+/* 각주 마커 */
+.bible-content :deep(.footnote-marker) {
+  color: var(--primary-color, #6366f1);
+  cursor: help;
+  font-size: 0.75em;
+  vertical-align: super;
+  margin: 0 1px;
+  font-weight: 500;
+  position: relative;
+}
+
+.bible-content :deep(.footnote-marker:hover)::after,
+.bible-content :deep(.footnote-marker:focus)::after {
+  content: attr(data-footnote);
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  background: var(--color-bg-inverse, #1f2937);
+  color: var(--text-inverse, white);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: normal;
+  max-width: 280px;
+  width: max-content;
+  z-index: 100;
+  white-space: normal;
+  line-height: 1.5;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin-bottom: 4px;
+}
+
+.bible-content :deep(.footnote-marker:hover)::before,
+.bible-content :deep(.footnote-marker:focus)::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-bg-inverse, #1f2937);
+  margin-bottom: -8px;
+  z-index: 101;
+}
+
+/* 단락 스타일 */
+.bible-content :deep(.paragraph) {
+  margin: 0.5rem 0;
+  line-height: 1.8;
+}
+
+/* 시적 구조 클래스 (verse, paragraph 공용) */
+.bible-content :deep(.verse.q1),
+.bible-content :deep(.paragraph.q1) {
+  padding-left: 40px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important;
+}
+
+.bible-content :deep(.verse.q2),
+.bible-content :deep(.paragraph.q2) {
+  padding-left: 60px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important;
+}
+
+.bible-content :deep(.verse.q3),
+.bible-content :deep(.paragraph.q3) {
+  padding-left: 80px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important;
+}
+
+.bible-content :deep(.verse.q4),
+.bible-content :deep(.paragraph.q4) {
+  padding-left: 100px !important;
+  text-indent: 0 !important;
+  white-space: pre-wrap !important;
+}
+
+/* m - margin continuation */
+.bible-content :deep(.verse.m),
+.bible-content :deep(.paragraph.m) {
+  padding-left: 1.5rem !important;
+  margin-top: 0;
+}
+
+/* pi1, pi2 - 들여쓰기 단락 */
+.bible-content :deep(.verse.pi1),
+.bible-content :deep(.paragraph.pi1) {
+  padding-left: 2rem !important;
+}
+
+.bible-content :deep(.verse.pi2),
+.bible-content :deep(.paragraph.pi2) {
+  padding-left: 4rem !important;
+}
+
+/* pc - 가운데 정렬 */
+.bible-content :deep(.verse.pc),
+.bible-content :deep(.paragraph.pc) {
+  text-align: center;
+}
+
+/* pm, pmo, pmc - 오른쪽 정렬 */
+.bible-content :deep(.verse.pm),
+.bible-content :deep(.paragraph.pm),
+.bible-content :deep(.verse.pmo),
+.bible-content :deep(.paragraph.pmo),
+.bible-content :deep(.verse.pmc),
+.bible-content :deep(.paragraph.pmc) {
+  text-align: right;
+  margin-right: 1rem;
+}
+
+/* nb - no break */
+.bible-content :deep(.verse.nb),
+.bible-content :deep(.paragraph.nb) {
+  display: inline;
+  margin: 0;
+}
+
+/* 절 붙임 모드에서 verse-group/verse-line 처리 */
+.bible-content.verse-joining :deep(.verse-group) {
+  display: inline;
+}
+
+.bible-content.verse-joining :deep(.verse-line) {
+  display: inline;
+  padding: 0;
+}
+
+.bible-content.verse-joining :deep(.verse-line.continuation) {
+  padding-left: 0;
 }
 </style>

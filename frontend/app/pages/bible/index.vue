@@ -389,10 +389,18 @@ const loadBibleContent = async (book: string, chapter: number) => {
 // 이벤트 핸들러 (composable wrapper)
 // goBack은 useBiblePageState에서 직접 사용
 
-// BookSelector는 (book, chapter) 두 개의 개별 인수로 emit
-const handleBookSelect = (book: string, chapter: number) => {
+// BookSelector는 (book, chapter, verse) emit
+// verse가 있으면 콘텐츠 로드 후 해당 절로 스크롤
+const handleBookSelect = async (book: string, chapter: number, verse?: number) => {
   selectBook(book, chapter);
-  loadBibleContent(book, chapter);
+  await loadBibleContent(book, chapter);
+  
+  // 절 정보가 있으면 해당 절로 스크롤 및 강조
+  if (verse) {
+    nextTick(() => {
+      bibleReaderViewRef.value?.scrollToVerse(verse);
+    });
+  }
 };
 
 const handleVersionSelect = (version: string) => {
