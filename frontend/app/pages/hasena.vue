@@ -151,9 +151,9 @@ const parseHasenaContent = (html) => {
 
     if (number && text) {
       verses.push(`
-        <div class="verse">
-          <span class="verse-number">${number}</span>
-          <span class="verse-text">${text}</span>
+        <div class="hasena-verse">
+          <span class="hasena-verse-number">${number}</span>
+          <span class="hasena-verse-text">${text}</span>
         </div>
       `)
     }
@@ -278,15 +278,15 @@ onMounted(() => {
 </script>
 
 <style>
-/* Global Styles for injected HTML content */
-.verse {
+/* Global Styles for injected HTML content (hasena-specific) */
+.hasena-verse {
   display: flex;
   align-items: flex-start;
   margin-bottom: 0.75rem;
   line-height: 1.8;
 }
 
-.verse-number {
+.hasena-verse-number {
   color: var(--accent);
   font-weight: 600;
   margin-right: 0.5rem;
@@ -296,7 +296,7 @@ onMounted(() => {
   font-family: var(--font-sans);
 }
 
-.verse-text {
+.hasena-verse-text {
   color: var(--text-main);
   flex: 1;
   word-break: keep-all;
@@ -316,7 +316,10 @@ onMounted(() => {
   --paper-shadow: 0 4px 20px rgba(44, 51, 51, 0.04);
   --font-serif: 'Noto Serif KR', 'RIDIBatang', serif;
   --font-sans: 'Pretendard', sans-serif;
-  --primary-color: #4A5D53; /* Override original var if needed */
+  --primary-color: #6366f1;
+  --primary-dark: #4f46e5;
+  --color-success: #10b981;
+  --color-success-dark: #059669;
 
   font-family: var(--font-sans);
   background-color: var(--bg-color);
@@ -550,10 +553,17 @@ onMounted(() => {
   padding: 0 1.5rem 2rem 0;
 }
 
+@media (min-width: 768px) {
+  .footer-inner {
+    justify-content: center;
+    padding-right: 0;
+  }
+}
+
 .action-button {
   pointer-events: auto;
   width: auto;
-  background: var(--accent);
+  background: var(--primary-color);
   color: white;
   border: none;
   padding: 0.75rem 1.25rem;
@@ -566,12 +576,16 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 4px 14px rgba(74, 93, 83, 0.4);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
 }
 
 .btn-icon {
   width: 20px;
   height: 20px;
+}
+
+.action-button:hover {
+  background: var(--primary-dark);
 }
 
 .action-button:active {
@@ -584,8 +598,12 @@ onMounted(() => {
 }
 
 .action-button.completed {
-  background: #ef4444;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+  background: var(--color-success);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+.action-button.completed:hover {
+  background: var(--color-success-dark);
 }
 
 /* Animations */

@@ -54,14 +54,11 @@
     <!-- 통독모드 인디케이터 -->
     <div v-if="isTongdokMode && tongdokScheduleRange" class="tongdok-indicator">
       <div class="tongdok-info-container">
-        <div class="tongdok-date">{{ formattedScheduleDate }}</div>
-        <div class="tongdok-info-row">
-          <span class="tongdok-badge">통독중</span>
-          <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
-          <span v-if="tongdokProgress" class="tongdok-remaining-badge">
-            {{ tongdokProgress.total - tongdokProgress.current + 1 }}장 남음
-          </span>
-        </div>
+        <span class="tongdok-badge">통독중</span>
+        <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
+        <span v-if="tongdokProgress" class="tongdok-remaining-badge">
+          {{ tongdokProgress.total - tongdokProgress.current + 1 }}장 남음
+        </span>
       </div>
       <div class="tongdok-actions">
         <a
@@ -214,8 +211,8 @@
           </button>
 
           <button class="chapter-info" @click="$emit('open-book-selector')">
-            <template v-if="isTongdokMode && formattedScheduleDate">
-              <span class="schedule-date">{{ formattedScheduleDate }}</span>
+            <template v-if="isTongdokMode && shortScheduleDate">
+              <span class="schedule-short-date">{{ shortScheduleDate }}</span>
               <span class="schedule-range">{{ tongdokScheduleRange }}</span>
             </template>
             <template v-else>
@@ -322,6 +319,17 @@ const formatScheduleDate = (dateString: string | null): string => {
 };
 
 const formattedScheduleDate = computed(() => formatScheduleDate(props.tongdokScheduleDate));
+
+const shortScheduleDate = computed(() => {
+  if (!props.tongdokScheduleDate) return '';
+  const date = new Date(props.tongdokScheduleDate);
+  if (isNaN(date.getTime())) return '';
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const dayOfWeek = days[date.getDay()];
+  return `${month}/${day}(${dayOfWeek})`;
+});
 
 // Emits
 defineEmits<{
@@ -530,7 +538,7 @@ defineExpose({
   color: var(--primary-color, #6366f1);
   border-radius: 6px;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
@@ -552,55 +560,51 @@ defineExpose({
 
 .tongdok-info-container {
   display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
   flex: 1;
   min-width: 0;
 }
 
-.tongdok-info-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .tongdok-badge {
-  padding: 0.125rem 0.375rem;
+  padding: 0.25rem 0.5rem;
   background: var(--primary-color, #6366f1);
   color: white;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .tongdok-range {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   color: var(--text-primary, #1f2937);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .tongdok-remaining-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.125rem 0.5rem;
+  padding: 0.125rem 0.375rem;
   background: rgba(99, 102, 241, 0.1);
   color: var(--primary-color, #6366f1);
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
-  margin-left: auto; /* Push to right if needed, or just flow */
 }
 
 .tongdok-date {
   font-size: 0.75rem;
   color: var(--text-secondary, #6b7280);
   font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .tongdok-actions {
@@ -907,10 +911,11 @@ defineExpose({
   color: var(--text-primary, #1f2937);
 }
 
-.chapter-info .schedule-date {
+.chapter-info .schedule-short-date {
   font-size: 0.75rem;
   color: var(--text-secondary, #6b7280);
   font-weight: 500;
+  margin-right: 0.5rem;
 }
 
 .chapter-info .schedule-range {
@@ -1143,7 +1148,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 

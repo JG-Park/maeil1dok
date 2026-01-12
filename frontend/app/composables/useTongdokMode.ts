@@ -27,6 +27,7 @@ export interface ReadingDetailData {
   plan_detail?: PlanDetail[];
   audio_link?: string;
   guide_link?: string;
+  plan_date?: string;
   schedule_date?: string;
   message?: string;
   is_complete?: boolean;
@@ -275,7 +276,7 @@ export const useTongdokMode = () => {
   };
 
   const getScheduleDate = (): string | null => {
-    return readingDetailResponse.value?.data?.schedule_date || null;
+    return readingDetailResponse.value?.data?.plan_date || readingDetailResponse.value?.data?.schedule_date || null;
   };
 
   /**
