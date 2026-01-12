@@ -151,8 +151,9 @@ export default function App() {
         const userJson = url.searchParams.get('user');
         const needsSignup = url.searchParams.get('needsSignup');
         
+        await WebBrowser.dismissBrowser();
+        
         if (access && refresh && userJson) {
-          // 로그인 성공
           const user = JSON.parse(decodeURIComponent(userJson));
           await saveAuthState({
             isLoggedIn: true,
@@ -162,7 +163,6 @@ export default function App() {
           });
           setShowLogin(false);
         } else if (needsSignup === 'true') {
-          // 회원가입 필요 - WebView로 이동
           const provider = url.searchParams.get('provider');
           const providerId = url.searchParams.get('provider_id');
           const email = url.searchParams.get('email') || '';
@@ -194,15 +194,15 @@ export default function App() {
       const result = await WebBrowser.openAuthSessionAsync(authUrl, appRedirectUri);
       
       if (result.type === 'success' && result.url) {
+        await WebBrowser.dismissBrowser();
+        
         const url = new URL(result.url);
-        // 웹에서 딥링크로 전달된 토큰 처리
         const access = url.searchParams.get('access');
         const refresh = url.searchParams.get('refresh');
         const userJson = url.searchParams.get('user');
         const needsSignup = url.searchParams.get('needsSignup');
         
         if (access && refresh && userJson) {
-          // 로그인 성공
           const user = JSON.parse(decodeURIComponent(userJson));
           await saveAuthState({
             isLoggedIn: true,
@@ -212,7 +212,6 @@ export default function App() {
           });
           setShowLogin(false);
         } else if (needsSignup === 'true') {
-          // 회원가입 필요 - WebView로 이동
           const provider = url.searchParams.get('provider');
           const providerId = url.searchParams.get('provider_id');
           const email = url.searchParams.get('email') || '';
@@ -377,6 +376,12 @@ export default function App() {
   // URL 요청 처리 (OAuth 리다이렉트 등)
   const handleShouldStartLoadWithRequest = (request: { url: string }) => {
     const { url } = request;
+
+    // /login 페이지로 이동 시 네이티브 로그인 화면 표시
+    if (url.includes('/login') && url.startsWith(WEB_APP_URL)) {
+      handleLogout();
+      return false;
+    }
 
     // OAuth 도메인은 WebView에서 열기
     const isOAuthDomain = OAUTH_DOMAINS.some((domain) => url.includes(domain));
