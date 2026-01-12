@@ -20,7 +20,7 @@
  */
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue';
-import { useRouter, useRoute, type LocationQuery } from 'vue-router';
+import { useRouter, type LocationQuery } from 'vue-router';
 import { useBibleData } from '~/composables/useBibleData';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
 import type { ViewMode } from '~/types/bible';
@@ -78,7 +78,6 @@ export function useBiblePageState(): UseBiblePageStateReturn {
   // ============================================
 
   const router = useRouter();
-  const route = useRoute();
   const { bookNames, bookChapters, versionNames } = useBibleData();
   const readingSettingsStore = useReadingSettingsStore();
 
@@ -207,16 +206,8 @@ export function useBiblePageState(): UseBiblePageStateReturn {
 
   const selectVersion = (version: string) => {
     currentVersion.value = version;
-    
-    // URL에 version 파라미터 업데이트 (새로고침 시 유지)
-    const query: Record<string, string> = {
-      book: currentBook.value,
-      chapter: String(currentChapter.value),
-    };
-    if (version !== 'GAE') {
-      query.version = version;
-    }
-    router.replace({ path: '/bible', query });
+    // URL 업데이트 제거 - 역본 상태는 useReadingPosition에서 localStorage/서버에 저장됨
+    // 딥링크 진입 시에만 URL 파라미터 사용, 이후 변경은 상태 관리에 위임
   };
 
   // ============================================
