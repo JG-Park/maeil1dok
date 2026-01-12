@@ -321,9 +321,12 @@ export function useBibleContent(): UseBibleContentReturn {
           });
         }
       } else if (element.type === 'paragraph') {
-        // data-vid로 구절 번호 확인
+        // data-vid로 구절 번호 확인하되, 내부에 다른 구절 번호가 있는지도 확인
         const vidMatch = element.fullMatch.match(/data-vid="[^:]+:(\d+)"/);
-        if (vidMatch) {
+        const hasOtherVerseNumbers = /<span[^>]*class="v"[^>]*>\d+<\/span>/.test(element.content);
+
+        // data-vid가 있고 내부에 다른 구절 번호가 없는 경우에만 data-vid 기반 처리
+        if (vidMatch && !hasOtherVerseNumbers) {
           const verseNum = vidMatch[1];
           let processedContent = processFootnotes(element.content);
           const plainText = cleanHtmlContent(processedContent, true);
@@ -344,7 +347,7 @@ export function useBibleContent(): UseBibleContentReturn {
           }
         }
 
-        // 일반 구절 처리 (verse-span 포함)
+        // 일반 구절 처리 (verse-span 포함) - data-vid가 없거나 내부에 다른 구절 번호가 있는 경우
         const verseSpans = element.content.match(/<span class="verse-span"[^>]*>.*?<\/span>/gs) || [];
         
         let currentVerseNum: string | null = null;

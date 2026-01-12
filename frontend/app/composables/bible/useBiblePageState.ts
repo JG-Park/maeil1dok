@@ -207,6 +207,16 @@ export function useBiblePageState(): UseBiblePageStateReturn {
 
   const selectVersion = (version: string) => {
     currentVersion.value = version;
+    
+    // URL에 version 파라미터 업데이트 (새로고침 시 유지)
+    const query: Record<string, string> = {
+      book: currentBook.value,
+      chapter: String(currentChapter.value),
+    };
+    if (version !== 'GAE') {
+      query.version = version;
+    }
+    router.replace({ path: '/bible', query });
   };
 
   // ============================================
