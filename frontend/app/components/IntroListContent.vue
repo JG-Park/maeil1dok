@@ -1,5 +1,20 @@
 <template>
   <div class="bible-schedule-wrapper">
+    <!-- 플랜 선택 컨트롤 -->
+    <div v-if="authStore.isAuthenticated && activeSubscriptions.length > 0" class="fixed-controls">
+      <div class="top-row">
+        <div class="plan-selector fade-in" style="animation-delay: 0.05s">
+          <button class="plan-select-button" @click="showPlanModal = true">
+            <span>{{ selectedPlanName }}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="schedule-body">
       <div v-if="loading" class="loading-state">
         <div class="loading-spinner"></div>
@@ -94,6 +109,16 @@
         </div>
       </div>
     </div>
+
+    <!-- 플랜 선택 모달 -->
+    <PlanSelectorModal
+      :show="showPlanModal"
+      :subscriptions="activeSubscriptions"
+      :selected-plan-id="selectedPlanId"
+      @close="showPlanModal = false"
+      @select="selectPlan"
+      @manage="goToPlanManagement"
+    />
   </div>
 </template>
 
@@ -103,6 +128,9 @@ import { useRouter } from "vue-router";
 import { useApi } from "~/composables/useApi";
 import { useAuthStore } from "~/stores/auth";
 import { useToast } from "~/composables/useToast";
+import { useSubscriptionStore } from "~/stores/subscription";
+import { useSelectedPlanStore } from "~/stores/selectedPlan";
+import PlanSelectorModal from "~/components/schedule/PlanSelectorModal.vue";
 
 const introductions = ref([]);
 const loading = ref(true);
@@ -110,19 +138,72 @@ const error = ref(null);
 const router = useRouter();
 const api = useApi();
 const authStore = useAuthStore();
+const subscriptionStore = useSubscriptionStore();
+const selectedPlanStore = useSelectedPlanStore();
 const { success, error: showError } = useToast();
 
 // 토글 진행 중인 항목 추적
 const isToggling = reactive({});
+
+// 플랜 선택 모달 상태
+const showPlanModal = ref(false);
+
+// 활성화된 구독 목록 (SubscriptionSummary 형태로 변환)
+const activeSubscriptions = computed(() => {
+  return subscriptionStore.activeSubscriptions.map(sub => ({
+    plan_id: sub.plan_id,
+    plan_name: sub.plan_name,
+    is_default: sub.is_default
+  }));
+});
+
+// 선택된 플랜 ID
+const selectedPlanId = computed(() => {
+  return selectedPlanStore.effectivePlanId;
+});
+
+// 선택된 플랜 이름
+const selectedPlanName = computed(() => {
+  if (selectedPlanId.value) {
+    const plan = activeSubscriptions.value.find(
+      (sub) => sub.plan_id === selectedPlanId.value
+    );
+    if (plan) return plan.plan_name;
+  }
+  if (activeSubscriptions.value.length > 0) {
+    return activeSubscriptions.value[0].plan_name;
+  }
+  return "플랜 선택";
+});
+
+// 플랜 선택 핸들러
+const selectPlan = (subscription) => {
+  selectedPlanStore.setSelectedPlanId(subscription.plan_id);
+  showPlanModal.value = false;
+  // 플랜 변경 시 개론 목록 다시 로드
+  fetchIntroductions();
+};
+
+// 플랜 관리 페이지로 이동
+const goToPlanManagement = () => {
+  showPlanModal.value = false;
+  router.push("/plans");
+};
 
 const fetchIntroductions = async () => {
   loading.value = true;
   error.value = null;
   try {
     // 로그인 상태에 따라 다른 API 엔드포인트 호출
-    const endpoint = authStore.isAuthenticated
+    let endpoint = authStore.isAuthenticated
       ? "/api/v1/todos/user/video/intro/"
       : "/api/v1/todos/video/intro/";
+
+    // plan_id 파라미터 추가 (선택된 플랜이 있는 경우)
+    const planId = selectedPlanStore.effectivePlanId;
+    if (planId) {
+      endpoint += `?plan_id=${planId}`;
+    }
 
     const response = await api.get(endpoint);
     if (response.data && response.data.results) {
@@ -261,14 +342,40 @@ const toggleCompletion = async (intro) => {
 
 // 사용자 인증 상태 변경 감지
 const initializeData = async () => {
+  // localStorage에서 저장된 플랜 ID 복원
+  selectedPlanStore.initializeFromStorage();
+  
+  // 로그인된 경우 구독 정보 가져오기
+  if (authStore.isAuthenticated) {
+    await subscriptionStore.fetchSubscriptions();
+    
+    // 저장된 플랜이 없거나 유효하지 않으면 첫 번째 활성 구독으로 설정
+    const activeSubs = subscriptionStore.activeSubscriptions;
+    if (activeSubs.length > 0) {
+      const storedPlanId = selectedPlanStore.selectedPlanId;
+      const isValidPlan = activeSubs.some(sub => sub.plan_id === storedPlanId);
+      
+      if (!storedPlanId || !isValidPlan) {
+        // 기본 플랜이 있으면 사용, 없으면 첫 번째 플랜
+        const defaultPlan = activeSubs.find(sub => sub.is_default);
+        selectedPlanStore.setSelectedPlanId(defaultPlan ? defaultPlan.plan_id : activeSubs[0].plan_id);
+      }
+    }
+  }
+  
   await fetchIntroductions();
 };
 
 // 인증 상태 변경 감지
 watch(
   () => authStore.isAuthenticated,
-  (newAuthState) => {
+  async (newAuthState) => {
     // 인증 상태가 변경되면 데이터 다시 가져오기
+    if (newAuthState) {
+      await subscriptionStore.fetchSubscriptions();
+    } else {
+      subscriptionStore.clearSubscriptions();
+    }
     fetchIntroductions();
   }
 );
@@ -278,3 +385,16 @@ onMounted(() => {
 });
 </script>
 <style scoped src="./BibleScheduleContent.style.css"></style>
+<style scoped>
+/* 현재 주차 배지 스타일 */
+.current-week-badge {
+  display: none; /* schedule-reading 내의 current-location-badge만 표시 */
+}
+
+/* nav-icon 스타일 */
+.nav-icon {
+  color: var(--color-slate-400);
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+</style>

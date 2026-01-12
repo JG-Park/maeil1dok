@@ -1545,10 +1545,21 @@ def get_user_video_intros(request):
         # 로그인 여부 확인
         if request.user.is_authenticated:
             # 로그인된 경우 - 사용자가 구독 중인 플랜 ID 목록
-            plan_ids = PlanSubscription.objects.filter(
+            plan_ids = list(PlanSubscription.objects.filter(
                 user=request.user,
                 is_active=True
-            ).values_list('plan_id', flat=True)
+            ).values_list('plan_id', flat=True))
+            
+            # plan_id 파라미터가 있으면 해당 플랜만 필터링 (구독 중인 플랜인지 확인)
+            requested_plan_id = request.GET.get('plan_id')
+            if requested_plan_id:
+                try:
+                    requested_plan_id = int(requested_plan_id)
+                    if requested_plan_id in plan_ids:
+                        plan_ids = [requested_plan_id]
+                    # 구독하지 않은 플랜이면 무시하고 전체 구독 플랜 표시
+                except (ValueError, TypeError):
+                    pass
             
             # 해당 플랜의 영상 개론 목록 조회
             video_intros = VideoBibleIntro.objects.filter(
