@@ -848,6 +848,7 @@ defineExpose({
 /* verse-group은 block으로 (내부에 여러 verse-line 포함) */
 .bible-content :deep(.verse.verse-group) {
   display: block;
+  padding: 0;
 }
 
 /* 절 번호 스타일 (reading.vue 동일) */
@@ -1320,7 +1321,7 @@ defineExpose({
   font-weight: var(--reading-font-weight, normal);
   letter-spacing: -0.02em;
   transition: background-color 0.3s ease-in-out;
-  padding: 0.125rem 0.35rem;
+  padding: 0.25rem 0.35rem;
   border-radius: 8px;
 }
 

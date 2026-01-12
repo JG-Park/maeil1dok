@@ -17,6 +17,7 @@
 import { ref, type Ref } from 'vue';
 import { useBibleFetch } from '~/composables/useBibleFetch';
 import { useBibleData } from '~/composables/useBibleData';
+import { useReadingSettingsStore } from '~/stores/readingSettings';
 
 /**
  * useBibleContent 반환 타입
@@ -33,6 +34,37 @@ export interface UseBibleContentReturn {
   clearContent: () => void;
 }
 
+// 구절 데이터 타입
+interface VerseLine {
+  text: string;
+  class: string;
+}
+
+interface VerseData {
+  lines: VerseLine[];
+  order: number;
+}
+
+interface ContentElement {
+  type: 'section' | 'subtitle' | 'description' | 'crossref' | 'paragraph';
+  class?: string;
+  index: number;
+  content: string;
+  fullMatch: string;
+  order?: number;
+}
+
+interface NonVerseElement {
+  index: number;
+  html: string;
+  order: number;
+}
+
+interface AllContentElement {
+  order: number;
+  html: string;
+}
+
 /**
  * Bible 본문 콘텐츠 로딩 및 파싱 composable
  */
@@ -41,8 +73,9 @@ export function useBibleContent(): UseBibleContentReturn {
   // Dependencies
   // ============================================
 
-  const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch();
+  const { fetchKntContent, fetchStandardContent, fetchWooriContent, getFallbackUrl } = useBibleFetch();
   const { bookNames } = useBibleData();
+  const readingSettingsStore = useReadingSettingsStore();
 
   // ============================================
   // State
@@ -54,32 +87,398 @@ export function useBibleContent(): UseBibleContentReturn {
   const error = ref<Error | null>(null);
 
   // ============================================
-  // Internal Parsing Functions
+  // Internal Helper Functions
   // ============================================
 
   /**
-   * KNT(새한글성경) 본문 파싱
+   * 각주 처리 함수: 각주를 마커로 변환하거나 제거
+   */
+  const processFootnotes = (text: string): string => {
+    const showFootnotes = readingSettingsStore.settings.showFootnotes;
+    
+    if (showFootnotes) {
+      // 각주를 마커로 변환
+      return text.replace(
+        /<span[^>]*class="f"[^>]*>[\s\S]*?<span class="ft">([^<]*)<\/span>\s*<\/span>/gs,
+        (match, footnoteText) => {
+          if (footnoteText && footnoteText.trim()) {
+            const escapedText = footnoteText.trim()
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;');
+            return `<sup class="footnote-marker" data-footnote="${escapedText}" title="${escapedText}">*</sup>`;
+          }
+          return '';
+        }
+      ).replace(
+        /<span[^>]*data-caller[^>]*>[\s\S]*?<\/span>\s*<\/span>\s*<\/span>/g,
+        ''
+      ).replace(
+        /<span[^>]*data-caller[^>]*>[\s\S]*?<\/span>/gs,
+        ''
+      );
+    } else {
+      // 각주 완전 제거
+      return text
+        .replace(/<span[^>]*class="f"[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, '')
+        .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, '')
+        .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>/gs, '');
+    }
+  };
+
+  /**
+   * HTML 엔티티 디코딩 및 태그 정리
+   */
+  const cleanHtmlContent = (text: string, preserveFootnoteMarkers = false): string => {
+    let result = text
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+    
+    if (preserveFootnoteMarkers) {
+      // footnote-marker는 보존하고 나머지 HTML 태그 제거
+      result = result.replace(/<(?!\/?sup[^>]*class="footnote-marker")[^>]+>/g, '');
+    } else {
+      result = result.replace(/<\/?[^>]+(>|$)/g, '');
+    }
+    
+    return result.trim();
+  };
+
+  // ============================================
+  // KNT Parsing Functions
+  // ============================================
+
+  /**
+   * KNT(새한글성경) 본문 파싱 - reading.vue의 parseKntVersion 로직 포팅
    */
   const parseKntContent = (jsonData: any, book: string, chapter: number): string => {
     const suffix = book === 'psa' ? '편' : '장';
-    chapterTitle.value = `${bookNames[book]} ${chapter}${suffix}`;
+    const bookName = bookNames[book] || '';
 
-    if (!jsonData.html) {
+    // 장 제목 설정
+    if (jsonData.reference) {
+      if (/\d+(장|편)/.test(jsonData.reference)) {
+        chapterTitle.value = jsonData.reference;
+      } else {
+        chapterTitle.value = `${jsonData.reference}${suffix}`;
+      }
+    } else {
+      chapterTitle.value = `${bookName} ${chapter}${suffix}`;
+    }
+
+    if (!jsonData.content) {
       return '<p class="no-content">내용을 찾을 수 없습니다.</p>';
     }
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(jsonData.html, 'text/html');
-
-    // 본문 추출
-    const contentEl = doc.querySelector('.content') || doc.body;
     const verses: string[] = [];
+    const contentHtml = jsonData.content;
 
-    contentEl.querySelectorAll('p, .verse').forEach((el) => {
-      const text = el.textContent?.trim();
-      if (text) {
-        verses.push(`<p class="verse">${text}</p>`);
+    // 읽기 설정 옵션
+    const showDescription = readingSettingsStore.settings.showDescription;
+    const showCrossRef = readingSettingsStore.settings.showCrossRef;
+
+    // 1. 모든 HTML 태그별로 분석
+
+    // 섹션 제목들 찾기
+    const sectionTitles: ContentElement[] = [];
+    const sectionRegex = /<p class="s">(.*?)<\/p>/g;
+    let sectionMatch;
+    while ((sectionMatch = sectionRegex.exec(contentHtml)) !== null) {
+      sectionTitles.push({
+        type: 'section',
+        index: sectionMatch.index,
+        content: sectionMatch[1].trim(),
+        fullMatch: sectionMatch[0],
+      });
+    }
+
+    // 부제목 찾기
+    const subTitles: ContentElement[] = [];
+    const subTitleRegex = /<p class="sp">(.*?)<\/p>/g;
+    let subTitleMatch;
+    while ((subTitleMatch = subTitleRegex.exec(contentHtml)) !== null) {
+      subTitles.push({
+        type: 'subtitle',
+        index: subTitleMatch.index,
+        content: subTitleMatch[1].trim(),
+        fullMatch: subTitleMatch[0],
+      });
+    }
+
+    // 설명/주석 찾기 (d 클래스: 시편 머리말, 음악 지시어 등)
+    const descriptions: ContentElement[] = [];
+    const descRegex = /<p class="d">(.*?)<\/p>/gs;
+    let descMatch;
+    while ((descMatch = descRegex.exec(contentHtml)) !== null) {
+      const cleanText = descMatch[1]
+        .replace(/<span[^>]*class="f"[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, '')
+        .replace(/<span[^>]*data-caller[^>]*>.*?<\/span>.*?<\/span>.*?<\/span>/gs, '')
+        .replace(/<span[^>]*class="verse-span"[^>]*>.*?<\/span>/gs, '')
+        .replace(/<span[^>]*class="v"[^>]*>\d+<\/span>/gs, '')
+        .replace(/<\/?[^>]+(>|$)/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
+
+      if (cleanText) {
+        descriptions.push({
+          type: 'description',
+          index: descMatch.index,
+          content: cleanText,
+          fullMatch: descMatch[0],
+        });
       }
+    }
+
+    // 교차 참조 찾기 (r 클래스)
+    const crossRefs: ContentElement[] = [];
+    const crossRefRegex = /<p class="r">(.*?)<\/p>/gs;
+    let crossRefMatch;
+    while ((crossRefMatch = crossRefRegex.exec(contentHtml)) !== null) {
+      const cleanText = crossRefMatch[1]
+        .replace(/<span[^>]*id="[^"]*"[^>]*>([^<]*)<\/span>/g, '$1')
+        .replace(/<\/?[^>]+(>|$)/g, '')
+        .trim();
+
+      if (cleanText) {
+        crossRefs.push({
+          type: 'crossref',
+          index: crossRefMatch.index,
+          content: cleanText,
+          fullMatch: crossRefMatch[0],
+        });
+      }
+    }
+
+    // 모든 타입의 구절 단락 찾기 (p.p, p.q1, p.nb 등)
+    const paragraphs: ContentElement[] = [];
+    const paragraphRegex =
+      /<p(?:\s+[^>]*class="([^"]*)"[^>]*|\s+[^>]*data-vid="[^"]*"[^>]*|\s+[^>]*)>(.*?)<\/p>/gs;
+    let paragraphMatch;
+    while ((paragraphMatch = paragraphRegex.exec(contentHtml)) !== null) {
+      const classType = paragraphMatch[1] || 'p';
+      paragraphs.push({
+        type: 'paragraph',
+        class: classType,
+        index: paragraphMatch.index,
+        content: paragraphMatch[2],
+        fullMatch: paragraphMatch[0],
+      });
+    }
+
+    // 모든 요소를 원래 순서대로 정렬
+    const allElements: ContentElement[] = [
+      ...sectionTitles,
+      ...subTitles,
+      ...descriptions,
+      ...crossRefs,
+      ...paragraphs,
+    ].sort((a, b) => a.index - b.index);
+
+    // 2. 요소들 순서대로 처리하여 HTML 생성
+    const processedSubtitles = new Set<string>();
+    const verseMap = new Map<string, VerseData>();
+    const verseOrder: string[] = [];
+    const nonVerseElements: NonVerseElement[] = [];
+
+    allElements.forEach((element, elementIndex) => {
+      if (element.type === 'section') {
+        nonVerseElements.push({
+          index: element.index,
+          html: `<h3 class="section-title">${element.content}</h3>`,
+          order: elementIndex,
+        });
+      } else if (element.type === 'subtitle') {
+        if (!processedSubtitles.has(element.content)) {
+          nonVerseElements.push({
+            index: element.index,
+            html: `<p class="sub-title">${element.content}</p>`,
+            order: elementIndex,
+          });
+          processedSubtitles.add(element.content);
+        }
+      } else if (element.type === 'description') {
+        if (showDescription) {
+          nonVerseElements.push({
+            index: element.index,
+            html: `<p class="description">${element.content}</p>`,
+            order: elementIndex,
+          });
+        }
+      } else if (element.type === 'crossref') {
+        if (showCrossRef) {
+          nonVerseElements.push({
+            index: element.index,
+            html: `<p class="cross-ref">${element.content}</p>`,
+            order: elementIndex,
+          });
+        }
+      } else if (element.type === 'paragraph') {
+        // data-vid로 구절 번호 확인
+        const vidMatch = element.fullMatch.match(/data-vid="[^:]+:(\d+)"/);
+        if (vidMatch) {
+          const verseNum = vidMatch[1];
+          let processedContent = processFootnotes(element.content);
+          const plainText = cleanHtmlContent(processedContent, true);
+
+          if (plainText) {
+            const poeticClass = element.class || 'p';
+            if (verseMap.has(verseNum)) {
+              const existing = verseMap.get(verseNum)!;
+              existing.lines.push({ text: plainText, class: poeticClass });
+            } else {
+              verseMap.set(verseNum, {
+                lines: [{ text: plainText, class: poeticClass }],
+                order: elementIndex,
+              });
+              verseOrder.push(verseNum);
+            }
+            return;
+          }
+        }
+
+        // 일반 구절 처리 (verse-span 포함)
+        const verseSpans = element.content.match(/<span class="verse-span"[^>]*>.*?<\/span>/gs) || [];
+        
+        let currentVerseNum: string | null = null;
+        let verseText = '';
+
+        if (verseSpans.length > 0) {
+          verseSpans.forEach((verseSpan) => {
+            const numMatch = verseSpan.match(/<span[^>]*class="v"[^>]*>(\d+)<\/span>/);
+
+            if (numMatch) {
+              // 이전 구절 데이터 저장
+              if (currentVerseNum && verseText) {
+                const poeticClass = element.class || 'p';
+                if (verseMap.has(currentVerseNum)) {
+                  verseMap.get(currentVerseNum)!.lines.push({ text: verseText, class: poeticClass });
+                } else {
+                  verseMap.set(currentVerseNum, {
+                    lines: [{ text: verseText, class: poeticClass }],
+                    order: elementIndex,
+                  });
+                  verseOrder.push(currentVerseNum);
+                }
+              }
+
+              currentVerseNum = numMatch[1];
+              let processedSpan = verseSpan
+                .replace(/<span[^>]*class="v"[^>]*>\d+<\/span>/, '')
+                .replace(/<span[^>]*class="verse-span"[^>]*>/, '')
+                .replace(/<\/span>$/, '');
+
+              processedSpan = processFootnotes(processedSpan);
+              verseText = cleanHtmlContent(processedSpan, true);
+            } else {
+              // 구절 번호 없는 경우 - 이전 구절에 추가
+              let additionalSpan = verseSpan
+                .replace(/<span[^>]*class="verse-span"[^>]*>/, '')
+                .replace(/<\/span>$/, '');
+
+              additionalSpan = processFootnotes(additionalSpan);
+              const additionalText = cleanHtmlContent(additionalSpan, true);
+
+              if (additionalText) {
+                if (currentVerseNum) {
+                  verseText += ' ' + additionalText;
+                } else {
+                  const verseIdMatch = verseSpan.match(/data-verse-id="[^.]+\.\d+\.(\d+)"/);
+                  if (verseIdMatch) {
+                    currentVerseNum = verseIdMatch[1];
+                    verseText = additionalText;
+                  }
+                }
+              }
+            }
+          });
+
+          // 마지막 구절 처리
+          if (currentVerseNum && verseText) {
+            const poeticClass = element.class || 'p';
+            if (verseMap.has(currentVerseNum)) {
+              verseMap.get(currentVerseNum)!.lines.push({ text: verseText, class: poeticClass });
+            } else {
+              verseMap.set(currentVerseNum, {
+                lines: [{ text: verseText, class: poeticClass }],
+                order: elementIndex,
+              });
+              verseOrder.push(currentVerseNum);
+            }
+          }
+        } else {
+          // verseSpans이 없을 경우 - 직접 구절 찾기
+          const directVerseMatch = element.content.match(/^(?:<[^>]*>)*\s*(\d+)\s+(.+)$/);
+
+          if (directVerseMatch) {
+            const verseNum = directVerseMatch[1];
+            let verseContent = processFootnotes(directVerseMatch[2]);
+            verseContent = cleanHtmlContent(verseContent, true);
+
+            const poeticClass = element.class || 'p';
+            if (verseMap.has(verseNum)) {
+              verseMap.get(verseNum)!.lines.push({ text: verseContent, class: poeticClass });
+            } else {
+              verseMap.set(verseNum, {
+                lines: [{ text: verseContent, class: poeticClass }],
+                order: elementIndex,
+              });
+              verseOrder.push(verseNum);
+            }
+          } else {
+            // 구절 번호 패턴이 없는 경우 - 시적 구조 처리
+            const plainText = cleanHtmlContent(element.content);
+            const poeticClasses = ['q1', 'q2', 'q3', 'q4', 'm', 'pi1', 'pi2', 'nb', 'pc', 'pm', 'pmo', 'pmc'];
+            if (plainText && poeticClasses.includes(element.class || '')) {
+              nonVerseElements.push({
+                index: element.index,
+                html: `<div class="paragraph ${element.class}">${plainText}</div>`,
+                order: elementIndex,
+              });
+            }
+          }
+        }
+      }
+    });
+
+    // 3. 모든 요소를 원본 순서대로 정렬하여 verses 배열 구성
+    const allContentElements: AllContentElement[] = [];
+
+    // 구절들을 원본 인덱스와 함께 저장
+    verseOrder.forEach((verseNum) => {
+      const verseData = verseMap.get(verseNum);
+      if (verseData && verseData.lines) {
+        const linesHtml = verseData.lines.map((line, idx) => {
+          if (idx === 0) {
+            return `<div class="verse-line ${line.class}"><span class="verse-number">${verseNum}</span><span class="verse-text">${line.text}</span></div>`;
+          } else {
+            return `<div class="verse-line continuation ${line.class}"><span class="verse-text">${line.text}</span></div>`;
+          }
+        }).join('');
+
+        allContentElements.push({
+          order: verseData.order,
+          html: `<div class="verse verse-group">${linesHtml}</div>`,
+        });
+      }
+    });
+
+    // 구절이 아닌 요소들 추가
+    allContentElements.push(...nonVerseElements);
+
+    // order 기준으로 정렬
+    allContentElements.sort((a, b) => a.order - b.order);
+
+    // HTML 배열 생성
+    allContentElements.forEach((element) => {
+      verses.push(element.html);
     });
 
     return verses.length > 0
@@ -295,9 +694,31 @@ export function useBibleContent(): UseBibleContentReturn {
       : '<p class="no-content">내용을 찾을 수 없습니다.</p>';
   };
 
-  /**
-   * 에러 콘텐츠 생성
-   */
+  const parseWooriContent = (jsonData: any, book: string, chapter: number): string => {
+    const suffix = book === 'psa' ? '편' : '장';
+    const bookName = bookNames[book] || '';
+    chapterTitle.value = `${bookName} ${chapter}${suffix}`;
+
+    if (!jsonData.verses || !Array.isArray(jsonData.verses) || jsonData.verses.length === 0) {
+      return '<p class="no-content">내용을 찾을 수 없습니다.</p>';
+    }
+
+    const verses: string[] = [];
+
+    jsonData.verses.forEach((verse: { verse: number; text: string }) => {
+      const verseNum = verse.verse;
+      const verseText = verse.text;
+
+      verses.push(
+        `<div class="verse"><span class="verse-number">${verseNum}</span><span class="verse-text">${verseText}</span></div>`
+      );
+    });
+
+    return verses.length > 0
+      ? verses.join('')
+      : '<p class="no-content">내용을 찾을 수 없습니다.</p>';
+  };
+
   const generateErrorContent = (book: string, chapter: number, version: string = 'GAE'): string => {
     const fallbackUrl = getFallbackUrl(version, book, chapter);
     return `
@@ -327,7 +748,6 @@ export function useBibleContent(): UseBibleContentReturn {
 
     try {
       if (version === 'KNT') {
-        // KNT(새한글성경) 로드
         const result = await fetchKntContent(book, chapter);
 
         if (result.source === 'error') {
@@ -345,8 +765,25 @@ export function useBibleContent(): UseBibleContentReturn {
         } catch {
           content.value = generateErrorContent(book, chapter, version);
         }
+      } else if (version === 'WOORI') {
+        const result = await fetchWooriContent(book, chapter);
+
+        if (result.source === 'error') {
+          content.value = generateErrorContent(book, chapter, version);
+          return;
+        }
+
+        try {
+          const jsonData = JSON.parse(result.content);
+          if (jsonData.found && jsonData.verses) {
+            content.value = parseWooriContent(jsonData, book, chapter);
+          } else {
+            content.value = generateErrorContent(book, chapter, version);
+          }
+        } catch {
+          content.value = generateErrorContent(book, chapter, version);
+        }
       } else {
-        // 표준 역본 로드
         const result = await fetchStandardContent(version, book, chapter);
 
         if (result.source === 'error') {
