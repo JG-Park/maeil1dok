@@ -203,6 +203,9 @@ import PlanSelectorModal from '~/components/schedule/PlanSelectorModal.vue';
 // 기타
 import Toast from '~/components/Toast.vue';
 
+// 유틸리티
+import { getBookCode } from '~/constants/bible';
+
 // 타입
 import type { VerseSelection } from '~/types/bible';
 
@@ -676,7 +679,14 @@ const handleScheduleSelect = (schedule: ScheduleSelectPayload) => {
     setReadingDetailResponse({ data: { plan_detail: schedule.plan_detail } });
   }
 
-  handleBookSelect(schedule.book, schedule.start_chapter);
+  // 한국어 책 이름을 영문 코드로 변환
+  const bookCode = getBookCode(schedule.book);
+  if (!bookCode) {
+    toast.error(`알 수 없는 성경 책: ${schedule.book}`);
+    return;
+  }
+
+  handleBookSelect(bookCode, schedule.start_chapter);
 };
 
 // 북마크: 토글 핸들러
