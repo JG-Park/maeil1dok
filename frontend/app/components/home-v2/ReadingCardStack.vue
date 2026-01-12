@@ -100,6 +100,9 @@
     <div v-else class="reading-card main-card" @click="startReading">
       <div class="card-header">
         <span class="card-label">TODAY'S READING</span>
+        <NuxtLink to="/plans" class="manage-link" @click.stop>
+          플랜 관리
+        </NuxtLink>
       </div>
 
       <h2 class="bible-verse">{{ todaySchedule?.range || '오늘의 말씀' }}</h2>
@@ -471,6 +474,22 @@ function startRandomReading() {
   font-weight: 600;
 }
 
+.manage-link {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent-light);
+  transition: all 0.2s;
+}
+
+.manage-link:hover {
+  color: var(--accent);
+  background: var(--accent-light);
+  opacity: 0.8;
+}
+
 .bible-verse {
   font-family: var(--font-serif);
   font-size: 2rem;
@@ -689,6 +708,15 @@ function startRandomReading() {
 
 [data-theme="dark"] .progress-bar-bg {
   background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .manage-link {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-sub);
+}
+
+[data-theme="dark"] .manage-link:hover {
+  color: var(--accent);
 }
 
 [data-theme="dark"] .suggestion-badge {
