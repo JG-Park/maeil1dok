@@ -7,12 +7,7 @@
         </svg>
       </button>
       <h1>읽기 설정</h1>
-      <button class="header-action-btn" @click="goToBible">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <div class="header-spacer"></div>
     </header>
 
     <div class="settings-content">
@@ -41,22 +36,41 @@
         </div>
       </section>
 
+      <!-- 테마 설정 -->
+      <section class="settings-section">
+        <h2 class="section-title">테마</h2>
+        <div class="theme-selector">
+          <button
+            v-for="theme in themeOptions"
+            :key="theme.value"
+            class="theme-btn"
+            :class="{ active: settings.theme === theme.value }"
+            @click="updateSetting('theme', theme.value)"
+          >
+            <span class="theme-icon" v-html="theme.icon"></span>
+            <span>{{ theme.label }}</span>
+          </button>
+        </div>
+      </section>
+
       <!-- 글꼴 설정 -->
       <section class="settings-section">
         <h2 class="section-title">글꼴</h2>
         
-        <!-- 글꼴 선택 -->
-        <div class="font-grid">
-          <button
-            v-for="(font, key) in fontFamilies"
-            :key="key"
-            class="font-button"
-            :class="{ active: settings.fontFamily === key }"
-            @click="updateSetting('fontFamily', key)"
-          >
-            <span class="font-preview" :style="{ fontFamily: font.css }">가</span>
-            <span class="font-name">{{ font.name }}</span>
-          </button>
+        <!-- 글꼴 선택 (좌우 스크롤) -->
+        <div class="font-scroll-container">
+          <div class="font-scroll">
+            <button
+              v-for="fontKey in fontFamilyOrder"
+              :key="fontKey"
+              class="font-button"
+              :class="{ active: settings.fontFamily === fontKey }"
+              :style="{ fontFamily: fontFamilies[fontKey].css }"
+              @click="updateSetting('fontFamily', fontKey)"
+            >
+              {{ fontFamilies[fontKey].name }}
+            </button>
+          </div>
         </div>
 
         <!-- 크기 & 줄간격 슬라이더 -->
@@ -139,23 +153,6 @@
         </div>
       </section>
 
-      <!-- 테마 설정 -->
-      <section class="settings-section">
-        <h2 class="section-title">테마</h2>
-        <div class="theme-selector">
-          <button
-            v-for="theme in themeOptions"
-            :key="theme.value"
-            class="theme-btn"
-            :class="{ active: settings.theme === theme.value }"
-            @click="updateSetting('theme', theme.value)"
-          >
-            <span class="theme-icon" v-html="theme.icon"></span>
-            <span>{{ theme.label }}</span>
-          </button>
-        </div>
-      </section>
-
       <!-- 읽기 옵션 -->
       <section class="settings-section">
         <h2 class="section-title">읽기 옵션</h2>
@@ -223,28 +220,6 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-
-        <div class="setting-item">
-          <label class="setting-label">기본 진입점</label>
-          <div class="radio-options">
-            <label 
-              v-for="option in entryPointOptions" 
-              :key="option.value"
-              class="radio-option"
-              :class="{ active: settings.defaultEntryPoint === option.value }"
-            >
-              <input
-                type="radio"
-                name="defaultEntryPoint"
-                :value="option.value"
-                :checked="settings.defaultEntryPoint === option.value"
-                @change="updateSetting('defaultEntryPoint', option.value)"
-              />
-              <span class="radio-label">{{ option.label }}</span>
-            </label>
-          </div>
-          <p class="setting-hint">/bible 접속 시 기본으로 이동할 위치</p>
-        </div>
       </section>
 
       <!-- 데이터 관리 -->
@@ -278,12 +253,12 @@ import { ref, computed } from 'vue';
 import { 
   useReadingSettingsStore, 
   FONT_FAMILIES, 
+  FONT_FAMILY_ORDER,
   FONT_WEIGHTS,
   LINE_HEIGHT_MIN,
   LINE_HEIGHT_MAX,
   LINE_HEIGHT_STEP,
   type ThemeMode, 
-  type DefaultEntryPoint, 
   type FontWeight, 
   type TextAlign 
 } from '~/stores/readingSettings';
@@ -311,6 +286,7 @@ const isDeleting = ref(false);
 const settings = computed(() => settingsStore.settings);
 
 const fontFamilies = FONT_FAMILIES;
+const fontFamilyOrder = FONT_FAMILY_ORDER;
 
 // 테마 옵션
 const themeOptions: Array<{ value: ThemeMode; label: string; icon: string }> = [
@@ -344,13 +320,6 @@ const textAlignOptions: Array<{ value: TextAlign; label: string }> = [
   { value: 'justify', label: '양쪽' },
 ];
 
-// 기본 진입점 옵션
-const entryPointOptions: Array<{ value: DefaultEntryPoint; label: string }> = [
-  { value: 'last-position', label: '마지막 읽던 위치' },
-  { value: 'home', label: '홈 (대시보드)' },
-  { value: 'toc', label: '성경 목차' },
-];
-
 // 미리보기 스타일
 const previewStyles = computed(() => ({
   fontFamily: FONT_FAMILIES[settings.value.fontFamily].css,
@@ -365,9 +334,7 @@ const goBack = () => {
   router.back();
 };
 
-const goToBible = () => {
-  navigateTo('/bible');
-};
+
 
 // 설정 업데이트
 const updateSetting = <K extends keyof typeof settings.value>(key: K, value: typeof settings.value[K]) => {
@@ -485,8 +452,7 @@ const resetAllSettings = async () => {
   z-index: 10;
 }
 
-.bible-back-btn,
-.header-action-btn {
+.bible-back-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -500,10 +466,13 @@ const resetAllSettings = async () => {
   transition: all 0.2s;
 }
 
-.bible-back-btn:hover,
-.header-action-btn:hover {
+.bible-back-btn:hover {
   background-color: var(--color-bg-hover);
   color: var(--color-text-primary);
+}
+
+.header-spacer {
+  width: 36px;
 }
 
 .bible-page-header h1 {
@@ -607,26 +576,36 @@ const resetAllSettings = async () => {
   color: var(--color-error);
 }
 
-/* 폰트 그리드 */
-.font-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+/* 폰트 스크롤 */
+.font-scroll-container {
+  margin: 0 -1rem;
   margin-bottom: 1rem;
 }
 
-.font-button {
+.font-scroll {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.625rem 0.5rem;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 1rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.font-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.font-button {
+  flex-shrink: 0;
+  padding: 0.625rem 1rem;
   border: 1.5px solid var(--color-border-default);
   border-radius: 10px;
   background-color: var(--color-bg-card);
   color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 0.9375rem;
+  white-space: nowrap;
 }
 
 .font-button:hover {
@@ -636,19 +615,7 @@ const resetAllSettings = async () => {
 .font-button.active {
   border-color: var(--color-accent-primary);
   background-color: var(--color-accent-primary-light);
-}
-
-.font-preview {
-  font-size: 1.375rem;
-  line-height: 1.2;
-}
-
-.font-name {
-  font-size: 0.625rem;
-  font-weight: 500;
-  text-align: center;
-  line-height: 1.2;
-  color: var(--color-text-secondary);
+  color: var(--color-accent-primary);
 }
 
 /* 슬라이더 그룹 */
@@ -1036,13 +1003,11 @@ const resetAllSettings = async () => {
   color: var(--color-text-primary);
 }
 
-[data-theme="dark"] .bible-back-btn,
-[data-theme="dark"] .header-action-btn {
+[data-theme="dark"] .bible-back-btn {
   color: var(--color-text-secondary);
 }
 
-[data-theme="dark"] .bible-back-btn:hover,
-[data-theme="dark"] .header-action-btn:hover {
+[data-theme="dark"] .bible-back-btn:hover {
   background-color: var(--color-bg-hover);
   color: var(--color-text-primary);
 }

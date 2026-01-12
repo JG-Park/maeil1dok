@@ -136,10 +136,7 @@ export type ViewMode = 'reader' | 'home' | 'toc';
  */
 export type ThemeMode = 'light' | 'dark' | 'system';
 
-/**
- * 기본 진입점
- */
-export type DefaultEntryPoint = 'last-position' | 'home' | 'toc';
+
 
 // ============================================
 // API Response Types

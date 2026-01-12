@@ -145,12 +145,6 @@ class UserReadingSettings(models.Model):
         ('justify', '양쪽 정렬'),
     ]
 
-    DEFAULT_ENTRY_POINT_CHOICES = [
-        ('last-position', '마지막 위치'),
-        ('home', '홈'),
-        ('toc', '목차'),
-    ]
-
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -225,12 +219,6 @@ class UserReadingSettings(models.Model):
     tongdok_auto_complete = models.BooleanField(
         default=False,
         help_text='통독모드 자동 완료'
-    )
-    default_entry_point = models.CharField(
-        max_length=20,
-        choices=DEFAULT_ENTRY_POINT_CHOICES,
-        default='last-position',
-        help_text='기본 진입점'
     )
 
     # Timestamps

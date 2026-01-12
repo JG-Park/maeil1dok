@@ -9,7 +9,6 @@ export type FontWeight = 'normal' | 'medium' | 'bold'
 // LineHeight는 이제 숫자형 (1.4 ~ 2.4 범위)
 export type LineHeight = number
 export type TextAlign = 'left' | 'justify'
-export type DefaultEntryPoint = 'last-position' | 'home' | 'toc'
 
 export interface ReadingSettings {
   // Theme
@@ -28,7 +27,6 @@ export interface ReadingSettings {
 
   // Behavior settings
   tongdokAutoComplete: boolean
-  defaultEntryPoint: DefaultEntryPoint
 
   // View options (existing, migrated from localStorage)
   showDescription: boolean
@@ -56,7 +54,6 @@ const DEFAULT_SETTINGS: ReadingSettings = {
   verseJoining: false,
   showVerseNumbers: true,
   tongdokAutoComplete: false,
-  defaultEntryPoint: 'last-position',
   showDescription: true,
   showCrossRef: true,
   highlightNames: true,
@@ -65,13 +62,23 @@ const DEFAULT_SETTINGS: ReadingSettings = {
 
 // Font family mappings
 export const FONT_FAMILIES: Record<FontFamily, { name: string; css: string; type: 'serif' | 'sans-serif' | 'system' }> = {
+  'kopub-batang': { name: 'KoPub 바탕', css: '"KoPub Batang", serif', type: 'serif' },
   'ridi-batang': { name: 'RIDI 바탕', css: '"RIDIBatang", serif', type: 'serif' },
   'noto-serif': { name: 'Noto Serif KR', css: '"Noto Serif KR", serif', type: 'serif' },
-  'kopub-batang': { name: 'KoPub 바탕', css: '"KoPub Batang", serif', type: 'serif' },
   'pretendard': { name: 'Pretendard', css: '"Pretendard", sans-serif', type: 'sans-serif' },
   'noto-sans': { name: 'Noto Sans KR', css: '"Noto Sans KR", sans-serif', type: 'sans-serif' },
   'system': { name: '시스템 기본', css: '-apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif', type: 'system' },
 }
+
+// Font families in display order
+export const FONT_FAMILY_ORDER: FontFamily[] = [
+  'kopub-batang',
+  'ridi-batang', 
+  'noto-serif',
+  'pretendard',
+  'noto-sans',
+  'system',
+]
 
 // Line height 범위 상수
 export const LINE_HEIGHT_MIN = 1.4
@@ -244,7 +251,6 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
             verseJoining: serverSettings.verse_joining ?? this.settings.verseJoining,
             showVerseNumbers: serverSettings.show_verse_numbers ?? this.settings.showVerseNumbers,
             tongdokAutoComplete: serverSettings.tongdok_auto_complete ?? this.settings.tongdokAutoComplete,
-            defaultEntryPoint: serverSettings.default_entry_point || this.settings.defaultEntryPoint,
             showDescription: serverSettings.show_description ?? this.settings.showDescription,
             showCrossRef: serverSettings.show_cross_ref ?? this.settings.showCrossRef,
             highlightNames: serverSettings.highlight_names ?? this.settings.highlightNames,
@@ -278,7 +284,6 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
           verse_joining: this.settings.verseJoining,
           show_verse_numbers: this.settings.showVerseNumbers,
           tongdok_auto_complete: this.settings.tongdokAutoComplete,
-          default_entry_point: this.settings.defaultEntryPoint,
           show_description: this.settings.showDescription,
           show_cross_ref: this.settings.showCrossRef,
           highlight_names: this.settings.highlightNames,

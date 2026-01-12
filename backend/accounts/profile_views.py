@@ -447,7 +447,6 @@ def get_reading_settings(request):
         'highlight_names': settings.highlight_names,
         'show_footnotes': settings.show_footnotes,
         'tongdok_auto_complete': settings.tongdok_auto_complete,
-        'default_entry_point': settings.default_entry_point,
     }
 
     return StandardResponse.success(
@@ -468,7 +467,7 @@ def update_reading_settings(request):
         'theme', 'font_family', 'font_size', 'font_weight',
         'line_height', 'text_align', 'verse_joining', 'show_verse_numbers',
         'show_description', 'show_cross_ref', 'highlight_names', 'show_footnotes',
-        'tongdok_auto_complete', 'default_entry_point'
+        'tongdok_auto_complete'
     ]
 
     for field in updatable_fields:
@@ -491,7 +490,6 @@ def update_reading_settings(request):
         'highlight_names': settings.highlight_names,
         'show_footnotes': settings.show_footnotes,
         'tongdok_auto_complete': settings.tongdok_auto_complete,
-        'default_entry_point': settings.default_entry_point,
     }
 
     return StandardResponse.success(

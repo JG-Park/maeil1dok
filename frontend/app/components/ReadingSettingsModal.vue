@@ -504,7 +504,6 @@ function resetToDefaults() {
     verseJoining: false,
     showVerseNumbers: true,
     tongdokAutoComplete: false,
-    defaultEntryPoint: 'last-position',
     showDescription: true,
     showCrossRef: true,
     highlightNames: true,

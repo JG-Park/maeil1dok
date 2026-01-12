@@ -144,6 +144,7 @@
           :is-modal="true"
           :current-book="currentBook"
           :current-chapter="currentChapter"
+          initial-scroll-target="today"
           @schedule-select="handleScheduleSelect"
         />
       </BaseModal>
@@ -821,16 +822,11 @@ const handleTocBookSelect = async (bookId: string, chapter: number = 1) => {
 
 // 진입점 모드 핸들러: 목차에서 뒤로가기
 const handleTocBack = () => {
-  const entryPoint = readingSettingsStore.settings.defaultEntryPoint || 'last-position';
-  if (entryPoint === 'home') {
-    viewMode.value = 'home';
+  // 기본 진입점은 항상 last-position이므로 이전 페이지로 이동
+  if (window.history.length > 1) {
+    router.back();
   } else {
-    // 기본 진입점이 toc인 경우 뒤로가기는 이전 페이지로
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/');
-    }
+    router.push('/');
   }
 };
 
@@ -849,31 +845,16 @@ onMounted(async () => {
     // URL 파라미터를 상태에 반영한 후 URL 정리 (상태 관리에 위임)
     router.replace({ path: '/bible' });
   } else if (!tongdokMode.value) {
-    // 쿼리 파라미터가 없고 통독모드가 아니면 설정에 따른 진입점
-    const entryPoint = readingSettingsStore.settings.defaultEntryPoint || 'last-position';
-
-    switch (entryPoint) {
-      case 'home':
-        viewMode.value = 'home';
-        // 홈 뷰에서는 본문 로드 불필요
-        break;
-      case 'toc':
-        viewMode.value = 'toc';
-        // 목차 뷰에서는 본문 로드 불필요
-        break;
-      case 'last-position':
-      default:
-        viewMode.value = 'reader';
-        const lastPos = await loadReadingPosition();
-        if (lastPos) {
-          currentBook.value = lastPos.book;
-          currentChapter.value = lastPos.chapter;
-          currentVersion.value = lastPos.version || 'GAE';
-          scrollPosition.value = lastPos.scroll_position || 0;
-        }
-        loadBibleContent(currentBook.value, currentChapter.value);
-        break;
+    // 쿼리 파라미터가 없고 통독모드가 아니면 마지막 위치로 이동
+    viewMode.value = 'reader';
+    const lastPos = await loadReadingPosition();
+    if (lastPos) {
+      currentBook.value = lastPos.book;
+      currentChapter.value = lastPos.chapter;
+      currentVersion.value = lastPos.version || 'GAE';
+      scrollPosition.value = lastPos.scroll_position || 0;
     }
+    loadBibleContent(currentBook.value, currentChapter.value);
   } else {
     // tongdokMode가 true이고 query params가 없는 경우 (새로고침 후)
     // 반드시 저장된 reading position에서 복원해야 함
