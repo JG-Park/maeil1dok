@@ -953,31 +953,7 @@ defineExpose({
   opacity: 0.4;
 }
 
-/* 다크모드에서 하이라이트 스타일 조정 - 밝은 배경에 어두운 텍스트 */
-.theme-dark .bible-content :deep(.verse.highlighted),
-:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) {
-  /* 다크모드에서 밝은 파스텔 배경에 어두운 텍스트로 가독성 확보 */
-  color: #1a1a1a !important;
-}
 
-/* 다크모드 하이라이트 내 절 번호 - 어두운 색상 */
-.theme-dark .bible-content :deep(.verse.highlighted) .verse-number,
-.theme-dark .bible-content :deep(.verse.highlighted .verse-num),
-:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) .verse-number,
-:root[data-theme="dark"] .bible-content :deep(.verse.highlighted .verse-num) {
-  color: #4a4a4a !important;
-}
-
-/* 다크모드 하이라이트 내 인명/지명 강조 - 어두운 색상 */
-.theme-dark .bible-content :deep(.verse.highlighted) .bible-name,
-:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) .bible-name {
-  color: #5c4033 !important;
-}
-
-.theme-dark .bible-content :deep(.verse.highlighted) .bible-area,
-:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) .bible-area {
-  color: #3d5a3a !important;
-}
 
 /* 인명/지명 강조 스타일 (reading.vue 동일) */
 .bible-content :deep(.bible-name) {
@@ -1654,5 +1630,25 @@ defineExpose({
 
 .bible-content.verse-joining :deep(.verse-line.continuation) {
   padding-left: 0;
+}
+</style>
+
+<style>
+/* 다크모드 하이라이트 - Global 스타일 (scoped 외부에서 data-theme 속성 접근) */
+[data-theme="dark"] .bible-content .verse.highlighted {
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .bible-content .verse.highlighted .verse-number,
+[data-theme="dark"] .bible-content .verse.highlighted .verse-num {
+  color: #4a4a4a !important;
+}
+
+[data-theme="dark"] .bible-content .verse.highlighted .bible-name {
+  color: #5c4033 !important;
+}
+
+[data-theme="dark"] .bible-content .verse.highlighted .bible-area {
+  color: #3d5a3a !important;
 }
 </style>
