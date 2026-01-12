@@ -20,14 +20,14 @@ export interface SearchResult {
 
 // 성경 역본 정보
 export const VERSION_NAMES = Object.freeze({
-  KNT: "새한글",
   GAE: "개역개정",
+  SAENEW: "새번역",
+  WOORI: "우리말성경",
+  KNT: "새한글",
   HAN: "개역한글",
   SAE: "표준새번역",
-  SAENEW: "새번역",
   COG: "공동번역",
   COGNEW: "공동번역 개정판",
-  WOORI: "우리말성경",
 }) as Record<string, string>;
 
 // 성경 책 정보
