@@ -68,7 +68,7 @@ const showMenu = ref(false);
 .container {
   max-width: 768px;
   margin: 0 auto;
-  padding: 0 1.5rem 6rem;
+  padding: 0 1.5rem calc(6rem + env(safe-area-inset-bottom));
   min-height: 100vh;
   position: relative;
 }

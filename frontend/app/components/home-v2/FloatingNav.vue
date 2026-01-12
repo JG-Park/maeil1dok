@@ -45,7 +45,8 @@ const profileLink = computed(() => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  max-width: calc(100% - 32px);
+  width: calc(100% - 32px);
+  max-width: 320px;
 
   /* 글래스모피즘 */
   background: rgba(255, 255, 255, 0.75);
@@ -59,23 +60,27 @@ const profileLink = computed(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
   /* 레이아웃 */
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.5rem;
   display: flex;
+  justify-content: space-between;
   gap: 0.25rem;
 }
 
 .nav-item {
-  padding: 0.625rem 1rem;
+  padding: 0.5rem 0.75rem;
   color: var(--color-slate-600, #475569);
   text-decoration: none;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   border-radius: 12px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.375rem;
   background: transparent;
+  flex: 1;
+  white-space: nowrap;
 }
 
 .nav-item:hover:not(.active) {
@@ -103,15 +108,9 @@ const profileLink = computed(() => {
 
 @media (max-width: 400px) {
   .nav-item {
-    padding: 0.625rem 0.75rem;
-  }
-  
-  .nav-label {
-    display: none;
-  }
-  
-  .nav-item.active .nav-label {
-    display: inline-block;
+    padding: 0.625rem 0.25rem;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
   }
 }
 
