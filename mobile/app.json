@@ -6,16 +6,16 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "maeil1dok",
+    "scheme": ["maeil1dok", "kakao91b7f3dfb146481fd15ff80aafb12349"],
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#faf8f6"
+      "backgroundColor": "#EFECE8"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.maeil1dok.mobile",
+      "bundleIdentifier": "com.jgplabs.maeil1dok",
       "infoPlist": {
         "NSCameraUsageDescription": "프로필 사진 촬영에 사용됩니다",
         "NSPhotoLibraryUsageDescription": "프로필 사진 선택에 사용됩니다",
@@ -26,7 +26,7 @@
       "package": "app.maeil1dok.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#faf8f6"
+"backgroundColor": "#EFECE8"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
