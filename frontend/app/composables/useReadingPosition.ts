@@ -67,29 +67,33 @@ export const useReadingPosition = () => {
     }
   };
 
-  /**
-   * 마지막 읽기 위치 불러오기
-   */
   const loadReadingPosition = async (): Promise<ReadingPosition | null> => {
-    // 비로그인 시 localStorage에서 조회
+    const localPosition = loadFromLocalStorage();
+
     if (!authStore.isAuthenticated) {
-      lastReadingPosition.value = loadFromLocalStorage();
+      lastReadingPosition.value = localPosition;
       return lastReadingPosition.value;
     }
 
     try {
       const response = await api.get('/api/v1/todos/bible/reading-position/');
-      const position = response.data?.success ? response.data.position : null;
-      lastReadingPosition.value = position;
-      // localStorage에도 동기화
-      if (position) {
-        saveToLocalStorage(position);
+      const serverPosition = response.data?.success ? response.data.position : null;
+
+      if (serverPosition) {
+        const mergedPosition: ReadingPosition = {
+          ...serverPosition,
+          version: serverPosition.version || localPosition?.version || 'GAE',
+        };
+        lastReadingPosition.value = mergedPosition;
+        saveToLocalStorage(mergedPosition);
+        return mergedPosition;
       }
-      return position;
+
+      lastReadingPosition.value = localPosition;
+      return lastReadingPosition.value;
     } catch (error) {
       console.error('읽기 위치 불러오기 실패:', error);
-      // 서버 실패 시 localStorage 폴백
-      lastReadingPosition.value = loadFromLocalStorage();
+      lastReadingPosition.value = localPosition;
       return lastReadingPosition.value;
     }
   };
