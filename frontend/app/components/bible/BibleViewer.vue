@@ -1325,12 +1325,14 @@ defineExpose({
   border-radius: 8px;
 }
 
-.bible-content :deep(.verse-line:hover) {
+/* verse-group 호버 시 전체 그룹에 효과 적용 (한 절이므로 덩어리로 처리) */
+.bible-content :deep(.verse.verse-group:hover) {
   background-color: rgba(0, 0, 0, 0.04);
   cursor: pointer;
+  border-radius: 8px;
 }
 
-.theme-dark .bible-content :deep(.verse-line:hover) {
+.theme-dark .bible-content :deep(.verse.verse-group:hover) {
   background-color: rgba(255, 255, 255, 0.06);
 }
 
