@@ -1122,6 +1122,8 @@ const handleTongdokAutoComplete = async () => {
   if (!route.query.plan) return;
 
   try {
+    // 자동 완료이므로 반드시 complete 액션으로 설정
+    currentAction.value = "complete";
     // 자동으로 읽기 완료 처리
     await confirmCompleteReading();
 
@@ -2822,6 +2824,12 @@ const confirmCompleteReading = async () => {
     const currentDetail = currentPlanDetail.value;
 
     if (!plan_id || !currentDetail?.schedule_id) {
+      console.warn('읽기 완료 처리 실패: plan_id 또는 schedule_id가 없습니다.', {
+        plan_id,
+        schedule_id: currentDetail?.schedule_id,
+        hasReadingDetail: !!readingDetailResponse.value?.data,
+        hasPlanDetail: !!readingDetailResponse.value?.data?.plan_detail,
+      });
       return;
     }
 
