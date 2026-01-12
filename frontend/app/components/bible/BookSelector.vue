@@ -523,7 +523,8 @@ const scrollToSearchedChapter = (chapter: number) => {
 }
 
 .books-section {
-  width: 55%;
+  flex: 1;
+  min-width: 0;
   border-right: 1px solid var(--color-border, #e5e7eb);
   overflow-y: auto;
   padding: 0.75rem;
@@ -577,8 +578,8 @@ const scrollToSearchedChapter = (chapter: number) => {
 }
 
 .chapters-section {
-  width: 45%;
-  overflow-x: hidden;
+  width: 140px;
+  flex-shrink: 0;
   overflow-y: auto;
   padding: 0.75rem;
 }
@@ -627,6 +628,28 @@ const scrollToSearchedChapter = (chapter: number) => {
 
 .chapter-button.searched {
   box-shadow: 0 0 0 2px var(--primary-color, #6366f1);
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .chapters-section {
+    width: 120px;
+  }
+
+  .chapters-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+  }
+
+  .chapter-button {
+    min-height: 32px;
+    font-size: 0.8125rem;
+  }
+
+  .book-button {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+  }
 }
 
 /* Dark Mode Support */
@@ -775,11 +798,5 @@ const scrollToSearchedChapter = (chapter: number) => {
 :root.dark .chapters-section h4,
 [data-theme="dark"] .chapters-section h4 {
   color: var(--text-tertiary);
-}
-
-/* BaseModal 헤더 구분선 다크모드 오버라이드 */
-:root.dark :deep(.base-modal-header),
-[data-theme="dark"] :deep(.base-modal-header) {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 </style>

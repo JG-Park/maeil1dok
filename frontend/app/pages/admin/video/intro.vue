@@ -79,94 +79,88 @@
       </div>
     </div>
 
-    <!-- 수정된 업로드 모달 -->
-    <div v-if="showUploadModal" class="modal-overlay">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-title">영상 개론 엑셀 업로드</h3>
-          <button class="close-button" @click="showUploadModal = false">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+    <!-- 업로드 모달 -->
+    <BaseModal
+      v-model="showUploadModal"
+      title="영상 개론 엑셀 업로드"
+      size="lg"
+      :close-on-overlay="!uploading"
+      :close-on-esc="!uploading"
+    >
+      <form @submit.prevent="uploadExcel" class="space-y-4">
+        <div>
+          <label class="label">플랜 선택</label>
+          <select v-model="uploadForm.planId" class="select select-bordered w-full" required>
+            <option value="" disabled>플랜을 선택하세요</option>
+            <option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="label">엑셀 파일</label>
+          <input type="file" ref="fileInput" accept=".xlsx, .xls" class="file-input w-full" required
+            @change="handleFileChange" />
+          <div class="text-xs text-gray-500 mt-1">최대 5MB 크기의 .xlsx 또는 .xls 파일</div>
+        </div>
+
+        <div class="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
+          <p class="text-sm font-medium text-blue-800 mb-2">엑셀 파일 작성 방법:</p>
+          <ul class="text-xs text-blue-700 space-y-1 pl-4 list-disc">
+            <li>필수 컬럼: <strong>시작일, 종료일, 성경, URL</strong> (정확히 이 이름으로 작성)</li>
+            <li>날짜 형식: 다음 형식 모두 지원
+              <ul class="pl-4 mt-1 list-disc">
+                <li><strong>YYYY년 MM월 DD일</strong> (예: 2025년 2월 2일)</li>
+                <li><strong>YYYY-MM-DD</strong> (예: 2025-02-02)</li>
+                <li>일반 엑셀 날짜 셀 형식</li>
+              </ul>
+            </li>
+            <li>URL은 반드시 <strong>http://</strong> 또는 <strong>https://</strong>로 시작해야 함</li>
+            <li>성경 이름은 정확히 작성 (예: 창세기, 요한복음 등)</li>
+          </ul>
+          <div class="mt-3">
+            <a href="/sample-video-intro.xlsx" class="text-xs text-blue-600 flex items-center hover:underline"
+              target="_blank">
+              <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z"
+                  clip-rule="evenodd"></path>
+              </svg>
+              샘플 엑셀 파일 다운로드
+            </a>
+          </div>
+        </div>
+
+        <!-- 업로드 오류 메시지 표시 영역 -->
+        <div v-if="uploadErrors.length > 0" class="mt-3 p-3 bg-red-50 rounded-md border border-red-100">
+          <p class="text-sm font-medium text-red-800 mb-2">
+            다음 오류를 확인해주세요 ({{ uploadErrors.length }}건):
+          </p>
+          <ul class="text-xs text-red-700 space-y-1 pl-4 list-disc max-h-40 overflow-y-auto">
+            <li v-for="(error, i) in uploadErrors" :key="i">{{ error }}</li>
+          </ul>
+        </div>
+      </form>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button type="button" @click="showUploadModal = false" class="btn btn-outline"
+            :disabled="uploading">취소</button>
+          <button type="button" @click="uploadExcel" class="btn btn-primary" :disabled="uploading || !isUploadFormValid">
+            <span v-if="uploading">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              업로드 중...
+            </span>
+            <span v-else>업로드</span>
           </button>
         </div>
-
-        <div class="modal-body">
-          <form @submit.prevent="uploadExcel" class="space-y-4">
-            <div>
-              <label class="label">플랜 선택</label>
-              <select v-model="uploadForm.planId" class="select select-bordered w-full" required>
-                <option value="" disabled>플랜을 선택하세요</option>
-                <option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="label">엑셀 파일</label>
-              <input type="file" ref="fileInput" accept=".xlsx, .xls" class="file-input w-full" required
-                @change="handleFileChange" />
-              <div class="text-xs text-gray-500 mt-1">최대 5MB 크기의 .xlsx 또는 .xls 파일</div>
-            </div>
-
-            <div class="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
-              <p class="text-sm font-medium text-blue-800 mb-2">엑셀 파일 작성 방법:</p>
-              <ul class="text-xs text-blue-700 space-y-1 pl-4 list-disc">
-                <li>필수 컬럼: <strong>시작일, 종료일, 성경, URL</strong> (정확히 이 이름으로 작성)</li>
-                <li>날짜 형식: 다음 형식 모두 지원
-                  <ul class="pl-4 mt-1 list-disc">
-                    <li><strong>YYYY년 MM월 DD일</strong> (예: 2025년 2월 2일)</li>
-                    <li><strong>YYYY-MM-DD</strong> (예: 2025-02-02)</li>
-                    <li>일반 엑셀 날짜 셀 형식</li>
-                  </ul>
-                </li>
-                <li>URL은 반드시 <strong>http://</strong> 또는 <strong>https://</strong>로 시작해야 함</li>
-                <li>성경 이름은 정확히 작성 (예: 창세기, 요한복음 등)</li>
-              </ul>
-              <div class="mt-3">
-                <a href="/sample-video-intro.xlsx" class="text-xs text-blue-600 flex items-center hover:underline"
-                  target="_blank">
-                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z"
-                      clip-rule="evenodd"></path>
-                  </svg>
-                  샘플 엑셀 파일 다운로드
-                </a>
-              </div>
-            </div>
-
-            <!-- 업로드 오류 메시지 표시 영역 -->
-            <div v-if="uploadErrors.length > 0" class="mt-3 p-3 bg-red-50 rounded-md border border-red-100">
-              <p class="text-sm font-medium text-red-800 mb-2">
-                다음 오류를 확인해주세요 ({{ uploadErrors.length }}건):
-              </p>
-              <ul class="text-xs text-red-700 space-y-1 pl-4 list-disc max-h-40 overflow-y-auto">
-                <li v-for="(error, i) in uploadErrors" :key="i">{{ error }}</li>
-              </ul>
-            </div>
-
-            <div class="flex justify-end gap-2 mt-4">
-              <button type="button" @click="showUploadModal = false" class="btn btn-outline"
-                :disabled="uploading">취소</button>
-              <button type="submit" class="btn btn-primary" :disabled="uploading || !isUploadFormValid">
-                <span v-if="uploading">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                  </svg>
-                  업로드 중...
-                </span>
-                <span v-else>업로드</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+      </template>
+    </BaseModal>
 
     <!-- 토스트 -->
     <Toast ref="toast" />
@@ -180,6 +174,7 @@ import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import { useModal } from '~/composables/useModal'
 import Toast from '~/components/Toast.vue'
+import BaseModal from '~/components/ui/modal/BaseModal.vue'
 
 const authStore = useAuthStore()
 const api = useApi()
@@ -734,64 +729,6 @@ watch(() => authStore.user, async (newUser) => {
   --text-secondary: #666666;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.modal-content {
-  width: 90%;
-  max-width: 480px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.modal-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #F1F5F9;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: white;
-}
-
-.modal-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.close-button {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-secondary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
-.modal-body {
-  padding: 1.25rem;
-}
-
 .label {
   display: block;
   font-size: 0.875rem;
@@ -857,14 +794,6 @@ watch(() => authStore.user, async (newUser) => {
 
   .video-intro-card-content {
     padding: 0.75rem;
-  }
-
-  .modal-header {
-    padding: 0.8rem 1rem;
-  }
-
-  .modal-body {
-    padding: 1rem;
   }
 
   .btn {

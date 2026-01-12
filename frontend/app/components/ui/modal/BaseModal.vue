@@ -307,21 +307,25 @@ onUnmounted(() => {
 
 /* Responsive: Bottom sheet on mobile for non-bottom positioned modals */
 @media (max-width: 640px) {
-  .modal-position-center .base-modal-content:not(.modal-size-full) {
-    border-radius: 20px 20px 0 0;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-width: 100%;
-    max-height: 90vh;
-    box-sizing: border-box;
-  }
-
-  .modal-position-center {
+  .base-modal-overlay.modal-position-center {
     align-items: flex-end;
     padding: 0;
+  }
+
+  .modal-position-center.base-modal-content,
+  .modal-position-center .base-modal-content {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+  }
+
+  /* Size classes should not limit width on mobile */
+  .modal-size-sm,
+  .modal-size-md,
+  .modal-size-lg,
+  .modal-size-xl {
+    max-width: 100%;
   }
 }
 
@@ -344,5 +348,38 @@ onUnmounted(() => {
   .modal-slide-up-leave-to .base-modal-content {
     transform: none;
   }
+}
+
+/* Dark Mode */
+:root.dark .base-modal-content,
+[data-theme="dark"] .base-modal-content {
+  background: var(--color-bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+:root.dark .base-modal-header,
+[data-theme="dark"] .base-modal-header {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+:root.dark .base-modal-title,
+[data-theme="dark"] .base-modal-title {
+  color: var(--text-primary);
+}
+
+:root.dark .base-modal-close,
+[data-theme="dark"] .base-modal-close {
+  color: var(--text-secondary);
+}
+
+:root.dark .base-modal-close:hover,
+[data-theme="dark"] .base-modal-close:hover {
+  background: var(--color-bg-hover);
+  color: var(--text-primary);
+}
+
+:root.dark .base-modal-footer,
+[data-theme="dark"] .base-modal-footer {
+  border-top-color: rgba(255, 255, 255, 0.06);
 }
 </style>

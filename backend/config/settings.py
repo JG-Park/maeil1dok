@@ -29,8 +29,8 @@ if not SECRET_KEY:
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ['true', '1', 'yes']
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
-if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend']
+if not ALLOWED_HOSTS or ALLOWED_HOSTS == ['']:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend', '192.168.0.41']
 
 # Application definition
 
@@ -179,14 +179,13 @@ CORS_ALLOW_CREDENTIALS = True
 # 보안: CORS_ORIGIN_ALLOW_ALL과 CORS_ALLOW_CREDENTIALS를 함께 사용하지 않음
 # 개발 환경에서도 명시적인 오리진 목록 사용
 if DEBUG:
-    # 개발 환경에서 추가 허용 오리진
     CORS_ALLOWED_ORIGINS += [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:3019',
         'http://127.0.0.1:3019',
+        'http://192.168.0.41:3000',
     ]
-    # 중복 제거
     CORS_ALLOWED_ORIGINS = list(set(CORS_ALLOWED_ORIGINS))
 
 # JWT 설정 추가

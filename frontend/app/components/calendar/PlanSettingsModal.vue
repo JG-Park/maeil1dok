@@ -1,69 +1,68 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">캘린더 설정</h3>
-        <button class="close-btn" @click="$emit('close')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
+  <BaseModal
+    :model-value="true"
+    title="캘린더 설정"
+    size="md"
+    :close-on-overlay="true"
+    :close-on-esc="true"
+    @update:model-value="handleClose"
+    @close="handleClose"
+  >
+    <div class="plan-settings-content">
+      <p class="section-description">플랜 색상을 변경하거나 순서를 드래그하여 조정할 수 있습니다.</p>
 
-      <div class="modal-body">
-        <p class="section-description">플랜 색상을 변경하거나 순서를 드래그하여 조정할 수 있습니다.</p>
+      <div class="plan-list">
+        <div
+          v-for="(setting, index) in localSettings"
+          :key="setting.id"
+          class="plan-item"
+          draggable="true"
+          @dragstart="handleDragStart(index)"
+          @dragover.prevent="handleDragOver(index)"
+          @dragend="handleDragEnd"
+          :class="{ dragging: dragIndex === index }"
+        >
+          <div class="drag-handle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="8" y2="6"/>
+              <line x1="16" y1="6" x2="16" y2="6"/>
+              <line x1="8" y1="12" x2="8" y2="12"/>
+              <line x1="16" y1="12" x2="16" y2="12"/>
+              <line x1="8" y1="18" x2="8" y2="18"/>
+              <line x1="16" y1="18" x2="16" y2="18"/>
+            </svg>
+          </div>
 
-        <div class="plan-list">
-          <div
-            v-for="(setting, index) in localSettings"
-            :key="setting.id"
-            class="plan-item"
-            draggable="true"
-            @dragstart="handleDragStart(index)"
-            @dragover.prevent="handleDragOver(index)"
-            @dragend="handleDragEnd"
-            :class="{ dragging: dragIndex === index }"
-          >
-            <div class="drag-handle">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="8" y1="6" x2="8" y2="6"/>
-                <line x1="16" y1="6" x2="16" y2="6"/>
-                <line x1="8" y1="12" x2="8" y2="12"/>
-                <line x1="16" y1="12" x2="16" y2="12"/>
-                <line x1="8" y1="18" x2="8" y2="18"/>
-                <line x1="16" y1="18" x2="16" y2="18"/>
-              </svg>
-            </div>
+          <div class="plan-info">
+            <span class="plan-name">{{ setting.plan_name }}</span>
+          </div>
 
-            <div class="plan-info">
-              <span class="plan-name">{{ setting.plan_name }}</span>
-            </div>
-
-            <div class="color-picker">
-              <button
-                v-for="color in availableColors"
-                :key="color"
-                class="color-option"
-                :class="{ selected: setting.color === color }"
-                :style="{ backgroundColor: color }"
-                @click="handleColorChange(setting.id, color)"
-              />
-            </div>
+          <div class="color-picker">
+            <button
+              v-for="color in availableColors"
+              :key="color"
+              class="color-option"
+              :class="{ selected: setting.color === color }"
+              :style="{ backgroundColor: color }"
+              @click="handleColorChange(setting.id, color)"
+            />
           </div>
         </div>
       </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" @click="$emit('close')">닫기</button>
-      </div>
     </div>
-  </div>
+
+    <template #footer>
+      <div class="modal-footer-content">
+        <button class="btn-secondary" @click="handleClose">닫기</button>
+      </div>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import type { PlanDisplaySetting } from '~/stores/calendarDisplay'
+import BaseModal from '~/components/ui/modal/BaseModal.vue'
 
 const props = defineProps<{
   settings: PlanDisplaySetting[]
@@ -89,6 +88,10 @@ const availableColors = [
 const localSettings = ref([...props.settings])
 const dragIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
+
+const handleClose = () => {
+  emit('close')
+}
 
 const handleColorChange = (id: number, color: string) => {
   const setting = localSettings.value.find(s => s.id === id)
@@ -126,75 +129,16 @@ const handleDragEnd = () => {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: var(--color-bg-card);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 80vh;
-  overflow: hidden;
+.plan-settings-content {
   display: flex;
   flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-slate-200);
-}
-
-.modal-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-slate-800);
-  margin: 0;
-}
-
-.close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  color: var(--color-slate-500);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: var(--color-slate-100);
-  color: var(--color-slate-800);
-}
-
-.modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem 1.25rem;
+  gap: 1rem;
 }
 
 .section-description {
   font-size: 0.8125rem;
-  color: var(--color-slate-500);
-  margin: 0 0 1rem 0;
+  color: var(--text-secondary, #64748B);
+  margin: 0;
 }
 
 .plan-list {
@@ -208,23 +152,23 @@ const handleDragEnd = () => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: var(--color-slate-50);
+  background: var(--color-bg-secondary, #F8FAFC);
   border-radius: 10px;
   cursor: grab;
   transition: all 0.2s ease;
 }
 
 .plan-item:hover {
-  background: var(--color-slate-100);
+  background: var(--color-bg-hover, #F1F5F9);
 }
 
 .plan-item.dragging {
   opacity: 0.5;
-  background: var(--color-slate-200);
+  background: var(--color-border, #E2E8F0);
 }
 
 .drag-handle {
-  color: var(--color-slate-400);
+  color: var(--text-tertiary, #94A3B8);
   cursor: grab;
 }
 
@@ -236,7 +180,7 @@ const handleDragEnd = () => {
 .plan-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-slate-800);
+  color: var(--text-primary, #1E293B);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -261,53 +205,44 @@ const handleDragEnd = () => {
 }
 
 .color-option.selected {
-  border-color: var(--color-slate-800);
-  box-shadow: 0 0 0 2px var(--color-bg-card), 0 0 0 4px currentColor;
+  border-color: var(--text-primary, #1E293B);
+  box-shadow: 0 0 0 2px var(--color-bg-card, #fff), 0 0 0 4px currentColor;
 }
 
-.modal-footer {
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--color-slate-200);
+.modal-footer-content {
   display: flex;
   justify-content: flex-end;
+  width: 100%;
 }
 
 .btn-secondary {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--color-slate-200);
-  background: var(--color-bg-card);
+  border: 1px solid var(--color-border, #E2E8F0);
+  background: var(--color-bg-card, #fff);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-slate-500);
+  color: var(--text-secondary, #64748B);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background: var(--color-slate-100);
-  border-color: var(--color-slate-300);
+  background: var(--color-bg-secondary, #F8FAFC);
+  border-color: var(--color-border-hover, #CBD5E1);
 }
 
-@media (max-width: 640px) {
-  .modal-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
+/* Dark mode support */
+:root.dark .plan-item {
+  background: var(--color-bg-secondary);
+}
 
-  .modal-content {
-    max-width: 100%;
-    max-height: 85vh;
-    border-radius: 16px 16px 0 0;
-  }
+:root.dark .plan-item:hover {
+  background: var(--color-bg-hover);
+}
 
-  .color-picker {
-    gap: 3px;
-  }
-
-  .color-option {
-    width: 18px;
-    height: 18px;
-  }
+:root.dark .color-option.selected {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--color-bg-card), 0 0 0 4px currentColor;
 }
 </style>

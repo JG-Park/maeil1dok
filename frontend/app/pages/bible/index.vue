@@ -133,31 +133,20 @@
       />
 
       <!-- 성경통독표 모달 -->
-      <Teleport to="body">
-        <Transition name="modal-fade">
-          <div v-if="showScheduleModal" class="schedule-modal-overlay" @click="showScheduleModal = false">
-            <Transition name="modal-slide">
-              <div class="schedule-modal-content" @click.stop>
-                <div class="schedule-modal-header">
-                  <h3>성경통독표</h3>
-                  <button class="schedule-close-button" @click="showScheduleModal = false">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
-                  </button>
-                </div>
-                <BibleScheduleContent
-                  v-if="showScheduleModal"
-                  :is-modal="true"
-                  :current-book="currentBook"
-                  :current-chapter="currentChapter"
-                  @schedule-select="handleScheduleSelect"
-                />
-              </div>
-            </Transition>
-          </div>
-        </Transition>
-      </Teleport>
+      <BaseModal
+        v-model="showScheduleModal"
+        title="성경통독표"
+        size="lg"
+        :no-padding="true"
+      >
+        <BibleScheduleContent
+          v-if="showScheduleModal"
+          :is-modal="true"
+          :current-book="currentBook"
+          :current-chapter="currentChapter"
+          @schedule-select="handleScheduleSelect"
+        />
+      </BaseModal>
 
       <!-- 토스트 -->
       <Toast />
@@ -199,6 +188,7 @@ import HighlightModal from '~/components/bible/HighlightModal.vue';
 import ReadingSettingsModal from '~/components/ReadingSettingsModal.vue';
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue';
 import PlanSelectorModal from '~/components/schedule/PlanSelectorModal.vue';
+import BaseModal from '~/components/ui/modal/BaseModal.vue';
 
 // 기타
 import Toast from '~/components/Toast.vue';
@@ -994,104 +984,5 @@ watch(
 /* 다크모드 */
 :root.dark .bible-page {
   background: var(--color-bg-primary);
-}
-
-/* 성경통독표 모달 */
-.schedule-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.schedule-modal-content {
-  width: 100%;
-  max-width: 600px;
-  max-height: 80vh;
-  background: var(--color-bg-card, #fff);
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.schedule-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-  flex-shrink: 0;
-}
-
-.schedule-modal-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-}
-
-.schedule-close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: var(--text-secondary, #6b7280);
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.schedule-close-button:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-  color: var(--text-primary, #1f2937);
-}
-
-/* 모달 애니메이션 */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-slide-enter-active,
-.modal-slide-leave-active {
-  transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.modal-slide-enter-from,
-.modal-slide-leave-to {
-  transform: scale(0.95);
-  opacity: 0;
-}
-
-/* 다크모드 - 모달 */
-:root.dark .schedule-modal-content {
-  background: var(--color-bg-card);
-}
-
-:root.dark .schedule-modal-header {
-  border-bottom-color: var(--color-border);
-}
-
-:root.dark .schedule-modal-header h3 {
-  color: var(--text-primary);
-}
-
-:root.dark .schedule-close-button {
-  color: var(--text-secondary);
-}
-
-:root.dark .schedule-close-button:hover {
-  background: var(--color-bg-hover);
-  color: var(--text-primary);
 }
 </style>

@@ -1,60 +1,54 @@
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="isOpen" class="modal-overlay" @click.self="handleClose">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 class="modal-title">{{ formattedDate }}</h3>
-            <button @click="handleClose" class="close-btn" aria-label="닫기">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
+  <BaseModal
+    :model-value="isOpen"
+    :title="formattedDate"
+    size="md"
+    :close-on-overlay="true"
+    :close-on-esc="true"
+    @update:model-value="handleClose"
+    @close="handleClose"
+  >
+    <div class="schedule-detail-content">
+      <div v-if="schedules.length === 0" class="empty-state">
+        이 날짜에 예정된 읽기가 없습니다.
+      </div>
+
+      <div v-else class="schedule-list">
+        <div
+          v-for="item in schedules"
+          :key="item.schedule_id || `${item.plan_id}-${item.book}`"
+          class="schedule-detail"
+          :style="{ '--plan-color': item.color }"
+          @click="handleNavigate(item)"
+        >
+          <div class="plan-info">
+            <span class="plan-badge" :style="{ backgroundColor: item.color }">
+              {{ item.plan_name }}
+            </span>
+            <span
+              class="status-badge"
+              :class="item.is_completed ? 'completed' : 'pending'"
+            >
+              {{ item.is_completed ? '완료' : '미완료' }}
+            </span>
           </div>
-
-          <div class="modal-body">
-            <div v-if="schedules.length === 0" class="empty-state">
-              이 날짜에 예정된 읽기가 없습니다.
-            </div>
-
-            <div v-else class="schedule-list">
-              <div
-                v-for="item in schedules"
-                :key="item.schedule_id || `${item.plan_id}-${item.book}`"
-                class="schedule-detail"
-                :style="{ '--plan-color': item.color }"
-                @click="handleNavigate(item)"
-              >
-                <div class="plan-info">
-                  <span class="plan-badge" :style="{ backgroundColor: item.color }">
-                    {{ item.plan_name }}
-                  </span>
-                  <span
-                    class="status-badge"
-                    :class="item.is_completed ? 'completed' : 'pending'"
-                  >
-                    {{ item.is_completed ? '완료' : '미완료' }}
-                  </span>
-                </div>
-                <div class="reading-info">
-                  <span class="reading-text">{{ getFullText(item) }}</span>
-                  <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 18l6-6-6-6"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
+          <div class="reading-info">
+            <span class="reading-text">{{ getFullText(item) }}</span>
+            <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
           </div>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useScheduleFormatter } from '~/composables/useScheduleFormatter'
+import BaseModal from '~/components/ui/modal/BaseModal.vue'
 
 export interface ScheduleDetail {
   plan_id: number
@@ -159,72 +153,8 @@ const handleNavigate = (item: ScheduleDetail) => {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: var(--color-bg-card);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--gray-200, #E2E8F0);
-  flex-shrink: 0;
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary, #1E293B);
-}
-
-.close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--text-secondary, #64748B);
-  border-radius: 8px;
-  transition: all 0.15s ease;
-}
-
-.close-btn:hover {
-  background: var(--gray-100, #F1F5F9);
-  color: var(--text-primary, #1E293B);
-}
-
-.modal-body {
-  padding: 1rem 1.25rem;
-  overflow-y: auto;
-  flex: 1;
+.schedule-detail-content {
+  min-height: 100px;
 }
 
 .empty-state {
@@ -242,7 +172,7 @@ const handleNavigate = (item: ScheduleDetail) => {
 
 .schedule-detail {
   padding: 0.875rem;
-  background: var(--gray-50, #F8FAFC);
+  background: var(--color-bg-secondary, #F8FAFC);
   border-radius: 12px;
   border-left: 4px solid var(--plan-color);
   cursor: pointer;
@@ -250,7 +180,7 @@ const handleNavigate = (item: ScheduleDetail) => {
 }
 
 .schedule-detail:hover {
-  background: var(--gray-100, #F1F5F9);
+  background: var(--color-bg-hover, #F1F5F9);
   transform: translateX(2px);
 }
 
@@ -304,44 +234,22 @@ const handleNavigate = (item: ScheduleDetail) => {
   flex-shrink: 0;
 }
 
-/* 트랜지션 */
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
+/* Dark mode support */
+:root.dark .schedule-detail {
+  background: var(--color-bg-secondary);
 }
 
-.modal-enter-active .modal-content,
-.modal-leave-active .modal-content {
-  transition: transform 0.2s ease;
+:root.dark .schedule-detail:hover {
+  background: var(--color-bg-hover);
 }
 
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
+:root.dark .status-badge.completed {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ADE80;
 }
 
-.modal-enter-from .modal-content,
-.modal-leave-to .modal-content {
-  transform: scale(0.95) translateY(10px);
-}
-
-@media (max-width: 640px) {
-  .modal-content {
-    max-width: 100%;
-    margin: 0 0.5rem;
-    max-height: 70vh;
-  }
-
-  .modal-header {
-    padding: 0.875rem 1rem;
-  }
-
-  .modal-body {
-    padding: 0.875rem 1rem;
-  }
-
-  .schedule-detail {
-    padding: 0.75rem;
-  }
+:root.dark .status-badge.pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #FCD34D;
 }
 </style>

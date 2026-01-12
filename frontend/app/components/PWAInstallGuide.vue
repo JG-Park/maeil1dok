@@ -156,170 +156,164 @@
       </div>
     </div>
 
-    <!-- 이미지 모달 - teleport를 사용하여 body에 직접 렌더링 -->
-    <teleport to="body">
-      <div v-if="showModal" class="fullscreen-image-modal" @click="closeImageModal">
-        <div class="modal-content" @click.stop>
-          <div class="modal-controls">
-            <button class="zoom-button" @click="zoomIn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                <line x1="11" y1="8" x2="11" y2="14"></line>
-                <line x1="8" y1="11" x2="14" y2="11"></line>
-              </svg>
-            </button>
-            <button class="zoom-button" @click="zoomOut">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                <line x1="8" y1="11" x2="14" y2="11"></line>
-              </svg>
-            </button>
-            <button class="close-button" @click="closeImageModal">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          <div 
-            class="image-container" 
-            :style="{ 
-              transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})` 
-            }"
-            ref="imageContainer"
-            @touchstart="handleTouchStart"
-            @touchmove="handleTouchMove"
-            @touchend="handleTouchEnd"
-          >
-            <img :src="currentImage" alt="확대된 이미지" class="modal-image" />
-          </div>
+    <!-- 이미지 모달 - BaseModal 사용 -->
+    <BaseModal
+      v-model="showModal"
+      size="full"
+      :hide-header="true"
+      :no-padding="true"
+      :close-on-overlay="true"
+      :close-on-esc="true"
+      @close="closeImageModal"
+    >
+      <div class="image-modal-content" @click="closeImageModal">
+        <div class="modal-controls" @click.stop>
+          <button class="zoom-button" @click="zoomIn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="11" y1="8" x2="11" y2="14"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </button>
+          <button class="zoom-button" @click="zoomOut">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </button>
+          <button class="close-button" @click="closeImageModal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div 
+          class="image-container" 
+          :style="{ 
+            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})` 
+          }"
+          ref="imageContainer"
+          @click.stop
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+        >
+          <img :src="currentImage" alt="확대된 이미지" class="modal-image" />
         </div>
       </div>
-    </teleport>
+    </BaseModal>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'PWAInstallGuide',
-  data() {
-    return {
-      selectedPlatform: 'ios',
-      showModal: false,
-      currentImage: '',
-      zoomLevel: 1,
-      panX: 0,
-      panY: 0,
-      startX: 0,
-      startY: 0,
-      lastX: 0,
-      lastY: 0,
-      touchStartDistance: 0
-    }
-  },
-  mounted() {
-    // 기기 타입에 따라 초기 탭 설정
-    this.selectedPlatform = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream ? 'ios' : 'android';
-  },
-  methods: {
-    openImageModal(imageUrl) {
-      this.currentImage = imageUrl;
-      this.showModal = true;
-      this.zoomLevel = 1;
-      this.panX = 0;
-      this.panY = 0;
-      document.body.style.overflow = 'hidden';
-    },
-    closeImageModal() {
-      this.showModal = false;
-      document.body.style.overflow = '';
-    },
-    zoomIn() {
-      if (this.zoomLevel < 3) {
-        this.zoomLevel += 0.5;
-      }
-    },
-    zoomOut() {
-      if (this.zoomLevel > 0.5) {
-        this.zoomLevel -= 0.5;
-        // 줌 아웃 시 이미지가 화면 밖으로 나가지 않도록 조정
-        this.constrainPan();
-      }
-    },
-    // 이미지 드래그 움직임 제한
-    constrainPan() {
-      // 줌 레벨이 1 이하면 이동 안 함
-      if (this.zoomLevel <= 1) {
-        this.panX = 0;
-        this.panY = 0;
-      }
-      // 이동 범위 제한 (간단한 구현)
-      const maxPan = (this.zoomLevel - 1) * 150;
-      this.panX = Math.max(-maxPan, Math.min(maxPan, this.panX));
-      this.panY = Math.max(-maxPan, Math.min(maxPan, this.panY));
-    },
-    // 터치 이벤트 핸들러
-    handleTouchStart(event) {
-      event.preventDefault();
-      
-      // 멀티 터치 감지 (핀치)
-      if (event.touches.length === 2) {
-        // 두 손가락 사이의 거리 계산
-        const touch1 = event.touches[0];
-        const touch2 = event.touches[1];
-        this.touchStartDistance = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        );
-      } 
-      // 싱글 터치 (이동)
-      else if (event.touches.length === 1) {
-        this.startX = event.touches[0].clientX;
-        this.startY = event.touches[0].clientY;
-        this.lastX = this.panX;
-        this.lastY = this.panY;
-      }
-    },
-    handleTouchMove(event) {
-      event.preventDefault();
-      
-      // 핀치 줌 (두 손가락)
-      if (event.touches.length === 2) {
-        const touch1 = event.touches[0];
-        const touch2 = event.touches[1];
-        const currentDistance = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        );
-        
-        // 핀치 거리 변화에 따른 줌 레벨 조정
-        if (this.touchStartDistance > 0) {
-          const scale = currentDistance / this.touchStartDistance;
-          const newZoomLevel = Math.max(0.5, Math.min(3, this.zoomLevel * scale));
-          
-          // 급격한 변화 방지를 위한 감쇠
-          this.zoomLevel = this.zoomLevel + (newZoomLevel - this.zoomLevel) * 0.1;
-          this.touchStartDistance = currentDistance;
-        }
-      } 
-      // 이미지 이동 (한 손가락)
-      else if (event.touches.length === 1 && this.zoomLevel > 1) {
-        const moveX = event.touches[0].clientX - this.startX;
-        const moveY = event.touches[0].clientY - this.startY;
-        
-        // 확대된 상태에서만 이동 허용
-        this.panX = this.lastX + moveX * 0.8; // 이동 감도 조정
-        this.panY = this.lastY + moveY * 0.8;
-        this.constrainPan();
-      }
-    },
-    handleTouchEnd(event) {
-      // 터치 종료 시 제약 적용
-      this.constrainPan();
-    }
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import BaseModal from '~/components/ui/modal/BaseModal.vue'
+
+const selectedPlatform = ref('ios')
+const showModal = ref(false)
+const currentImage = ref('')
+const zoomLevel = ref(1)
+const panX = ref(0)
+const panY = ref(0)
+const startX = ref(0)
+const startY = ref(0)
+const lastX = ref(0)
+const lastY = ref(0)
+const touchStartDistance = ref(0)
+const imageContainer = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  // 기기 타입에 따라 초기 탭 설정
+  if (typeof navigator !== 'undefined') {
+    selectedPlatform.value = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 'ios' : 'android'
   }
+})
+
+const openImageModal = (imageUrl: string) => {
+  currentImage.value = imageUrl
+  showModal.value = true
+  zoomLevel.value = 1
+  panX.value = 0
+  panY.value = 0
+}
+
+const closeImageModal = () => {
+  showModal.value = false
+}
+
+const zoomIn = () => {
+  if (zoomLevel.value < 3) {
+    zoomLevel.value += 0.5
+  }
+}
+
+const zoomOut = () => {
+  if (zoomLevel.value > 0.5) {
+    zoomLevel.value -= 0.5
+    constrainPan()
+  }
+}
+
+const constrainPan = () => {
+  if (zoomLevel.value <= 1) {
+    panX.value = 0
+    panY.value = 0
+  }
+  const maxPan = (zoomLevel.value - 1) * 150
+  panX.value = Math.max(-maxPan, Math.min(maxPan, panX.value))
+  panY.value = Math.max(-maxPan, Math.min(maxPan, panY.value))
+}
+
+const handleTouchStart = (event: TouchEvent) => {
+  event.preventDefault()
+  
+  if (event.touches.length === 2) {
+    const touch1 = event.touches[0]
+    const touch2 = event.touches[1]
+    touchStartDistance.value = Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    )
+  } else if (event.touches.length === 1) {
+    startX.value = event.touches[0].clientX
+    startY.value = event.touches[0].clientY
+    lastX.value = panX.value
+    lastY.value = panY.value
+  }
+}
+
+const handleTouchMove = (event: TouchEvent) => {
+  event.preventDefault()
+  
+  if (event.touches.length === 2) {
+    const touch1 = event.touches[0]
+    const touch2 = event.touches[1]
+    const currentDistance = Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    )
+    
+    if (touchStartDistance.value > 0) {
+      const scale = currentDistance / touchStartDistance.value
+      const newZoomLevel = Math.max(0.5, Math.min(3, zoomLevel.value * scale))
+      zoomLevel.value = zoomLevel.value + (newZoomLevel - zoomLevel.value) * 0.1
+      touchStartDistance.value = currentDistance
+    }
+  } else if (event.touches.length === 1 && zoomLevel.value > 1) {
+    const moveX = event.touches[0].clientX - startX.value
+    const moveY = event.touches[0].clientY - startY.value
+    
+    panX.value = lastX.value + moveX * 0.8
+    panY.value = lastY.value + moveY * 0.8
+    constrainPan()
+  }
+}
+
+const handleTouchEnd = () => {
+  constrainPan()
 }
 </script>
 
@@ -450,46 +444,16 @@ export default {
   opacity: 0.9;
 }
 
-/* 이미지 모달 스타일 재정의 */
-.fullscreen-image-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  cursor: zoom-out;
-}
-
-.modal-content {
+/* 이미지 모달 컨텐츠 스타일 */
+.image-modal-content {
   position: relative;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.image-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s ease; /* 부드러운 이동을 위해 transition 시간 줄임 */
-  will-change: transform; /* 성능 최적화 */
-  touch-action: none; /* 브라우저 기본 터치 동작 방지 */
-}
-
-.modal-image {
-  max-width: 90vw;
-  max-height: 80vh;
-  object-fit: contain;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-  user-select: none; /* 이미지 선택 방지 */
-  -webkit-user-drag: none; /* 이미지 드래그 방지 */
+  background-color: rgba(0, 0, 0, 0.95);
+  cursor: zoom-out;
 }
 
 .modal-controls {
@@ -498,7 +462,7 @@ export default {
   right: 20px;
   display: flex;
   gap: 12px;
-  z-index: 10000;
+  z-index: 10;
 }
 
 .zoom-button, .close-button {
@@ -520,14 +484,46 @@ export default {
   transform: scale(1.1);
 }
 
-@keyframes zoomIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.image-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+  will-change: transform;
+  touch-action: none;
 }
-</style> 
+
+.modal-image {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Dark mode support */
+:root.dark .pwa-install-guide {
+  background-color: var(--color-bg-card, #1E293B);
+}
+
+:root.dark .tab-button {
+  color: var(--text-secondary, #94A3B8);
+}
+
+:root.dark .tab-button.active {
+  color: var(--primary-color, #4B9F7E);
+}
+
+:root.dark .step-card {
+  background: var(--color-bg-secondary, #334155);
+}
+
+:root.dark .step-tips {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+:root.dark .tip {
+  color: var(--text-secondary, #94A3B8);
+}
+</style>

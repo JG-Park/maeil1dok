@@ -146,346 +146,330 @@
       </div>
     </div>
 
-    <!-- 모달 디자인 개선 -->
-    <div v-if="showCreateModal" class="modal-overlay">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-title">{{ editingPlan ? '플랜 수정' : '새 플랜 만들기' }}</h3>
-          <button class="close-button" @click="showCreateModal = false" :disabled="isLoading">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
+    <!-- 플랜 생성/수정 모달 -->
+    <BaseModal
+      v-model="showCreateModal"
+      :title="editingPlan ? '플랜 수정' : '새 플랜 만들기'"
+      size="md"
+      :close-on-overlay="!isLoading"
+      :close-on-esc="!isLoading"
+    >
+      <form @submit.prevent="savePlan" class="space-y-4">
+        <div class="form-group">
+          <label class="form-label">플랜 이름</label>
+          <input v-model="planForm.name" type="text" class="form-input" required
+            placeholder="플랜 이름을 입력하세요" :disabled="isLoading">
+        </div>
+        <div class="form-group">
+          <label class="form-label">설명</label>
+          <textarea v-model="planForm.description" class="form-textarea" rows="3"
+            placeholder="플랜에 대한 설명을 입력하세요" :disabled="isLoading"></textarea>
+        </div>
+      </form>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button type="button" @click="showCreateModal = false" class="btn btn-outline"
+            :disabled="isLoading">취소</button>
+          <button type="button" @click="savePlan" class="btn btn-primary" :disabled="isLoading">
+            <span v-if="isLoading" class="button-spinner"></span>
+            {{ isLoading ? '저장 중...' : '저장' }}
+          </button>
+        </div>
+      </template>
+    </BaseModal>
+
+    <!-- 세부 일정 관리 모달 -->
+    <BaseModal
+      v-model="showScheduleModal"
+      :title="`${selectedPlan?.name || ''} - 세부 일정 관리`"
+      size="xl"
+      :close-on-overlay="!isLoading"
+      :close-on-esc="!isLoading"
+      @close="closeScheduleModal"
+    >
+      <!-- 탭 메뉴 -->
+      <div class="tab-menu">
+        <button 
+          :class="['tab-button', { active: scheduleTab === 'list' }]" 
+          @click="scheduleTab = 'list'"
+        >
+          일정 목록
+        </button>
+        <button 
+          :class="['tab-button', { active: scheduleTab === 'upload' }]" 
+          @click="scheduleTab = 'upload'"
+        >
+          엑셀 업로드
+        </button>
+      </div>
+      
+      <!-- 일정 목록 탭 -->
+      <div v-if="scheduleTab === 'list'" class="list-tab">
+        <!-- 필터 및 검색 -->
+        <div class="filter-section">
+          <div class="search-container">
+          <input 
+            type="text"
+              v-model="scheduleSearch" 
+              placeholder="성경 검색..."
+              class="search-input"
+            />
+          </div>
+          
+          <button @click="showAddScheduleModal = true" class="btn btn-primary">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
             </svg>
+            새 일정 추가
           </button>
         </div>
         
-        <div class="modal-body">
-          <form @submit.prevent="savePlan" class="space-y-4">
-            <div class="form-group">
-              <label class="form-label">플랜 이름</label>
-              <input v-model="planForm.name" type="text" class="form-input" required
-                placeholder="플랜 이름을 입력하세요" :disabled="isLoading">
-            </div>
-            <div class="form-group">
-              <label class="form-label">설명</label>
-              <textarea v-model="planForm.description" class="form-textarea" rows="3"
-                placeholder="플랜에 대한 설명을 입력하세요" :disabled="isLoading"></textarea>
-            </div>
-            <div class="modal-footer">
-              <button type="button" @click="showCreateModal = false" class="btn btn-outline"
-                :disabled="isLoading">취소</button>
-              <button type="submit" class="btn btn-primary" :disabled="isLoading">
-                <span v-if="isLoading" class="button-spinner"></span>
-                {{ isLoading ? '저장 중...' : '저장' }}
-              </button>
-            </div>
-          </form>
+        <!-- 로딩 상태 -->
+        <div v-if="loadingSchedules" class="loading-indicator">
+          <div class="spinner"></div>
+          <p>일정을 불러오는 중...</p>
         </div>
-      </div>
-    </div>
-
-    <!-- 세부 일정 관리 모달 -->
-    <div v-if="showScheduleModal" class="modal-overlay">
-      <div class="modal-content large-modal">
-        <div class="modal-header">
-          <h3 class="modal-title">{{ selectedPlan?.name }} - 세부 일정 관리</h3>
-          <button class="close-button" @click="closeScheduleModal" :disabled="isLoading">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
+        
+        <!-- 목록 비었을 때 -->
+        <div v-else-if="!schedules.length" class="empty-state">
+          <div class="empty-icon">
+            <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-gray-300">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-          </button>
+          </div>
+          <p>등록된 세부 일정이 없습니다</p>
+          <p class="text-sm text-gray-500 mt-2">새 일정을 추가하거나 엑셀 파일을 업로드하세요.</p>
         </div>
-
-        <div class="modal-body">
-          <!-- 탭 메뉴 -->
-          <div class="tab-menu">
-            <button 
-              :class="['tab-button', { active: scheduleTab === 'list' }]" 
-              @click="scheduleTab = 'list'"
-            >
-              일정 목록
-            </button>
-            <button 
-              :class="['tab-button', { active: scheduleTab === 'upload' }]" 
-              @click="scheduleTab = 'upload'"
-            >
-              엑셀 업로드
-            </button>
-          </div>
-          
-          <!-- 일정 목록 탭 -->
-          <div v-if="scheduleTab === 'list'" class="list-tab">
-            <!-- 필터 및 검색 -->
-            <div class="filter-section">
-              <div class="search-container">
-              <input 
-                type="text"
-                  v-model="scheduleSearch" 
-                  placeholder="성경 검색..."
-                  class="search-input"
-                />
-              </div>
-              
-              <button @click="showAddScheduleModal = true" class="btn btn-primary">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                새 일정 추가
-              </button>
-            </div>
-            
-            <!-- 로딩 상태 -->
-            <div v-if="loadingSchedules" class="loading-indicator">
-              <div class="spinner"></div>
-              <p>일정을 불러오는 중...</p>
-            </div>
-            
-            <!-- 목록 비었을 때 -->
-            <div v-else-if="!schedules.length" class="empty-state">
-              <div class="empty-icon">
-                <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-gray-300">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-              </div>
-              <p>등록된 세부 일정이 없습니다</p>
-              <p class="text-sm text-gray-500 mt-2">새 일정을 추가하거나 엑셀 파일을 업로드하세요.</p>
-            </div>
-            
-            <!-- 일정 목록 테이블 -->
-            <div v-else class="schedule-table-container">
-              <table class="schedule-table">
-                <thead>
-                  <tr>
-                    <th>날짜</th>
-                    <th>성경</th>
-                    <th>범위</th>
-                    <th>오디오</th>
-                    <th>가이드</th>
-                    <th>관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="schedule in filteredSchedules" :key="schedule.id">
-                    <td>{{ formatDate(schedule.date) }}</td>
-                    <td>{{ schedule.book }}</td>
-                    <td>{{ schedule.start_chapter }}장 ~ {{ schedule.end_chapter }}장</td>
-                    <td>
-                      <a v-if="schedule.audio_link" :href="schedule.audio_link" target="_blank" class="link-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                      </a>
-                      <span v-else>-</span>
-                    </td>
-                    <td>
-                      <a v-if="schedule.guide_link" :href="schedule.guide_link" target="_blank" class="link-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                      </a>
-                      <span v-else>-</span>
-                    </td>
-                    <td>
-                      <div class="action-buttons">
-                        <button @click="editSchedule(schedule)" class="table-action-btn edit">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                          </svg>
-                        </button>
-                        <button @click="confirmDeleteSchedule(schedule)" class="table-action-btn delete">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <!-- 엑셀 업로드 탭 -->
-          <div v-else-if="scheduleTab === 'upload'" class="upload-tab">
-            <form @submit.prevent="uploadScheduleExcel" class="upload-form">
-              <div class="form-group">
-                <label class="form-label">엑셀 파일 선택</label>
-                <input 
-                  type="file" 
-                  ref="scheduleFileInput" 
-                  accept=".xlsx, .xls" 
-                  class="file-input" 
-                  @change="handleScheduleFileChange"
-                required
-                />
-                <p class="text-xs text-gray-500 mt-1">최대 5MB 크기의 .xlsx 또는 .xls 파일</p>
-              </div>
-              
-              <!-- 업로드 옵션 -->
-              <div class="form-group">
-                <label class="form-label">업로드 옵션</label>
-                <div class="radio-group">
-                  <label class="radio-label">
-                    <input type="radio" v-model="uploadMode" value="merge" />
-                    기존 일정과 병합 (같은 날짜는 업데이트)
-                  </label>
-                  <label class="radio-label">
-                    <input type="radio" v-model="uploadMode" value="replace" />
-                    모든 일정 교체 (기존 일정 삭제 후 새로 추가)
-                  </label>
-                </div>
-              </div>
-              
-              <!-- 엑셀 파일 안내 -->
-              <div class="info-box">
-                <p class="text-sm font-medium text-blue-800 mb-2">엑셀 파일 작성 방법:</p>
-                <ul class="text-xs text-blue-700 space-y-1 pl-4 list-disc">
-                  <li>필수 컬럼: <strong>날짜, 성경, 시작장, 끝장</strong> (정확히 이 이름으로 작성)</li>
-                  <li>선택 컬럼: <strong>오디오, 가이드</strong> (URL 링크)</li>
-                  <li>날짜 형식: 다음 형식 모두 지원
-                    <ul class="pl-4 mt-1 list-disc">
-                      <li><strong>YYYY년 MM월 DD일</strong> (예: 2025년 2월 2일)</li>
-                      <li><strong>YYYY-MM-DD</strong> (예: 2025-02-02)</li>
-                      <li>일반 엑셀 날짜 셀 형식</li>
-                    </ul>
-                  </li>
-                  <li>URL은 반드시 <strong>http://</strong> 또는 <strong>https://</strong>로 시작해야 함</li>
-                </ul>
-                <div class="mt-3">
-                  <a href="/sample-schedule.xlsx" class="text-xs text-blue-600 flex items-center hover:underline" target="_blank">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z"
-                        clip-rule="evenodd"></path>
+        
+        <!-- 일정 목록 테이블 -->
+        <div v-else class="schedule-table-container">
+          <table class="schedule-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>성경</th>
+                <th>범위</th>
+                <th>오디오</th>
+                <th>가이드</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="schedule in filteredSchedules" :key="schedule.id">
+                <td>{{ formatDate(schedule.date) }}</td>
+                <td>{{ schedule.book }}</td>
+                <td>{{ schedule.start_chapter }}장 ~ {{ schedule.end_chapter }}장</td>
+                <td>
+                  <a v-if="schedule.audio_link" :href="schedule.audio_link" target="_blank" class="link-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    샘플 엑셀 파일 다운로드
                   </a>
-                </div>
-              </div>
-              
-              <!-- 업로드 버튼 -->
-              <div class="form-actions">
-                <button 
-                  type="submit" 
-                  class="btn btn-primary" 
-                  :disabled="uploading || !scheduleFile"
-                >
-                  <span v-if="uploading" class="button-spinner"></span>
-                  {{ uploading ? '업로드 중...' : '엑셀 파일 업로드' }}
-                </button>
-            </div>
-            </form>
-            </div>
+                  <span v-else>-</span>
+                </td>
+                <td>
+                  <a v-if="schedule.guide_link" :href="schedule.guide_link" target="_blank" class="link-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                  </a>
+                  <span v-else>-</span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button @click="editSchedule(schedule)" class="table-action-btn edit">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                      </svg>
+                    </button>
+                    <button @click="confirmDeleteSchedule(schedule)" class="table-action-btn delete">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+      
+      <!-- 엑셀 업로드 탭 -->
+      <div v-else-if="scheduleTab === 'upload'" class="upload-tab">
+        <form @submit.prevent="uploadScheduleExcel" class="upload-form">
+          <div class="form-group">
+            <label class="form-label">엑셀 파일 선택</label>
+            <input 
+              type="file" 
+              ref="scheduleFileInput" 
+              accept=".xlsx, .xls" 
+              class="file-input" 
+              @change="handleScheduleFileChange"
+            required
+            />
+            <p class="text-xs text-gray-500 mt-1">최대 5MB 크기의 .xlsx 또는 .xls 파일</p>
+          </div>
+          
+          <!-- 업로드 옵션 -->
+          <div class="form-group">
+            <label class="form-label">업로드 옵션</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" v-model="uploadMode" value="merge" />
+                기존 일정과 병합 (같은 날짜는 업데이트)
+              </label>
+              <label class="radio-label">
+                <input type="radio" v-model="uploadMode" value="replace" />
+                모든 일정 교체 (기존 일정 삭제 후 새로 추가)
+              </label>
+            </div>
+          </div>
+          
+          <!-- 엑셀 파일 안내 -->
+          <div class="info-box">
+            <p class="text-sm font-medium text-blue-800 mb-2">엑셀 파일 작성 방법:</p>
+            <ul class="text-xs text-blue-700 space-y-1 pl-4 list-disc">
+              <li>필수 컬럼: <strong>날짜, 성경, 시작장, 끝장</strong> (정확히 이 이름으로 작성)</li>
+              <li>선택 컬럼: <strong>오디오, 가이드</strong> (URL 링크)</li>
+              <li>날짜 형식: 다음 형식 모두 지원
+                <ul class="pl-4 mt-1 list-disc">
+                  <li><strong>YYYY년 MM월 DD일</strong> (예: 2025년 2월 2일)</li>
+                  <li><strong>YYYY-MM-DD</strong> (예: 2025-02-02)</li>
+                  <li>일반 엑셀 날짜 셀 형식</li>
+                </ul>
+              </li>
+              <li>URL은 반드시 <strong>http://</strong> 또는 <strong>https://</strong>로 시작해야 함</li>
+            </ul>
+            <div class="mt-3">
+              <a href="/sample-schedule.xlsx" class="text-xs text-blue-600 flex items-center hover:underline" target="_blank">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z"
+                    clip-rule="evenodd"></path>
+                </svg>
+                샘플 엑셀 파일 다운로드
+              </a>
+            </div>
+          </div>
+          
+          <!-- 업로드 버튼 -->
+          <div class="form-actions">
+            <button 
+              type="submit" 
+              class="btn btn-primary" 
+              :disabled="uploading || !scheduleFile"
+            >
+              <span v-if="uploading" class="button-spinner"></span>
+              {{ uploading ? '업로드 중...' : '엑셀 파일 업로드' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </BaseModal>
     
     <!-- 일정 추가/수정 모달 -->
-    <div v-if="showAddScheduleModal" class="modal-overlay">
-      <div class="modal-content medium-modal">
-        <div class="modal-header">
-          <h3 class="modal-title">{{ editingSchedule ? '일정 수정' : '새 일정 추가' }}</h3>
-          <button class="close-button" @click="closeAddScheduleModal" :disabled="savingSchedule">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+    <BaseModal
+      v-model="showAddScheduleModal"
+      :title="editingSchedule ? '일정 수정' : '새 일정 추가'"
+      size="lg"
+      :close-on-overlay="!savingSchedule"
+      :close-on-esc="!savingSchedule"
+      @close="closeAddScheduleModal"
+    >
+      <form @submit.prevent="saveSchedule" class="schedule-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">날짜 *</label>
+            <input
+              type="date"
+              v-model="scheduleForm.date"
+              class="form-input"
+              required
+            />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">성경 *</label>
+            <input
+              type="text"
+              v-model="scheduleForm.book"
+              class="form-input"
+              placeholder="예: 창세기, 요한복음"
+              required
+            />
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">시작장 *</label>
+            <input
+              type="number"
+              v-model.number="scheduleForm.start_chapter"
+              min="1"
+              class="form-input"
+              required
+            />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">끝장 *</label>
+            <input
+              type="number"
+              v-model.number="scheduleForm.end_chapter"
+              min="1"
+              class="form-input"
+              required
+            />
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">오디오 링크</label>
+          <input
+            type="url"
+            v-model="scheduleForm.audio_link"
+            class="form-input"
+            placeholder="https://"
+          />
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">가이드 링크</label>
+          <input
+            type="url"
+            v-model="scheduleForm.guide_link"
+            class="form-input"
+            placeholder="https://"
+          />
+        </div>
+      </form>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button 
+            type="button"
+            class="btn btn-outline"
+            @click="closeAddScheduleModal"
+            :disabled="savingSchedule"
+          >
+            취소
+          </button>
+          <button 
+            type="button"
+            class="btn btn-primary"
+            @click="saveSchedule"
+            :disabled="savingSchedule"
+          >
+            <span v-if="savingSchedule" class="button-spinner"></span>
+            {{ savingSchedule ? '저장 중...' : '저장' }}
           </button>
         </div>
-
-        <div class="modal-body">
-          <form @submit.prevent="saveSchedule" class="schedule-form">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">날짜 *</label>
-                <input
-                  type="date"
-                  v-model="scheduleForm.date"
-                  class="form-input"
-                  required
-                />
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">성경 *</label>
-                <input
-                  type="text"
-                  v-model="scheduleForm.book"
-                  class="form-input"
-                  placeholder="예: 창세기, 요한복음"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">시작장 *</label>
-                <input
-                  type="number"
-                  v-model.number="scheduleForm.start_chapter"
-                  min="1"
-                  class="form-input"
-                  required
-                />
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">끝장 *</label>
-                <input
-                  type="number"
-                  v-model.number="scheduleForm.end_chapter"
-                  min="1"
-                  class="form-input"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">오디오 링크</label>
-              <input
-                type="url"
-                v-model="scheduleForm.audio_link"
-                class="form-input"
-                placeholder="https://"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">가이드 링크</label>
-              <input
-                type="url"
-                v-model="scheduleForm.guide_link"
-                class="form-input"
-                placeholder="https://"
-              />
-            </div>
-            
-            <div class="form-actions">
-              <button 
-                type="button"
-                class="btn btn-outline"
-                @click="closeAddScheduleModal"
-                :disabled="savingSchedule"
-              >
-                취소
-              </button>
-              <button 
-                type="submit"
-                class="btn btn-primary"
-                :disabled="savingSchedule"
-              >
-                <span v-if="savingSchedule" class="button-spinner"></span>
-                {{ savingSchedule ? '저장 중...' : '저장' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+      </template>
+    </BaseModal>
 
     <!-- Toast 컴포넌트 사용 -->
     <Toast ref="toast" />
@@ -505,6 +489,7 @@ import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import { useModal } from '~/composables/useModal'
 import Toast from '~/components/Toast.vue'
+import BaseModal from '~/components/ui/modal/BaseModal.vue'
 
 const { toasts, showToastMessage } = useToast()
 const authStore = useAuthStore()
@@ -1386,65 +1371,6 @@ h1 {
   color: white;
 }
 
-/* 모달 스타일 개선 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-  padding: 1rem;
-}
-
-.modal-content {
-  width: 100%;
-  max-width: 480px;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.modal-header {
-  padding: 1.25rem;
-  border-bottom: 1px solid #F1F5F9;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.close-button {
-  padding: 0.5rem;
-  margin: -0.5rem;
-  color: var(--text-secondary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  background: #F3F4F6;
-  color: var(--text-primary);
-}
-
-.modal-body {
-  padding: 1.25rem;
-}
-
 .form-group {
   margin-bottom: 1rem;
 }
@@ -1475,13 +1401,6 @@ h1 {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(79, 111, 82, 0.1);
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
 }
 
 .btn {
@@ -1587,10 +1506,6 @@ button:disabled {
   .plan-grid {
     grid-template-columns: 1fr;
   }
-  
-  .modal-header, .modal-body {
-    padding: 1rem;
-  }
 
   .btn {
     padding: 0.5rem 1rem;
@@ -1606,19 +1521,6 @@ button:disabled {
 
 .action-button.schedule:hover {
   background-color: #434190;
-}
-
-.large-modal {
-  width: 95%;
-  max-width: 900px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.medium-modal {
-  width: 90%;
-  max-width: 600px;
 }
 
 .tab-menu {
@@ -1641,11 +1543,6 @@ button:disabled {
 .tab-button.active {
   color: var(--primary-color);
   border-bottom-color: var(--primary-color);
-}
-
-.modal-body {
-  flex: 1;
-  overflow-y: auto;
 }
 
 .filter-section {

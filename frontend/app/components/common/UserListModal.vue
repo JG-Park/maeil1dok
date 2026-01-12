@@ -1,58 +1,54 @@
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="isOpen" class="modal-overlay" @click="handleClose">
-        <div class="modal-container" @click.stop>
-          <div class="modal-header">
-            <h3 class="modal-title">{{ title }}</h3>
-            <button class="close-button" @click="handleClose">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
+  <BaseModal
+    :model-value="isOpen"
+    :title="title"
+    size="lg"
+    :close-on-overlay="true"
+    :close-on-esc="true"
+    @update:model-value="handleClose"
+    @close="handleClose"
+  >
+    <div class="user-list-content">
+      <div v-if="isLoading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">로딩 중...</p>
+      </div>
+      <div v-else-if="users.length > 0" class="users-list">
+        <div
+          v-for="user in users"
+          :key="user.id"
+          class="user-item"
+          @click="navigateToProfile(user.id)"
+        >
+          <UserAvatar
+            :src="user.profile_image"
+            :alt="user.nickname"
+            size="md"
+          />
+          <div class="user-info">
+            <div class="user-nickname">{{ user.nickname }}</div>
+            <div v-if="user.bio" class="user-bio">{{ user.bio }}</div>
           </div>
-
-          <div class="modal-content">
-            <div v-if="isLoading" class="loading-container">
-              <div class="loading-spinner"></div>
-              <p class="loading-text">로딩 중...</p>
-            </div>
-            <div v-else-if="users.length > 0" class="users-list">
-              <div
-                v-for="user in users"
-                :key="user.id"
-                class="user-item"
-                @click="navigateToProfile(user.id)"
-              >
-                <UserAvatar
-                  :src="user.profile_image"
-                  :alt="user.nickname"
-                  size="md"
-                />
-                <div class="user-info">
-                  <div class="user-nickname">{{ user.nickname }}</div>
-                  <div v-if="user.bio" class="user-bio">{{ user.bio }}</div>
-                </div>
-                <slot name="action" :user="user" :loading="loadingIds[user.id]">
-                  <!-- 기본 액션 버튼 슬롯 -->
-                </slot>
-              </div>
-            </div>
-
-            <EmptyState
-              v-else
-              :title="emptyTitle"
-              :description="emptyDescription"
-            />
-          </div>
+          <slot name="action" :user="user" :loading="loadingIds[user.id]">
+            <!-- 기본 액션 버튼 슬롯 -->
+          </slot>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+
+      <EmptyState
+        v-else
+        :title="emptyTitle"
+        :description="emptyDescription"
+      />
+    </div>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import UserAvatar from './UserAvatar.vue'
 import EmptyState from './EmptyState.vue'
+import BaseModal from '~/components/ui/modal/BaseModal.vue'
 
 export interface UserItem {
   id: number
@@ -106,70 +102,8 @@ defineExpose({
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-container {
-  background: white;
-  border-radius: var(--radius-lg);
-  max-width: 500px;
-  width: 100%;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-lg);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.modal-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  font-size: 1.25rem;
-}
-
-.close-button:hover {
-  background: var(--gray-100);
-  color: var(--text-primary);
-}
-
-.modal-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem 0;
+.user-list-content {
+  min-height: 200px;
 }
 
 .loading-container {
@@ -183,15 +117,15 @@ defineExpose({
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--gray-200);
-  border-top-color: var(--primary-color);
+  border: 3px solid var(--color-border, #E2E8F0);
+  border-top-color: var(--primary-color, #617475);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 .loading-text {
   margin-top: 1rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748B);
   font-size: 0.875rem;
 }
 
@@ -210,13 +144,17 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 0;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast, 0.15s);
+  border-radius: 8px;
+  margin: 0 -0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .user-item:hover {
-  background: var(--gray-50);
+  background: var(--color-bg-hover, #F8FAFC);
 }
 
 .user-info {
@@ -227,7 +165,7 @@ defineExpose({
 .user-nickname {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #1E293B);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -235,44 +173,23 @@ defineExpose({
 
 .user-bio {
   font-size: 0.8125rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748B);
   margin-top: 0.125rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity var(--transition-normal);
+/* Dark mode support */
+:root.dark .user-item:hover {
+  background: var(--color-bg-hover);
 }
 
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
+:root.dark .user-nickname {
+  color: var(--text-primary);
 }
 
-.modal-enter-active .modal-container,
-.modal-leave-active .modal-container {
-  transition: transform var(--transition-normal);
-}
-
-.modal-enter-from .modal-container,
-.modal-leave-to .modal-container {
-  transform: scale(0.9);
-}
-
-@media (max-width: 640px) {
-  .modal-container {
-    max-height: 90vh;
-  }
-
-  .modal-header {
-    padding: 1.25rem;
-  }
-
-  .user-item {
-    padding: 0.75rem 1rem;
-  }
+:root.dark .user-bio {
+  color: var(--text-secondary);
 }
 </style>
