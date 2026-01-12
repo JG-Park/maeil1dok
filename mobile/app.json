@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "매일일독",
+    "slug": "maeil1dok",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "maeil1dok",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#faf8f6"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.maeil1dok.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "프로필 사진 촬영에 사용됩니다",
+        "NSPhotoLibraryUsageDescription": "프로필 사진 선택에 사용됩니다",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.maeil1dok.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#faf8f6"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "INTERNET",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "maeil1dok.app"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#4A90A4"
+        }
+      ],
+      "expo-splash-screen"
+    ],
+    "extra": {
+      "webAppUrl": "https://maeil1dok.app",
+      "eas": {
+        "projectId": "YOUR_PROJECT_ID"
+      }
+    }
+  }
+}
