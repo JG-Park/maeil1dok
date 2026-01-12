@@ -225,7 +225,8 @@ const renderedContent = computed(() => {
       (match, verseNum) => {
         const highlight = getHighlightForVerse(parseInt(verseNum));
         if (highlight) {
-          return `<div class="verse highlighted" data-highlight-id="${highlight.id}" style="background-color: ${highlight.color}"><span class="verse-number">${verseNum}</span>`;
+          // 배경색을 직접 지정하지 않고 CSS 변수로 전달하여 투명도 조절 가능하게 함
+          return `<div class="verse highlighted" data-highlight-id="${highlight.id}" style="--highlight-bg: ${highlight.color}"><span class="verse-number">${verseNum}</span>`;
         }
         return match;
       }
@@ -937,10 +938,26 @@ defineExpose({
 /* 하이라이트된 절 스타일 */
 .bible-content :deep(.verse.highlighted) {
   border-radius: 6px;
-  margin: 0.125rem 0;
+  /* margin 제거 - 레이아웃 시프트 방지 */
+  /* margin: 0.125rem 0; */ 
   position: relative;
+  z-index: 1; /* 가상 요소 배경을 뒤로 보내기 위함 */
+  /* 배경색은 ::after로 처리하므로 제거 */
+  background-color: transparent !important;
 }
 
+/* 하이라이트 배경 (가상 요소) */
+.bible-content :deep(.verse.highlighted)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--highlight-bg);
+  border-radius: 6px;
+  opacity: 0.5; /* 기본(라이트모드) 투명도 */
+}
+
+/* 하이라이트 왼쪽 강조선 (기존 ::before 유지) */
 .bible-content :deep(.verse.highlighted)::before {
   content: '';
   position: absolute;
@@ -948,9 +965,9 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 3px;
-  background: currentColor;
+  background-color: var(--highlight-bg); /* currentColor 대신 원래 색상 사용 */
   border-radius: 2px;
-  opacity: 0.4;
+  opacity: 1;
 }
 
 
@@ -1239,18 +1256,15 @@ defineExpose({
   background-color: rgba(99, 102, 241, 0.2) !important;
 }
 
-/* 하이라이트된 절이 선택되었을 때 - 더 짙은 색으로 강조 */
+/* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 (배경색 유지) */
 .bible-content :deep(.verse.highlighted.selected-verse) {
-  filter: brightness(0.88) saturate(1.2);
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 0 0 2px var(--color-accent-primary, #4B9F7E);
 }
 
 /* 다크모드에서 하이라이트된 절이 선택되었을 때 */
 .theme-dark .bible-content :deep(.verse.highlighted.selected-verse),
 :root[data-theme="dark"] .bible-content :deep(.verse.highlighted.selected-verse) {
-  filter: brightness(0.82) saturate(1.3);
-  color: #1a1a1a !important;
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px var(--color-accent-primary, #6bc99f);
 }
 
 /* 절 hover 효과 */
@@ -1634,21 +1648,28 @@ defineExpose({
 </style>
 
 <style>
-/* 다크모드 하이라이트 - Global 스타일 (scoped 외부에서 data-theme 속성 접근) */
-[data-theme="dark"] .bible-content .verse.highlighted {
-  color: #1a1a1a !important;
+/* 다크모드 하이라이트 설정 */
+[data-theme="dark"] .bible-content .verse.highlighted::after {
+  opacity: 0.3; /* 다크모드에서는 배경을 더 투명하게 */
 }
 
+/* 다크모드에서 텍스트 색상은 기본값(밝은색) 유지 */
+[data-theme="dark"] .bible-content .verse.highlighted,
 [data-theme="dark"] .bible-content .verse.highlighted .verse-number,
-[data-theme="dark"] .bible-content .verse.highlighted .verse-num {
-  color: #4a4a4a !important;
-}
-
-[data-theme="dark"] .bible-content .verse.highlighted .bible-name {
-  color: #5c4033 !important;
-}
-
+[data-theme="dark"] .bible-content .verse.highlighted .bible-name,
 [data-theme="dark"] .bible-content .verse.highlighted .bible-area {
-  color: #3d5a3a !important;
+  color: inherit !important;
+}
+
+/* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 (배경색 유지) */
+.bible-content :deep(.verse.highlighted.selected-verse) {
+  box-shadow: 0 0 0 2px var(--color-accent-primary, #4B9F7E);
+}
+
+/* 다크모드에서 하이라이트된 절이 선택되었을 때 - 초록색 외곽선 */
+.theme-dark .bible-content :deep(.verse.highlighted.selected-verse),
+:root[data-theme="dark"] .bible-content :deep(.verse.highlighted.selected-verse) {
+  box-shadow: 0 0 0 2px var(--color-accent-primary, #6bc99f) !important;
+  filter: none !important; /* 기존 필터 제거 */
 }
 </style>

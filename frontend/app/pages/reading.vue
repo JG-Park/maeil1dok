@@ -3146,7 +3146,9 @@ const selectedEnd = ref(null);
 function clearVerseHighlight() {
   document
     .querySelectorAll(".verse.selected-verse")
-    .forEach((el) => el.classList.remove("selected-verse"));
+    .forEach((el) => {
+      el.classList.remove("selected-verse", "selected-first", "selected-middle", "selected-last");
+    });
 }
 // 선택 초기화
 const clearSelection = () => {
@@ -3231,8 +3233,22 @@ function highlightVerses(start, end) {
     );
     if (n >= start && n <= end) {
       el.classList.add("selected-verse");
+      
+      // 위치 클래스 초기화
+      el.classList.remove("selected-first", "selected-middle", "selected-last");
+      
+      // 범위 선택인 경우 위치에 따른 클래스 추가
+      if (start !== end) {
+        if (n === start) {
+          el.classList.add("selected-first");
+        } else if (n === end) {
+          el.classList.add("selected-last");
+        } else {
+          el.classList.add("selected-middle");
+        }
+      }
     } else {
-      el.classList.remove("selected-verse");
+      el.classList.remove("selected-verse", "selected-first", "selected-middle", "selected-last");
     }
   });
 }
@@ -4441,6 +4457,36 @@ onUnmounted(() => {
   background-color: var(--color-slate-200) !important;
   transition: background-color 0.2s ease;
   border-radius: 8px;
+}
+
+/* 선택된 절 연결 스타일 */
+:deep(.verse.selected-first) {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0.5rem; /* 마진 대신 패딩으로 간격 채움 */
+}
+
+:deep(.verse.selected-middle) {
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0.5rem;
+}
+
+:deep(.verse.selected-last) {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+/* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 */
+:deep(.verse.highlighted.selected-verse) {
+  box-shadow: 0 0 0 2px var(--color-accent-primary, #4B9F7E);
+}
+
+/* 다크모드에서 하이라이트된 절이 선택되었을 때 */
+[data-theme="dark"] :deep(.verse.highlighted.selected-verse) {
+  box-shadow: 0 0 0 2px var(--color-accent-primary, #6bc99f);
+  filter: none;
 }
 
 :deep(.verse:hover) {
