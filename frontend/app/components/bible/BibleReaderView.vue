@@ -54,16 +54,14 @@
     <!-- 통독모드 인디케이터 -->
     <div v-if="isTongdokMode && tongdokScheduleRange" class="tongdok-indicator">
       <div class="tongdok-info-container">
+        <div class="tongdok-date">{{ formattedScheduleDate }}</div>
         <div class="tongdok-info-row">
           <span class="tongdok-badge">통독중</span>
-          <span class="tongdok-range">
-            {{ tongdokScheduleRange }}
-            <span v-if="tongdokProgress" class="tongdok-remaining">
-              [{{ tongdokProgress.total - tongdokProgress.current + 1 }}장 남음]
-            </span>
+          <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
+          <span v-if="tongdokProgress" class="tongdok-remaining-badge">
+            {{ tongdokProgress.total - tongdokProgress.current + 1 }}장 남음
           </span>
         </div>
-        <div class="tongdok-date">{{ formattedScheduleDate }}</div>
       </div>
       <div class="tongdok-actions">
         <a
@@ -577,25 +575,32 @@ defineExpose({
 }
 
 .tongdok-range {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   color: var(--text-primary, #1f2937);
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
-.tongdok-remaining {
-  font-weight: 500;
+.tongdok-remaining-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  background: rgba(99, 102, 241, 0.1);
   color: var(--primary-color, #6366f1);
-  margin-left: 0.25rem;
-  font-size: 0.875rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-left: auto; /* Push to right if needed, or just flow */
 }
 
 .tongdok-date {
   font-size: 0.75rem;
   color: var(--text-secondary, #6b7280);
-  margin-left: 0.125rem;
+  font-weight: 500;
 }
 
 .tongdok-actions {
@@ -995,7 +1000,8 @@ defineExpose({
   color: var(--text-primary-dark, #e5e5e5);
 }
 
-:root.dark .tongdok-remaining {
+:root.dark .tongdok-remaining-badge {
+  background: rgba(99, 102, 241, 0.2);
   color: var(--primary-color, #818cf8);
 }
 
