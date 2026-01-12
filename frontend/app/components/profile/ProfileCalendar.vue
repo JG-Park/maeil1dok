@@ -311,9 +311,18 @@ const nextMonth = () => {
   transition: all var(--transition-fast);
 }
 
+:root.dark .month-nav-button {
+  border-color: var(--color-border);
+  color: var(--text-primary);
+}
+
 .month-nav-button:hover:not(:disabled) {
   background: var(--gray-100);
   border-color: var(--primary-color);
+}
+
+:root.dark .month-nav-button:hover:not(:disabled) {
+  background: var(--color-bg-hover);
 }
 
 .month-nav-button:disabled {
@@ -336,6 +345,10 @@ const nextMonth = () => {
   padding: 0.5rem 0;
   margin-bottom: 0.75rem;
   border-bottom: 1px solid var(--gray-200);
+}
+
+:root.dark .plan-legend {
+  border-color: var(--color-border);
 }
 
 .legend-plan-item {
@@ -381,6 +394,10 @@ const nextMonth = () => {
   border-top: 1px solid var(--gray-200);
 }
 
+:root.dark .calendar-legend {
+  border-color: var(--color-border);
+}
+
 .legend-item {
   display: flex;
   align-items: center;
@@ -396,6 +413,10 @@ const nextMonth = () => {
   border: 1px solid var(--gray-300);
 }
 
+:root.dark .legend-icon {
+  border-color: var(--color-border);
+}
+
 .legend-icon.completed {
   background: var(--primary-color);
   border-color: var(--primary-color);
@@ -408,6 +429,10 @@ const nextMonth = () => {
 
 .legend-icon.future {
   background: var(--gray-50);
+}
+
+:root.dark .legend-icon.future {
+  background: var(--color-bg-tertiary);
 }
 
 @media (max-width: 640px) {

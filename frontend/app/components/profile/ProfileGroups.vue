@@ -215,6 +215,11 @@ const navigateToGroups = () => {
   transition: all var(--transition-normal);
 }
 
+:root.dark .group-item {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
 .group-item:hover {
   border-color: var(--primary-color);
   box-shadow: var(--shadow-md);
@@ -243,6 +248,10 @@ const navigateToGroups = () => {
   background: var(--primary-light);
   color: var(--primary-color);
   flex-shrink: 0;
+}
+
+:root.dark .group-icon {
+  background: var(--color-bg-tertiary);
 }
 
 .group-icon i {
@@ -285,14 +294,29 @@ const navigateToGroups = () => {
   color: #065F46;
 }
 
+:root.dark .status-public {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
 .status-private {
   background: var(--gray-100);
   color: var(--gray-700);
 }
 
+:root.dark .status-private {
+  background: var(--color-bg-tertiary);
+  color: var(--text-secondary);
+}
+
 .status-hidden {
   background: #FEF3C7;
   color: #92400E;
+}
+
+:root.dark .status-hidden {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
 }
 
 .group-description {
@@ -308,6 +332,10 @@ const navigateToGroups = () => {
   justify-content: space-between;
   padding-top: 0.75rem;
   border-top: 1px solid var(--gray-200);
+}
+
+:root.dark .group-footer {
+  border-color: var(--color-border);
 }
 
 .member-count {
@@ -337,6 +365,10 @@ const navigateToGroups = () => {
   border-radius: var(--radius-sm);
 }
 
+:root.dark .group-role {
+  background: var(--color-bg-tertiary);
+}
+
 .visibility-toggle {
   display: flex;
   align-items: center;
@@ -351,15 +383,27 @@ const navigateToGroups = () => {
   transition: all var(--transition-fast);
 }
 
+:root.dark .visibility-toggle {
+  border-color: var(--color-border);
+}
+
 .visibility-toggle:hover {
   background: var(--gray-100);
   border-color: var(--gray-400);
+}
+
+:root.dark .visibility-toggle:hover {
+  background: var(--color-bg-hover);
 }
 
 .visibility-toggle.show-btn {
   background: var(--primary-light);
   border-color: var(--primary-color);
   color: var(--primary-color);
+}
+
+:root.dark .visibility-toggle.show-btn {
+  background: var(--color-bg-tertiary);
 }
 
 .visibility-toggle.show-btn:hover {
@@ -382,6 +426,10 @@ const navigateToGroups = () => {
   border-top: 1px dashed var(--gray-300);
 }
 
+:root.dark .hidden-groups-section {
+  border-color: var(--color-border);
+}
+
 .hidden-groups-toggle {
   display: flex;
   align-items: center;
@@ -397,8 +445,17 @@ const navigateToGroups = () => {
   transition: all var(--transition-fast);
 }
 
+:root.dark .hidden-groups-toggle {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border);
+}
+
 .hidden-groups-toggle:hover {
   background: var(--gray-100);
+}
+
+:root.dark .hidden-groups-toggle:hover {
+  background: var(--color-bg-hover);
 }
 
 .hidden-groups {
@@ -408,6 +465,10 @@ const navigateToGroups = () => {
 .empty-icon {
   font-size: 3rem;
   color: var(--gray-300);
+}
+
+:root.dark .empty-icon {
+  color: var(--text-muted);
 }
 
 @media (max-width: 640px) {

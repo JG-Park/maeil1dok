@@ -88,9 +88,21 @@ const formatDate = (dateString: string | null) => {
   transition: all var(--transition-normal);
 }
 
+:root.dark .achievement-card {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
 .achievement-card.unlocked {
   border-color: var(--primary-color);
   background: linear-gradient(135deg, white 0%, var(--primary-light) 100%);
+}
+
+:root.dark .achievement-card.unlocked {
+  background: linear-gradient(135deg, var(--color-bg-card) 0%, rgba(var(--primary-rgb), 0.1) 100%);
+  /* Note: Assuming --primary-rgb is not available, falling back to simple gradient */
+  background: linear-gradient(135deg, var(--color-bg-card) 0%, var(--color-bg-tertiary) 100%);
+  border-color: var(--primary-color);
 }
 
 .achievement-card.unlocked:hover {
@@ -114,6 +126,10 @@ const formatDate = (dateString: string | null) => {
   margin-bottom: 1rem;
 }
 
+:root.dark .achievement-icon {
+  background: var(--color-bg-tertiary);
+}
+
 .achievement-card.unlocked .achievement-icon {
   background: var(--primary-color);
 }
@@ -121,6 +137,10 @@ const formatDate = (dateString: string | null) => {
 .achievement-icon i {
   font-size: 1.75rem;
   color: var(--gray-400);
+}
+
+:root.dark .achievement-icon i {
+  color: var(--text-muted);
 }
 
 .achievement-card.unlocked .achievement-icon i {
@@ -163,6 +183,10 @@ const formatDate = (dateString: string | null) => {
   color: var(--text-secondary);
 }
 
+:root.dark .locked-overlay {
+  background: rgba(42, 42, 42, 0.9);
+}
+
 .locked-overlay i {
   font-size: 1.25rem;
 }
@@ -170,6 +194,10 @@ const formatDate = (dateString: string | null) => {
 .empty-icon {
   font-size: 3rem;
   color: var(--gray-300);
+}
+
+:root.dark .empty-icon {
+  color: var(--text-muted);
 }
 
 @media (max-width: 640px) {

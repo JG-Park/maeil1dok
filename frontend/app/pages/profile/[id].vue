@@ -332,6 +332,11 @@ onUnmounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+:root.dark .profile-card {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
 .profile-header {
   display: flex;
   align-items: flex-start;
@@ -361,6 +366,10 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+:root.dark .profile-avatar {
+  border-color: var(--color-border);
+}
+
 .profile-avatar-placeholder {
   width: 80px;
   height: 80px;
@@ -373,6 +382,11 @@ onUnmounted(() => {
   color: var(--primary-color, #3B82F6);
   font-size: 2rem;
   flex-shrink: 0;
+}
+
+:root.dark .profile-avatar-placeholder {
+  border-color: var(--color-border);
+  background: var(--color-bg-tertiary);
 }
 
 .profile-info {
@@ -389,10 +403,18 @@ onUnmounted(() => {
   letter-spacing: -0.02em;
 }
 
+:root.dark .profile-name {
+  color: var(--text-primary);
+}
+
 .profile-meta {
   color: #64748B;
   font-size: 0.875rem;
   margin: 0 0 0.5rem 0;
+}
+
+:root.dark .profile-meta {
+  color: var(--text-secondary);
 }
 
 .profile-bio {
@@ -400,6 +422,10 @@ onUnmounted(() => {
   margin: 0;
   line-height: 1.5;
   font-size: 0.9375rem;
+}
+
+:root.dark .profile-bio {
+  color: var(--text-secondary);
 }
 
 .profile-actions {
@@ -425,9 +451,18 @@ onUnmounted(() => {
   color: white;
 }
 
+:root.dark .btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
 .btn-primary:hover {
   background: #334155;
   transform: translateY(-1px);
+}
+
+:root.dark .btn-primary:hover {
+  background: var(--primary-hover, #3B7E63);
 }
 
 .btn-secondary {
@@ -436,10 +471,21 @@ onUnmounted(() => {
   color: #475569;
 }
 
+:root.dark .btn-secondary {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border);
+  color: var(--text-primary);
+}
+
 .btn-secondary:hover {
   background: #F8FAFC;
   border-color: #CBD5E1;
   color: #1E293B;
+}
+
+:root.dark .btn-secondary:hover {
+  background: var(--color-bg-hover);
+  color: var(--text-primary);
 }
 
 /* 팔로우 통계 */
@@ -453,6 +499,10 @@ onUnmounted(() => {
   margin-bottom: 1.5rem;
 }
 
+:root.dark .follow-stats {
+  border-color: var(--color-border);
+}
+
 .follow-button {
   background: none;
   border: none;
@@ -464,14 +514,26 @@ onUnmounted(() => {
   font-family: 'Pretendard', sans-serif;
 }
 
+:root.dark .follow-button {
+  color: var(--text-secondary);
+}
+
 .follow-button:hover {
   color: #1E293B;
+}
+
+:root.dark .follow-button:hover {
+  color: var(--text-primary);
 }
 
 .follow-count {
   font-weight: 700;
   color: #1E293B;
   margin-right: 0.125rem;
+}
+
+:root.dark .follow-count {
+  color: var(--text-primary);
 }
 
 .mutual-follow {
@@ -485,6 +547,11 @@ onUnmounted(() => {
   background: #ECFDF5;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
+}
+
+:root.dark .mutual-follow {
+  background: rgba(5, 150, 105, 0.2);
+  color: #34d399;
 }
 
 /* 통계 그리드 */
@@ -508,14 +575,25 @@ onUnmounted(() => {
 }
 
 .stat-value.primary { color: #1E293B; }
+:root.dark .stat-value.primary { color: var(--text-primary); }
+
 .stat-value.success { color: #059669; }
+:root.dark .stat-value.success { color: #34d399; }
+
 .stat-value.purple { color: #7C3AED; }
+:root.dark .stat-value.purple { color: #a78bfa; }
+
 .stat-value.orange { color: #EA580C; }
+:root.dark .stat-value.orange { color: #fb923c; }
 
 .stat-label {
   font-size: 0.75rem;
   color: #94A3B8;
   font-weight: 500;
+}
+
+:root.dark .stat-label {
+  color: var(--text-secondary);
 }
 
 /* 탭 섹션 */
@@ -527,10 +605,20 @@ onUnmounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+:root.dark .tab-section {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
 .tab-nav {
   display: flex;
   border-bottom: 1px solid #E2E8F0;
   background: #F8FAFC;
+}
+
+:root.dark .tab-nav {
+  border-color: var(--color-border);
+  background: var(--color-bg-tertiary);
 }
 
 .tab-button {
@@ -547,9 +635,18 @@ onUnmounted(() => {
   font-family: 'Pretendard', sans-serif;
 }
 
+:root.dark .tab-button {
+  color: var(--text-secondary);
+}
+
 .tab-button:hover {
   color: #1E293B;
   background: #F1F5F9;
+}
+
+:root.dark .tab-button:hover {
+  color: var(--text-primary);
+  background: var(--color-bg-hover);
 }
 
 .tab-button.active {
@@ -557,6 +654,12 @@ onUnmounted(() => {
   background: white;
   border-bottom-color: #1E293B;
   font-weight: 600;
+}
+
+:root.dark .tab-button.active {
+  color: var(--text-primary);
+  background: var(--color-bg-card);
+  border-bottom-color: var(--text-primary);
 }
 
 .tab-content {
@@ -582,6 +685,10 @@ onUnmounted(() => {
   border-radius: 8px;
 }
 
+:root.dark .calendar-loading-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 .loading-spinner {
   width: 32px;
   height: 32px;
@@ -590,6 +697,12 @@ onUnmounted(() => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
+:root.dark .loading-spinner {
+  border-color: var(--color-border);
+  border-top-color: var(--primary-color);
+}
+
 
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -631,6 +744,10 @@ onUnmounted(() => {
     background: #F8FAFC;
     padding: 0.75rem;
     border-radius: 8px;
+  }
+
+  :root.dark .stat-item {
+    background: var(--color-bg-tertiary);
   }
 }
 </style>
