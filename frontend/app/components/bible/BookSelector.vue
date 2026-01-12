@@ -633,13 +633,13 @@ const scrollToSearchedChapter = (chapter: number) => {
 :root.dark .version-slide-section,
 [data-theme="dark"] .version-slide-section {
   background-color: var(--color-bg-card);
-  border-bottom-color: var(--color-border);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 :root.dark .version-chip,
 [data-theme="dark"] .version-chip {
   background-color: var(--color-bg-secondary);
-  border-color: var(--color-border);
+  border-color: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
 }
 
@@ -647,7 +647,7 @@ const scrollToSearchedChapter = (chapter: number) => {
 [data-theme="dark"] .version-chip:hover {
   background-color: var(--color-bg-hover);
   color: var(--text-primary);
-  border-color: var(--text-tertiary);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 :root.dark .version-chip.active,
@@ -659,13 +659,13 @@ const scrollToSearchedChapter = (chapter: number) => {
 
 :root.dark .search-section,
 [data-theme="dark"] .search-section {
-  border-bottom-color: var(--color-border);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 :root.dark .search-input,
 [data-theme="dark"] .search-input {
   background-color: var(--color-bg-secondary);
-  border-color: var(--color-border);
+  border-color: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
 }
 
@@ -695,7 +695,7 @@ const scrollToSearchedChapter = (chapter: number) => {
 :root.dark .search-result-item,
 [data-theme="dark"] .search-result-item {
   background-color: var(--color-bg-secondary);
-  border-color: var(--color-border);
+  border-color: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
 }
 
@@ -703,7 +703,7 @@ const scrollToSearchedChapter = (chapter: number) => {
 [data-theme="dark"] .search-result-item:hover {
   background-color: var(--color-bg-hover);
   color: var(--text-primary);
-  border-color: var(--text-tertiary);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 :root.dark .search-result-item.selected,
@@ -731,7 +731,7 @@ const scrollToSearchedChapter = (chapter: number) => {
 
 :root.dark .books-section,
 [data-theme="dark"] .books-section {
-  border-right-color: var(--color-border);
+  border-right-color: rgba(255, 255, 255, 0.06);
 }
 
 :root.dark .book-button,
@@ -775,5 +775,11 @@ const scrollToSearchedChapter = (chapter: number) => {
 :root.dark .chapters-section h4,
 [data-theme="dark"] .chapters-section h4 {
   color: var(--text-tertiary);
+}
+
+/* BaseModal 헤더 구분선 다크모드 오버라이드 */
+:root.dark :deep(.base-modal-header),
+[data-theme="dark"] :deep(.base-modal-header) {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 </style>

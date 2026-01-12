@@ -163,6 +163,8 @@ onUnmounted(() => {
   background: var(--color-bg-card, #fff);
   border-radius: 16px;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -242,8 +244,12 @@ onUnmounted(() => {
 /* Body */
 .base-modal-body {
   flex: 1;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 1rem;
+  box-sizing: border-box;
 }
 
 .base-modal-body.no-padding {
@@ -307,8 +313,10 @@ onUnmounted(() => {
     bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
     max-width: 100%;
     max-height: 90vh;
+    box-sizing: border-box;
   }
 
   .modal-position-center {
