@@ -44,7 +44,10 @@
               "host": "maeil1dok.app"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -64,8 +67,9 @@
     "extra": {
       "webAppUrl": "https://maeil1dok.app",
       "eas": {
-        "projectId": "YOUR_PROJECT_ID"
+        "projectId": "d5d66055-f76e-4c18-b741-78143327e3ca"
       }
-    }
+    },
+    "owner": "jgp3620"
   }
 }
