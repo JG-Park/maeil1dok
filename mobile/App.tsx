@@ -145,7 +145,7 @@ export default function App() {
         const code = url.searchParams.get('code');
         
         if (code) {
-          await handleSocialLoginCode('kakao', code);
+          await handleSocialLoginCode('kakao', code, redirectUri);
         }
       }
     } catch (error) {
@@ -153,24 +153,49 @@ export default function App() {
     }
   };
 
-  // 구글 로그인
+  // 구글 로그인 (웹 redirect_uri 사용 - Google은 커스텀 스킴 미지원)
   const handleGoogleLogin = async () => {
     try {
-      const redirectUri = AuthSession.makeRedirectUri({
-        scheme: APP_SCHEME,
-        path: 'auth/google/callback',
-      });
-
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent`;
+      // 웹 redirect_uri 사용 (Google OAuth 제약)
+      const webRedirectUri = `${WEB_APP_URL}/auth/google/callback`;
+      // 앱에서 왔음을 표시하는 state 파라미터
+      const state = encodeURIComponent(JSON.stringify({ from: 'app', scheme: APP_SCHEME }));
       
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(webRedirectUri)}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent&state=${state}`;
+      
+      // WebBrowser로 열고, 앱으로 돌아오는 딥링크 대기
+      const appRedirectUri = `${APP_SCHEME}://auth/google/callback`;
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, appRedirectUri);
       
       if (result.type === 'success' && result.url) {
         const url = new URL(result.url);
-        const code = url.searchParams.get('code');
+        // 웹에서 딥링크로 전달된 토큰 처리
+        const access = url.searchParams.get('access');
+        const refresh = url.searchParams.get('refresh');
+        const userJson = url.searchParams.get('user');
+        const needsSignup = url.searchParams.get('needsSignup');
         
-        if (code) {
-          await handleSocialLoginCode('google', code);
+        if (access && refresh && userJson) {
+          // 로그인 성공
+          const user = JSON.parse(decodeURIComponent(userJson));
+          await saveAuthState({
+            isLoggedIn: true,
+            accessToken: access,
+            refreshToken: refresh,
+            user: user,
+          });
+          setShowLogin(false);
+        } else if (needsSignup === 'true') {
+          // 회원가입 필요 - WebView로 이동
+          const provider = url.searchParams.get('provider');
+          const providerId = url.searchParams.get('provider_id');
+          const email = url.searchParams.get('email') || '';
+          const nickname = url.searchParams.get('suggested_nickname') || '';
+          const profileImage = url.searchParams.get('profile_image') || '';
+          
+          const signupUrl = `${WEB_APP_URL}/auth/google/setup?provider=${provider}&provider_id=${providerId}&email=${email}&suggested_nickname=${encodeURIComponent(nickname)}&profile_image=${encodeURIComponent(profileImage)}`;
+          setShowLogin(false);
+          webViewRef.current?.injectJavaScript(`window.location.href = '${signupUrl}';`);
         }
       }
     } catch (error) {
@@ -179,7 +204,7 @@ export default function App() {
   };
 
   // 소셜 로그인 코드 처리
-  const handleSocialLoginCode = async (provider: string, code: string) => {
+  const handleSocialLoginCode = async (provider: string, code: string, redirectUri: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/v1/auth/social-login/v2/`, {
@@ -187,7 +212,7 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ provider, code }),
+        body: JSON.stringify({ provider, code, redirect_uri: redirectUri }),
       });
 
       const data = await response.json();

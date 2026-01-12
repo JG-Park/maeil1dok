@@ -114,7 +114,15 @@ def social_login(request):
         logger.error(f"소셜 로그인 중 오류 발생: {str(e)}", exc_info=True)
         return Response({'error': '로그인 처리 중 오류가 발생했습니다.'}, status=400)
 
-def get_kakao_user_info(code):
+def get_kakao_user_info(code, redirect_uri=None):
+    """
+    카카오 OAuth 코드를 토큰으로 교환하고 사용자 정보 반환
+    redirect_uri: 웹/앱에서 사용한 redirect_uri (없으면 기본값 사용)
+    """
+    # redirect_uri가 없으면 기본값 사용
+    if not redirect_uri:
+        redirect_uri = settings.KAKAO_REDIRECT_URI
+    
     # 카카오 토큰 받기
     logger.debug("Kakao token request initiated")
 
@@ -123,7 +131,7 @@ def get_kakao_user_info(code):
         data={
             'grant_type': 'authorization_code',
             'client_id': settings.KAKAO_CLIENT_ID,
-            'redirect_uri': settings.KAKAO_REDIRECT_URI,
+            'redirect_uri': redirect_uri,
             'code': code,
         }
     )
@@ -170,7 +178,15 @@ def get_kakao_user_info_by_token(access_token):
         return data
     return data
 
-def get_google_user_info(code):
+def get_google_user_info(code, redirect_uri=None):
+    """
+    Google OAuth 코드를 토큰으로 교환하고 사용자 정보 반환
+    redirect_uri: 웹/앱에서 사용한 redirect_uri (없으면 기본값 사용)
+    """
+    # redirect_uri가 없으면 기본값 사용
+    if not redirect_uri:
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
+    
     # Google 토큰 받기
     token_response = requests.post(
         'https://oauth2.googleapis.com/token',
@@ -178,11 +194,19 @@ def get_google_user_info(code):
             'code': code,
             'client_id': settings.GOOGLE_CLIENT_ID,
             'client_secret': settings.GOOGLE_CLIENT_SECRET,
-            'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+            'redirect_uri': redirect_uri,
             'grant_type': 'authorization_code',
         }
     )
-    access_token = token_response.json().get('access_token')
+    
+    token_data = token_response.json()
+    if 'error' in token_data:
+        logger.error(f"Google token exchange error: {token_data}")
+        raise Exception(f"Google token exchange failed: {token_data.get('error_description', token_data.get('error'))}")
+    
+    access_token = token_data.get('access_token')
+    if not access_token:
+        raise Exception("No access_token in Google response")
     
     # 사용자 정보 받기
     user_info = requests.get(
@@ -369,6 +393,8 @@ def social_login_v2(request):
     provider = serializer.validated_data.get('provider')
     code = serializer.validated_data.get('code')
     access_token = serializer.validated_data.get('access_token')
+    # 앱에서 사용한 redirect_uri (웹과 다를 수 있음)
+    redirect_uri = request.data.get('redirect_uri')
     
     try:
         # 소셜 제공자별 사용자 정보 가져오기
@@ -376,7 +402,7 @@ def social_login_v2(request):
             if access_token:
                 social_info = get_kakao_user_info_by_token(access_token)
             elif code:
-                social_info = get_kakao_user_info(code)
+                social_info = get_kakao_user_info(code, redirect_uri)
             else:
                 return Response({'error': 'code 또는 access_token이 필요합니다.'}, status=400)
             
@@ -389,7 +415,7 @@ def social_login_v2(request):
             if access_token:
                 social_info = get_google_user_info_by_token(access_token)
             elif code:
-                social_info = get_google_user_info(code)
+                social_info = get_google_user_info(code, redirect_uri)
             else:
                 return Response({'error': 'code 또는 access_token이 필요합니다.'}, status=400)
             

@@ -71,9 +71,8 @@
     "extra": {
       "webAppUrl": "https://maeil1dok.app",
       "apiUrl": "https://api.maeil1dok.app",
-      "kakaoClientId": "YOUR_KAKAO_CLIENT_ID",
-      "googleClientId": "YOUR_GOOGLE_CLIENT_ID",
-      "googleClientSecret": "YOUR_GOOGLE_CLIENT_SECRET",
+      "kakaoClientId": "b3b685162aade1f8d8db7c2c35bade15",
+      "googleClientId": "199679842064-qm1eb0kenunp27qto2rj50pesb1mdkip.apps.googleusercontent.com",
       "eas": {
         "projectId": "d5d66055-f76e-4c18-b741-78143327e3ca"
       }

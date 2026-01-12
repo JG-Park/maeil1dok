@@ -14,14 +14,32 @@ const route = useRoute()
 const auth = useAuthStore()
 const { consumeRedirectUrl } = useNavigation()
 
+const parseStateParam = () => {
+  const state = route.query.state as string
+  if (!state) return null
+  try {
+    return JSON.parse(decodeURIComponent(state))
+  } catch {
+    return null
+  }
+}
+
+const redirectToApp = (scheme: string, params: Record<string, string>) => {
+  const queryString = new URLSearchParams(params).toString()
+  const deepLink = `${scheme}://auth/google/callback?${queryString}`
+  window.location.href = deepLink
+}
+
 onMounted(async () => {
   const { provider } = route.params
   const { code } = route.query
+  const stateData = parseStateParam()
+  const isFromApp = stateData?.from === 'app'
 
   if (provider === 'kakao' && code) {
     await handleKakaoCallback(code as string)
   } else if (provider === 'google' && code) {
-    await handleGoogleCallback(code as string)
+    await handleGoogleCallback(code as string, isFromApp, stateData?.scheme)
   } else {
     navigateTo('/login')
   }
@@ -59,7 +77,7 @@ const handleKakaoCallback = async (code: string) => {
   }
 }
 
-const handleGoogleCallback = async (code: string) => {
+const handleGoogleCallback = async (code: string, isFromApp = false, appScheme?: string) => {
   try {
     const api = useApi()
     const response = await api.post('/api/v1/auth/social-login/v2/', {
@@ -70,29 +88,50 @@ const handleGoogleCallback = async (code: string) => {
     const data = response.data || response
 
     if (data.needsSignup) {
-      // 회원가입이 필요한 경우 닉네임 설정 페이지로
-      navigateTo({
-        path: '/auth/google/setup',
-        query: {
+      if (isFromApp && appScheme) {
+        redirectToApp(appScheme, {
+          needsSignup: 'true',
           provider: 'google',
           provider_id: data.provider_id,
           email: data.email || '',
-          suggested_nickname: data.suggested_nickname,
+          suggested_nickname: data.suggested_nickname || '',
           profile_image: data.profile_image || ''
-        }
-      })
-    } else {
-      // 기존 회원은 토큰 저장 후 원래 페이지로
-      if (data.access) {
-        auth.setTokens(data.access, data.refresh)
-        auth.setUser(data.user)
+        })
+      } else {
+        navigateTo({
+          path: '/auth/google/setup',
+          query: {
+            provider: 'google',
+            provider_id: data.provider_id,
+            email: data.email || '',
+            suggested_nickname: data.suggested_nickname,
+            profile_image: data.profile_image || ''
+          }
+        })
       }
-      const redirectUrl = consumeRedirectUrl() || '/'
-      navigateTo(redirectUrl)
+    } else {
+      if (isFromApp && appScheme) {
+        redirectToApp(appScheme, {
+          access: data.access,
+          refresh: data.refresh,
+          user: encodeURIComponent(JSON.stringify(data.user))
+        })
+      } else {
+        if (data.access) {
+          auth.setTokens(data.access, data.refresh)
+          auth.setUser(data.user)
+        }
+        const redirectUrl = consumeRedirectUrl() || '/'
+        navigateTo(redirectUrl)
+      }
     }
   } catch (error) {
     console.error('[Google Callback] Error during login:', error)
-    navigateTo('/login')
+    if (isFromApp && appScheme) {
+      redirectToApp(appScheme, { error: 'login_failed' })
+    } else {
+      navigateTo('/login')
+    }
   }
 }
 </script> 
