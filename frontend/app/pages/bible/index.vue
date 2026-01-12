@@ -318,6 +318,17 @@ const scrollPosition = ref(0);
 const showScheduleModal = ref(false);
 const showTongdokPlanModal = ref(false);
 
+// 페이지 타이틀 동적 설정
+const pageTitle = computed(() => {
+  if (viewMode.value === 'home') return '성경 | 매일일독';
+  if (viewMode.value === 'toc') return '목차 | 매일일독';
+  return `${currentBookName.value} ${currentChapter.value}${chapterSuffix.value} | 매일일독`;
+});
+
+useHead({
+  title: pageTitle,
+});
+
 // 구독 목록 (플랜 선택 모달용 - 활성화된 플랜만)
 const subscriptions = computed(() => 
   subscriptionStore.activeSubscriptions.map(sub => ({

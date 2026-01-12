@@ -25,9 +25,6 @@
     <div v-else-if="cardType === 'hasena'" class="reading-card main-card hasena-card" @click="goToHasena">
       <div class="card-header">
         <span class="card-label">TODAY'S SUGGESTION</span>
-        <span class="suggestion-badge">
-          📺 오늘의 영상
-        </span>
       </div>
       <h2 class="bible-verse">오늘의 통독을<br>완료했어요! 👏</h2>
       <div class="chapter-range">하세나하시조 영상을 시청해보세요</div>
@@ -404,11 +401,18 @@ function goToIntro() {
 }
 
 function startRandomReading() {
-  // 랜덤 성경 읽기 로직 (임시로 시편 1편)
-  // 실제로는 백엔드 API가 필요하거나 클라이언트에서 랜덤 생성
+  // 랜덤 성경 읽기 로직
   const randomBooks = ['gen', 'exo', 'psa', 'mat', 'jhn', 'rom'];
   const randomBook = randomBooks[Math.floor(Math.random() * randomBooks.length)];
-  router.push(`/reading?book=${randomBook}&chapter=1`);
+  // 랜덤 장도 선택 (각 책의 장 수에 맞게)
+  const bookChapters: Record<string, number> = { gen: 50, exo: 40, psa: 150, mat: 28, jhn: 21, rom: 16 };
+  const maxChapter = bookChapters[randomBook] || 1;
+  const randomChapter = Math.floor(Math.random() * maxChapter) + 1;
+  
+  navigateTo({
+    path: '/bible',
+    query: { book: randomBook, chapter: String(randomChapter) }
+  });
 }
 </script>
 
@@ -421,7 +425,7 @@ function startRandomReading() {
 .reading-card {
   background: var(--card-bg);
   border-radius: 24px;
-  padding: 2.5rem 2rem;
+  padding: 2rem 1.5rem;
   box-shadow: var(--paper-shadow);
   position: relative;
   z-index: 10;
@@ -429,7 +433,6 @@ function startRandomReading() {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
   border: 1px solid rgba(0,0,0,0.02);
-  min-height: 300px;
   display: flex;
   flex-direction: column;
   justify-content: center;

@@ -215,13 +215,6 @@ const handleComplete = async () => {
   try {
     await hasenaStore.updateStatus(today)
     await nextTick()
-    
-    // 토스트 메시지 표시
-    if (hasenaStore.isCompleted) {
-      toast.value?.show('오늘의 하세나를 완료로 기록했어요.', 'success')
-    } else {
-      toast.value?.show('오늘의 하세나를 미완료로 기록했어요.', 'success')
-    }
   } catch (error) {
     toast.value?.show('완료 처리에 실패했습니다', 'error')
   }
@@ -550,7 +543,7 @@ onMounted(() => {
 .action-button {
   pointer-events: auto;
   width: auto;
-  background: var(--primary-color);
+  background: var(--color-success);
   color: white;
   border: none;
   padding: 0.75rem 1.25rem;
@@ -563,7 +556,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
 }
 
 .btn-icon {
@@ -572,7 +565,7 @@ onMounted(() => {
 }
 
 .action-button:hover {
-  background: var(--primary-dark);
+  background: var(--color-success-dark);
 }
 
 .action-button:active {
@@ -585,12 +578,12 @@ onMounted(() => {
 }
 
 .action-button.completed {
-  background: var(--color-success);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+  background: #ef4444;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
 }
 
 .action-button.completed:hover {
-  background: var(--color-success-dark);
+  background: #dc2626;
 }
 
 /* Animations */

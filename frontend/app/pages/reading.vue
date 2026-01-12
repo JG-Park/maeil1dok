@@ -4459,11 +4459,15 @@ onUnmounted(() => {
 }
 
 :deep(.verse.selected-verse) {
-  background-color: var(--color-slate-200) !important;
+  background-color: rgba(75, 159, 126, 0.15) !important; /* 앱 primary 그린 */
   transition: background-color 0.2s ease;
   border-radius: 8px;
   position: relative;
   z-index: 1;
+}
+
+[data-theme="dark"] :deep(.verse.selected-verse) {
+  background-color: rgba(107, 201, 159, 0.2) !important; /* 다크모드 그린 */
 }
 
 /* 단일 절 선택: 모든 코너 라운드 (기본값 사용) */
@@ -4472,21 +4476,17 @@ onUnmounted(() => {
 :deep(.verse.selected-verse.selected-first) {
   border-radius: 8px 8px 0 0 !important;
   margin-bottom: 0 !important;
-  padding-bottom: 0.75rem !important;
 }
 
 :deep(.verse.selected-verse.selected-middle) {
   border-radius: 0 !important;
+  margin-top: 0 !important;
   margin-bottom: 0 !important;
-  margin-top: -0.5rem !important;
-  padding-top: 0.25rem !important;
-  padding-bottom: 0.75rem !important;
 }
 
 :deep(.verse.selected-verse.selected-last) {
   border-radius: 0 0 8px 8px !important;
-  margin-top: -0.5rem !important;
-  padding-top: 0.25rem !important;
+  margin-top: 0 !important;
 }
 
 /* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 */

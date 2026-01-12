@@ -1275,7 +1275,7 @@ defineExpose({
 
 /* 선택된 절 하이라이트 */
 .bible-content :deep(.verse.selected-verse) {
-  background-color: rgba(99, 102, 241, 0.12) !important;
+  background-color: rgba(75, 159, 126, 0.15) !important; /* 앱 primary 그린 */
   transition: background-color 0.2s ease;
   border-radius: 8px;
   position: relative;
@@ -1283,28 +1283,24 @@ defineExpose({
 }
 
 .theme-dark .bible-content :deep(.verse.selected-verse) {
-  background-color: rgba(99, 102, 241, 0.2) !important;
+  background-color: rgba(107, 201, 159, 0.2) !important; /* 다크모드 그린 */
 }
 
 /* 다중 절 선택: 연속 블록으로 표시 */
 .bible-content :deep(.verse.selected-verse.selected-first) {
   border-radius: 8px 8px 0 0 !important;
   margin-bottom: 0 !important;
-  padding-bottom: 0.75rem !important;
 }
 
 .bible-content :deep(.verse.selected-verse.selected-middle) {
   border-radius: 0 !important;
+  margin-top: 0 !important;
   margin-bottom: 0 !important;
-  margin-top: -0.5rem !important;
-  padding-top: 0.25rem !important;
-  padding-bottom: 0.75rem !important;
 }
 
 .bible-content :deep(.verse.selected-verse.selected-last) {
   border-radius: 0 0 8px 8px !important;
-  margin-top: -0.5rem !important;
-  padding-top: 0.25rem !important;
+  margin-top: 0 !important;
 }
 
 /* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 (배경색 유지) */
