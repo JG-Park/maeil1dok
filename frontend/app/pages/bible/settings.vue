@@ -1050,7 +1050,7 @@ const resetAllSettings = async () => {
   color: var(--color-error);
 }
 
-/* 폰트 그리드 */
+/* 폰트 스크롤 */
 [data-theme="dark"] .font-button {
   background-color: var(--color-bg-tertiary);
   border-color: var(--color-border-default);
@@ -1065,14 +1065,7 @@ const resetAllSettings = async () => {
 [data-theme="dark"] .font-button.active {
   background-color: var(--color-accent-primary-light);
   border-color: var(--color-accent-primary);
-}
-
-[data-theme="dark"] .font-preview {
-  color: var(--color-text-primary);
-}
-
-[data-theme="dark"] .font-name {
-  color: var(--color-text-secondary);
+  color: var(--color-accent-primary);
 }
 
 /* 슬라이더 그룹 */
