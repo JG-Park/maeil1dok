@@ -19,6 +19,14 @@
         <div class="sub-desc">깊이 있는 이해</div>
       </NuxtLink>
       
+      <NuxtLink to="/hasena" class="sub-card">
+        <div class="icon-box">
+          <PlayIcon size="24" />
+        </div>
+        <div class="sub-title">하세나하시조</div>
+        <div class="sub-desc">오늘의 영상</div>
+      </NuxtLink>
+      
       <NuxtLink to="/groups" class="sub-card">
         <div class="icon-box">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -48,6 +56,7 @@ import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import CalendarIcon from '~/components/icons/CalendarIcon.vue';
 import MonitorIcon from '~/components/icons/MonitorIcon.vue';
+import PlayIcon from '~/components/icons/PlayIcon.vue';
 import HistoryIcon from '~/components/icons/HistoryIcon.vue';
 
 const authStore = useAuthStore();
