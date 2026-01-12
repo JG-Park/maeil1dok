@@ -29,20 +29,21 @@
           @open-settings="$emit('open-settings')"
           @reading-plan-click="$emit('reading-plan-click')"
         />
-        <!-- 오늘의 통독 버튼 (로그인 사용자, 비통독 모드일 때) -->
+        <!-- 통독모드 버튼 (로그인 사용자, 비통독 모드일 때) -->
         <button
           v-if="isAuthenticated && !isTongdokMode"
-          class="today-tongdok-btn"
+          class="tongdok-mode-btn"
           @click="$emit('today-tongdok')"
-          title="오늘의 통독"
+          title="통독모드"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/>
             <line x1="8" y1="2" x2="8" y2="6"/>
             <line x1="3" y1="10" x2="21" y2="10"/>
             <path d="M9 16l2 2 4-4"/>
           </svg>
+          <span>통독모드</span>
         </button>
         <button class="version-button" @click="$emit('open-version-selector')">
           {{ currentVersionName }}
@@ -470,24 +471,27 @@ defineExpose({
   gap: 0.25rem;
 }
 
-.today-tongdok-btn {
+.tongdok-mode-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem;
   color: var(--primary-color, #6366f1);
   background: var(--primary-light, #eef2ff);
-  border-radius: 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
-.today-tongdok-btn:hover {
+.tongdok-mode-btn:hover {
   background: var(--primary-color, #6366f1);
   color: white;
 }
 
-.today-tongdok-btn:active {
+.tongdok-mode-btn:active {
   transform: scale(0.95);
 }
 
@@ -857,12 +861,12 @@ defineExpose({
   color: var(--primary-color);
 }
 
-:root.dark .today-tongdok-btn {
+:root.dark .tongdok-mode-btn {
   background: rgba(99, 102, 241, 0.2);
   color: var(--primary-color);
 }
 
-:root.dark .today-tongdok-btn:hover {
+:root.dark .tongdok-mode-btn:hover {
   background: var(--primary-color);
   color: white;
 }

@@ -581,12 +581,12 @@ const handleAudioLink = (audioLink: string) => {
   }
 };
 
-// 통독모드: 오늘의 통독 시작 핸들러
+// 통독모드: 버튼 클릭 핸들러
 const handleTodayTongdok = async () => {
   // 선택된 플랜 ID 확인
   const planId = selectedPlanStore.effectivePlanId;
   
-  // 플랜이 없으면 구독 목록을 로드하고 모달 표시
+  // 플랜이 없으면 구독 목록을 로드하고 플랜 선택 모달 표시
   if (!planId) {
     await subscriptionStore.fetchSubscriptions();
     
@@ -600,45 +600,19 @@ const handleTodayTongdok = async () => {
     return;
   }
 
-  // 플랜이 있으면 바로 통독 시작
-  await startTongdokWithPlan(planId);
-};
-
-// 플랜 선택 후 통독 시작
-const startTongdokWithPlan = async (planId: number) => {
-  try {
-    // 오늘의 스케줄 조회
-    const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${planId}`);
-
-    if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
-      const schedule = response.data.schedules[0];
-
-      enableTongdokMode(schedule.id, planId);
-
-      if (schedule.plan_detail) {
-        setReadingDetailResponse({ data: { plan_detail: schedule.plan_detail } });
-      }
-
-      handleBookSelect(schedule.book_code, schedule.start_chapter);
-
-      toast.success('오늘의 통독을 시작합니다');
-    } else {
-      toast.info('오늘 예정된 통독 일정이 없습니다');
-    }
-  } catch (error) {
-    handleApiError(error, '통독 일정 로드');
-  }
+  // 플랜이 있으면 성경통독표 모달 표시
+  showScheduleModal.value = true;
 };
 
 // 플랜 선택 모달에서 플랜 선택 핸들러
-const handleTongdokPlanSelect = async (subscription: { plan_id: number; plan_name: string; is_default: boolean }) => {
+const handleTongdokPlanSelect = (subscription: { plan_id: number; plan_name: string; is_default: boolean }) => {
   showTongdokPlanModal.value = false;
   
   // 선택한 플랜을 저장
   selectedPlanStore.setSelectedPlanId(subscription.plan_id);
   
-  // 통독 시작
-  await startTongdokWithPlan(subscription.plan_id);
+  // 성경통독표 모달 표시
+  showScheduleModal.value = true;
 };
 
 // 플랜 선택 모달에서 플랜 관리로 이동
