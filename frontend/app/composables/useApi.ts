@@ -160,7 +160,16 @@ export const useApi = () => {
         '/api/v1/auth/social-login/',
         '/api/v1/auth/complete-kakao-signup/',
         '/api/v1/auth/check-username/',
-        '/api/v1/auth/check-nickname/'
+        '/api/v1/auth/check-nickname/',
+        '/api/v1/auth/email-register/',
+        '/api/v1/auth/email-login/',
+        '/api/v1/auth/social-login/v2/',
+        '/api/v1/auth/complete-social-signup/',
+        '/api/v1/auth/send-verification/',
+        '/api/v1/auth/verify-email/',
+        '/api/v1/auth/request-password-reset/',
+        '/api/v1/auth/verify-reset-token/',
+        '/api/v1/auth/reset-password/'
       ];
 
       const requiresAuth = !publicEndpoints.some(endpoint => url.includes(endpoint));

@@ -14,8 +14,8 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('id', 'username', 'nickname', 'profile_image', 'is_staff')
-        read_only_fields = ('id', 'is_staff')
+        fields = ('id', 'username', 'nickname', 'email', 'profile_image', 'is_staff', 'email_verified', 'has_usable_password_flag')
+        read_only_fields = ('id', 'is_staff', 'email_verified', 'has_usable_password_flag')
         
     def get_is_staff(self, obj):
         # superuser나 staff 권한이 있는 경우 admin으로 간주

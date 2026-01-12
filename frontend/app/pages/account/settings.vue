@@ -36,6 +36,51 @@
           </div>
         </section>
 
+        <!-- 이메일 인증 섹션 (이메일이 있고 미인증인 경우만) -->
+        <section v-if="user?.email && !user?.email_verified" class="settings-section">
+          <h2 class="section-title">이메일 인증</h2>
+          <div class="section-content">
+            <div class="setting-item verification-item">
+              <div class="setting-info">
+                <div class="verification-status">
+                  <svg class="warning-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="setting-label">이메일 인증 필요</span>
+                </div>
+                <p class="setting-description">
+                  {{ user?.email }}로 인증 메일을 발송합니다
+                </p>
+              </div>
+              <button 
+                @click="handleResendVerification" 
+                class="action-button primary"
+                :disabled="resendingEmail || emailCooldown > 0"
+              >
+                {{ emailButtonText }}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 이메일 인증 완료 상태 (인증된 경우) -->
+        <section v-else-if="user?.email && user?.email_verified" class="settings-section">
+          <h2 class="section-title">이메일 인증</h2>
+          <div class="section-content">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="verification-status verified">
+                  <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="setting-label">인증 완료</span>
+                </div>
+                <p class="setting-description">{{ user?.email }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- 비밀번호 섹션 -->
         <section class="settings-section">
           <h2 class="section-title">비밀번호</h2>
@@ -184,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useHead } from '#imports'
 import { useModal } from '~/composables/useModal'
@@ -213,6 +258,17 @@ const newPassword = ref('')
 const newPasswordConfirm = ref('')
 const passwordError = ref('')
 const passwordLoading = ref(false)
+
+// Email verification
+const resendingEmail = ref(false)
+const emailCooldown = ref(0)
+let emailCooldownTimer: NodeJS.Timeout | null = null
+
+const emailButtonText = computed(() => {
+  if (resendingEmail.value) return '전송 중...'
+  if (emailCooldown.value > 0) return `${emailCooldown.value}초`
+  return '인증 메일 발송'
+})
 
 // Computed
 const isKakaoLinked = computed(() => 
@@ -327,6 +383,40 @@ const handleSetPassword = async () => {
   }
 }
 
+const handleResendVerification = async () => {
+  if (resendingEmail.value || emailCooldown.value > 0) return
+  
+  resendingEmail.value = true
+  try {
+    await api.post('/api/v1/auth/resend-verification/')
+    await modal.alert({
+      title: '인증 메일 발송',
+      description: '인증 메일을 발송했습니다. 메일함을 확인해주세요.',
+      icon: 'success'
+    })
+    startEmailCooldown()
+  } catch (error: any) {
+    await modal.alert({
+      title: '발송 실패',
+      description: error?.data?.error || '메일 발송에 실패했습니다.',
+      icon: 'error'
+    })
+  } finally {
+    resendingEmail.value = false
+  }
+}
+
+const startEmailCooldown = () => {
+  emailCooldown.value = 60
+  emailCooldownTimer = setInterval(() => {
+    emailCooldown.value--
+    if (emailCooldown.value <= 0 && emailCooldownTimer) {
+      clearInterval(emailCooldownTimer)
+      emailCooldownTimer = null
+    }
+  }, 1000)
+}
+
 const handleLogout = async () => {
   const confirmed = await modal.confirm({
     title: '로그아웃',
@@ -351,6 +441,12 @@ onMounted(() => {
     return
   }
   fetchLinkedAccounts()
+})
+
+onUnmounted(() => {
+  if (emailCooldownTimer) {
+    clearInterval(emailCooldownTimer)
+  }
 })
 </script>
 
@@ -590,6 +686,40 @@ onMounted(() => {
   color: var(--color-slate-500);
   margin-top: 0.5rem;
   padding-left: 0.25rem;
+}
+
+.verification-item .setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.verification-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.verification-status .setting-label {
+  margin: 0;
+}
+
+.warning-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.check-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.verification-status.verified .setting-label {
+  color: #10b981;
 }
 
 .logout-button {

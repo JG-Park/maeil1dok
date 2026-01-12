@@ -6,8 +6,11 @@ interface User {
   id: number
   username: string
   nickname: string
+  email?: string
   profile_image?: string
   is_staff?: boolean
+  email_verified?: boolean
+  has_usable_password_flag?: boolean
 }
 
 interface AuthState {
