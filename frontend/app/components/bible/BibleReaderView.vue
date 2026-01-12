@@ -206,36 +206,33 @@
 
 
 
-      <nav class="bible-navigation">
-        <button
-          class="nav-button prev"
-          :disabled="!hasPrevChapter"
-          @click="$emit('prev-chapter')"
-        >
-          <ChevronLeftIcon />
-          이전
-        </button>
+        <nav class="bible-navigation">
+          <button
+            class="nav-button prev"
+            :disabled="!hasPrevChapter"
+            @click="$emit('prev-chapter')"
+          >
+            <ChevronLeftIcon />
+          </button>
 
-        <button class="chapter-info" @click="$emit('open-book-selector')">
-          <template v-if="isTongdokMode && formattedScheduleDate">
-            <span class="schedule-date">{{ formattedScheduleDate }}</span>
-            <span class="schedule-range">{{ tongdokScheduleRange }}</span>
-          </template>
-          <template v-else>
-            <span class="chapter-info-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
-            <ChevronDownIcon class="chapter-info-icon" :size="14" />
-          </template>
-        </button>
+          <button class="chapter-info" @click="$emit('open-book-selector')">
+            <template v-if="isTongdokMode && formattedScheduleDate">
+              <span class="schedule-date">{{ formattedScheduleDate }}</span>
+              <span class="schedule-range">{{ tongdokScheduleRange }}</span>
+            </template>
+            <template v-else>
+              <span class="chapter-info-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+            </template>
+          </button>
 
-        <button
-          class="nav-button next"
-          :disabled="!hasNextChapter"
-          @click="$emit('next-chapter')"
-        >
-          다음
-          <ChevronRightIcon />
-        </button>
-      </nav>
+          <button
+            class="nav-button next"
+            :disabled="!hasNextChapter"
+            @click="$emit('next-chapter')"
+          >
+            <ChevronRightIcon />
+          </button>
+        </nav>
     </div>
   </div>
 </template>
@@ -715,15 +712,15 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   width: 100%;
-  max-width: 280px;
-  padding: 1rem 1.75rem;
+  max-width: 180px;
+  padding: 0.75rem 1.25rem;
   background: linear-gradient(135deg, var(--primary-color, #6366f1) 0%, #818cf8 100%);
   color: white;
-  border-radius: 16px;
+  border-radius: 12px;
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -825,97 +822,87 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem;
+  padding: 0.5rem 0.75rem;
   min-height: 50px;
+  gap: 0.5rem;
 }
 
 .nav-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.25rem;
+  width: 40px;
+  height: 40px;
   color: var(--color-slate-600, #475569);
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: transparent;
+  border: none;
   outline: none;
-}
-
-.nav-button.prev {
-  padding-left: 0.75rem;
-}
-
-.nav-button.next {
-  padding-right: 0.75rem;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .nav-button:hover:not(:disabled) {
-  background: var(--color-slate-200, #e2e8f0);
-  color: var(--color-slate-800, #1e293b);
+  transform: scale(1.15);
+  color: var(--primary-color, #6366f1);
+  background: transparent;
 }
 
 .nav-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.95);
 }
 
 .nav-button:disabled {
   color: var(--text-muted, #9ca3af);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .chapter-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.125rem;
-  font-size: 0.8125rem;
-  color: var(--text-secondary, #6b7280);
-  padding: 0.5rem 0.75rem;
-  border-radius: 10px;
-  background: transparent;
-  border: none;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-primary, #1f2937);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--color-border, #e5e7eb);
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
+  flex: 1;
+  max-width: 240px;
 }
 
 .chapter-info:hover {
-  background: var(--color-slate-100, #f1f5f9);
+  background: var(--color-bg-hover, #f3f4f6);
+  border-color: var(--color-border-dark, #d1d5db);
 }
 
 .chapter-info:active {
-  background: var(--color-slate-200, #e2e8f0);
+  background: var(--color-bg-active, #e5e7eb);
   transform: scale(0.98);
 }
 
 .chapter-info-text {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary, #1f2937);
-}
-
-.chapter-info-icon {
-  color: var(--text-tertiary, #9ca3af);
-  margin-top: 2px;
-  transition: transform 0.2s ease;
-}
-
-.chapter-info:hover .chapter-info-icon {
-  transform: translateY(1px);
 }
 
 .chapter-info .schedule-date {
   font-size: 0.75rem;
-  color: var(--primary-color, #6366f1);
+  color: var(--text-secondary, #6b7280);
   font-weight: 500;
 }
 
 .chapter-info .schedule-range {
-  font-size: 0.8125rem;
-  color: var(--text-primary, #1f2937);
-  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--primary-color, #6366f1);
+  font-weight: 600;
 }
 
 /* iOS 안전영역 */
@@ -967,20 +954,23 @@ defineExpose({
 }
 
 :root.dark .nav-button:hover:not(:disabled) {
-  background: var(--color-slate-700, #334155);
-  color: var(--color-slate-200, #e2e8f0);
+  background: transparent;
+  color: var(--primary-color, #818cf8);
 }
 
 :root.dark .chapter-info {
-  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary-dark, #e5e5e5);
 }
 
 :root.dark .chapter-info:hover {
-  background: var(--color-slate-700, #334155);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 :root.dark .chapter-info:active {
-  background: var(--color-slate-600, #475569);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 :root.dark .chapter-info-text {
@@ -1094,15 +1084,15 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   width: 100%;
-  max-width: 280px;
-  padding: 1rem 1.75rem;
+  max-width: 180px;
+  padding: 0.75rem 1.25rem;
   background: linear-gradient(135deg, var(--color-success, #10b981) 0%, #34d399 100%);
   color: white;
-  border-radius: 16px;
+  border-radius: 12px;
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
