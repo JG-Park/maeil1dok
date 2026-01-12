@@ -7,9 +7,17 @@
         <div class="logo-wrapper">
           <img src="~/assets/images/로고_투명.png" alt="Maeil1dok" class="logo-img" />
         </div>
-        <button class="menu-btn" @click="showMenu = true" aria-label="메뉴 열기">
-          <MenuIcon size="24" />
-        </button>
+        <div class="header-actions">
+          <button class="theme-toggle-btn" @click="toggleTheme" :aria-label="isDark ? '라이트 모드로 전환' : '다크 모드로 전환'">
+            <Transition name="theme-icon" mode="out-in">
+              <MoonIcon v-if="!isDark" :size="20" key="moon" />
+              <SunIcon v-else :size="20" key="sun" />
+            </Transition>
+          </button>
+          <button class="menu-btn" @click="showMenu = true" aria-label="메뉴 열기">
+            <MenuIcon size="24" />
+          </button>
+        </div>
       </header>
 
       <main class="home-main">
@@ -26,13 +34,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import HomeHero from '~/components/home-v2/HomeHero.vue';
 import ReadingCardStack from '~/components/home-v2/ReadingCardStack.vue';
 import QuickAccessGrid from '~/components/home-v2/QuickAccessGrid.vue';
 import FloatingNav from '~/components/home-v2/FloatingNav.vue';
 import Menu from '~/components/Menu.vue';
 import MenuIcon from '~/components/icons/MenuIcon.vue';
+import SunIcon from '~/components/icons/SunIcon.vue';
+import MoonIcon from '~/components/icons/MoonIcon.vue';
+import { useReadingSettingsStore } from '~/stores/readingSettings';
 
 // 페이지 메타 설정
 definePageMeta({
@@ -40,6 +51,20 @@ definePageMeta({
 });
 
 const showMenu = ref(false);
+
+const settingsStore = useReadingSettingsStore();
+const isDark = ref(false);
+
+const toggleTheme = () => {
+  const newTheme = isDark.value ? 'light' : 'dark';
+  settingsStore.updateSetting('theme', newTheme);
+  isDark.value = !isDark.value;
+};
+
+onMounted(() => {
+  settingsStore.initialize();
+  isDark.value = settingsStore.effectiveTheme === 'dark';
+});
 </script>
 
 <style scoped>
@@ -91,18 +116,59 @@ const showMenu = ref(false);
   object-fit: contain;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-main);
+  padding: 0.5rem;
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle-btn:hover {
+  opacity: 0.7;
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.95);
+}
+
 .menu-btn {
   background: none;
   border: none;
   cursor: pointer;
   color: var(--text-main);
   padding: 0.5rem;
-  margin: -0.5rem;
+  margin-right: -0.5rem;
   transition: opacity 0.2s;
 }
 
 .menu-btn:hover {
   opacity: 0.7;
+}
+
+.theme-icon-enter-active,
+.theme-icon-leave-active {
+  transition: all 0.2s ease;
+}
+
+.theme-icon-enter-from {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.8);
+}
+
+.theme-icon-leave-to {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.8);
 }
 
 .home-main {

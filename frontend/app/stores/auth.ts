@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
+import { useReadingSettingsStore } from '~/stores/readingSettings'
 
 interface User {
   id: number
@@ -324,7 +325,8 @@ export const useAuthStore = defineStore('auth', {
         this.setTokens(response.access, response.refresh)
         await this.fetchUser()
 
-        // Timer is automatically started by setTokens()
+        const readingSettingsStore = useReadingSettingsStore()
+        await readingSettingsStore.onLogin()
 
         return true
       } catch (error) {
@@ -364,7 +366,8 @@ export const useAuthStore = defineStore('auth', {
           this.setTokens(data.access, data.refresh)
           this.setUser(data.user)
 
-          // Timer is automatically started by setTokens()
+          const readingSettingsStore = useReadingSettingsStore()
+          await readingSettingsStore.onLogin()
 
           return true
         } else if (data.needsSignup) {
@@ -388,7 +391,8 @@ export const useAuthStore = defineStore('auth', {
           this.setTokens(response.access, response.refresh)
           this.setUser(response.user)
 
-          // Timer is automatically started by setTokens()
+          const readingSettingsStore = useReadingSettingsStore()
+          await readingSettingsStore.onLogin()
         }
         return response
       } catch (error) {
@@ -401,7 +405,8 @@ export const useAuthStore = defineStore('auth', {
         this.setTokens(response.access, response.refresh)
         this.setUser(response.user)
 
-        // Timer is automatically started by setTokens()
+        const readingSettingsStore = useReadingSettingsStore()
+        await readingSettingsStore.onLogin()
 
         return true
       }

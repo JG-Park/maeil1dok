@@ -496,10 +496,10 @@ async function handleFontChange(fontKey: FontFamily) {
 function resetToDefaults() {
   localSettings.value = {
     theme: 'light',
-    fontFamily: 'ridi-batang',
+    fontFamily: 'kopub-batang',
     fontSize: 16,
-    fontWeight: 'normal',
-    lineHeight: 1.8,
+    fontWeight: 'medium',
+    lineHeight: 1.6,
     textAlign: 'left',
     verseJoining: false,
     showVerseNumbers: true,

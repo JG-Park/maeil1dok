@@ -201,7 +201,6 @@
           <button class="chapter-info" :class="{ 'is-tongdok': isTongdokMode && shortScheduleDate }" @click="$emit('open-book-selector')">
           <template v-if="isTongdokMode && shortScheduleDate">
               <span class="schedule-short-date">{{ shortScheduleDate }}</span>
-              <div class="vertical-divider"></div>
               <div 
                 class="tongdok-completion-group"
                 @click.stop="$emit('tongdok-complete-click')"

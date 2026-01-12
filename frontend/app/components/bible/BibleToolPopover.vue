@@ -335,33 +335,51 @@ onUnmounted(() => {
 }
 
 /* 다크모드 */
-:root.dark .tool-trigger-button {
-  color: var(--text-secondary);
+[data-theme="dark"] .tool-trigger-button {
+  color: var(--color-text-secondary);
 }
 
-:root.dark .tool-trigger-button:hover {
+[data-theme="dark"] .tool-trigger-button:hover {
   background: var(--color-bg-hover);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
-:root.dark .popover-content {
+[data-theme="dark"] .tool-trigger-button.active {
+  background: var(--color-bg-active);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .popover-content {
   background: var(--color-bg-card);
-  border-color: var(--color-border);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
-:root.dark .popover-item:hover {
+[data-theme="dark"] .popover-item:hover {
   background: var(--color-bg-hover);
 }
 
-:root.dark .item-label {
-  color: var(--text-primary);
+[data-theme="dark"] .popover-item.active {
+  color: var(--color-accent-primary);
 }
 
-:root.dark .item-icon {
-  color: var(--text-secondary);
+[data-theme="dark"] .popover-item.active .item-icon {
+  color: var(--color-accent-primary);
 }
 
-:root.dark .popover-divider {
-  background: var(--color-border);
+[data-theme="dark"] .item-label {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .item-icon {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .popover-divider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .indicator-dot {
+  background: var(--color-accent-primary);
 }
 </style>

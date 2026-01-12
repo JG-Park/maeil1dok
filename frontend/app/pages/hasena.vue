@@ -281,7 +281,7 @@ onMounted(() => {
 }
 
 .hasena-verse-number {
-  color: var(--accent);
+  color: var(--color-accent-primary);
   font-weight: 600;
   margin-right: 0.5rem;
   min-width: 1.2rem;
@@ -291,7 +291,7 @@ onMounted(() => {
 }
 
 .hasena-verse-text {
-  color: var(--text-main);
+  color: var(--color-text-primary);
   flex: 1;
   word-break: keep-all;
   overflow-wrap: break-word;
@@ -299,15 +299,8 @@ onMounted(() => {
 </style>
 
 <style scoped>
-/* Sanctuary Theme Variables */
+/* Sanctuary Theme Variables - Uses global theme tokens */
 .sanctuary-theme {
-  --bg-color: #F9F8F6;
-  --card-bg: #FFFFFF;
-  --text-main: #2C3333;
-  --text-sub: #6B7280;
-  --accent: #4A5D53;
-  --accent-light: #E8ECE9;
-  --paper-shadow: 0 4px 20px rgba(44, 51, 51, 0.04);
   --font-serif: 'Noto Serif KR', 'RIDIBatang', serif;
   --font-sans: 'Pretendard', sans-serif;
   --primary-color: #6366f1;
@@ -316,8 +309,8 @@ onMounted(() => {
   --color-success-dark: #059669;
 
   font-family: var(--font-sans);
-  background-color: var(--bg-color);
-  color: var(--text-main);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
   min-height: 100vh;
   position: relative;
   -webkit-font-smoothing: antialiased;
@@ -329,7 +322,7 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: radial-gradient(var(--text-sub) 1px, transparent 1px);
+  background-image: radial-gradient(var(--color-text-tertiary) 1px, transparent 1px);
   background-size: 32px 32px;
   opacity: 0.1;
   z-index: 0;
@@ -354,18 +347,18 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 1rem;
-  background: rgba(249, 248, 246, 0.85);
+  background: var(--color-bg-primary);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 50;
-  border-bottom: 1px solid rgba(0,0,0,0.03);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .header h1 {
   font-family: var(--font-serif);
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-main);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -375,7 +368,7 @@ onMounted(() => {
   padding: 0.5rem;
   margin-left: -0.5rem;
   cursor: pointer;
-  color: var(--text-main);
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -384,7 +377,7 @@ onMounted(() => {
 }
 
 .back-button:hover {
-  background: rgba(0,0,0,0.05);
+  background: var(--color-bg-hover);
 }
 
 .back-button .icon {
@@ -401,11 +394,11 @@ onMounted(() => {
 }
 
 .card {
-  background: var(--card-bg);
+  background: var(--color-bg-card);
   border-radius: 20px;
-  box-shadow: var(--paper-shadow);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.02);
+  border: 1px solid var(--color-border-light);
 }
 
 /* Video Section */
@@ -439,17 +432,17 @@ onMounted(() => {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: #f1f1f1;
-  color: #333;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
-  border-top: 1px solid rgba(0,0,0,0.05);
+  border-top: 1px solid var(--color-border-light);
   transition: background 0.2s;
 }
 
 .youtube-deep-link:hover {
-  background: #e5e5e5;
+  background: var(--color-bg-hover);
 }
 
 /* Content Section */
@@ -464,15 +457,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 3rem 0;
-  color: var(--text-sub);
+  color: var(--color-text-secondary);
   gap: 1rem;
 }
 
 .loading-spinner {
   width: 2rem;
   height: 2rem;
-  border: 2px solid var(--accent-light);
-  border-top-color: var(--accent);
+  border: 2px solid var(--color-border-default);
+  border-top-color: var(--color-accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -494,13 +487,13 @@ onMounted(() => {
   text-align: center;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px dashed rgba(0,0,0,0.1);
+  border-bottom: 1px dashed var(--color-border-default);
 }
 
 .date-badge {
   display: inline-block;
-  background: var(--accent-light);
-  color: var(--accent);
+  background: var(--color-accent-primary-light);
+  color: var(--color-accent-primary);
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
   font-size: 0.875rem;
@@ -511,7 +504,7 @@ onMounted(() => {
 .bible-header h2 {
   font-family: var(--font-serif);
   font-size: 1.5rem;
-  color: var(--text-main);
+  color: var(--color-text-primary);
   margin: 0;
   font-weight: 700;
 }
@@ -519,7 +512,7 @@ onMounted(() => {
 .verse-container {
   font-family: var(--font-serif);
   font-size: 1.05rem;
-  color: #374151;
+  color: var(--color-text-primary);
 }
 
 /* Floating Footer */

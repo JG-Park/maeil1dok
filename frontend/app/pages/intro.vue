@@ -267,7 +267,7 @@ watch(videoIntroId, (newId, oldId) => {
 .container {
   max-width: 768px;
   margin: 0 auto;
-  background: #f5f5f5;
+  background: var(--color-bg-primary);
   min-height: 100vh;
   padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
 }
@@ -276,11 +276,11 @@ watch(videoIntroId, (newId, oldId) => {
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: white;
+  background: var(--color-bg-secondary);
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   height: 48px;
 }
 
@@ -306,11 +306,11 @@ watch(videoIntroId, (newId, oldId) => {
 }
 
 .content-section {
-  background: white;
+  background: var(--color-bg-card);
   margin: 1rem;
   padding: 1.5rem;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 640px) {
@@ -353,13 +353,13 @@ watch(videoIntroId, (newId, oldId) => {
 .video-info h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 0.75rem;
 }
 
 .description {
   font-size: 0.95rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
@@ -389,8 +389,8 @@ watch(videoIntroId, (newId, oldId) => {
   justify-content: space-between;
   align-items: center;
   padding: 0.25rem;
-  background: white;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-secondary);
+  box-shadow: 0 -1px 4px var(--shadow-color, rgba(0, 0, 0, 0.15));
   max-width: 768px;
   min-height: 50px;
   margin: 0 auto;
@@ -495,9 +495,9 @@ watch(videoIntroId, (newId, oldId) => {
 .list-button-right {
   margin-left: auto; /* Pushes the button to the far right */
   padding: 0.25rem 0.75rem;
-  background: #F1F5F9;
-  color: #64748B;
-  border: 1px solid #CBD5E1;
+  background: var(--color-slate-100);
+  color: var(--color-slate-500);
+  border: 1px solid var(--color-slate-300);
   border-radius: 8px;
   font-size: 0.875rem; /* Slightly larger for better readability */
   font-weight: 500;
@@ -506,7 +506,7 @@ watch(videoIntroId, (newId, oldId) => {
 }
 
 .list-button-right:hover {
-  background: #E2E8F0;
-  color: #475569;
+  background: var(--color-slate-200);
+  color: var(--color-slate-600);
 }
 </style>

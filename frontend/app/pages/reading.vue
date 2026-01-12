@@ -4462,29 +4462,31 @@ onUnmounted(() => {
   background-color: var(--color-slate-200) !important;
   transition: background-color 0.2s ease;
   border-radius: 8px;
-  position: relative; /* Ensure z-index works */
+  position: relative;
   z-index: 1;
 }
 
-/* 선택된 절 연결 스타일 - specificity 강화 */
+/* 단일 절 선택: 모든 코너 라운드 (기본값 사용) */
+
+/* 다중 절 선택: 연속 블록으로 표시 */
 :deep(.verse.selected-verse.selected-first) {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
+  border-radius: 8px 8px 0 0 !important;
   margin-bottom: 0 !important;
-  padding-bottom: 0.5rem !important; /* 마진 대신 패딩으로 간격 채움 */
+  padding-bottom: 0.75rem !important;
 }
 
 :deep(.verse.selected-verse.selected-middle) {
   border-radius: 0 !important;
   margin-bottom: 0 !important;
-  margin-top: 0 !important; /* 안전장치 */
-  padding-bottom: 0.5rem !important;
+  margin-top: -0.5rem !important;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.75rem !important;
 }
 
 :deep(.verse.selected-verse.selected-last) {
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
-  margin-top: 0 !important; /* 안전장치 */
+  border-radius: 0 0 8px 8px !important;
+  margin-top: -0.5rem !important;
+  padding-top: 0.25rem !important;
 }
 
 /* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 */
@@ -4498,7 +4500,7 @@ onUnmounted(() => {
   filter: none;
 }
 
-:deep(.verse:hover) {
+:deep(.verse:hover):not(.selected-verse) {
   background-color: var(--color-slate-100);
   cursor: pointer;
   transition: background-color 0.2s ease;

@@ -261,7 +261,7 @@ const handleScroll = () => {
 const clearVerseHighlight = () => {
   if (!viewerRef.value) return;
   viewerRef.value.querySelectorAll('.verse.selected-verse')
-    .forEach(el => el.classList.remove('selected-verse'));
+    .forEach(el => el.classList.remove('selected-verse', 'selected-first', 'selected-middle', 'selected-last'));
 };
 
 // 절 클릭 선택 초기화
@@ -302,8 +302,20 @@ const highlightVerses = (start: number, end: number) => {
     const n = parseInt(numEl.textContent?.trim() || '0', 10);
     if (n >= start && n <= end) {
       el.classList.add('selected-verse');
+      // 위치 클래스 초기화
+      el.classList.remove('selected-first', 'selected-middle', 'selected-last');
+      // 범위 선택인 경우 위치에 따른 클래스 추가
+      if (start !== end) {
+        if (n === start) {
+          el.classList.add('selected-first');
+        } else if (n === end) {
+          el.classList.add('selected-last');
+        } else {
+          el.classList.add('selected-middle');
+        }
+      }
     } else {
-      el.classList.remove('selected-verse');
+      el.classList.remove('selected-verse', 'selected-first', 'selected-middle', 'selected-last');
     }
   });
 };
@@ -1266,10 +1278,33 @@ defineExpose({
   background-color: rgba(99, 102, 241, 0.12) !important;
   transition: background-color 0.2s ease;
   border-radius: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .theme-dark .bible-content :deep(.verse.selected-verse) {
   background-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+/* 다중 절 선택: 연속 블록으로 표시 */
+.bible-content :deep(.verse.selected-verse.selected-first) {
+  border-radius: 8px 8px 0 0 !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0.75rem !important;
+}
+
+.bible-content :deep(.verse.selected-verse.selected-middle) {
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+  margin-top: -0.5rem !important;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+.bible-content :deep(.verse.selected-verse.selected-last) {
+  border-radius: 0 0 8px 8px !important;
+  margin-top: -0.5rem !important;
+  padding-top: 0.25rem !important;
 }
 
 /* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 (배경색 유지) */

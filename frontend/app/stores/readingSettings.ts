@@ -48,8 +48,8 @@ const DEFAULT_SETTINGS: ReadingSettings = {
   theme: 'light',
   fontFamily: 'kopub-batang',
   fontSize: 16,
-  fontWeight: 'normal',
-  lineHeight: 1.8, // 숫자형 (1.4 ~ 2.4 범위)
+  fontWeight: 'medium',
+  lineHeight: 1.6,
   textAlign: 'left',
   verseJoining: false,
   showVerseNumbers: true,
@@ -143,7 +143,6 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
   },
 
   actions: {
-    // Initialize settings (load from localStorage, then sync with server if authenticated)
     async initialize() {
       if (this.initialized) return
 
@@ -158,6 +157,11 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
       this.applyTheme()
       this.setupSystemThemeListener()
       this.initialized = true
+    },
+
+    async onLogin() {
+      await this.syncFromServer()
+      this.applyTheme()
     },
 
     // Load from localStorage

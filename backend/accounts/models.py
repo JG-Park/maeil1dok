@@ -163,7 +163,7 @@ class UserReadingSettings(models.Model):
     font_family = models.CharField(
         max_length=20,
         choices=FONT_FAMILY_CHOICES,
-        default='ridi-batang',
+        default='kopub-batang',
         help_text='글꼴'
     )
     font_size = models.IntegerField(
@@ -173,11 +173,11 @@ class UserReadingSettings(models.Model):
     font_weight = models.CharField(
         max_length=10,
         choices=FONT_WEIGHT_CHOICES,
-        default='normal',
+        default='medium',
         help_text='글자 두께'
     )
     line_height = models.FloatField(
-        default=1.8,
+        default=1.6,
         help_text='줄 간격 (1.4-2.4)'
     )
     text_align = models.CharField(
