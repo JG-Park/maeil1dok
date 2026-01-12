@@ -183,6 +183,7 @@ const props = defineProps<{
   useDefaultPlan?: boolean;
   isBulkEditMode?: boolean;
   useNewBibleRoute?: boolean;
+  initialScrollTarget?: 'today' | 'lastIncomplete' | 'currentLocation';
 }>();
 
 const emit = defineEmits<{
@@ -755,7 +756,10 @@ onMounted(() => {
   document.addEventListener('keydown', handleKeydown);
 
   initializeComponent().then(() => {
-    if (props.isModal && props.currentBook && props.currentChapter) {
+    // initialScrollTarget prop이 있으면 해당 위치로 스크롤
+    if (props.initialScrollTarget) {
+      setTimeout(() => handleScrollTo(props.initialScrollTarget!), ANIMATION_DELAYS.SCROLL_TO_CURRENT);
+    } else if (props.isModal && props.currentBook && props.currentChapter) {
       setTimeout(scrollToCurrentLocation, ANIMATION_DELAYS.SCROLL_TO_CURRENT);
     } else {
       scrollToLastIncomplete();
@@ -782,7 +786,13 @@ watch(() => props.isModal, async (newVal) => {
 
     await initializeComponent();
 
-    if (props.currentBook && props.currentChapter) {
+    // initialScrollTarget prop이 있으면 해당 위치로 스크롤
+    if (props.initialScrollTarget) {
+      setTimeout(async () => {
+        await nextTick();
+        await handleScrollTo(props.initialScrollTarget!);
+      }, ANIMATION_DELAYS.SCROLL_TO_CURRENT);
+    } else if (props.currentBook && props.currentChapter) {
       setTimeout(async () => {
         await nextTick();
         await scrollToCurrentLocation();
