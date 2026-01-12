@@ -27,27 +27,39 @@
 
     <!-- 검색 섹션 -->
     <div class="search-section">
+      <!-- 현재 선택 상태 표시 (장/절 입력 모드일 때) -->
+      <div v-if="inputMode !== 'search'" class="selection-status">
+        <button class="status-badge" @click="resetToSearchMode">
+          <span>{{ confirmedBookName }}</span>
+          <span v-if="confirmedChapter"> {{ confirmedChapter }}장</span>
+          <XCircleIcon :size="14" />
+        </button>
+      </div>
+
       <div class="search-input-wrapper">
-        <SearchIcon class="search-icon" :size="18" />
+        <SearchIcon v-if="inputMode === 'search'" class="search-icon" :size="18" />
+        <span v-else class="input-prefix">{{ inputMode === 'chapter' ? '장' : '절' }}</span>
         <input
           ref="searchInputRef"
-          v-model="searchQuery"
+          :value="currentInputValue"
           type="text"
           class="search-input"
-          placeholder="예: 창1:3, ㅊㅅㄱ, 요한 3:16"
+          :class="{ 'numeric-input': inputMode !== 'search', 'input-error': inputError }"
+          :placeholder="inputPlaceholder"
+          @input="handleInput"
           @keydown="handleSearchKeydown"
         />
         <button
-          v-if="searchQuery"
+          v-if="currentInputValue"
           class="search-clear-button"
-          @click="searchQuery = ''"
+          @click="inputMode === 'search' ? searchQuery = '' : (inputMode === 'chapter' ? chapterInput = '' : verseInput = '')"
         >
           <XCircleIcon :size="16" />
         </button>
       </div>
 
-      <!-- 검색 결과 미리보기 -->
-      <div v-if="searchResults.length > 0" class="search-result-preview">
+      <!-- 검색 결과 미리보기 (검색 모드일 때만) -->
+      <div v-if="inputMode === 'search' && searchResults.length > 0" class="search-result-preview">
         <div class="ai-result-label">
           <SparkleIcon class="ai-sparkle" :size="14" />
           <span>{{ searchResults.length > 1 ? `${searchResults.length}개를 찾았어요` : 'AI가 찾았어요' }}</span>
@@ -77,54 +89,61 @@
           <ArrowRightIcon class="result-arrow" :size="18" />
         </button>
       </div>
+
+      <!-- 장/절 입력 힌트 -->
+      <div v-if="inputMode === 'chapter'" class="input-hint">
+        숫자 입력 후 Enter (최대 {{ getChaptersArray(confirmedBookId).length }}장)
+      </div>
+      <div v-if="inputMode === 'verse'" class="input-hint">
+        절 입력 후 Enter, 또는 그냥 Enter로 이동
+      </div>
     </div>
 
     <div class="modal-body">
       <div class="books-section" ref="booksSection">
-        <div class="testament">
-          <h4>구약</h4>
+        <div class="testament-group">
+          <div class="testament-header">구약</div>
           <div class="books-list">
             <button
               v-for="book in bibleBooks.old"
               :key="book.id"
               :data-id="book.id"
-              :class="['book-button', { active: selectedBookId === book.id }]"
+              :class="['book-item', { active: selectedBookId === book.id }]"
               @click="selectBook(book.id)"
             >
-              {{ book.name }}
+              <span class="book-name">{{ book.name }}</span>
             </button>
           </div>
         </div>
-        <div class="testament">
-          <h4>신약</h4>
+        <div class="testament-group">
+          <div class="testament-header">신약</div>
           <div class="books-list">
             <button
               v-for="book in bibleBooks.new"
               :key="book.id"
               :data-id="book.id"
-              :class="['book-button', { active: selectedBookId === book.id }]"
+              :class="['book-item', { active: selectedBookId === book.id }]"
               @click="selectBook(book.id)"
             >
-              {{ book.name }}
+              <span class="book-name">{{ book.name }}</span>
             </button>
           </div>
         </div>
       </div>
       <div class="chapters-section" ref="chaptersSection">
-        <h4>장</h4>
-        <div class="chapters-grid">
+        <div class="chapters-list">
           <button
             v-for="chapter in chaptersArray"
             :key="chapter"
             :data-chapter="chapter"
             :class="[
-              'chapter-button',
+              'chapter-item',
               { active: chapter === currentChapter && selectedBookId === currentBook },
               { searched: currentSearchResult && currentSearchResult.chapter === chapter },
             ]"
             @click="selectChapter(chapter)"
           >
-            {{ chapter }}
+            <span class="chapter-num">{{ chapter }}장</span>
           </button>
         </div>
       </div>
@@ -155,6 +174,9 @@ const emit = defineEmits<{
 
 const { bibleBooks, getChaptersArray, parseSearchQuery } = useBibleData();
 
+// 입력 모드: 'search' | 'chapter' | 'verse'
+type InputMode = 'search' | 'chapter' | 'verse';
+
 // 상태
 const searchQuery = ref('');
 const selectedBookId = ref(props.currentBook);
@@ -162,6 +184,15 @@ const selectedResultIndex = ref(0);
 const searchInputRef = ref<HTMLInputElement | null>(null);
 const booksSection = ref<HTMLElement | null>(null);
 const chaptersSection = ref<HTMLElement | null>(null);
+
+// 단계별 입력 상태
+const inputMode = ref<InputMode>('search');
+const chapterInput = ref('');
+const verseInput = ref('');
+const confirmedBookId = ref('');
+const confirmedBookName = ref('');
+const confirmedChapter = ref(0);
+const inputError = ref(false);
 
 // 선택된 책의 장 배열
 const chaptersArray = computed(() => getChaptersArray(selectedBookId.value));
@@ -177,6 +208,23 @@ const currentSearchResult = computed<SearchResult | null>(() => {
   return results[index] ?? null;
 });
 
+// 현재 입력 필드 placeholder
+const inputPlaceholder = computed(() => {
+  if (inputMode.value === 'chapter') {
+    return `${confirmedBookName.value} 몇 장?`;
+  } else if (inputMode.value === 'verse') {
+    return `${confirmedBookName.value} ${confirmedChapter.value}장 몇 절? (생략 가능)`;
+  }
+  return '예: 창1:3, ㅊㅅㄱ, 요한 3:16';
+});
+
+// 현재 입력값 (모드에 따라)
+const currentInputValue = computed(() => {
+  if (inputMode.value === 'chapter') return chapterInput.value;
+  if (inputMode.value === 'verse') return verseInput.value;
+  return searchQuery.value;
+});
+
 // 검색어 변경 시 인덱스 리셋
 watch(searchQuery, () => {
   selectedResultIndex.value = 0;
@@ -184,7 +232,7 @@ watch(searchQuery, () => {
 
 // 검색 결과 변경 시 책 선택 및 스크롤 연동
 watch(currentSearchResult, (result) => {
-  if (result && result.bookId) {
+  if (result && result.bookId && inputMode.value === 'search') {
     selectedBookId.value = result.bookId;
     nextTick(() => {
       scrollToSelectedBook();
@@ -198,28 +246,40 @@ watch(currentSearchResult, (result) => {
 // 모달 열릴 때 초기화
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
-    searchQuery.value = '';
+    resetToSearchMode();
     selectedBookId.value = props.currentBook;
     nextTick(() => {
-      searchInputRef.value?.focus();
       scrollToSelectedBook();
       scrollToSelectedChapter();
     });
   }
 });
 
+// 검색 모드로 리셋
+const resetToSearchMode = () => {
+  inputMode.value = 'search';
+  searchQuery.value = '';
+  chapterInput.value = '';
+  verseInput.value = '';
+  confirmedBookId.value = '';
+  confirmedBookName.value = '';
+  confirmedChapter.value = 0;
+  inputError.value = false;
+};
+
 // 닫기
 const close = () => {
   emit('update:modelValue', false);
 };
 
-// 책 선택
+// 책 선택 (리스트에서 클릭)
 const selectBook = (bookId: string) => {
   selectedBookId.value = bookId;
-  nextTick(() => scrollToSelectedChapter());
+  // 장 입력 모드로 전환
+  enterChapterMode(bookId);
 };
 
-// 장 선택
+// 장 선택 (리스트에서 클릭)
 const selectChapter = (chapter: number) => {
   emit('select', selectedBookId.value, chapter);
   close();
@@ -230,19 +290,94 @@ const selectSearchResult = (index: number) => {
   selectedResultIndex.value = index;
 };
 
-// 검색 결과로 이동
+// 장 입력 모드로 전환
+const enterChapterMode = (bookId: string) => {
+  const book = [...bibleBooks.old, ...bibleBooks.new].find(b => b.id === bookId);
+  if (!book) return;
+
+  confirmedBookId.value = bookId;
+  confirmedBookName.value = book.name;
+  selectedBookId.value = bookId;
+  inputMode.value = 'chapter';
+  chapterInput.value = '';
+  
+  nextTick(() => {
+    searchInputRef.value?.focus();
+    scrollToSelectedBook();
+  });
+};
+
+// 절 입력 모드로 전환
+const enterVerseMode = (chapter: number) => {
+  confirmedChapter.value = chapter;
+  inputMode.value = 'verse';
+  verseInput.value = '';
+  
+  // 바로 해당 위치로 이동 (미리보기)
+  emit('select', confirmedBookId.value, chapter);
+  
+  nextTick(() => {
+    searchInputRef.value?.focus();
+  });
+};
+
+// 최종 확정 및 닫기
+const confirmAndClose = (verse?: number) => {
+  emit('select', confirmedBookId.value, confirmedChapter.value, verse);
+  close();
+};
+
+// 검색 결과로 이동 (기존 로직)
 const goToSearchResult = () => {
   const result = currentSearchResult.value;
   if (!result) return;
 
-  if (result.chapter) {
-    emit('select', result.bookId, result.chapter, result.verse ?? undefined);
-    searchQuery.value = '';
+  if (result.chapter && result.verse) {
+    // 책, 장, 절 모두 있으면 바로 이동
+    emit('select', result.bookId, result.chapter, result.verse);
     close();
-  } else {
-    // 책만 있으면 책 선택 후 장 선택 대기
+  } else if (result.chapter) {
+    // 책, 장만 있으면 절 입력 모드로
+    confirmedBookId.value = result.bookId;
+    confirmedBookName.value = result.bookName;
     selectedBookId.value = result.bookId;
-    searchQuery.value = '';
+    enterVerseMode(result.chapter);
+  } else {
+    // 책만 있으면 장 입력 모드로
+    enterChapterMode(result.bookId);
+  }
+};
+
+// 입력값 변경 핸들러
+const handleInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const value = target.value;
+
+  if (inputMode.value === 'search') {
+    searchQuery.value = value;
+    inputError.value = false;
+  } else if (inputMode.value === 'chapter') {
+    // 숫자 외 입력 시 에러
+    if (value && !/^\d*$/.test(value)) {
+      inputError.value = true;
+      // 숫자만 남기기
+      chapterInput.value = value.replace(/[^0-9]/g, '');
+      // 0.5초 후 에러 상태 해제
+      setTimeout(() => { inputError.value = false; }, 500);
+    } else {
+      inputError.value = false;
+      chapterInput.value = value;
+    }
+  } else if (inputMode.value === 'verse') {
+    // 숫자 외 입력 시 에러
+    if (value && !/^\d*$/.test(value)) {
+      inputError.value = true;
+      verseInput.value = value.replace(/[^0-9]/g, '');
+      setTimeout(() => { inputError.value = false; }, 500);
+    } else {
+      inputError.value = false;
+      verseInput.value = value;
+    }
   }
 };
 
@@ -250,10 +385,50 @@ const goToSearchResult = () => {
 const handleSearchKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Enter') {
     event.preventDefault();
-    goToSearchResult();
+    handleEnterKey();
   } else if (event.key === 'Escape') {
-    searchQuery.value = '';
-    searchInputRef.value?.blur();
+    if (inputMode.value !== 'search') {
+      resetToSearchMode();
+    } else {
+      searchQuery.value = '';
+      searchInputRef.value?.blur();
+    }
+  } else if (event.key === 'Backspace' && inputMode.value !== 'search') {
+    // 숫자 입력 모드에서 비어있을 때 백스페이스 누르면 이전 모드로
+    if (inputMode.value === 'verse' && verseInput.value === '') {
+      event.preventDefault();
+      inputMode.value = 'chapter';
+      chapterInput.value = '';
+    } else if (inputMode.value === 'chapter' && chapterInput.value === '') {
+      event.preventDefault();
+      resetToSearchMode();
+    }
+  }
+};
+
+// 엔터 키 처리
+const handleEnterKey = () => {
+  if (inputMode.value === 'search') {
+    // 검색 모드: 검색 결과가 있으면 선택
+    if (currentSearchResult.value) {
+      goToSearchResult();
+    }
+  } else if (inputMode.value === 'chapter') {
+    // 장 입력 모드
+    const chapter = parseInt(chapterInput.value);
+    const maxChapter = getChaptersArray(confirmedBookId.value).length;
+    
+    if (chapter > 0 && chapter <= maxChapter) {
+      enterVerseMode(chapter);
+    }
+  } else if (inputMode.value === 'verse') {
+    // 절 입력 모드: 절 입력이 있으면 해당 절로, 없으면 그냥 닫기
+    const verse = parseInt(verseInput.value);
+    if (verse > 0) {
+      confirmAndClose(verse);
+    } else {
+      close();
+    }
   }
 };
 
@@ -288,6 +463,7 @@ const scrollToSearchedChapter = (chapter: number) => {
 <style scoped>
 /* 역본 선택 슬라이드 */
 .version-slide-section {
+  flex-shrink: 0; /* 고정, 스크롤 안 됨 */
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--color-border, #e5e7eb);
   background-color: var(--color-bg-card, #fff);
@@ -360,9 +536,35 @@ const scrollToSearchedChapter = (chapter: number) => {
 
 /* 검색 섹션 */
 .search-section {
+  flex-shrink: 0; /* 고정, 스크롤 안 됨 */
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--color-border, #e5e7eb);
   transition: border-color 0.2s;
+}
+
+/* 선택 상태 표시 */
+.selection-status {
+  margin-bottom: 0.5rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary-color, #6366f1);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.status-badge:hover {
+  background: var(--primary-color, #6366f1);
+  color: white;
 }
 
 .search-input-wrapper {
@@ -379,6 +581,15 @@ const scrollToSearchedChapter = (chapter: number) => {
   transition: color 0.2s;
 }
 
+.input-prefix {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--primary-color, #6366f1);
+  font-size: 0.875rem;
+  font-weight: 500;
+  pointer-events: none;
+}
+
 .search-input {
   width: 100%;
   padding: 0.625rem 2.5rem 0.625rem 2.5rem;
@@ -390,11 +601,29 @@ const scrollToSearchedChapter = (chapter: number) => {
   transition: all 0.2s ease;
 }
 
+.search-input.numeric-input {
+  padding-left: 2rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
 .search-input:focus {
   outline: none;
   border-color: var(--primary-color, #6366f1);
   background: var(--color-bg-card, #fff);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-input.input-error {
+  border-color: #ef4444;
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 .search-clear-button {
@@ -412,6 +641,13 @@ const scrollToSearchedChapter = (chapter: number) => {
 .search-clear-button:hover {
   background-color: var(--color-bg-hover, #f3f4f6);
   color: var(--text-secondary, #6b7280);
+}
+
+/* 입력 힌트 */
+.input-hint {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #9ca3af);
 }
 
 /* 검색 결과 미리보기 */
@@ -514,141 +750,139 @@ const scrollToSearchedChapter = (chapter: number) => {
   flex-shrink: 0;
 }
 
-/* 모달 바디 */
+/* 모달 바디 - BaseModal의 .base-modal-body 안에서 flex로 확장 */
 .modal-body {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 300px; /* 최소 높이 보장 */
   overflow: hidden;
   background-color: var(--color-bg-card, #fff);
 }
 
+/* 책 섹션 */
 .books-section {
-  flex: 1;
+  flex: 7;
   min-width: 0;
+  min-height: 0; /* flex 자식 스크롤 가능 */
   border-right: 1px solid var(--color-border, #e5e7eb);
   overflow-y: auto;
-  padding: 0.75rem;
   transition: border-color 0.2s;
 }
 
-.testament {
-  margin-bottom: 1rem;
+.testament-group {
+  /* 구약/신약 그룹 */
 }
 
-.testament:last-child {
-  margin-bottom: 0;
-}
-
-.testament h4 {
-  font-size: 0.75rem;
+.testament-header {
+  position: sticky;
+  top: 0;
+  padding: 0.625rem 1rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-tertiary, #9ca3af);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
-  padding: 0 0.25rem;
+  background-color: var(--color-bg-secondary, #f9fafb);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
 }
 
 .books-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
+  flex-direction: column;
 }
 
-.book-button {
-  padding: 0.5rem 0.625rem;
+.book-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
   border: none;
-  border-radius: 8px;
-  background: var(--color-bg-primary, #f9fafb);
-  color: var(--text-secondary, #6b7280);
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.book-button:hover {
-  background: var(--color-bg-hover, #f3f4f6);
+  border-bottom: 1px solid var(--color-border, #f3f4f6);
+  background: transparent;
   color: var(--text-primary, #1f2937);
+  font-size: 0.9375rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
 }
 
-.book-button.active {
-  background: var(--primary-color, #6366f1);
-  color: white;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+.book-item:last-child {
+  border-bottom: none;
 }
 
+.book-item:hover {
+  background-color: var(--color-bg-hover, #f9fafb);
+}
+
+.book-item.active {
+  background-color: var(--primary-light, #eef2ff);
+  color: var(--primary-color, #6366f1);
+  font-weight: 500;
+}
+
+.book-name {
+  flex: 1;
+}
+
+/* 장 섹션 */
 .chapters-section {
-  width: 140px;
-  flex-shrink: 0;
+  flex: 3;
+  min-width: 0;
+  min-height: 0; /* flex 자식 스크롤 가능 */
   overflow-y: auto;
-  padding: 0.75rem;
+  background-color: var(--color-bg-secondary, #f9fafb);
 }
 
-.chapters-section h4 {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-tertiary, #9ca3af);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
-  padding: 0 0.25rem;
+.chapters-list {
+  display: flex;
+  flex-direction: column;
 }
 
-.chapters-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.375rem;
-}
-
-.chapter-button {
-  aspect-ratio: 1;
-  min-height: 36px;
+.chapter-item {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  padding: 0.75rem 0.5rem;
   border: none;
-  border-radius: 8px;
-  background: var(--color-bg-primary, #f9fafb);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background: transparent;
   color: var(--text-secondary, #6b7280);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
 }
 
-.chapter-button:hover {
-  background: var(--color-bg-hover, #f3f4f6);
+.chapter-item:hover {
+  background-color: var(--color-bg-hover, #f3f4f6);
   color: var(--text-primary, #1f2937);
 }
 
-.chapter-button.active {
-  background: var(--primary-color, #6366f1);
+.chapter-item.active {
+  background-color: var(--primary-color, #6366f1);
   color: white;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+  font-weight: 500;
 }
 
-.chapter-button.searched {
-  box-shadow: 0 0 0 2px var(--primary-color, #6366f1);
+.chapter-item.searched:not(.active) {
+  background-color: var(--primary-light, #eef2ff);
+  color: var(--primary-color, #6366f1);
+}
+
+.chapter-num {
+  /* 장 번호 */
 }
 
 /* Mobile Responsive */
 @media (max-width: 480px) {
-  .chapters-section {
-    width: 120px;
+  .book-item {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
   }
 
-  .chapters-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.25rem;
-  }
-
-  .chapter-button {
-    min-height: 32px;
+  .chapter-item {
+    padding: 0.625rem 0.375rem;
     font-size: 0.8125rem;
-  }
-
-  .book-button {
-    padding: 0.375rem 0.5rem;
-    font-size: 0.75rem;
   }
 }
 
@@ -685,6 +919,23 @@ const scrollToSearchedChapter = (chapter: number) => {
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
+:root.dark .status-badge,
+[data-theme="dark"] .status-badge {
+  background-color: rgba(99, 102, 241, 0.2);
+  color: var(--primary-color, #818cf8);
+}
+
+:root.dark .status-badge:hover,
+[data-theme="dark"] .status-badge:hover {
+  background-color: var(--primary-color, #818cf8);
+  color: white;
+}
+
+:root.dark .input-prefix,
+[data-theme="dark"] .input-prefix {
+  color: var(--primary-color, #818cf8);
+}
+
 :root.dark .search-input,
 [data-theme="dark"] .search-input {
   background-color: var(--color-bg-secondary);
@@ -697,6 +948,11 @@ const scrollToSearchedChapter = (chapter: number) => {
   background-color: var(--color-bg-card);
   border-color: var(--primary-color, #818cf8);
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+:root.dark .search-input.input-error,
+[data-theme="dark"] .search-input.input-error {
+  border-color: #f87171;
 }
 
 :root.dark .search-icon,
@@ -713,6 +969,11 @@ const scrollToSearchedChapter = (chapter: number) => {
 [data-theme="dark"] .search-clear-button:hover {
   background-color: var(--color-bg-hover);
   color: var(--text-primary);
+}
+
+:root.dark .input-hint,
+[data-theme="dark"] .input-hint {
+  color: var(--text-tertiary);
 }
 
 :root.dark .search-result-item,
@@ -757,33 +1018,57 @@ const scrollToSearchedChapter = (chapter: number) => {
   border-right-color: rgba(255, 255, 255, 0.06);
 }
 
-:root.dark .book-button,
-[data-theme="dark"] .book-button,
-:root.dark .chapter-button,
-[data-theme="dark"] .chapter-button {
-  background-color: var(--color-bg-secondary);
-  color: var(--text-secondary);
+:root.dark .testament-header,
+[data-theme="dark"] .testament-header {
+  background-color: var(--color-bg-tertiary, #1f2937);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-tertiary);
 }
 
-:root.dark .book-button:hover,
-[data-theme="dark"] .book-button:hover,
-:root.dark .chapter-button:hover,
-[data-theme="dark"] .chapter-button:hover {
+:root.dark .book-item,
+[data-theme="dark"] .book-item {
+  color: var(--text-primary);
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+:root.dark .book-item:hover,
+[data-theme="dark"] .book-item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+:root.dark .book-item.active,
+[data-theme="dark"] .book-item.active {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--primary-color, #818cf8);
+}
+
+:root.dark .chapters-section,
+[data-theme="dark"] .chapters-section {
+  background-color: var(--color-bg-secondary);
+}
+
+:root.dark .chapter-item,
+[data-theme="dark"] .chapter-item {
+  color: var(--text-secondary);
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+:root.dark .chapter-item:hover,
+[data-theme="dark"] .chapter-item:hover {
   background-color: var(--color-bg-hover);
   color: var(--text-primary);
 }
 
-:root.dark .book-button.active,
-[data-theme="dark"] .book-button.active,
-:root.dark .chapter-button.active,
-[data-theme="dark"] .chapter-button.active {
+:root.dark .chapter-item.active,
+[data-theme="dark"] .chapter-item.active {
   background-color: var(--primary-color, #818cf8);
   color: #fff;
 }
 
-:root.dark .chapter-button.searched,
-[data-theme="dark"] .chapter-button.searched {
-  box-shadow: 0 0 0 2px var(--primary-color, #818cf8);
+:root.dark .chapter-item.searched:not(.active),
+[data-theme="dark"] .chapter-item.searched:not(.active) {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--primary-color, #818cf8);
 }
 
 :root.dark .ai-result-label,
@@ -791,12 +1076,5 @@ const scrollToSearchedChapter = (chapter: number) => {
 :root.dark .ai-sparkle,
 [data-theme="dark"] .ai-sparkle {
   color: var(--primary-color, #818cf8);
-}
-
-:root.dark .testament h4,
-[data-theme="dark"] .testament h4,
-:root.dark .chapters-section h4,
-[data-theme="dark"] .chapters-section h4 {
-  color: var(--text-tertiary);
 }
 </style>
