@@ -319,9 +319,9 @@ const scrollPosition = ref(0);
 const showScheduleModal = ref(false);
 const showTongdokPlanModal = ref(false);
 
-// 구독 목록 (플랜 선택 모달용)
+// 구독 목록 (플랜 선택 모달용 - 활성화된 플랜만)
 const subscriptions = computed(() => 
-  subscriptionStore.subscriptions.map(sub => ({
+  subscriptionStore.activeSubscriptions.map(sub => ({
     plan_id: sub.plan_id,
     plan_name: sub.plan_name,
     is_default: sub.is_default,
