@@ -953,9 +953,23 @@ defineExpose({
   opacity: 0.4;
 }
 
-/* 다크모드에서 하이라이트 투명도 조정 */
+/* 다크모드에서 하이라이트 스타일 조정 */
 .theme-dark .bible-content :deep(.verse.highlighted) {
-  opacity: 0.85;
+  /* 다크모드에서 파스텔톤 배경을 더 어둡고 채도 높게 조정 */
+  filter: saturate(1.3) brightness(0.85);
+  /* 텍스트가 잘 보이도록 색상 조정 */
+  color: var(--color-bg-primary, #1a1a1a);
+}
+
+.theme-dark .bible-content :deep(.verse.highlighted)::before {
+  /* 다크모드에서 왼쪽 indicator가 잘 보이도록 */
+  opacity: 0.6;
+}
+
+.theme-dark .bible-content :deep(.verse.highlighted) .verse-number,
+.theme-dark .bible-content :deep(.verse.highlighted .verse-num) {
+  /* 다크모드 하이라이트 내 절 번호 색상 */
+  color: var(--primary-dark, #4338ca);
 }
 
 /* 인명/지명 강조 스타일 (reading.vue 동일) */

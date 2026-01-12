@@ -120,9 +120,22 @@ const handleCustomColor = (e: Event) => {
 }
 
 /* 다크모드 */
+:root.dark .color-btn {
+  /* 다크모드에서 파스텔 색상이 잘 보이도록 테두리 추가 */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  /* 색상을 더 선명하게 */
+  filter: saturate(1.2) brightness(0.9);
+}
+
+:root.dark .color-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 :root.dark .color-btn.add {
   background: var(--color-bg-tertiary);
   color: var(--text-secondary);
+  filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 :root.dark .color-btn.add:hover {
@@ -132,5 +145,6 @@ const handleCustomColor = (e: Event) => {
 
 :root.dark .color-btn.active {
   box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px var(--primary-color);
+  border-color: transparent;
 }
 </style>
