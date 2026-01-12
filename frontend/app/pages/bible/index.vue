@@ -804,6 +804,9 @@ onMounted(async () => {
     viewMode.value = 'reader';
     initFromQuery();
     loadBibleContent(currentBook.value, currentChapter.value);
+    
+    // URL 파라미터를 상태에 반영한 후 URL 정리 (상태 관리에 위임)
+    router.replace({ path: '/bible' });
   } else if (!tongdokMode.value) {
     // 쿼리 파라미터가 없고 통독모드가 아니면 설정에 따른 진입점
     const entryPoint = readingSettingsStore.settings.defaultEntryPoint || 'last-position';
@@ -834,6 +837,11 @@ onMounted(async () => {
     viewMode.value = 'reader';
     initFromQuery();
     loadBibleContent(currentBook.value, currentChapter.value);
+    
+    // 통독모드 진입 시에도 URL 정리 (상태는 localStorage에서 관리)
+    if (Object.keys(route.query).length > 0) {
+      router.replace({ path: '/bible' });
+    }
   }
 
   // 읽기 기록, 노트, 북마크 조회 (로그인 시, reader 모드일 때만)
@@ -876,6 +884,9 @@ watch(
     if (newQuery.book || newQuery.chapter || newQuery.tongdok) {
       initFromQuery();
       loadBibleContent(currentBook.value, currentChapter.value);
+      
+      // URL 파라미터를 상태에 반영한 후 URL 정리
+      router.replace({ path: '/bible' });
     }
   }
 );
