@@ -215,11 +215,48 @@ const confirm = () => {
 }
 
 /* Dark mode */
-:root.dark .modal-content {
+:root.dark .modal-content,
+[data-theme="dark"] .modal-content {
   background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-:root.dark .modal-overlay {
-  background: rgba(0, 0, 0, 0.7);
+:root.dark .modal-overlay,
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+:root.dark .modal-title {
+  color: var(--color-text-primary);
+}
+
+:root.dark .modal-range {
+  color: var(--color-text-secondary);
+}
+
+:root.dark .auto-complete-option {
+  color: var(--color-text-secondary);
+}
+
+:root.dark .auto-complete-hint {
+  color: var(--color-text-muted);
+}
+
+:root.dark .btn-cancel {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-default);
+}
+
+:root.dark .btn-cancel:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-muted);
+}
+
+:root.dark .auto-complete-option input[type="checkbox"] {
+  accent-color: var(--color-success);
 }
 </style>

@@ -102,15 +102,23 @@
         <div class="inline-options">
           <div class="inline-option-group">
             <span class="option-label">두께</span>
-            <div class="chip-buttons">
+            <div class="chip-buttons weight-buttons">
               <button
                 v-for="option in fontWeightOptions"
                 :key="option.value"
-                class="chip-btn"
+                class="chip-btn weight-chip"
                 :class="{ active: settings.fontWeight === option.value }"
                 @click="updateSetting('fontWeight', option.value)"
               >
-                {{ option.label }}
+                <span 
+                  class="weight-preview"
+                  :style="{
+                    fontFamily: FONT_FAMILIES[settings.fontFamily].css,
+                    fontWeight: FONT_WEIGHTS[option.value]
+                  }"
+                >
+                  {{ option.label }}
+                </span>
               </button>
             </div>
           </div>
@@ -470,8 +478,8 @@ const resetAllSettings = async () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background-color: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-default);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -487,22 +495,22 @@ const resetAllSettings = async () => {
   background: transparent;
   border: none;
   border-radius: 8px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .bible-back-btn:hover,
 .header-action-btn:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-  color: var(--text-primary, #1f2937);
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .bible-page-header h1 {
   flex: 1;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -517,29 +525,29 @@ const resetAllSettings = async () => {
 
 /* 미리보기 섹션 */
 .preview-section {
-  background: var(--color-bg-card, #fff);
+  background-color: var(--color-bg-card);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .preview-header {
   padding: 0.5rem 1rem;
-  background: var(--color-bg-secondary, #f9fafb);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
 .preview-label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--text-muted, #9ca3af);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .preview-content {
   padding: 1rem;
-  color: var(--text-primary, #1f2937);
+  color: var(--color-text-primary);
   min-height: 80px;
 }
 
@@ -555,7 +563,7 @@ const resetAllSettings = async () => {
 
 .verse-number {
   font-size: 0.7em;
-  color: var(--text-muted, #9ca3af);
+  color: var(--color-text-muted);
   font-weight: 500;
   min-width: 1.25em;
   text-align: right;
@@ -574,7 +582,7 @@ const resetAllSettings = async () => {
 
 .verse-sup {
   font-size: 0.6em;
-  color: var(--text-muted, #9ca3af);
+  color: var(--color-text-muted);
   font-family: system-ui, sans-serif;
   vertical-align: super;
   margin-right: 0.15em;
@@ -582,21 +590,21 @@ const resetAllSettings = async () => {
 
 /* 섹션 공통 */
 .settings-section {
-  background: var(--color-bg-card, #fff);
+  background-color: var(--color-bg-card);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: var(--color-text-primary);
   margin: 0 0 1rem;
 }
 
 .section-title.danger {
-  color: var(--color-error, #ef4444);
+  color: var(--color-error);
 }
 
 /* 폰트 그리드 */
@@ -613,21 +621,21 @@ const resetAllSettings = async () => {
   align-items: center;
   gap: 0.25rem;
   padding: 0.625rem 0.5rem;
-  border: 1.5px solid var(--color-border, #e5e7eb);
+  border: 1.5px solid var(--color-border-default);
   border-radius: 10px;
-  background: var(--color-bg-card, #fff);
-  color: var(--text-primary, #1f2937);
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .font-button:hover {
-  border-color: var(--primary-color, #6366f1);
+  border-color: var(--color-accent-primary);
 }
 
 .font-button.active {
-  border-color: var(--primary-color, #6366f1);
-  background: var(--primary-light, #eef2ff);
+  border-color: var(--color-accent-primary);
+  background-color: var(--color-accent-primary-light);
 }
 
 .font-preview {
@@ -640,7 +648,7 @@ const resetAllSettings = async () => {
   font-weight: 500;
   text-align: center;
   line-height: 1.2;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-secondary);
 }
 
 /* 슬라이더 그룹 */
@@ -650,7 +658,7 @@ const resetAllSettings = async () => {
   gap: 0.75rem;
   margin-bottom: 1rem;
   padding: 0.75rem;
-  background: var(--color-bg-secondary, #f9fafb);
+  background-color: var(--color-bg-secondary);
   border-radius: 10px;
 }
 
@@ -663,7 +671,7 @@ const resetAllSettings = async () => {
 .slider-label {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-secondary);
   min-width: 48px;
 }
 
@@ -675,7 +683,7 @@ const resetAllSettings = async () => {
 }
 
 .slider-icon {
-  color: var(--text-muted, #9ca3af);
+  color: var(--color-text-muted);
 }
 
 .slider-icon.small {
@@ -688,7 +696,7 @@ const resetAllSettings = async () => {
 
 .slider-icon-text {
   font-size: 0.6875rem;
-  color: var(--text-muted, #9ca3af);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -697,7 +705,7 @@ const resetAllSettings = async () => {
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: var(--color-border, #e5e7eb);
+  background-color: var(--color-border-default);
   border-radius: 2px;
   outline: none;
 }
@@ -707,16 +715,16 @@ const resetAllSettings = async () => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--primary-color, #6366f1);
+  background-color: var(--color-accent-primary);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--primary-color, #6366f1);
+  background-color: var(--color-accent-primary);
   cursor: pointer;
   border: none;
 }
@@ -726,7 +734,7 @@ const resetAllSettings = async () => {
   text-align: right;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--primary-color, #6366f1);
+  color: var(--color-accent-primary);
 }
 
 /* 인라인 옵션 */
@@ -743,7 +751,7 @@ const resetAllSettings = async () => {
   display: block;
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-secondary);
   margin-bottom: 0.375rem;
 }
 
@@ -755,10 +763,10 @@ const resetAllSettings = async () => {
 .chip-btn {
   flex: 1;
   padding: 0.5rem 0.5rem;
-  border: 1.5px solid var(--color-border, #e5e7eb);
+  border: 1.5px solid var(--color-border-default);
   border-radius: 6px;
-  background: var(--color-bg-card, #fff);
-  color: var(--text-primary, #1f2937);
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.15s;
   font-size: 0.8125rem;
@@ -766,13 +774,27 @@ const resetAllSettings = async () => {
 }
 
 .chip-btn:hover {
-  border-color: var(--primary-color, #6366f1);
+  border-color: var(--color-accent-primary);
 }
 
 .chip-btn.active {
-  border-color: var(--primary-color, #6366f1);
-  background: var(--primary-color, #6366f1);
-  color: white;
+  border-color: var(--color-accent-primary);
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+}
+
+/* 두께 버튼 */
+.weight-buttons {
+  gap: 0.375rem;
+}
+
+.weight-chip {
+  padding: 0.375rem 0.25rem;
+}
+
+.weight-preview {
+  font-size: 0.9375rem;
+  line-height: 1.2;
 }
 
 /* 테마 선택 */
@@ -788,10 +810,10 @@ const resetAllSettings = async () => {
   justify-content: center;
   gap: 0.375rem;
   padding: 0.75rem;
-  border: 1.5px solid var(--color-border, #e5e7eb);
+  border: 1.5px solid var(--color-border-default);
   border-radius: 10px;
-  background: var(--color-bg-card, #fff);
-  color: var(--text-primary, #1f2937);
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.8125rem;
@@ -799,13 +821,13 @@ const resetAllSettings = async () => {
 }
 
 .theme-btn:hover {
-  border-color: var(--primary-color, #6366f1);
+  border-color: var(--color-accent-primary);
 }
 
 .theme-btn.active {
-  border-color: var(--primary-color, #6366f1);
-  background: var(--primary-light, #eef2ff);
-  color: var(--primary-color, #6366f1);
+  border-color: var(--color-accent-primary);
+  background-color: var(--color-accent-primary-light);
+  color: var(--color-accent-primary);
 }
 
 .theme-icon {
@@ -819,7 +841,7 @@ const resetAllSettings = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 0.625rem 0;
-  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .toggle-item:last-child {
@@ -835,12 +857,12 @@ const resetAllSettings = async () => {
 .toggle-title {
   font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--text-primary, #1f2937);
+  color: var(--color-text-primary);
 }
 
 .toggle-desc {
   font-size: 0.75rem;
-  color: var(--text-muted, #9ca3af);
+  color: var(--color-text-muted);
 }
 
 /* 토글 스위치 */
@@ -865,7 +887,7 @@ const resetAllSettings = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--color-border, #e5e7eb);
+  background-color: var(--color-border-default);
   transition: 0.2s;
   border-radius: 26px;
 }
@@ -880,11 +902,11 @@ const resetAllSettings = async () => {
   background-color: white;
   transition: 0.2s;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .toggle input:checked + .toggle-slider {
-  background-color: var(--primary-color, #6366f1);
+  background-color: var(--color-accent-primary);
 }
 
 .toggle input:checked + .toggle-slider:before {
@@ -895,20 +917,20 @@ const resetAllSettings = async () => {
 .setting-item {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--color-border-light, #f3f4f6);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .setting-label {
   display: block;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-secondary);
   margin-bottom: 0.5rem;
 }
 
 .setting-hint {
   font-size: 0.75rem;
-  color: var(--text-muted, #9ca3af);
+  color: var(--color-text-muted);
   margin-top: 0.375rem;
 }
 
@@ -930,30 +952,30 @@ const resetAllSettings = async () => {
 }
 
 .radio-option:hover {
-  background: var(--color-bg-hover, #f3f4f6);
+  background-color: var(--color-bg-hover);
 }
 
 .radio-option.active {
-  background: var(--primary-light, #eef2ff);
+  background-color: var(--color-accent-primary-light);
 }
 
 .radio-option input {
-  accent-color: var(--primary-color, #6366f1);
+  accent-color: var(--color-accent-primary);
 }
 
 .radio-label {
   font-size: 0.9375rem;
-  color: var(--text-primary, #1f2937);
+  color: var(--color-text-primary);
 }
 
 /* 위험 섹션 */
 .danger-section {
-  border: 1px solid var(--color-error-light, #fecaca);
+  border: 1px solid var(--color-error-bg);
 }
 
 .danger-hint {
   font-size: 0.75rem;
-  color: var(--color-error, #ef4444);
+  color: var(--color-error);
   margin: 0 0 0.75rem;
 }
 
@@ -968,20 +990,20 @@ const resetAllSettings = async () => {
   align-items: center;
   justify-content: center;
   padding: 0.625rem 1rem;
-  background: var(--color-bg-card, #fff);
-  border: 1px solid var(--color-border, #e5e7eb);
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .danger-btn:hover:not(:disabled) {
-  border-color: var(--color-error, #ef4444);
-  background: var(--color-error-light, #fef2f2);
-  color: var(--color-error, #ef4444);
+  border-color: var(--color-error);
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .danger-btn:disabled {
@@ -990,93 +1012,261 @@ const resetAllSettings = async () => {
 }
 
 .danger-btn.reset {
-  border-color: var(--color-error, #ef4444);
-  color: var(--color-error, #ef4444);
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 
 .danger-btn.reset:hover:not(:disabled) {
-  background: var(--color-error, #ef4444);
-  color: white;
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
 }
 
-/* 다크모드 */
-:root.dark .bible-page-header {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
+/* ===== 다크모드 ===== */
+[data-theme="dark"] .settings-page {
+  background-color: var(--color-bg-primary);
 }
 
-:root.dark .preview-section {
-  background: var(--color-bg-card);
+/* 헤더 */
+[data-theme="dark"] .bible-page-header {
+  background-color: var(--color-bg-card);
+  border-bottom-color: var(--color-border-default);
 }
 
-:root.dark .preview-header {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
+[data-theme="dark"] .bible-page-header h1 {
+  color: var(--color-text-primary);
 }
 
-:root.dark .settings-section {
-  background: var(--color-bg-card);
+[data-theme="dark"] .bible-back-btn,
+[data-theme="dark"] .header-action-btn {
+  color: var(--color-text-secondary);
 }
 
-:root.dark .font-button {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
+[data-theme="dark"] .bible-back-btn:hover,
+[data-theme="dark"] .header-action-btn:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
-:root.dark .font-button.active {
-  background: var(--primary-dark);
-  border-color: var(--primary-color);
+/* 미리보기 섹션 */
+[data-theme="dark"] .preview-section {
+  background-color: var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
 }
 
-:root.dark .slider-group {
-  background: var(--color-bg-secondary);
+[data-theme="dark"] .preview-header {
+  background-color: var(--color-bg-tertiary);
+  border-bottom-color: var(--color-border-default);
 }
 
-:root.dark .slider {
-  background: var(--color-bg-tertiary);
+[data-theme="dark"] .preview-label {
+  color: var(--color-text-muted);
 }
 
-:root.dark .chip-btn {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
+[data-theme="dark"] .preview-content {
+  color: var(--color-text-primary);
 }
 
-:root.dark .theme-btn {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
+[data-theme="dark"] .verse-number,
+[data-theme="dark"] .verse-sup {
+  color: var(--color-text-muted);
 }
 
-:root.dark .theme-btn.active {
-  background: var(--primary-dark);
-  border-color: var(--primary-color);
+/* 섹션 공통 */
+[data-theme="dark"] .settings-section {
+  background-color: var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
 }
 
-:root.dark .toggle-item {
-  border-color: var(--color-border);
+[data-theme="dark"] .section-title {
+  color: var(--color-text-primary);
 }
 
-:root.dark .setting-item {
-  border-color: var(--color-border);
+[data-theme="dark"] .section-title.danger {
+  color: var(--color-error);
 }
 
-:root.dark .radio-option:hover {
-  background: var(--color-bg-hover);
+/* 폰트 그리드 */
+[data-theme="dark"] .font-button {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
 }
 
-:root.dark .radio-option.active {
-  background: var(--primary-dark);
+[data-theme="dark"] .font-button:hover {
+  border-color: var(--color-accent-primary);
+  background-color: var(--color-bg-hover);
 }
 
-:root.dark .danger-btn {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
+[data-theme="dark"] .font-button.active {
+  background-color: var(--color-accent-primary-light);
+  border-color: var(--color-accent-primary);
 }
 
-:root.dark .danger-btn:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.15);
+[data-theme="dark"] .font-preview {
+  color: var(--color-text-primary);
 }
 
-:root.dark .danger-btn.reset:hover:not(:disabled) {
-  background: var(--color-error);
+[data-theme="dark"] .font-name {
+  color: var(--color-text-secondary);
+}
+
+/* 슬라이더 그룹 */
+[data-theme="dark"] .slider-group {
+  background-color: var(--color-bg-tertiary);
+}
+
+[data-theme="dark"] .slider-label {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .slider-icon,
+[data-theme="dark"] .slider-icon-text {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .slider {
+  background-color: var(--color-border-dark);
+}
+
+[data-theme="dark"] .slider::-webkit-slider-thumb {
+  background-color: var(--color-accent-primary);
+}
+
+[data-theme="dark"] .slider::-moz-range-thumb {
+  background-color: var(--color-accent-primary);
+}
+
+[data-theme="dark"] .slider-value {
+  color: var(--color-accent-primary);
+}
+
+/* 인라인 옵션 (두께 & 정렬) */
+[data-theme="dark"] .option-label {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .chip-btn {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .chip-btn:hover {
+  border-color: var(--color-accent-primary);
+  background-color: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .chip-btn.active {
+  background-color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+}
+
+/* 테마 선택 */
+[data-theme="dark"] .theme-btn {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .theme-btn:hover {
+  border-color: var(--color-accent-primary);
+  background-color: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .theme-btn.active {
+  background-color: var(--color-accent-primary-light);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+[data-theme="dark"] .theme-icon {
+  color: inherit;
+}
+
+/* 토글 아이템 */
+[data-theme="dark"] .toggle-item {
+  border-bottom-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .toggle-title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .toggle-desc {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .toggle-slider {
+  background-color: var(--color-border-dark);
+}
+
+[data-theme="dark"] .toggle input:checked + .toggle-slider {
+  background-color: var(--color-accent-primary);
+}
+
+/* 설정 아이템 */
+[data-theme="dark"] .setting-item {
+  border-top-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .setting-label {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .setting-hint {
+  color: var(--color-text-muted);
+}
+
+/* 라디오 옵션 */
+[data-theme="dark"] .radio-option {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .radio-option:hover {
+  background-color: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .radio-option.active {
+  background-color: var(--color-accent-primary-light);
+}
+
+[data-theme="dark"] .radio-option input {
+  accent-color: var(--color-accent-primary);
+}
+
+[data-theme="dark"] .radio-label {
+  color: var(--color-text-primary);
+}
+
+/* 위험 섹션 */
+[data-theme="dark"] .danger-section {
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+[data-theme="dark"] .danger-hint {
+  color: var(--color-error);
+}
+
+[data-theme="dark"] .danger-btn {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .danger-btn:hover:not(:disabled) {
+  border-color: var(--color-error);
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+[data-theme="dark"] .danger-btn.reset {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+[data-theme="dark"] .danger-btn.reset:hover:not(:disabled) {
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
 }
 </style>
