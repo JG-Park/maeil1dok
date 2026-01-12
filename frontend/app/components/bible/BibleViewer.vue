@@ -77,16 +77,19 @@
           @click.stop
         >
           <button class="action-button" @click="handleHighlightOrRemove">
-            <PenIcon :size="18" />
+            <PenIcon :size="16" />
             <span>{{ isSelectedVerseHighlighted ? '제거' : '하이라이트' }}</span>
           </button>
           <button class="action-button" @click="handleCopy">
-            <CopyIcon :size="18" />
+            <CopyIcon :size="16" />
             <span>복사</span>
           </button>
           <button class="action-button" @click="handleShare">
-            <ShareIcon :size="18" />
+            <ShareIcon :size="16" />
             <span>공유</span>
+          </button>
+          <button class="action-button close" @click="hideActionMenu(); clearAllSelections();">
+            <XMarkIcon :size="16" />
           </button>
         </div>
       </Transition>
@@ -558,24 +561,17 @@ const showActionMenuAtElement = (element: Element) => {
 const positionActionMenu = (rect: DOMRect) => {
   const viewportWidth = window.innerWidth;
 
-  // 메뉴 위치 계산 (선택 영역 위)
+  // 메뉴 위치 계산 (선택 영역 위, 화면 정중앙)
   let top = rect.top - ACTION_MENU.TOP_OFFSET;
-  let left = rect.left + rect.width / 2 - ACTION_MENU.HALF_WIDTH;
 
-  // 화면 경계 처리
+  // 화면 경계 처리 (상단)
   if (top < ACTION_MENU.EDGE_MARGIN) {
     top = rect.bottom + ACTION_MENU.EDGE_MARGIN;
-  }
-  if (left < ACTION_MENU.EDGE_MARGIN) {
-    left = ACTION_MENU.EDGE_MARGIN;
-  }
-  if (left + ACTION_MENU.WIDTH > viewportWidth) {
-    left = viewportWidth - ACTION_MENU.WIDTH - ACTION_MENU.EDGE_MARGIN;
   }
 
   actionMenuPosition.value = {
     top: `${top}px`,
-    left: `${left}px`,
+    left: `${viewportWidth / 2}px`, // 화면 정중앙 (CSS transform으로 보정)
   };
   showActionMenu.value = true;
 };
@@ -670,35 +666,25 @@ const handleCopy = async () => {
   }
 };
 
-// 복사 메뉴 위치 계산 (액션 메뉴 아래에 표시)
-const positionCopyMenu = (actionTop: number, actionLeft: number) => {
+// 복사 메뉴 위치 계산 (액션 메뉴 아래, 화면 정중앙)
+const positionCopyMenu = (actionTop: number, _actionLeft: number) => {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const copyMenuWidth = 280; // 예상 복사 메뉴 너비
   const copyMenuHeight = 50; // 예상 복사 메뉴 높이
-  const actionMenuHeight = 70; // 액션 메뉴 높이
+  const actionMenuHeight = 50; // 액션 메뉴 높이 (한 줄로 변경됨)
   const gap = 8; // 메뉴 간 간격
   
   // 액션 메뉴 아래에 표시
   let top = actionTop + actionMenuHeight + gap;
-  let left = actionLeft;
   
   // 화면 하단을 벗어나면 액션 메뉴 위에 표시
   if (top + copyMenuHeight > viewportHeight - 20) {
     top = actionTop - copyMenuHeight - gap;
   }
   
-  // 화면 좌우 경계 처리
-  if (left < 10) {
-    left = 10;
-  }
-  if (left + copyMenuWidth > viewportWidth - 10) {
-    left = viewportWidth - copyMenuWidth - 10;
-  }
-  
   copyMenuPosition.value = {
     top: `${top}px`,
-    left: `${left}px`,
+    left: `${viewportWidth / 2}px`, // 화면 정중앙 (CSS transform으로 보정)
   };
 };
 
@@ -1128,28 +1114,43 @@ defineExpose({
 .verse-action-menu {
   position: fixed;
   display: flex;
-  gap: 0.25rem;
-  padding: 0.5rem;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.375rem 0.5rem;
   background: var(--color-bg-card, #fff);
-  border-radius: 12px;
+  border-radius: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   z-index: 1000;
+  transform: translateX(-50%); /* 정중앙 보정 */
   /* 시스템 폰트 강제 적용 */
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .action-button {
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* 아이콘+레이블 한 줄 배치 */
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.375rem;
   padding: 0.5rem 0.75rem;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 16px;
   color: var(--text-primary, #1f2937);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
   transition: background 0.2s;
-  min-width: 52px;
+  white-space: nowrap;
+}
+
+/* 닫기 버튼 스타일 */
+.action-button.close {
+  padding: 0.375rem;
+  margin-left: 0.125rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.action-button.close:hover {
+  color: var(--text-primary, #1f2937);
+  background: var(--color-bg-hover, #f3f4f6);
 }
 
 .action-button:hover {
@@ -1173,7 +1174,12 @@ defineExpose({
 .action-menu-enter-from,
 .action-menu-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateX(-50%) translateY(8px);
+}
+
+.action-menu-enter-to,
+.action-menu-leave-from {
+  transform: translateX(-50%) translateY(0);
 }
 
 /* iOS 안전영역 */
@@ -1186,6 +1192,7 @@ defineExpose({
 /* 다크모드 액션 메뉴 */
 .theme-dark .verse-action-menu {
   background: var(--color-bg-card-dark, #2d2d2d);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .theme-dark .action-button {
@@ -1193,6 +1200,15 @@ defineExpose({
 }
 
 .theme-dark .action-button:hover {
+  background: var(--color-bg-hover-dark, #3d3d3d);
+}
+
+.theme-dark .action-button.close {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+.theme-dark .action-button.close:hover {
+  color: var(--text-primary-dark, #e5e5e5);
   background: var(--color-bg-hover-dark, #3d3d3d);
 }
 
@@ -1310,6 +1326,7 @@ defineExpose({
   width: max-content;
   max-width: 95vw;
   gap: 0.75rem;
+  transform: translateX(-50%); /* 정중앙 보정 */
   /* 시스템 폰트 강제 적용 (본문 폰트 상속 방지) */
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -1317,6 +1334,7 @@ defineExpose({
 .theme-dark .copy-menu {
   background: var(--color-bg-card-dark, #2d2d2d);
   border-color: var(--color-border-dark, #404040);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .copy-menu-label {
@@ -1324,6 +1342,10 @@ defineExpose({
   color: var(--primary-color, #6366f1);
   font-weight: 600;
   white-space: nowrap;
+}
+
+.theme-dark .copy-menu-label {
+  color: var(--primary-color-light, #818cf8);
 }
 
 .copy-menu-buttons {
@@ -1373,6 +1395,10 @@ defineExpose({
   font-size: 0.75rem;
 }
 
+.theme-dark .action-divider {
+  color: var(--color-border-dark, #4b5563);
+}
+
 /* 복사 메뉴 애니메이션 */
 .copy-menu-fade-enter-active,
 .copy-menu-fade-leave-active {
@@ -1383,13 +1409,13 @@ defineExpose({
 .copy-menu-fade-enter-from,
 .copy-menu-fade-leave-to {
   opacity: 0;
-  transform: translateY(-8px) scale(0.98);
+  transform: translateX(-50%) translateY(-8px) scale(0.98);
 }
 
 .copy-menu-fade-enter-to,
 .copy-menu-fade-leave-from {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 
 /* ====== 새한글(KNT) 전용 스타일 ====== */
