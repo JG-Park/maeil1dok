@@ -101,6 +101,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings';
 import { ACTION_MENU, TIMING } from '~/constants/bible';
+import { useSwipe } from '~/composables/useSwipe';
 import BibleViewerSkeleton from '~/components/bible/BibleViewerSkeleton.vue';
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
 import PenIcon from '~/components/icons/PenIcon.vue';
@@ -138,6 +139,8 @@ const emit = defineEmits<{
   'highlight-delete': [highlightId: number];
   copy: [text: string];
   share: [text: string];
+  'swipe-left': [];
+  'swipe-right': [];
 }>();
 
 // Store
@@ -149,6 +152,12 @@ const effectiveTheme = computed(() => settingsStore.effectiveTheme);
 const viewerRef = ref<HTMLElement | null>(null);
 const copyMenuRef = ref<HTMLElement | null>(null);
 const actionMenuRef = ref<HTMLElement | null>(null);
+
+// Swipe navigation
+useSwipe(viewerRef, {
+  onSwipeLeft: () => emit('swipe-left'),
+  onSwipeRight: () => emit('swipe-right'),
+}, { threshold: 80, horizontalRatio: 2 });
 
 // ====== 선택 시스템 상태 ======
 // 선택 모드: 'click' (절 클릭) | 'drag' (텍스트 드래그) | null

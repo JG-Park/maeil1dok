@@ -4,6 +4,8 @@
  * 마지막 읽기 위치 저장/복원 기능 제공
  * - 서버와 동기화 (로그인 사용자)
  * - localStorage 폴백 (비로그인 사용자)
+ *
+ * 중요: 페이지 초기화 중에는 저장하지 않음 (enableSaving 플래그로 제어)
  */
 import { ref, type Ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
@@ -28,6 +30,14 @@ export const useReadingPosition = () => {
   const showResumeModal = ref(false);
   const isSavingPosition = ref(false);
   const lastSavedScrollPosition = ref(0);
+
+  /**
+   * 저장 활성화 플래그: 페이지 초기화 완료 후 true로 설정 필수
+   * false 상태에서는 saveReadingPosition()이 아무 동작도 하지 않음
+   */
+  const isSavingEnabled = ref(false);
+
+  const lastSavedPosition = ref<{ book: string; chapter: number; version: string } | null>(null);
 
   // debounce용 타이머
   let savePositionTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -84,22 +94,27 @@ export const useReadingPosition = () => {
     }
   };
 
-  /**
-   * 마지막 읽기 위치 저장 (debounced)
-   */
   const saveReadingPosition = async (
     book: string,
     chapter: number,
     version: string,
     immediate = false
   ): Promise<void> => {
-    // 현재 스크롤 위치 계산
+    if (!isSavingEnabled.value && !immediate) return;
+
     const scrollPosition = typeof window !== 'undefined'
       ? window.scrollY / (document.documentElement.scrollHeight - window.innerHeight) || 0
       : 0;
 
-    // 이전 저장 위치와 차이가 작으면 저장하지 않음 (5% 미만) - 스크롤만
-    if (!immediate && Math.abs(scrollPosition - lastSavedScrollPosition.value) < 0.05) return;
+    const isSameLocation = lastSavedPosition.value &&
+      lastSavedPosition.value.book === book &&
+      lastSavedPosition.value.chapter === chapter &&
+      lastSavedPosition.value.version === version;
+
+    const scrollDeltaTooSmall = Math.abs(scrollPosition - lastSavedScrollPosition.value) < 0.05;
+    if (isSameLocation && !immediate && scrollDeltaTooSmall) {
+      return;
+    }
 
     const position: ReadingPosition = {
       book,
@@ -109,10 +124,10 @@ export const useReadingPosition = () => {
       updated_at: new Date().toISOString()
     };
 
-    // 항상 localStorage에 저장 (즉시)
     saveToLocalStorage(position);
     lastReadingPosition.value = position;
     lastSavedScrollPosition.value = scrollPosition;
+    lastSavedPosition.value = { book, chapter, version };
 
     // 비로그인 시 localStorage만 저장하고 종료
     if (!authStore.isAuthenticated) return;
@@ -178,29 +193,37 @@ export const useReadingPosition = () => {
     lastReadingPosition.value = null;
   };
 
-  /**
-   * cleanup - 컴포넌트 unmount 시 호출
-   */
   const cleanup = (): void => {
     if (savePositionTimeout) {
       clearTimeout(savePositionTimeout);
       savePositionTimeout = null;
     }
+    isSavingEnabled.value = false;
+    lastSavedPosition.value = null;
+  };
+
+  const enableSaving = (): void => {
+    isSavingEnabled.value = true;
+  };
+
+  const disableSaving = (): void => {
+    isSavingEnabled.value = false;
   };
 
   return {
-    // 상태
     lastReadingPosition,
     showResumeModal,
     isSavingPosition,
     lastSavedScrollPosition,
+    isSavingEnabled,
 
-    // 함수
     loadReadingPosition,
     saveReadingPosition,
     restoreScrollPosition,
     checkAndShowResumeModal,
     startFresh,
     cleanup,
+    enableSaving,
+    disableSaving,
   };
 };

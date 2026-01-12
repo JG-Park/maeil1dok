@@ -248,7 +248,8 @@ const {
 const {
   loadReadingPosition,
   saveReadingPosition,
-  cleanup: cleanupReadingPosition
+  cleanup: cleanupReadingPosition,
+  enableSaving: enablePositionSaving,
 } = useReadingPosition();
 const {
   loadBookmarks,
@@ -901,10 +902,11 @@ onMounted(async () => {
     await loadReadingDetail(tongdokPlanId.value, currentBook.value, currentChapter.value);
   }
 
-  // beforeunload 이벤트 등록 (페이지 이탈 시 위치 저장)
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', handleBeforeUnload);
   }
+
+  enablePositionSaving();
 });
 
 onBeforeUnmount(() => {

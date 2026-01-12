@@ -4,6 +4,8 @@
  * 성경 책/장 데이터, 역본 정보, 검색 관련 함수 제공
  */
 
+import { VERSE_COUNTS, getVerseCount, isValidReference } from './bibleVerseData';
+
 export interface BibleBook {
   id: string;
   name: string;
@@ -391,35 +393,39 @@ export const useBibleData = () => {
       });
     }
 
-    // 결과 생성
     matchedBookIds.forEach(bookId => {
       const maxChapters = bookChapters[bookId] || 1;
       const bookNameResult = bookNames[bookId] || bookId;
-      let validChapter = chapter;
-      if (validChapter !== null) {
-        if (validChapter < 1) validChapter = 1;
-        if (validChapter > maxChapters) validChapter = maxChapters;
-      }
-
-      results.push({
-        bookId,
-        chapter: validChapter,
-        verse: verse,
-        bookName: bookNameResult,
-        maxChapters,
-      });
-
-      alternativeInterpretations.forEach(alt => {
-        let altChapter: number | null = alt.chapter;
-        if (altChapter !== null) {
-          if (altChapter < 1) altChapter = 1;
-          if (altChapter > maxChapters) altChapter = maxChapters;
+      
+      const interpretations: Array<{ chapter: number | null; verse: number | null }> = [
+        { chapter, verse },
+        ...alternativeInterpretations.map(alt => ({ chapter: alt.chapter, verse: alt.verse }))
+      ];
+      
+      interpretations.forEach(interp => {
+        let validChapter = interp.chapter;
+        let validVerse = interp.verse;
+        
+        if (validChapter !== null) {
+          validChapter = Math.max(1, Math.min(validChapter, maxChapters));
+          
+          if (validVerse !== null) {
+            const maxVerse = getVerseCount(bookId, validChapter);
+            if (maxVerse === 0 || validVerse < 1 || validVerse > maxVerse) {
+              return;
+            }
+          }
         }
-        if (altChapter !== validChapter || alt.verse !== verse) {
+        
+        const isDuplicate = results.some(
+          r => r.bookId === bookId && r.chapter === validChapter && r.verse === validVerse
+        );
+        
+        if (!isDuplicate) {
           results.push({
             bookId,
-            chapter: altChapter,
-            verse: alt.verse,
+            chapter: validChapter,
+            verse: validVerse,
             bookName: bookNameResult,
             maxChapters,
           });

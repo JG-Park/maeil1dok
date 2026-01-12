@@ -117,6 +117,8 @@
       @highlight-delete="$emit('highlight-delete', $event)"
       @copy="$emit('copy', $event)"
       @share="$emit('share', $event)"
+      @swipe-left="handleSwipeLeft"
+      @swipe-right="handleSwipeRight"
     >
       <!-- 본문 하단: 읽음 표시 영역 -->
       <template #bottom>
@@ -344,7 +346,7 @@ const shortScheduleDate = computed(() => {
 });
 
 // Emits
-defineEmits<{
+const emit = defineEmits<{
   // 네비게이션
   back: [];
   'prev-chapter': [];
@@ -375,6 +377,19 @@ defineEmits<{
   'audio-link-click': [url: string];
   'reading-plan-click': [];
 }>();
+
+// Swipe handlers
+const handleSwipeLeft = () => {
+  if (props.hasNextChapter) {
+    emit('next-chapter');
+  }
+};
+
+const handleSwipeRight = () => {
+  if (props.hasPrevChapter) {
+    emit('prev-chapter');
+  }
+};
 
 // Refs
 const bibleViewerRef = ref<InstanceType<typeof BibleViewer> | null>(null);
