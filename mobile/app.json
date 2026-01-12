@@ -6,7 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": ["maeil1dok", "kakao91b7f3dfb146481fd15ff80aafb12349"],
+    "scheme": [
+      "maeil1dok",
+      "kakao91b7f3dfb146481fd15ff80aafb12349"
+    ],
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
@@ -26,7 +29,7 @@
       "package": "app.maeil1dok.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-"backgroundColor": "#EFECE8"
+        "backgroundColor": "#EFECE8"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -62,10 +65,15 @@
           "color": "#4A90A4"
         }
       ],
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-web-browser"
     ],
     "extra": {
       "webAppUrl": "https://maeil1dok.app",
+      "apiUrl": "https://api.maeil1dok.app",
+      "kakaoClientId": "YOUR_KAKAO_CLIENT_ID",
+      "googleClientId": "YOUR_GOOGLE_CLIENT_ID",
+      "googleClientSecret": "YOUR_GOOGLE_CLIENT_SECRET",
       "eas": {
         "projectId": "d5d66055-f76e-4c18-b741-78143327e3ca"
       }

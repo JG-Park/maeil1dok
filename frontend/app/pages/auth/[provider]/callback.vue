@@ -8,6 +8,7 @@
 
 <script setup lang="ts">
 import { useNavigation } from '~/composables/useNavigation'
+import { useApi } from '~/composables/useApi'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -19,6 +20,8 @@ onMounted(async () => {
 
   if (provider === 'kakao' && code) {
     await handleKakaoCallback(code as string)
+  } else if (provider === 'google' && code) {
+    await handleGoogleCallback(code as string)
   } else {
     navigateTo('/login')
   }
@@ -52,6 +55,43 @@ const handleKakaoCallback = async (code: string) => {
     }
   } catch (error) {
     console.error('[Kakao Callback] Error during login:', error)
+    navigateTo('/login')
+  }
+}
+
+const handleGoogleCallback = async (code: string) => {
+  try {
+    const api = useApi()
+    const response = await api.post('/api/v1/auth/social-login/v2/', {
+      provider: 'google',
+      code
+    })
+
+    const data = response.data || response
+
+    if (data.needsSignup) {
+      // 회원가입이 필요한 경우 닉네임 설정 페이지로
+      navigateTo({
+        path: '/auth/google/setup',
+        query: {
+          provider: 'google',
+          provider_id: data.provider_id,
+          email: data.email || '',
+          suggested_nickname: data.suggested_nickname,
+          profile_image: data.profile_image || ''
+        }
+      })
+    } else {
+      // 기존 회원은 토큰 저장 후 원래 페이지로
+      if (data.access) {
+        auth.setTokens(data.access, data.refresh)
+        auth.setUser(data.user)
+      }
+      const redirectUrl = consumeRedirectUrl() || '/'
+      navigateTo(redirectUrl)
+    }
+  } catch (error) {
+    console.error('[Google Callback] Error during login:', error)
     navigateTo('/login')
   }
 }

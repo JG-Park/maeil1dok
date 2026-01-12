@@ -41,4 +41,43 @@ urlpatterns = [
     # 읽기 설정
     path('reading-settings/', profile_views.get_reading_settings, name='get_reading_settings'),
     path('reading-settings/update/', profile_views.update_reading_settings, name='update_reading_settings'),
+    
+    # ========================================
+    # 이메일/비밀번호 인증 (매일일독 계정)
+    # ========================================
+    path('email-register/', views.email_register, name='email_register'),
+    path('email-login/', views.email_login, name='email_login'),
+    
+    # ========================================
+    # 소셜 로그인 v2 (통합)
+    # ========================================
+    path('social-login/v2/', views.social_login_v2, name='social_login_v2'),
+    path('complete-social-signup/', views.complete_social_signup, name='complete_social_signup'),
+    
+    # ========================================
+    # 계정 연동 관리
+    # ========================================
+    path('linked-accounts/', views.get_linked_accounts, name='get_linked_accounts'),
+    path('link-social/', views.link_social_account, name='link_social_account'),
+    path('unlink-social/', views.unlink_social_account, name='unlink_social_account'),
+    path('set-password/', views.set_password, name='set_password'),
+    
+    # ========================================
+    # 계정 병합
+    # ========================================
+    path('merge-accounts/', views.merge_accounts, name='merge_accounts'),
+    
+    # ========================================
+    # 이메일 인증
+    # ========================================
+    path('send-verification/', views.send_verification_email_view, name='send_verification_email'),
+    path('verify-email/', views.verify_email, name='verify_email'),
+    path('resend-verification/', views.resend_verification_email, name='resend_verification_email'),
+    
+    # ========================================
+    # 비밀번호 재설정
+    # ========================================
+    path('request-password-reset/', views.request_password_reset, name='request_password_reset'),
+    path('verify-reset-token/', views.verify_reset_token, name='verify_reset_token'),
+    path('reset-password/', views.reset_password, name='reset_password'),
 ]

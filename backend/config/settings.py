@@ -248,3 +248,9 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
+
+# Resend 이메일 설정
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@maeil1dok.app')
+FROM_NAME = os.environ.get('FROM_NAME', '매일일독')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://maeil1dok.app')

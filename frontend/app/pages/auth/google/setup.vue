@@ -98,7 +98,8 @@ const { consumeRedirectUrl } = useNavigation()
 const nickname = ref('')
 const profileImage = ref<string | null>(null)
 const loading = ref(false)
-const kakaoId = ref<string | null>(null)
+const providerId = ref<string | null>(null)
+const email = ref<string | null>(null)
 const nicknameError = ref('')
 const isNicknameChecked = ref(false)
 let nicknameCheckTimeout: ReturnType<typeof setTimeout> | null = null
@@ -107,14 +108,12 @@ const checkNickname = async () => {
   nicknameError.value = ''
   isNicknameChecked.value = false
   
-  // 기존 타이머 취소 (debounce)
   if (nicknameCheckTimeout) {
     clearTimeout(nicknameCheckTimeout)
   }
   
   const value = nickname.value.trim()
   
-  // 길이 검증
   if (value.length < 2) {
     nicknameError.value = '닉네임은 2자 이상이어야 합니다'
     return
@@ -125,7 +124,6 @@ const checkNickname = async () => {
     return
   }
   
-  // 300ms 후에 서버 검증 (debounce)
   nicknameCheckTimeout = setTimeout(async () => {
     try {
       const response = await api.post('/api/v1/auth/check-nickname/', { nickname: value })
@@ -142,31 +140,32 @@ const checkNickname = async () => {
 }
 
 onMounted(() => {
-  // URL 쿼리에서 정보 가져오기
-  kakaoId.value = route.query.kakao_id as string || null
+  providerId.value = route.query.provider_id as string || null
   nickname.value = route.query.suggested_nickname as string || ''
   profileImage.value = route.query.profile_image as string || null
+  email.value = route.query.email as string || null
 
-  if (!kakaoId.value) {
+  if (!providerId.value) {
     navigateTo('/login')
   }
 })
 
 const handleSubmit = async () => {
-  if (!kakaoId.value || !nickname.value) return
+  if (!providerId.value || !nickname.value) return
 
   loading.value = true
   try {
-    const response = await api.post('/api/v1/auth/complete-kakao-signup/', {
-      kakao_id: kakaoId.value,
+    const response = await api.post('/api/v1/auth/complete-social-signup/', {
+      provider: 'google',
+      provider_id: providerId.value,
       nickname: nickname.value,
+      email: email.value,
       profile_image: profileImage.value
     })
 
     if (response.access) {
       auth.setTokens(response.access, response.refresh)
       auth.setUser(response.user)
-      // 네비게이션 스토어에서 리다이렉트 URL 소비 (로그인 전 접근하려던 페이지)
       const redirectUrl = consumeRedirectUrl() || '/'
       navigateTo(redirectUrl)
     }
@@ -187,4 +186,4 @@ button:disabled {
 .btn-primary:not(:disabled):hover {
   @apply transform -translate-y-0.5;
 }
-</style> 
+</style>

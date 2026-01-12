@@ -172,3 +172,64 @@ class UserSearchSerializer(serializers.ModelSerializer):
             return obj.profile.total_completed_days
         except:
             return 0
+
+
+# ========================================
+# 이메일/비밀번호 인증 시리얼라이저
+# ========================================
+
+class EmailRegisterSerializer(serializers.Serializer):
+    """이메일 회원가입 시리얼라이저"""
+    email = serializers.EmailField()
+    password = serializers.CharField(min_length=8, write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+    nickname = serializers.CharField(min_length=2, max_length=50)
+    
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
+        return value.lower()
+    
+    def validate_nickname(self, value):
+        if User.objects.filter(nickname=value).exists():
+            raise serializers.ValidationError("이미 사용 중인 닉네임입니다.")
+        return value
+    
+    def validate_password(self, value):
+        # 비밀번호 강도 검증
+        if not any(c.isdigit() for c in value):
+            raise serializers.ValidationError("비밀번호는 최소 1개의 숫자를 포함해야 합니다.")
+        if not any(c.isalpha() for c in value):
+            raise serializers.ValidationError("비밀번호는 최소 1개의 문자를 포함해야 합니다.")
+        return value
+    
+    def validate(self, data):
+        if data['password'] != data['password_confirm']:
+            raise serializers.ValidationError({"password_confirm": "비밀번호가 일치하지 않습니다."})
+        return data
+
+
+class SetPasswordSerializer(serializers.Serializer):
+    """비밀번호 설정/변경 시리얼라이저"""
+    new_password = serializers.CharField(min_length=8, write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+    current_password = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    
+    def validate_new_password(self, value):
+        if not any(c.isdigit() for c in value):
+            raise serializers.ValidationError("비밀번호는 최소 1개의 숫자를 포함해야 합니다.")
+        if not any(c.isalpha() for c in value):
+            raise serializers.ValidationError("비밀번호는 최소 1개의 문자를 포함해야 합니다.")
+        return value
+    
+    def validate(self, data):
+        if data['new_password'] != data['new_password_confirm']:
+            raise serializers.ValidationError({"new_password_confirm": "비밀번호가 일치하지 않습니다."})
+        return data
+
+
+class LinkedAccountsSerializer(serializers.Serializer):
+    """연결된 계정 목록 시리얼라이저"""
+    has_password = serializers.BooleanField()
+    email = serializers.EmailField(allow_null=True)
+    linked_accounts = serializers.ListField(child=serializers.DictField())

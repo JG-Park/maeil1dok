@@ -1,18 +1,26 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+import secrets
+from datetime import timedelta
 
 class User(AbstractUser):
     nickname = models.CharField(max_length=50, unique=True)
     
-    # 소셜 로그인 필드
+    # 소셜 로그인 필드 (레거시 - 하위 호환용, 새 SocialAccount 모델 사용 권장)
     is_social = models.BooleanField(default=False)
     social_provider = models.CharField(max_length=20, null=True, blank=True)
     social_id = models.CharField(max_length=100, null=True, blank=True)
     profile_image = models.URLField(max_length=500, null=True, blank=True)
     
-    # 기존 필드 중 불필요한 것들은 null=True로 설정
+    # 이메일/비밀번호 인증 지원
     email = models.EmailField(null=True, blank=True)
+    has_usable_password_flag = models.BooleanField(
+        default=False, 
+        help_text="사용자가 비밀번호를 설정했는지 여부 (소셜 전용 계정은 False)"
+    )
+    email_verified = models.BooleanField(default=False, help_text="이메일 인증 여부")
     
     # related_name 추가
     groups = models.ManyToManyField(
@@ -32,6 +40,80 @@ class User(AbstractUser):
     
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['nickname']
+    
+    def has_password_set(self):
+        """사용자가 비밀번호를 설정했는지 확인"""
+        return self.has_usable_password_flag and self.has_usable_password()
+    
+    def get_linked_providers(self):
+        """연결된 소셜 제공자 목록 반환"""
+        return list(self.social_accounts.values_list('provider', flat=True))
+    
+    def can_unlink_provider(self, provider):
+        """
+        특정 소셜 계정 연결 해제 가능 여부
+        - 비밀번호가 설정되어 있거나
+        - 다른 소셜 계정이 연결되어 있어야 함
+        """
+        if self.has_password_set():
+            return True
+        other_providers = self.social_accounts.exclude(provider=provider).count()
+        return other_providers > 0
+
+
+class SocialAccount(models.Model):
+    """
+    소셜 계정 연동 모델
+    - 한 사용자가 여러 소셜 계정을 연결할 수 있음
+    - 카카오, 구글 등 다중 제공자 지원
+    """
+    PROVIDER_CHOICES = [
+        ('kakao', '카카오'),
+        ('google', '구글'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='social_accounts'
+    )
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
+    provider_id = models.CharField(max_length=100, help_text="소셜 제공자의 고유 ID")
+    email = models.EmailField(null=True, blank=True, help_text="소셜 계정 이메일")
+    profile_image = models.URLField(max_length=500, null=True, blank=True)
+    access_token = models.TextField(null=True, blank=True, help_text="액세스 토큰 (암호화 저장)")
+    refresh_token = models.TextField(null=True, blank=True, help_text="리프레시 토큰 (암호화 저장)")
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    extra_data = models.JSONField(default=dict, blank=True, help_text="추가 프로필 정보")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['provider', 'provider_id']
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'provider']),
+            models.Index(fields=['provider', 'provider_id']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.nickname} - {self.get_provider_display()}"
+    
+    @classmethod
+    def get_or_create_user(cls, provider, provider_id, defaults=None):
+        """
+        소셜 계정으로 사용자 조회 또는 생성
+        Returns: (user, social_account, created)
+        """
+        defaults = defaults or {}
+        try:
+            social_account = cls.objects.select_related('user').get(
+                provider=provider,
+                provider_id=provider_id
+            )
+            return social_account.user, social_account, False
+        except cls.DoesNotExist:
+            return None, None, True
 
 
 class UserProfile(models.Model):
@@ -231,3 +313,121 @@ class UserReadingSettings(models.Model):
 
     def __str__(self):
         return f"{self.user.nickname}의 읽기 설정"
+
+
+class EmailVerificationToken(models.Model):
+    """이메일 인증 토큰"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_verification_tokens'
+    )
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    email = models.EmailField(help_text="인증 대상 이메일")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Email verification for {self.email}"
+    
+    @classmethod
+    def create_token(cls, user, email, expiry_hours=24):
+        """새 인증 토큰 생성"""
+        # 기존 미사용 토큰 무효화
+        cls.objects.filter(user=user, is_used=False).update(is_used=True)
+        
+        token = secrets.token_urlsafe(48)
+        expires_at = timezone.now() + timedelta(hours=expiry_hours)
+        
+        return cls.objects.create(
+            user=user,
+            token=token,
+            email=email,
+            expires_at=expires_at
+        )
+    
+    def is_valid(self):
+        """토큰 유효성 검사"""
+        if self.is_used:
+            return False
+        if timezone.now() > self.expires_at:
+            return False
+        return True
+    
+    def verify(self):
+        """토큰 사용 및 이메일 인증 완료 처리"""
+        if not self.is_valid():
+            return False
+        
+        self.is_used = True
+        self.save(update_fields=['is_used'])
+        
+        # 사용자 이메일 인증 완료
+        self.user.email_verified = True
+        self.user.email = self.email
+        self.user.save(update_fields=['email_verified', 'email'])
+        
+        return True
+
+
+class PasswordResetToken(models.Model):
+    """비밀번호 재설정 토큰"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='password_reset_tokens'
+    )
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Password reset for {self.user.email}"
+    
+    @classmethod
+    def create_token(cls, user, expiry_hours=1):
+        """새 비밀번호 재설정 토큰 생성 (기본 1시간 유효)"""
+        # 기존 미사용 토큰 무효화
+        cls.objects.filter(user=user, is_used=False).update(is_used=True)
+        
+        token = secrets.token_urlsafe(48)
+        expires_at = timezone.now() + timedelta(hours=expiry_hours)
+        
+        return cls.objects.create(
+            user=user,
+            token=token,
+            expires_at=expires_at
+        )
+    
+    def is_valid(self):
+        """토큰 유효성 검사"""
+        if self.is_used:
+            return False
+        if timezone.now() > self.expires_at:
+            return False
+        return True
+    
+    def use_token(self):
+        """토큰 사용 처리"""
+        if not self.is_valid():
+            return False
+        
+        self.is_used = True
+        self.save(update_fields=['is_used'])
+        return True

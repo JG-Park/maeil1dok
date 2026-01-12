@@ -4,15 +4,25 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer, SocialLoginSerializer
+from .serializers import (
+    RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer, 
+    SocialLoginSerializer, EmailRegisterSerializer, LinkedAccountsSerializer,
+    SetPasswordSerializer
+)
 from .authentication import set_auth_cookies, get_tokens_for_user
+from .models import SocialAccount, EmailVerificationToken, PasswordResetToken
+from .email_utils import send_verification_email, send_password_reset_email, send_welcome_email
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import transaction
+from django.db.models import Q
 import requests
 from django.conf import settings
 from django.utils import timezone
 from todos.models import BibleReadingPlan, PlanSubscription
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -248,3 +258,753 @@ def complete_kakao_signup(request):
         # 보안: 내부 에러 상세를 클라이언트에 노출하지 않음
         logger.error(f"카카오 회원가입 중 오류 발생: {str(e)}", exc_info=True)
         return Response({'error': '회원가입 처리 중 오류가 발생했습니다.'}, status=400)
+
+
+# ========================================
+# 이메일/비밀번호 인증 (매일일독 계정)
+# ========================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def email_register(request):
+    """이메일/비밀번호로 회원가입"""
+    serializer = EmailRegisterSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    
+    try:
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
+        nickname = serializer.validated_data['nickname']
+        
+        # 이메일 중복 확인
+        if User.objects.filter(email=email).exists():
+            return Response({'error': '이미 사용 중인 이메일입니다.'}, status=400)
+        
+        # 닉네임 중복 확인
+        if User.objects.filter(nickname=nickname).exists():
+            return Response({'error': '이미 사용 중인 닉네임입니다.'}, status=400)
+        
+        # 사용자 생성
+        user = User.objects.create(
+            username=f"email_{uuid.uuid4().hex[:12]}",  # 고유 username
+            email=email,
+            nickname=nickname,
+            is_social=False,
+            has_usable_password_flag=True
+        )
+        user.set_password(password)
+        user.save()
+        
+        # 기본 플랜 구독 생성
+        _create_default_subscription(user)
+        
+        # 토큰 발급
+        refresh = RefreshToken.for_user(user)
+        response = Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': UserSerializer(user).data
+        })
+        set_auth_cookies(response, str(refresh.access_token), str(refresh))
+        
+        logger.info(f"이메일 회원가입 성공: user_id={user.id}, email={email}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"이메일 회원가입 중 오류: {str(e)}", exc_info=True)
+        return Response({'error': '회원가입 처리 중 오류가 발생했습니다.'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def email_login(request):
+    """이메일/비밀번호로 로그인"""
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    if not email or not password:
+        return Response({'error': '이메일과 비밀번호를 입력해주세요.'}, status=400)
+    
+    try:
+        user = User.objects.get(email=email)
+        if not user.check_password(password):
+            return Response({'error': '이메일 또는 비밀번호가 올바르지 않습니다.'}, status=400)
+        
+        refresh = RefreshToken.for_user(user)
+        response = Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': UserSerializer(user).data
+        })
+        set_auth_cookies(response, str(refresh.access_token), str(refresh))
+        
+        logger.info(f"이메일 로그인 성공: user_id={user.id}")
+        return response
+        
+    except User.DoesNotExist:
+        return Response({'error': '이메일 또는 비밀번호가 올바르지 않습니다.'}, status=400)
+    except Exception as e:
+        logger.error(f"이메일 로그인 중 오류: {str(e)}", exc_info=True)
+        return Response({'error': '로그인 처리 중 오류가 발생했습니다.'}, status=400)
+
+
+# ========================================
+# 소셜 계정 연동 (신규)
+# ========================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def social_login_v2(request):
+    """
+    통합 소셜 로그인 (v2)
+    - 카카오/구글 지원
+    - SocialAccount 모델 사용
+    - 계정 연동 지원
+    """
+    serializer = SocialLoginSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    
+    provider = serializer.validated_data.get('provider')
+    code = serializer.validated_data.get('code')
+    access_token = serializer.validated_data.get('access_token')
+    
+    try:
+        # 소셜 제공자별 사용자 정보 가져오기
+        if provider == 'kakao':
+            if access_token:
+                social_info = get_kakao_user_info_by_token(access_token)
+            elif code:
+                social_info = get_kakao_user_info(code)
+            else:
+                return Response({'error': 'code 또는 access_token이 필요합니다.'}, status=400)
+            
+            provider_id = str(social_info.get('id'))
+            email = social_info.get('kakao_account', {}).get('email')
+            profile_image = social_info.get('properties', {}).get('profile_image')
+            nickname_suggestion = social_info.get('properties', {}).get('nickname', '')
+            
+        elif provider == 'google':
+            if access_token:
+                social_info = get_google_user_info_by_token(access_token)
+            elif code:
+                social_info = get_google_user_info(code)
+            else:
+                return Response({'error': 'code 또는 access_token이 필요합니다.'}, status=400)
+            
+            provider_id = social_info.get('sub')
+            email = social_info.get('email')
+            profile_image = social_info.get('picture')
+            nickname_suggestion = social_info.get('name', '')
+        else:
+            return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
+        
+        if not provider_id:
+            return Response({'error': '소셜 계정 정보를 가져올 수 없습니다.'}, status=400)
+        
+        # 기존 SocialAccount 확인
+        social_account = SocialAccount.objects.filter(
+            provider=provider,
+            provider_id=provider_id
+        ).select_related('user').first()
+        
+        if social_account:
+            # 기존 연동 계정으로 로그인
+            user = social_account.user
+            refresh = RefreshToken.for_user(user)
+            
+            response = Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            })
+            set_auth_cookies(response, str(refresh.access_token), str(refresh))
+            
+            logger.info(f"소셜 로그인 성공 (v2): provider={provider}, user_id={user.id}")
+            return response
+        
+        # 레거시 계정 확인 (기존 social_id 필드)
+        legacy_social_id = f"{provider}_{provider_id}"
+        legacy_user = User.objects.filter(username=legacy_social_id).first()
+        
+        if legacy_user:
+            # 레거시 계정을 새 SocialAccount로 마이그레이션
+            SocialAccount.objects.create(
+                user=legacy_user,
+                provider=provider,
+                provider_id=provider_id,
+                email=email,
+                profile_image=profile_image,
+                extra_data=social_info
+            )
+            
+            refresh = RefreshToken.for_user(legacy_user)
+            response = Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(legacy_user).data
+            })
+            set_auth_cookies(response, str(refresh.access_token), str(refresh))
+            
+            logger.info(f"레거시 계정 마이그레이션: provider={provider}, user_id={legacy_user.id}")
+            return response
+        
+        # 신규 사용자 - 가입 필요
+        return Response({
+            'needsSignup': True,
+            'provider': provider,
+            'provider_id': provider_id,
+            'email': email,
+            'suggested_nickname': nickname_suggestion,
+            'profile_image': profile_image
+        }, status=200)
+        
+    except Exception as e:
+        logger.error(f"소셜 로그인 v2 오류: {str(e)}", exc_info=True)
+        return Response({'error': '로그인 처리 중 오류가 발생했습니다.'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def complete_social_signup(request):
+    """소셜 회원가입 완료 (통합)"""
+    try:
+        provider = request.data.get('provider')
+        provider_id = request.data.get('provider_id')
+        nickname = request.data.get('nickname')
+        email = request.data.get('email')
+        profile_image = request.data.get('profile_image')
+        
+        if not provider or not provider_id or not nickname:
+            return Response({'error': '필수 정보가 누락되었습니다.'}, status=400)
+        
+        # 닉네임 중복 확인
+        if User.objects.filter(nickname=nickname).exists():
+            return Response({'error': '이미 사용 중인 닉네임입니다.'}, status=400)
+        
+        # 이미 연동된 계정인지 확인
+        if SocialAccount.objects.filter(provider=provider, provider_id=provider_id).exists():
+            return Response({'error': '이미 가입된 소셜 계정입니다.'}, status=400)
+        
+        with transaction.atomic():
+            # 사용자 생성
+            user = User.objects.create(
+                username=f"{provider}_{provider_id}",
+                nickname=nickname,
+                email=email,
+                profile_image=profile_image,
+                is_social=True,
+                social_provider=provider,
+                social_id=f"{provider}_{provider_id}"
+            )
+            
+            # SocialAccount 생성
+            SocialAccount.objects.create(
+                user=user,
+                provider=provider,
+                provider_id=provider_id,
+                email=email,
+                profile_image=profile_image
+            )
+            
+            # 기본 플랜 구독 생성
+            _create_default_subscription(user)
+        
+        refresh = RefreshToken.for_user(user)
+        response = Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': UserSerializer(user).data
+        })
+        set_auth_cookies(response, str(refresh.access_token), str(refresh))
+        
+        logger.info(f"소셜 회원가입 완료: provider={provider}, user_id={user.id}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"소셜 회원가입 오류: {str(e)}", exc_info=True)
+        return Response({'error': '회원가입 처리 중 오류가 발생했습니다.'}, status=400)
+
+
+# ========================================
+# 계정 연동 관리
+# ========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_linked_accounts(request):
+    """연결된 소셜 계정 목록 조회"""
+    user = request.user
+    social_accounts = SocialAccount.objects.filter(user=user)
+    
+    return Response({
+        'has_password': user.has_password_set(),
+        'email': user.email,
+        'linked_accounts': [
+            {
+                'provider': sa.provider,
+                'provider_display': sa.get_provider_display(),
+                'email': sa.email,
+                'profile_image': sa.profile_image,
+                'linked_at': sa.created_at,
+                'can_unlink': user.can_unlink_provider(sa.provider)
+            }
+            for sa in social_accounts
+        ]
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def link_social_account(request):
+    """소셜 계정 연동 추가"""
+    user = request.user
+    provider = request.data.get('provider')
+    access_token = request.data.get('access_token')
+    code = request.data.get('code')
+    
+    if not provider:
+        return Response({'error': '소셜 제공자를 지정해주세요.'}, status=400)
+    
+    try:
+        # 소셜 정보 가져오기
+        if provider == 'kakao':
+            if access_token:
+                social_info = get_kakao_user_info_by_token(access_token)
+            elif code:
+                social_info = get_kakao_user_info(code)
+            else:
+                return Response({'error': 'access_token 또는 code가 필요합니다.'}, status=400)
+            
+            provider_id = str(social_info.get('id'))
+            email = social_info.get('kakao_account', {}).get('email')
+            profile_image = social_info.get('properties', {}).get('profile_image')
+            
+        elif provider == 'google':
+            if access_token:
+                social_info = get_google_user_info_by_token(access_token)
+            elif code:
+                social_info = get_google_user_info(code)
+            else:
+                return Response({'error': 'access_token 또는 code가 필요합니다.'}, status=400)
+            
+            provider_id = social_info.get('sub')
+            email = social_info.get('email')
+            profile_image = social_info.get('picture')
+        else:
+            return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
+        
+        if not provider_id:
+            return Response({'error': '소셜 계정 정보를 가져올 수 없습니다.'}, status=400)
+        
+        # 이미 다른 계정에 연동되어 있는지 확인
+        existing = SocialAccount.objects.filter(
+            provider=provider, 
+            provider_id=provider_id
+        ).first()
+        
+        if existing:
+            if existing.user_id == user.id:
+                return Response({'error': '이미 연동된 계정입니다.'}, status=400)
+            else:
+                return Response({
+                    'error': '이 소셜 계정은 다른 사용자에게 연동되어 있습니다.',
+                    'can_merge': True,
+                    'other_user_nickname': existing.user.nickname
+                }, status=409)
+        
+        # 연동 추가
+        SocialAccount.objects.create(
+            user=user,
+            provider=provider,
+            provider_id=provider_id,
+            email=email,
+            profile_image=profile_image,
+            extra_data=social_info
+        )
+        
+        logger.info(f"소셜 계정 연동 추가: user_id={user.id}, provider={provider}")
+        return Response({'success': True, 'message': f'{provider} 계정이 연동되었습니다.'})
+        
+    except Exception as e:
+        logger.error(f"소셜 계정 연동 오류: {str(e)}", exc_info=True)
+        return Response({'error': '계정 연동 중 오류가 발생했습니다.'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def unlink_social_account(request):
+    """소셜 계정 연동 해제"""
+    user = request.user
+    provider = request.data.get('provider')
+    
+    if not provider:
+        return Response({'error': '소셜 제공자를 지정해주세요.'}, status=400)
+    
+    if not user.can_unlink_provider(provider):
+        return Response({
+            'error': '비밀번호를 설정하거나 다른 로그인 방법을 연동한 후 해제할 수 있습니다.'
+        }, status=400)
+    
+    try:
+        deleted, _ = SocialAccount.objects.filter(user=user, provider=provider).delete()
+        
+        if deleted:
+            logger.info(f"소셜 계정 연동 해제: user_id={user.id}, provider={provider}")
+            return Response({'success': True, 'message': f'{provider} 계정 연동이 해제되었습니다.'})
+        else:
+            return Response({'error': '연동된 계정을 찾을 수 없습니다.'}, status=404)
+            
+    except Exception as e:
+        logger.error(f"소셜 계정 연동 해제 오류: {str(e)}", exc_info=True)
+        return Response({'error': '연동 해제 중 오류가 발생했습니다.'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_password(request):
+    """비밀번호 설정 (소셜 계정 사용자용)"""
+    user = request.user
+    serializer = SetPasswordSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    
+    new_password = serializer.validated_data['new_password']
+    current_password = serializer.validated_data.get('current_password')
+    
+    # 이미 비밀번호가 있는 경우 현재 비밀번호 확인
+    if user.has_password_set():
+        if not current_password:
+            return Response({'error': '현재 비밀번호를 입력해주세요.'}, status=400)
+        if not user.check_password(current_password):
+            return Response({'error': '현재 비밀번호가 올바르지 않습니다.'}, status=400)
+    
+    user.set_password(new_password)
+    user.has_usable_password_flag = True
+    user.save()
+    
+    logger.info(f"비밀번호 설정 완료: user_id={user.id}")
+    return Response({'success': True, 'message': '비밀번호가 설정되었습니다.'})
+
+
+# ========================================
+# 계정 병합
+# ========================================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def merge_accounts(request):
+    """
+    계정 병합
+    - 현재 로그인한 계정을 주 계정으로 유지
+    - 대상 계정의 데이터를 현재 계정으로 이전
+    - 대상 계정은 비활성화
+    """
+    user = request.user
+    target_provider = request.data.get('provider')
+    target_access_token = request.data.get('access_token')
+    
+    if not target_provider or not target_access_token:
+        return Response({'error': '병합할 소셜 계정 정보가 필요합니다.'}, status=400)
+    
+    try:
+        # 대상 소셜 계정 정보 가져오기
+        if target_provider == 'kakao':
+            social_info = get_kakao_user_info_by_token(target_access_token)
+            provider_id = str(social_info.get('id'))
+        elif target_provider == 'google':
+            social_info = get_google_user_info_by_token(target_access_token)
+            provider_id = social_info.get('sub')
+        else:
+            return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
+        
+        if not provider_id:
+            return Response({'error': '소셜 계정 정보를 가져올 수 없습니다.'}, status=400)
+        
+        # 대상 계정 찾기
+        target_social = SocialAccount.objects.filter(
+            provider=target_provider,
+            provider_id=provider_id
+        ).select_related('user').first()
+        
+        if not target_social:
+            # 레거시 계정 확인
+            legacy_id = f"{target_provider}_{provider_id}"
+            target_user = User.objects.filter(username=legacy_id).first()
+            if not target_user:
+                return Response({'error': '병합할 계정을 찾을 수 없습니다.'}, status=404)
+        else:
+            target_user = target_social.user
+        
+        if target_user.id == user.id:
+            return Response({'error': '같은 계정입니다.'}, status=400)
+        
+        with transaction.atomic():
+            # 대상 계정의 데이터를 현재 계정으로 이전
+            _transfer_user_data(from_user=target_user, to_user=user)
+            
+            # 대상 계정의 소셜 연동을 현재 계정으로 이전
+            SocialAccount.objects.filter(user=target_user).update(user=user)
+            
+            # 대상 계정 비활성화
+            target_user.is_active = False
+            target_user.username = f"merged_{target_user.id}_{target_user.username}"
+            target_user.save()
+            
+            logger.info(f"계정 병합 완료: 주계정={user.id}, 병합된계정={target_user.id}")
+        
+        return Response({
+            'success': True,
+            'message': '계정이 병합되었습니다.',
+            'merged_user_id': target_user.id
+        })
+        
+    except Exception as e:
+        logger.error(f"계정 병합 오류: {str(e)}", exc_info=True)
+        return Response({'error': '계정 병합 중 오류가 발생했습니다.'}, status=400)
+
+
+# ========================================
+# 헬퍼 함수
+# ========================================
+
+def get_google_user_info_by_token(access_token):
+    """Google access_token으로 사용자 정보 조회"""
+    response = requests.get(
+        'https://www.googleapis.com/oauth2/v3/userinfo',
+        headers={'Authorization': f'Bearer {access_token}'}
+    )
+    return response.json()
+
+
+def _create_default_subscription(user):
+    """기본 플랜 구독 생성"""
+    default_plan = BibleReadingPlan.objects.filter(is_default=True).first()
+    if default_plan:
+        PlanSubscription.objects.create(
+            user=user,
+            plan=default_plan,
+            start_date=timezone.now().date(),
+            is_active=True
+        )
+        logger.info(f"사용자 {user.nickname}의 기본 플랜 구독 생성됨")
+    else:
+        logger.warning("기본 플랜이 설정되어 있지 않음")
+
+
+def _transfer_user_data(from_user, to_user):
+    """사용자 데이터 이전 (계정 병합용)"""
+    from todos.models import UserBibleProgress
+    
+    # 성경 읽기 진행 상황 이전 (중복 제외)
+    existing_progress = set(UserBibleProgress.objects.filter(user=to_user).values_list(
+        'schedule_id', 'plan_id', flat=False
+    ))
+    
+    for progress in UserBibleProgress.objects.filter(user=from_user):
+        key = (progress.schedule_id, progress.plan_id)
+        if key not in existing_progress:
+            progress.user = to_user
+            progress.save()
+    
+    # 프로필 통계 병합
+    try:
+        from_profile = from_user.profile
+        to_profile = to_user.profile
+        to_profile.total_completed_days = max(
+            to_profile.total_completed_days, 
+            from_profile.total_completed_days
+        )
+        to_profile.longest_streak = max(
+            to_profile.longest_streak,
+            from_profile.longest_streak
+        )
+        to_profile.save()
+    except Exception:
+        pass
+
+
+# ========================================
+# 이메일 인증
+# ========================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_verification_email_view(request):
+    """이메일 인증 메일 발송"""
+    email = request.data.get('email')
+    
+    if not email:
+        return Response({'error': '이메일을 입력해주세요.'}, status=400)
+    
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': '해당 이메일로 가입된 계정이 없습니다.'}, status=404)
+    
+    if user.email_verified:
+        return Response({'error': '이미 인증된 이메일입니다.'}, status=400)
+    
+    token_obj = EmailVerificationToken.create_token(user, email)
+    
+    if send_verification_email(email, token_obj.token, user.nickname):
+        logger.info(f"이메일 인증 메일 발송: user_id={user.id}, email={email}")
+        return Response({'success': True, 'message': '인증 메일이 발송되었습니다.'})
+    else:
+        return Response({'error': '메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.'}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_email(request):
+    """이메일 인증 토큰 검증"""
+    token = request.data.get('token')
+    
+    if not token:
+        return Response({'error': '인증 토큰이 필요합니다.'}, status=400)
+    
+    try:
+        token_obj = EmailVerificationToken.objects.select_related('user').get(token=token)
+    except EmailVerificationToken.DoesNotExist:
+        return Response({'error': '유효하지 않은 인증 링크입니다.'}, status=400)
+    
+    if not token_obj.is_valid():
+        return Response({'error': '인증 링크가 만료되었습니다. 새로운 인증 메일을 요청해주세요.'}, status=400)
+    
+    if token_obj.verify():
+        user = token_obj.user
+        send_welcome_email(user.email, user.nickname)
+        
+        refresh = RefreshToken.for_user(user)
+        response = Response({
+            'success': True,
+            'message': '이메일 인증이 완료되었습니다.',
+            'user': UserSerializer(user).data
+        })
+        set_auth_cookies(response, str(refresh.access_token), str(refresh))
+        
+        logger.info(f"이메일 인증 완료: user_id={user.id}")
+        return response
+    else:
+        return Response({'error': '인증 처리 중 오류가 발생했습니다.'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def resend_verification_email(request):
+    """인증 메일 재발송 (로그인 상태)"""
+    user = request.user
+    
+    if user.email_verified:
+        return Response({'error': '이미 인증된 이메일입니다.'}, status=400)
+    
+    if not user.email:
+        return Response({'error': '이메일이 설정되어 있지 않습니다.'}, status=400)
+    
+    token_obj = EmailVerificationToken.create_token(user, user.email)
+    
+    if send_verification_email(user.email, token_obj.token, user.nickname):
+        logger.info(f"인증 메일 재발송: user_id={user.id}")
+        return Response({'success': True, 'message': '인증 메일이 발송되었습니다.'})
+    else:
+        return Response({'error': '메일 발송에 실패했습니다.'}, status=500)
+
+
+# ========================================
+# 비밀번호 재설정
+# ========================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def request_password_reset(request):
+    """비밀번호 재설정 요청"""
+    email = request.data.get('email')
+    
+    if not email:
+        return Response({'error': '이메일을 입력해주세요.'}, status=400)
+    
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({
+            'success': True, 
+            'message': '해당 이메일로 비밀번호 재설정 안내가 발송됩니다.'
+        })
+    
+    if not user.has_password_set() and not user.email_verified:
+        return Response({
+            'success': True,
+            'message': '해당 이메일로 비밀번호 재설정 안내가 발송됩니다.'
+        })
+    
+    token_obj = PasswordResetToken.create_token(user)
+    
+    if send_password_reset_email(email, token_obj.token, user.nickname):
+        logger.info(f"비밀번호 재설정 메일 발송: user_id={user.id}")
+    
+    return Response({
+        'success': True,
+        'message': '해당 이메일로 비밀번호 재설정 안내가 발송됩니다.'
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_reset_token(request):
+    """비밀번호 재설정 토큰 유효성 검사"""
+    token = request.data.get('token')
+    
+    if not token:
+        return Response({'error': '토큰이 필요합니다.'}, status=400)
+    
+    try:
+        token_obj = PasswordResetToken.objects.get(token=token)
+    except PasswordResetToken.DoesNotExist:
+        return Response({'valid': False, 'error': '유효하지 않은 링크입니다.'}, status=400)
+    
+    if not token_obj.is_valid():
+        return Response({'valid': False, 'error': '링크가 만료되었습니다.'}, status=400)
+    
+    return Response({'valid': True})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    """비밀번호 재설정 완료"""
+    token = request.data.get('token')
+    new_password = request.data.get('new_password')
+    
+    if not token or not new_password:
+        return Response({'error': '토큰과 새 비밀번호가 필요합니다.'}, status=400)
+    
+    if len(new_password) < 8:
+        return Response({'error': '비밀번호는 8자 이상이어야 합니다.'}, status=400)
+    
+    try:
+        token_obj = PasswordResetToken.objects.select_related('user').get(token=token)
+    except PasswordResetToken.DoesNotExist:
+        return Response({'error': '유효하지 않은 링크입니다.'}, status=400)
+    
+    if not token_obj.is_valid():
+        return Response({'error': '링크가 만료되었습니다. 새로운 재설정 링크를 요청해주세요.'}, status=400)
+    
+    user = token_obj.user
+    user.set_password(new_password)
+    user.has_usable_password_flag = True
+    user.save()
+    
+    token_obj.use_token()
+    
+    refresh = RefreshToken.for_user(user)
+    response = Response({
+        'success': True,
+        'message': '비밀번호가 변경되었습니다.',
+        'user': UserSerializer(user).data
+    })
+    set_auth_cookies(response, str(refresh.access_token), str(refresh))
+    
+    logger.info(f"비밀번호 재설정 완료: user_id={user.id}")
+    return response

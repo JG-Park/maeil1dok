@@ -16,9 +16,15 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Splash screen 유지
 SplashScreen.preventAutoHideAsync();
+
+// WebBrowser warmup (성능 최적화)
+WebBrowser.maybeCompleteAuthSession();
 
 // Notification 핸들러 설정
 Notifications.setNotificationHandler({
@@ -33,7 +39,13 @@ Notifications.setNotificationHandler({
 
 // 상수
 const WEB_APP_URL = Constants.expoConfig?.extra?.webAppUrl || 'https://maeil1dok.app';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://api.maeil1dok.app';
 const APP_SCHEME = 'maeil1dok';
+
+// OAuth 설정
+const KAKAO_CLIENT_ID = Constants.expoConfig?.extra?.kakaoClientId || '';
+const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId || '';
+const GOOGLE_CLIENT_SECRET = Constants.expoConfig?.extra?.googleClientSecret || '';
 
 // OAuth 프로바이더 도메인
 const OAUTH_DOMAINS = [
@@ -43,12 +55,166 @@ const OAUTH_DOMAINS = [
   'oauth.google.com',
 ];
 
+// Auth 상태 타입
+interface AuthState {
+  isLoggedIn: boolean;
+  accessToken: string | null;
+  refreshToken: string | null;
+  user: any | null;
+}
+
+const STORAGE_KEY = '@maeil1dok_auth';
+
 export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
   const [isError, setIsError] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
+  
+  // 인증 상태
+  const [authState, setAuthState] = useState<AuthState>({
+    isLoggedIn: false,
+    accessToken: null,
+    refreshToken: null,
+    user: null,
+  });
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showLogin, setShowLogin] = useState(false);
+
+  // 저장된 인증 상태 로드
+  useEffect(() => {
+    const loadAuthState = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.accessToken) {
+            setAuthState(parsed);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load auth state:', error);
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+    loadAuthState();
+  }, []);
+
+  // 인증 상태 저장
+  const saveAuthState = async (state: AuthState) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setAuthState(state);
+    } catch (error) {
+      console.error('Failed to save auth state:', error);
+    }
+  };
+
+  // 로그아웃
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      setAuthState({
+        isLoggedIn: false,
+        accessToken: null,
+        refreshToken: null,
+        user: null,
+      });
+      setShowLogin(true);
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  };
+
+  // 카카오 로그인
+  const handleKakaoLogin = async () => {
+    try {
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: APP_SCHEME,
+        path: 'auth/kakao/callback',
+      });
+
+      const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
+      
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const code = url.searchParams.get('code');
+        
+        if (code) {
+          await handleSocialLoginCode('kakao', code);
+        }
+      }
+    } catch (error) {
+      console.error('Kakao login error:', error);
+    }
+  };
+
+  // 구글 로그인
+  const handleGoogleLogin = async () => {
+    try {
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: APP_SCHEME,
+        path: 'auth/google/callback',
+      });
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent`;
+      
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const code = url.searchParams.get('code');
+        
+        if (code) {
+          await handleSocialLoginCode('google', code);
+        }
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+    }
+  };
+
+  // 소셜 로그인 코드 처리
+  const handleSocialLoginCode = async (provider: string, code: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/social-login/v2/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ provider, code }),
+      });
+
+      const data = await response.json();
+
+      if (data.access) {
+        // 로그인 성공
+        await saveAuthState({
+          isLoggedIn: true,
+          accessToken: data.access,
+          refreshToken: data.refresh,
+          user: data.user,
+        });
+        setShowLogin(false);
+      } else if (data.needsSignup) {
+        // 회원가입 필요 - WebView로 이동
+        const signupUrl = `${WEB_APP_URL}/auth/${provider}/setup?provider=${provider}&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+        setShowLogin(false);
+        webViewRef.current?.injectJavaScript(`window.location.href = '${signupUrl}';`);
+      } else {
+        console.error('Login failed:', data);
+      }
+    } catch (error) {
+      console.error('Social login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 딥링크 처리
   const handleDeepLink = useCallback((event: { url: string }) => {
@@ -58,6 +224,12 @@ export default function App() {
     // maeil1dok:// 스킴에서 path 추출
     if (url.startsWith(`${APP_SCHEME}://`)) {
       const path = url.replace(`${APP_SCHEME}://`, '');
+      
+      // OAuth 콜백은 무시 (WebBrowser가 처리)
+      if (path.startsWith('auth/')) {
+        return;
+      }
+      
       const webUrl = `${WEB_APP_URL}/${path}`;
       webViewRef.current?.injectJavaScript(`window.location.href = '${webUrl}';`);
     }
@@ -65,14 +237,12 @@ export default function App() {
 
   // 초기 URL 및 딥링크 리스너 설정
   useEffect(() => {
-    // 앱이 열릴 때의 초기 URL 확인
     Linking.getInitialURL().then((url) => {
       if (url) {
         handleDeepLink({ url });
       }
     });
 
-    // 딥링크 리스너
     const subscription = Linking.addEventListener('url', handleDeepLink);
 
     return () => {
@@ -84,7 +254,6 @@ export default function App() {
   useEffect(() => {
     registerForPushNotifications();
 
-    // 알림 클릭 리스너
     const notificationSubscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const url = response.notification.request.content.data?.url as string | undefined;
@@ -135,6 +304,9 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS === 'android') {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (showLogin) {
+          return true; // 로그인 화면에서는 뒤로가기 막기
+        }
         if (canGoBack && webViewRef.current) {
           webViewRef.current.goBack();
           return true;
@@ -144,7 +316,7 @@ export default function App() {
 
       return () => backHandler.remove();
     }
-  }, [canGoBack]);
+  }, [canGoBack, showLogin]);
 
   // 네비게이션 상태 변경 핸들러
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
@@ -170,6 +342,30 @@ export default function App() {
     return true;
   };
 
+  // WebView에 토큰 주입
+  const injectAuthToken = () => {
+    if (authState.accessToken && webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        (function() {
+          if (window.ReactNativeWebView) {
+            // localStorage에 토큰 저장
+            const authData = {
+              token: '${authState.accessToken}',
+              refreshToken: '${authState.refreshToken}',
+              user: ${JSON.stringify(authState.user)}
+            };
+            localStorage.setItem('auth', JSON.stringify(authData));
+            
+            // 커스텀 이벤트 발생
+            window.dispatchEvent(new CustomEvent('nativeAuthToken', { 
+              detail: authData 
+            }));
+          }
+        })();
+      `);
+    }
+  };
+
   // WebView에 푸시 토큰 전달
   const injectPushToken = () => {
     if (pushToken && webViewRef.current) {
@@ -190,6 +386,7 @@ export default function App() {
     setIsError(false);
     SplashScreen.hideAsync();
     injectPushToken();
+    injectAuthToken();
   };
 
   // 에러 핸들러
@@ -209,9 +406,26 @@ export default function App() {
         case 'requestPushToken':
           injectPushToken();
           break;
+        case 'requestAuthToken':
+          injectAuthToken();
+          break;
         case 'navigate':
           if (message.url) {
             Linking.openURL(message.url);
+          }
+          break;
+        case 'logout':
+          handleLogout();
+          break;
+        case 'authStateChanged':
+          // WebView에서 인증 상태 변경 알림
+          if (message.data) {
+            saveAuthState({
+              isLoggedIn: !!message.data.token,
+              accessToken: message.data.token,
+              refreshToken: message.data.refreshToken,
+              user: message.data.user,
+            });
           }
           break;
         default:
@@ -228,6 +442,82 @@ export default function App() {
     setIsLoading(true);
     webViewRef.current?.reload();
   };
+
+  // 게스트 모드로 진입
+  const handleGuestMode = () => {
+    setShowLogin(false);
+  };
+
+  // 로딩 중
+  if (isAuthLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#faf8f6" />
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#4A90A4" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // 로그인 화면
+  if (showLogin || (!authState.isLoggedIn && !isAuthLoading)) {
+    return (
+      <SafeAreaView style={styles.loginContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#faf8f6" />
+        <View style={styles.loginContent}>
+          {/* 로고 */}
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>매일일독</Text>
+            <Text style={styles.logoSubtext}>매일 성경을 읽는 습관</Text>
+          </View>
+
+          {/* 로그인 버튼들 */}
+          <View style={styles.loginButtons}>
+            {/* 카카오 로그인 */}
+            <TouchableOpacity 
+              style={styles.kakaoButton} 
+              onPress={handleKakaoLogin}
+              activeOpacity={0.8}
+            >
+              <View style={styles.kakaoIcon}>
+                <Text style={styles.kakaoIconText}>K</Text>
+              </View>
+              <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
+            </TouchableOpacity>
+
+            {/* 구글 로그인 */}
+            <TouchableOpacity 
+              style={styles.googleButton} 
+              onPress={handleGoogleLogin}
+              activeOpacity={0.8}
+            >
+              <View style={styles.googleIcon}>
+                <Text style={styles.googleIconText}>G</Text>
+              </View>
+              <Text style={styles.googleButtonText}>구글로 시작하기</Text>
+            </TouchableOpacity>
+
+            {/* 구분선 */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>또는</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* 게스트 모드 */}
+            <TouchableOpacity 
+              style={styles.guestButton} 
+              onPress={handleGuestMode}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.guestButtonText}>둘러보기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // 에러 화면
   if (isError) {
@@ -280,9 +570,24 @@ export default function App() {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'requestPushToken' }));
             };
             
+            // 인증 토큰 요청 함수
+            window.requestNativeAuthToken = function() {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'requestAuthToken' }));
+            };
+            
             // 외부 링크 열기 함수
             window.openExternalLink = function(url) {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'navigate', url: url }));
+            };
+            
+            // 로그아웃 함수
+            window.nativeLogout = function() {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'logout' }));
+            };
+            
+            // 인증 상태 변경 알림 함수
+            window.notifyAuthStateChanged = function(data) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'authStateChanged', data: data }));
             };
           })();
           true;
@@ -331,6 +636,120 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#faf8f6',
   },
+  // 로그인 화면 스타일
+  loginContainer: {
+    flex: 1,
+    backgroundColor: '#faf8f6',
+  },
+  loginContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  logoText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  logoSubtext: {
+    fontSize: 16,
+    color: '#666',
+  },
+  loginButtons: {
+    width: '100%',
+    maxWidth: 320,
+  },
+  kakaoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEE500',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  kakaoButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginLeft: 8,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 24,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 8,
+  },
+  kakaoIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    backgroundColor: '#3C1E1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  kakaoIconText: {
+    color: '#FEE500',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    backgroundColor: '#4285F4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleIconText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#999',
+  },
+  guestButton: {
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  guestButtonText: {
+    fontSize: 16,
+    color: '#4A90A4',
+    fontWeight: '500',
+  },
+  // 에러 화면 스타일
   errorContainer: {
     flex: 1,
     backgroundColor: '#faf8f6',
