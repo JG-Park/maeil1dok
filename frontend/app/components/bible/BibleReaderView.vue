@@ -53,33 +53,40 @@
 
     <!-- 통독모드 인디케이터 -->
     <div v-if="isTongdokMode && tongdokScheduleRange" class="tongdok-indicator">
-      <div class="tongdok-info">
-        <span class="tongdok-badge">통독</span>
-        <span class="tongdok-range">{{ tongdokScheduleRange }}</span>
-        <span v-if="tongdokProgress" class="tongdok-progress">
-          {{ tongdokProgress.current }}/{{ tongdokProgress.total }}장
-        </span>
+      <div class="tongdok-info-container">
+        <div class="tongdok-info-row">
+          <span class="tongdok-badge">통독중</span>
+          <span class="tongdok-range">
+            {{ tongdokScheduleRange }}
+            <span v-if="tongdokProgress" class="tongdok-remaining">
+              [{{ tongdokProgress.total - tongdokProgress.current + 1 }}장 남음]
+            </span>
+          </span>
+        </div>
+        <div class="tongdok-date">{{ formattedScheduleDate }}</div>
       </div>
       <div class="tongdok-actions">
         <a
           v-if="tongdokAudioLink"
           href="#"
-          class="tongdok-link audio"
+          class="tongdok-btn-label audio"
           @click.prevent="$emit('audio-link-click', tongdokAudioLink)"
           title="오디오"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M9 18V6l12 6-12 6z" fill="currentColor" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
           </svg>
+          <span>오디오</span>
         </a>
         <a
           v-if="tongdokGuideLink"
           :href="tongdokGuideLink"
           target="_blank"
-          class="tongdok-link guide"
+          class="tongdok-btn-label guide"
           title="해설"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path
               d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
               stroke="currentColor"
@@ -88,17 +95,27 @@
               stroke-linejoin="round"
             />
           </svg>
+          <span>해설</span>
         </a>
         <button
-          class="tongdok-complete-mini-btn"
+          class="tongdok-btn-label complete"
           :disabled="isCompleting"
           @click="$emit('tongdok-complete-click')"
           title="통독 완료"
         >
-          <CheckCircleIcon />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          <span>완료</span>
         </button>
-        <button class="tongdok-close" @click="$emit('exit-tongdok')" title="통독모드 종료">
-          <XMarkIcon />
+        <button class="tongdok-btn-label close" @click="$emit('exit-tongdok')" title="통독모드 종료">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>통독종료</span>
         </button>
       </div>
     </div>
@@ -302,10 +319,11 @@ const formatScheduleDate = (dateString: string | null): string => {
   if (!dateString) return '';
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const date = new Date(dateString);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   const dayOfWeek = days[date.getDay()];
-  return `${month}/${day}(${dayOfWeek})`;
+  return `${year}년 ${month}월 ${day}일(${dayOfWeek})`;
 };
 
 const formattedScheduleDate = computed(() => formatScheduleDate(props.tongdokScheduleDate));
@@ -523,21 +541,27 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   background: var(--primary-light, #eef2ff);
   border-bottom: 1px solid var(--color-border, #e5e7eb);
 }
 
-.tongdok-info {
+.tongdok-info-container {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.125rem;
   flex: 1;
   min-width: 0;
 }
 
+.tongdok-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .tongdok-badge {
-  padding: 0.125rem 0.5rem;
+  padding: 0.125rem 0.375rem;
   background: var(--primary-color, #6366f1);
   color: white;
   border-radius: 4px;
@@ -547,77 +571,97 @@ defineExpose({
 }
 
 .tongdok-range {
-  font-size: 0.875rem;
-  color: var(--primary-color, #6366f1);
-  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--text-primary, #1f2937);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tongdok-progress {
-  padding: 0.125rem 0.375rem;
-  background: rgba(99, 102, 241, 0.15);
+.tongdok-remaining {
+  font-weight: 500;
   color: var(--primary-color, #6366f1);
-  border-radius: 4px;
+  margin-left: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.tongdok-date {
   font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
+  color: var(--text-secondary, #6b7280);
+  margin-left: 0.125rem;
 }
 
 .tongdok-actions {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
-.tongdok-link {
+.tongdok-btn-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: var(--primary-color, #6366f1);
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem;
   border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
   transition: all 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.tongdok-link:hover {
-  background: rgba(99, 102, 241, 0.15);
+.tongdok-btn-label:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.tongdok-link:active {
-  background: rgba(99, 102, 241, 0.25);
-  transform: scale(0.95);
+.tongdok-btn-label:active {
+  transform: scale(0.96);
 }
 
-.tongdok-link.audio {
+.tongdok-btn-label.audio {
+  color: var(--text-secondary, #4b5563);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.tongdok-btn-label.audio:hover {
+  background: white;
+  color: var(--primary-color, #6366f1);
+}
+
+.tongdok-btn-label.guide {
+  color: var(--text-secondary, #4b5563);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.tongdok-btn-label.guide:hover {
+  background: white;
+  color: var(--primary-color, #6366f1);
+}
+
+.tongdok-btn-label.complete {
   color: var(--color-success, #10b981);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.tongdok-link.audio:hover {
-  background: rgba(16, 185, 129, 0.15);
+.tongdok-btn-label.complete:hover {
+  background: rgba(16, 185, 129, 0.1);
 }
 
-.tongdok-link.guide {
-  color: var(--primary-color, #6366f1);
+.tongdok-btn-label.close {
+  color: var(--text-secondary, #6b7280);
+  background: transparent;
+  border: 1px solid transparent;
 }
 
-.tongdok-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: var(--primary-color, #6366f1);
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.tongdok-close:hover {
-  background: rgba(99, 102, 241, 0.1);
+.tongdok-btn-label.close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary, #1f2937);
 }
 
 /* 하단 영역 - 글래스모피즘 플로팅 디자인 */
@@ -946,6 +990,50 @@ defineExpose({
 :root.dark .tongdok-indicator {
   background: rgba(99, 102, 241, 0.15);
   border-color: var(--color-border);
+}
+
+:root.dark .tongdok-range {
+  color: var(--text-primary-dark, #e5e5e5);
+}
+
+:root.dark .tongdok-remaining {
+  color: var(--primary-color, #818cf8);
+}
+
+:root.dark .tongdok-date {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+:root.dark .tongdok-btn-label.audio,
+:root.dark .tongdok-btn-label.guide {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+:root.dark .tongdok-btn-label.audio:hover,
+:root.dark .tongdok-btn-label.guide:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+:root.dark .tongdok-btn-label.complete {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--color-success, #34d399);
+}
+
+:root.dark .tongdok-btn-label.complete:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+:root.dark .tongdok-btn-label.close {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+:root.dark .tongdok-btn-label.close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 :root.dark .content-bottom-action {
