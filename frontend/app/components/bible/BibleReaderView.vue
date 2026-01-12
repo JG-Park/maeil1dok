@@ -147,10 +147,11 @@
           <!-- 진도 표시 -->
           <ClientOnly>
             <div v-if="isAuthenticated && bookProgress.total > 0" class="progress-info-inline">
-              <span class="progress-text">{{ bookProgress.read }} / {{ bookProgress.total }}장 완독</span>
+              <span class="progress-label">{{ currentBookName }} 읽기 진도</span>
               <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: `${bookProgress.percentage}%` }"></div>
               </div>
+              <span class="progress-text">{{ bookProgress.read }} / {{ bookProgress.total }}장 <span class="progress-percentage">({{ bookProgress.percentage }}%)</span></span>
             </div>
           </ClientOnly>
         </div>
@@ -639,53 +640,77 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding: 2rem 1rem 1rem;
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--color-border, #e5e7eb);
+  gap: 1.25rem;
+  padding: 2.5rem 1.5rem 2rem;
+  margin-top: 2rem;
+  /* 시스템 폰트 강제 적용 - 본문 명조체 상속 방지 */
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* 부드러운 구분선 대신 그라데이션 페이드 */
+  border-top: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--color-bg-secondary, #f8f9fa) 20%,
+    var(--color-bg-secondary, #f8f9fa) 100%
+  );
+  border-radius: 24px 24px 0 0;
 }
 
 .mark-read-btn-inline {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   width: 100%;
-  max-width: 260px;
-  padding: 0.875rem 1.5rem;
-  background: var(--primary-color, #6366f1);
+  max-width: 280px;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, var(--primary-color, #6366f1) 0%, #818cf8 100%);
   color: white;
-  border-radius: 12px;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  border-radius: 16px;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 14px rgba(99, 102, 241, 0.35),
+    0 2px 6px rgba(99, 102, 241, 0.2);
 }
 
 .mark-read-btn-inline:hover:not(:disabled) {
-  background: var(--primary-dark, #4f46e5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, var(--primary-dark, #4f46e5) 0%, #6366f1 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 20px rgba(99, 102, 241, 0.4),
+    0 4px 10px rgba(99, 102, 241, 0.25);
 }
 
 .mark-read-btn-inline:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 
+    0 2px 8px rgba(99, 102, 241, 0.3),
+    0 1px 4px rgba(99, 102, 241, 0.2);
 }
 
 .mark-read-btn-inline.is-read {
-  background: var(--color-success, #10b981);
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  background: linear-gradient(135deg, var(--color-success, #10b981) 0%, #34d399 100%);
+  box-shadow: 
+    0 4px 14px rgba(16, 185, 129, 0.35),
+    0 2px 6px rgba(16, 185, 129, 0.2);
 }
 
 .mark-read-btn-inline.is-read:hover:not(:disabled) {
-  background: var(--color-success-dark, #059669);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, var(--color-success-dark, #059669) 0%, #10b981 100%);
+  box-shadow: 
+    0 8px 20px rgba(16, 185, 129, 0.4),
+    0 4px 10px rgba(16, 185, 129, 0.25);
 }
 
 .mark-read-btn-inline:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .progress-info-inline {
@@ -694,28 +719,50 @@ defineExpose({
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  max-width: 200px;
+  max-width: 260px;
+  padding: 1rem 1.25rem;
+  background: var(--color-bg-card, rgba(255, 255, 255, 0.8));
+  border-radius: 14px;
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+.progress-info-inline .progress-label {
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary, #374151);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .progress-info-inline .progress-text {
-  font-size: 0.8125rem;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--text-secondary, #6b7280);
   white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.progress-info-inline .progress-percentage {
+  color: var(--primary-color, #6366f1);
+  font-weight: 600;
 }
 
 .progress-info-inline .progress-bar {
   width: 100%;
-  height: 6px;
+  height: 8px;
   background: var(--color-bg-tertiary, #e5e7eb);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .progress-info-inline .progress-fill {
   height: 100%;
-  background: var(--primary-color, #6366f1);
-  transition: width 0.3s ease;
-  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary-color, #6366f1) 0%, #818cf8 100%);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 4px;
 }
 
 /* 네비게이션 */
@@ -844,11 +891,30 @@ defineExpose({
 }
 
 :root.dark .content-bottom-action {
-  border-color: var(--color-border);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--color-bg-secondary-dark, #1e1e1e) 20%,
+    var(--color-bg-secondary-dark, #1e1e1e) 100%
+  );
+}
+
+:root.dark .progress-info-inline {
+  background: var(--color-bg-card-dark, rgba(45, 45, 45, 0.8));
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root.dark .progress-info-inline .progress-label {
+  color: var(--text-primary-dark, #e5e5e5);
+}
+
+:root.dark .progress-info-inline .progress-text {
+  color: var(--text-secondary-dark, #9ca3af);
 }
 
 :root.dark .progress-info-inline .progress-bar {
-  background: var(--color-bg-tertiary);
+  background: var(--color-bg-tertiary-dark, #2d2d2d);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* 통독 완료 미니 버튼 (헤더) */
@@ -882,33 +948,43 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   width: 100%;
-  max-width: 260px;
-  padding: 0.875rem 1.5rem;
-  background: var(--color-success, #10b981);
+  max-width: 280px;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, var(--color-success, #10b981) 0%, #34d399 100%);
   color: white;
-  border-radius: 12px;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  border-radius: 16px;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 14px rgba(16, 185, 129, 0.35),
+    0 2px 6px rgba(16, 185, 129, 0.2);
 }
 
 .tongdok-complete-btn-inline:hover:not(:disabled) {
-  background: var(--color-success-dark, #059669);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, var(--color-success-dark, #059669) 0%, #10b981 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 20px rgba(16, 185, 129, 0.4),
+    0 4px 10px rgba(16, 185, 129, 0.25);
 }
 
 .tongdok-complete-btn-inline:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 
+    0 2px 8px rgba(16, 185, 129, 0.3),
+    0 1px 4px rgba(16, 185, 129, 0.2);
 }
 
 .tongdok-complete-btn-inline:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* 통독 진행률 바 (인스타그램 스토리 스타일) */
