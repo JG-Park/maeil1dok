@@ -254,11 +254,48 @@ export function useBibleFetch() {
   }
 
   /**
-   * 대한성서공회 직접 링크 생성
+   * 우리말성경(WOORI) 본문 가져오기 - 캐시 서버만 사용
+   * 두라노 사이트에서 직접 가져오는 것은 CORS 문제로 불가하므로
+   * 백엔드 캐시 서버를 통해서만 가져옴
+   */
+  async function fetchWooriContent(
+    book: string,
+    chapter: number
+  ): Promise<BibleFetchResult> {
+    if (!bibleCacheUrl) {
+      console.error('[BibleFetch] WOORI: 캐시 서버 URL이 설정되지 않음');
+      return {
+        content: '',
+        contentType: 'json',
+        fromCache: false,
+        source: 'error',
+      };
+    }
+
+    try {
+      const result = await fetchFromCacheServer('WOORI', book, chapter);
+      return result;
+    } catch (error) {
+      console.error('[BibleFetch] WOORI 캐시 서버 실패:', error);
+      return {
+        content: '',
+        contentType: 'json',
+        fromCache: false,
+        source: 'error',
+      };
+    }
+  }
+
+  /**
+   * 대한성서공회/두라노 직접 링크 생성
    */
   function getFallbackUrl(version: string, book: string, chapter: number): string {
     if (version === 'KNT') {
       return `https://www.bskorea.or.kr/KNT/index.php?chapter=${book.toUpperCase()}.${chapter}`;
+    }
+    if (version === 'WOORI') {
+      // 두라노 우리말성경 직접 링크 (책 번호는 서버에서 변환)
+      return `https://www.duranno.com/bdictionary/wuri_default.asp`;
     }
     return `https://www.bskorea.or.kr/bible/korbibReadpage.php?version=${version}&book=${book}&chap=${chapter}`;
   }
@@ -266,6 +303,7 @@ export function useBibleFetch() {
   return {
     fetchKntContent,
     fetchStandardContent,
+    fetchWooriContent,
     fetchFromCacheServer,
     checkCacheServerAvailable,
     getFallbackUrl,

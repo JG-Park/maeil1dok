@@ -27,6 +27,7 @@ export const VERSION_NAMES = Object.freeze({
   SAENEW: "새번역",
   COG: "공동번역",
   COGNEW: "공동번역 개정판",
+  WOORI: "우리말성경",
 }) as Record<string, string>;
 
 // 성경 책 정보
