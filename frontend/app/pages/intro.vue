@@ -1,17 +1,12 @@
 <template>
   <div class="container">
-    <div class="header fade-in" style="animation-delay: 0s">
-      <button class="back-button" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </button>
-      <h1>개론</h1>
-      <button v-if="videoIntroId" class="list-button-right" @click="goToIntroList">
-        목록
-      </button>
-    </div>
+    <PageHeader title="개론" fallback-path="/">
+      <template #right>
+        <button v-if="videoIntroId" class="list-button-right" @click="goToIntroList">
+          목록
+        </button>
+      </template>
+    </PageHeader>
 
     <!-- URL에 ID 파라미터가 있는 경우: 특정 영상 개론 표시 -->
     <template v-if="videoIntroId">

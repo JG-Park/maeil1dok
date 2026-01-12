@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <!-- Back Button -->
-      <button @click="$router.back()" class="back-btn">
+      <button @click="handleBack" class="back-btn">
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
@@ -65,12 +65,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { useRuntimeConfig } from 'nuxt/app'
 import { useHead } from '#imports'
 import { useModal } from '~/composables/useModal'
+import { useNavigation } from '~/composables/useNavigation'
 
 useHead({
   title: '로그인 - 매일일독',
@@ -91,19 +92,27 @@ useHead({
 const auth = useAuthStore()
 const config = useRuntimeConfig()
 const modal = useModal()
+const { goBack, consumeRedirectUrl, setRedirectUrl } = useNavigation()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
 const route = useRoute()
 const router = useRouter()
 
+onMounted(() => {
+  const queryRedirect = String(route.query.redirect || '')
+  if (queryRedirect) {
+    setRedirectUrl(queryRedirect)
+  }
+})
+
 const handleSubmit = async () => {
   loading.value = true
   try {
     const success = await auth.login(username.value, password.value)
     if (success) {
-      const redirectPath = String(route.query.redirect || '')
-      navigateTo(redirectPath || '/')
+      const redirectPath = consumeRedirectUrl() || '/'
+      navigateTo(redirectPath)
     } else {
       await modal.alert({
         title: '로그인 실패',
@@ -117,10 +126,13 @@ const handleSubmit = async () => {
 }
 
 const handleKakaoLogin = () => {
-  // URL encode redirect_uri to comply with OAuth 2.0 spec and fix mobile browser issues
   const redirectUri = encodeURIComponent(config.public.KAKAO_REDIRECT_URI)
   const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
   window.location.href = kakaoAuthUrl
+}
+
+const handleBack = () => {
+  goBack('/')
 }
 </script>
 
@@ -185,7 +197,7 @@ const handleKakaoLogin = () => {
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background-color: #FEE500;
-  color: #000000;
+  color: #000000 !important;
   border: none;
   border-radius: 0.375rem;
   font-size: 0.875rem;

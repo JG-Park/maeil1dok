@@ -1,11 +1,6 @@
 <template>
   <div class="bible-page history-page">
-    <header class="bible-page-header">
-      <button class="bible-back-btn" @click="$router.back()">
-        <ChevronLeftIcon :size="20" />
-      </button>
-      <h1>읽기 기록</h1>
-    </header>
+    <PageHeader title="읽기 기록" fallback-path="/bible" />
 
     <LoadingSpinner v-if="isLoading" text="읽기 기록을 불러오는 중..." fullscreen />
 

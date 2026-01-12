@@ -409,7 +409,6 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
-      // 이미 로그아웃 중이면 중복 실행 방지
       if (this.isLoggingOut) {
         return
       }
@@ -417,14 +416,11 @@ export const useAuthStore = defineStore('auth', {
       this.isLoggingOut = true
       this.stopTokenRefreshTimer()
 
-      // 서버에 로그아웃 요청 (쿠키 삭제 및 토큰 블랙리스트)
-      // user가 있을 때만 서버 로그아웃 요청 (비로그인 상태에서는 불필요)
       if (this.useCookieAuth && this.user) {
         try {
           const api = useApi()
           await api.post('/api/v1/auth/logout/')
         } catch (error) {
-          // 로그아웃 API 실패해도 로컬 상태는 정리
           console.error('Server logout failed:', error)
         }
       }
@@ -433,12 +429,19 @@ export const useAuthStore = defineStore('auth', {
       this.token = null
       this.refreshToken = null
 
-      // Clear from localStorage (하위 호환)
       if (process.client && typeof window !== 'undefined') {
         try {
           localStorage.removeItem('auth')
         } catch (error) {
           console.error('Failed to clear auth from localStorage:', error)
+        }
+
+        try {
+          const { useNavigationStore } = await import('~/stores/navigation')
+          const navigationStore = useNavigationStore()
+          navigationStore.clear()
+        } catch (error) {
+          console.debug('Failed to clear navigation store:', error)
         }
       }
 

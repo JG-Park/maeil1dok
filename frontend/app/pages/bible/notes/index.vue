@@ -1,11 +1,6 @@
 <template>
   <div class="bible-page notes-page">
-    <header class="bible-page-header">
-      <button class="bible-back-btn" @click="$router.back()">
-        <ChevronLeftIcon :size="20" />
-      </button>
-      <h1>묵상노트</h1>
-    </header>
+    <PageHeader title="묵상노트" fallback-path="/bible" />
 
     <!-- 필터 -->
     <div class="filter-bar">

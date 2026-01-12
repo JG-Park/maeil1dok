@@ -18,22 +18,45 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue';
+import { useNavigation } from '~/composables/useNavigation';
 
 interface Props {
   title: string;
+  /** @deprecated Use fallbackPath instead. 명시적 경로 지정 (레거시 지원) */
   backPath?: string;
+  /** 뒤로가기 불가 시 이동할 fallback 경로 */
+  fallbackPath?: string;
+  /** 뒤로가기 버튼 표시 여부 */
   showBack?: boolean;
+  /** 커스텀 뒤로가기 핸들러 */
+  onBack?: () => void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  backPath: '/',
-  showBack: true
+  backPath: undefined,
+  fallbackPath: '/',
+  showBack: true,
+  onBack: undefined
 });
 
 const router = useRouter();
+const { goBack } = useNavigation();
 
 const handleBack = () => {
-  router.push(props.backPath);
+  // 커스텀 핸들러가 있으면 사용
+  if (props.onBack) {
+    props.onBack();
+    return;
+  }
+
+  // 레거시: backPath가 명시적으로 지정된 경우 해당 경로로 이동
+  if (props.backPath !== undefined) {
+    router.push(props.backPath);
+    return;
+  }
+
+  // 기본: 스마트 뒤로가기 (앱 내 히스토리 있으면 back, 없으면 fallback)
+  goBack(props.fallbackPath);
 };
 </script>
 

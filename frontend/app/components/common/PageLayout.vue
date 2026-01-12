@@ -4,10 +4,10 @@
     <div class="fixed-area">
       <PageHeader
         :title="title"
-        :show-back-button="showBackButton"
+        :show-back="showBackButton"
         :on-back="onBack"
       >
-        <template #action>
+        <template #right>
           <slot name="header-action"></slot>
         </template>
       </PageHeader>
@@ -21,8 +21,6 @@
 </template>
 
 <script setup>
-import PageHeader from './PageHeader.vue'
-
 defineProps({
   title: {
     type: String,

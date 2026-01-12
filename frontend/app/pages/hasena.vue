@@ -4,13 +4,7 @@
     
     <div class="container">
       <!-- Header -->
-      <header class="header">
-        <button class="back-button" @click="$router.back()" aria-label="뒤로 가기">
-          <ChevronLeftIcon class="icon" />
-        </button>
-        <h1>하세나하시조</h1>
-        <div class="w-10"></div> <!-- Spacer for centering -->
-      </header>
+      <PageHeader title="하세나하시조" fallback-path="/" />
 
       <main class="main-content">
         <!-- 비디오 섹션 -->

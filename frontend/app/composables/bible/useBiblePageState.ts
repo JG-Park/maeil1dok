@@ -20,9 +20,9 @@
  */
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue';
-import { useRouter, type LocationQuery } from 'vue-router';
+import type { LocationQuery } from 'vue-router';
 import { useBibleData } from '~/composables/useBibleData';
-import { useReadingSettingsStore } from '~/stores/readingSettings';
+import { useNavigation } from '~/composables/useNavigation';
 import type { ViewMode } from '~/types/bible';
 
 // Re-export for backward compatibility
@@ -77,9 +77,8 @@ export function useBiblePageState(): UseBiblePageStateReturn {
   // Dependencies
   // ============================================
 
-  const router = useRouter();
   const { bookNames, bookChapters, versionNames } = useBibleData();
-  const readingSettingsStore = useReadingSettingsStore();
+  const navigation = useNavigation();
 
   // ============================================
   // State
@@ -136,11 +135,7 @@ export function useBiblePageState(): UseBiblePageStateReturn {
   };
 
   const goBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/');
-    }
+    navigation.goBack('/');
   };
 
   // ============================================

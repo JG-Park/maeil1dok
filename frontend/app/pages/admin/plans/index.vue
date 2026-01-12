@@ -1,21 +1,16 @@
 <template>
   <div class="container">
-    <!-- 헤더 개선 -->
-    <div class="header fade-in">
-      <button class="back-button" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </button>
-      <h1>성경 읽기 플랜 관리</h1>
-      <button v-if="isStaff" @click="showCreateModal = true" class="create-button">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-        </svg>
-        새 플랜
-      </button>
-    </div>
+    <!-- 헤더 -->
+    <PageHeader title="성경 읽기 플랜 관리" fallback-path="/">
+      <template #right>
+        <button v-if="isStaff" @click="showCreateModal = true" class="create-button">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          새 플랜
+        </button>
+      </template>
+    </PageHeader>
 
     <!-- 스크롤 영역 -->
     <div class="scroll-area">

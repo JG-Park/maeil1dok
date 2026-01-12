@@ -2,6 +2,7 @@
  * useAuthGuard - 인증 체크 유틸리티
  *
  * 인증이 필요한 작업 전에 사용하여 비로그인 사용자를 로그인 페이지로 리다이렉트합니다.
+ * 네비게이션 스토어를 사용하여 로그인 후 원래 페이지로 복귀할 수 있습니다.
  *
  * @example
  * const { requireAuth } = useAuthGuard();
@@ -13,11 +14,13 @@
  */
 
 import { useAuthStore } from '~/stores/auth';
+import { useNavigationStore } from '~/stores/navigation';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from '~/composables/useToast';
 
 export function useAuthGuard() {
   const authStore = useAuthStore();
+  const navigationStore = useNavigationStore();
   const router = useRouter();
   const route = useRoute();
   const toast = useToast();
@@ -30,7 +33,9 @@ export function useAuthGuard() {
   const requireAuth = (message: string = '로그인이 필요합니다'): boolean => {
     if (!authStore.isAuthenticated) {
       toast.info(message);
-      router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
+      // 현재 페이지를 리다이렉트 URL로 저장 (로그인 후 복귀용)
+      navigationStore.setRedirectUrl(route.fullPath);
+      router.push('/login');
       return false;
     }
     return true;

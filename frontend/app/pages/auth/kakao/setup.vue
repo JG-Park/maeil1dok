@@ -84,106 +84,59 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter, navigateTo } from '#app'
-import { useAuthStore } from '@/stores/auth'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
-import { useModal } from '~/composables/useModal'
+import { useNavigation } from '~/composables/useNavigation'
 
 const route = useRoute()
-const router = useRouter()
 const auth = useAuthStore()
 const api = useApi()
-const modal = useModal()
+const { consumeRedirectUrl } = useNavigation()
 
-const nickname = ref(route.query.suggested_nickname || '')
+const nickname = ref('')
+const profileImage = ref<string | null>(null)
 const loading = ref(false)
-const isNicknameChecked = ref(false)
-const nicknameError = ref('')
+const kakaoId = ref<string | null>(null)
 
-// 페이지 로드 시 닉네임 중복 체크
 onMounted(() => {
-  if (nickname.value) {
-    checkNickname()
+  // URL 쿼리에서 정보 가져오기
+  kakaoId.value = route.query.kakao_id as string || null
+  nickname.value = route.query.suggested_nickname as string || ''
+  profileImage.value = route.query.profile_image as string || null
+
+  if (!kakaoId.value) {
+    navigateTo('/login')
   }
 })
 
-const checkNickname = async () => {
-  // 디바운스 처리를 위한 타임아웃
-  if (checkNickname.timeout) {
-    clearTimeout(checkNickname.timeout)
-  }
-
-  checkNickname.timeout = setTimeout(async () => {
-    if (!nickname.value) return
-    
-    try {
-      const response = await api.post('/api/v1/auth/check-nickname/', {
-        nickname: nickname.value
-      })
-      
-      if (response.available) {
-        isNicknameChecked.value = true
-        nicknameError.value = ''
-      } else {
-        isNicknameChecked.value = false
-        nicknameError.value = '이미 사용중인 닉네임입니다.'
-      }
-    } catch (error) {
-      isNicknameChecked.value = false
-      nicknameError.value = '중복 확인 중 오류가 발생했습니다.'
-    }
-  }, 300) // 300ms 딜레이
-}
-
 const handleSubmit = async () => {
-  if (!isNicknameChecked.value) {
-    await modal.alert({
-      title: '확인 필요',
-      description: '닉네임 중복 확인이 필요합니다.',
-      icon: 'warning'
-    })
-    return
-  }
+  if (!kakaoId.value || !nickname.value) return
 
   loading.value = true
   try {
-    // 카카오 회원가입 완료 API 호출
-    const response = await api.post('/api/v1/auth/complete-kakao-signup/', {
+    const response = await api.post('/api/v1/auth/social-signup/', {
+      provider: 'kakao',
+      kakao_id: kakaoId.value,
       nickname: nickname.value,
-      ...route.query  // 카카오에서 받은 정보 포함
+      profile_image: profileImage.value
     })
 
     if (response.access) {
       auth.setTokens(response.access, response.refresh)
       auth.setUser(response.user)
-      // Timer is automatically started by setTokens()
-      navigateTo('/')
+      // 네비게이션 스토어에서 리다이렉트 URL 소비 (로그인 전 접근하려던 페이지)
+      const redirectUrl = consumeRedirectUrl() || '/'
+      navigateTo(redirectUrl)
     }
-  } catch (error) {
-    await modal.alert({
-      title: '오류 발생',
-      description: '회원가입 중 오류가 발생했습니다.',
-      icon: 'error'
-    })
+  } catch (error: any) {
+    console.error('Signup failed:', error)
+    alert(error.message || '회원가입에 실패했습니다. 다시 시도해주세요.')
   } finally {
     loading.value = false
   }
 }
-
-// 닉네임이 변경되면 중복확인 상태 초기화
-watch(nickname, () => {
-  isNicknameChecked.value = false
-  nicknameError.value = ''
-})
-
-// TypeScript를 위한 타입 선언
-declare module '@vue/runtime-core' {
-  interface ComponentCustomProperties {
-    timeout?: NodeJS.Timeout
-  }
-}
-checkNickname.timeout = null
 </script>
 
 <style scoped>
