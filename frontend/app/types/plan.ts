@@ -117,10 +117,11 @@ export interface UserPlansResponse {
  */
 export interface NextPositionResponse {
   success: boolean;
-  date: string;
-  month: number;
-  book?: string;
-  chapter?: number;
+  status: 'next_incomplete' | 'all_completed' | 'today' | 'nearest' | 'no_schedule' | 'error';
+  date?: string;
+  month?: number;
+  schedule_id?: number;
+  message?: string;
 }
 
 /**

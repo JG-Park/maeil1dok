@@ -531,7 +531,12 @@ async function scrollToLastIncomplete() {
 
   const data = await scheduleApi.fetchNextPosition(selectedPlanId.value);
 
-  if (data?.success) {
+  if (!data) {
+    // API 호출 실패 (네트워크 에러 등) - 조용히 실패
+    return;
+  }
+
+  if (data.success && data.date && data.month) {
     if (selectedMonth.value !== data.month) {
       selectedMonth.value = data.month;
       await fetchSchedules();
@@ -540,9 +545,14 @@ async function scrollToLastIncomplete() {
 
     const element = document.querySelector(`[data-date="${data.date}"]`);
     scrollToElement(element as HTMLElement);
-  } else {
-    warning('다음 읽을 위치를 찾을 수 없습니다.');
+
+    // 모든 일정 완료 시 축하 메시지
+    if (data.status === 'all_completed' && data.message) {
+      success(data.message);
+    }
   }
+  // success가 false인 경우 (no_schedule 등)는 조용히 처리
+  // 불필요한 경고 메시지 제거
 }
 
 async function scrollToCurrentLocation() {

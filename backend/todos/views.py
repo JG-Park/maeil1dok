@@ -1023,10 +1023,13 @@ def get_available_plans(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_next_reading_position(request):
     """
-    사용자의 특정 플랜에서 이어서 읽어야 할 위치를 반환하는 API
+    다음 읽을 위치를 반환하는 API
+    
+    - 비로그인 사용자: 오늘 날짜 또는 가장 가까운 일정 반환
+    - 로그인 사용자: 미완료 스케줄 중 첫 번째 반환
     
     [필수 파라미터]
     - plan_id: 플랜 ID
@@ -1034,10 +1037,18 @@ def get_next_reading_position(request):
     [응답 예시]
     {
         "success": true,
-        "month": 3,  // 해당 스케줄이 있는 월
-        "schedule_id": "123",  // 읽어야 할 스케줄 ID
-        "date": "2024-03-15"  // 해당 스케줄의 날짜
+        "status": "next_incomplete",  // 상태 코드
+        "month": 3,
+        "schedule_id": "123",
+        "date": "2024-03-15"
     }
+    
+    [status 값]
+    - "next_incomplete": 다음 미완료 일정
+    - "all_completed": 모든 일정 완료
+    - "today": 오늘 날짜 일정 (비로그인)
+    - "nearest": 가장 가까운 일정 (비로그인, 오늘 일정 없을 때)
+    - "no_schedule": 플랜에 일정이 없음
     """
     try:
         plan_id = request.query_params.get('plan_id')
@@ -1045,57 +1056,180 @@ def get_next_reading_position(request):
         if not plan_id:
             return Response({
                 'success': False,
-                'error': '플랜 ID가 필요합니다.'
+                'status': 'missing_plan_id',
+                'message': '플랜 ID가 필요합니다.'
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 플랜 존재 확인
+        try:
+            plan = BibleReadingPlan.objects.get(id=plan_id)
+        except BibleReadingPlan.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 'plan_not_found',
+                'message': '존재하지 않는 플랜입니다.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        today = timezone.now().date()
+        user = request.user
+        
+        # 비로그인 사용자: 오늘 날짜 또는 가장 가까운 일정 반환
+        if not user.is_authenticated:
+            # 오늘 일정 확인
+            today_schedule = DailyBibleSchedule.objects.filter(
+                plan_id=plan_id,
+                date=today
+            ).first()
             
-        # 1. 사용자의 구독 확인
-        subscription = get_object_or_404(
-            PlanSubscription,
-            user=request.user,
+            if today_schedule:
+                return Response({
+                    'success': True,
+                    'status': 'today',
+                    'month': today.month,
+                    'schedule_id': today_schedule.id,
+                    'date': today.isoformat()
+                })
+            
+            # 오늘 일정 없으면 가장 가까운 미래 일정
+            next_schedule = DailyBibleSchedule.objects.filter(
+                plan_id=plan_id,
+                date__gte=today
+            ).order_by('date').first()
+            
+            if next_schedule:
+                return Response({
+                    'success': True,
+                    'status': 'nearest',
+                    'month': next_schedule.date.month,
+                    'schedule_id': next_schedule.id,
+                    'date': next_schedule.date.isoformat()
+                })
+            
+            # 미래 일정도 없으면 가장 마지막 일정
+            last_schedule = DailyBibleSchedule.objects.filter(
+                plan_id=plan_id
+            ).order_by('-date').first()
+            
+            if last_schedule:
+                return Response({
+                    'success': True,
+                    'status': 'nearest',
+                    'month': last_schedule.date.month,
+                    'schedule_id': last_schedule.id,
+                    'date': last_schedule.date.isoformat()
+                })
+            
+            return Response({
+                'success': False,
+                'status': 'no_schedule',
+                'message': '플랜에 등록된 일정이 없습니다.'
+            })
+        
+        # 로그인 사용자: 구독 확인 후 미완료 스케줄 반환
+        subscription = PlanSubscription.objects.filter(
+            user=user,
             plan_id=plan_id,
             is_active=True
-        )
+        ).first()
         
-        # 2. 해당 플랜의 모든 스케줄을 날짜순으로 조회
-        schedules = DailyBibleSchedule.objects.filter(
-            plan_id=plan_id
-        ).order_by('date')
+        if not subscription:
+            # 구독 없으면 비로그인과 동일하게 처리
+            today_schedule = DailyBibleSchedule.objects.filter(
+                plan_id=plan_id,
+                date=today
+            ).first()
+            
+            if today_schedule:
+                return Response({
+                    'success': True,
+                    'status': 'today',
+                    'month': today.month,
+                    'schedule_id': today_schedule.id,
+                    'date': today.isoformat()
+                })
+            
+            next_schedule = DailyBibleSchedule.objects.filter(
+                plan_id=plan_id,
+                date__gte=today
+            ).order_by('date').first()
+            
+            if next_schedule:
+                return Response({
+                    'success': True,
+                    'status': 'nearest',
+                    'month': next_schedule.date.month,
+                    'schedule_id': next_schedule.id,
+                    'date': next_schedule.date.isoformat()
+                })
+            
+            last_schedule = DailyBibleSchedule.objects.filter(
+                plan_id=plan_id
+            ).order_by('-date').first()
+            
+            if last_schedule:
+                return Response({
+                    'success': True,
+                    'status': 'nearest',
+                    'month': last_schedule.date.month,
+                    'schedule_id': last_schedule.id,
+                    'date': last_schedule.date.isoformat()
+                })
+            
+            return Response({
+                'success': False,
+                'status': 'no_schedule',
+                'message': '플랜에 등록된 일정이 없습니다.'
+            })
         
-        # 3. 사용자의 완료한 스케줄 ID 목록 조회
+        # 구독 있는 로그인 사용자: 미완료 스케줄 찾기
         completed_schedule_ids = UserBibleProgress.objects.filter(
             subscription=subscription,
             is_completed=True
         ).values_list('schedule_id', flat=True)
         
-        # 4. 완료하지 않은 가장 첫 번째 스케줄 찾기
-        next_schedule = schedules.exclude(
+        next_schedule = DailyBibleSchedule.objects.filter(
+            plan_id=plan_id
+        ).exclude(
             id__in=completed_schedule_ids
-        ).first()
+        ).order_by('date').first()
         
-        if not next_schedule:
+        if next_schedule:
             return Response({
-                'success': False,
-                'error': '모든 스케줄을 완료했습니다.'
-            }, status=status.HTTP_404_NOT_FOUND)
-            
-        return Response({
-            'success': True,
-            'month': next_schedule.date.month,
-            'schedule_id': next_schedule.id,
-            'date': next_schedule.date.isoformat()
-        })
+                'success': True,
+                'status': 'next_incomplete',
+                'month': next_schedule.date.month,
+                'schedule_id': next_schedule.id,
+                'date': next_schedule.date.isoformat()
+            })
         
-    except PlanSubscription.DoesNotExist:
+        # 모든 스케줄 완료
+        # 마지막 스케줄 날짜 반환 (UI에서 스크롤 위치용)
+        last_schedule = DailyBibleSchedule.objects.filter(
+            plan_id=plan_id
+        ).order_by('-date').first()
+        
+        if last_schedule:
+            return Response({
+                'success': True,
+                'status': 'all_completed',
+                'month': last_schedule.date.month,
+                'schedule_id': last_schedule.id,
+                'date': last_schedule.date.isoformat(),
+                'message': '모든 일정을 완료했습니다!'
+            })
+        
         return Response({
             'success': False,
-            'error': '구독 중인 플랜이 아닙니다.'
-        }, status=status.HTTP_404_NOT_FOUND)
+            'status': 'no_schedule',
+            'message': '플랜에 등록된 일정이 없습니다.'
+        })
         
     except Exception as e:
         logger.error(f"Error in get_next_reading_position: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'status': 'error',
+            'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET', 'POST'])
