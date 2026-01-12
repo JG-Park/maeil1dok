@@ -1,52 +1,91 @@
 <template>
-  <div class="container">
-    <PageHeader title="개론" fallback-path="/">
-      <template #right>
-        <button v-if="videoIntroId" class="list-button-right" @click="goToIntroList">
-          목록
-        </button>
-      </template>
-    </PageHeader>
+  <div class="sanctuary-theme">
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+      <PageHeader title="개론" fallback-path="/">
+        <template #right>
+          <button v-if="videoIntroId" class="list-button-right" @click="goToIntroList">
+            목록
+          </button>
+        </template>
+      </PageHeader>
 
-    <!-- URL에 ID 파라미터가 있는 경우: 특정 영상 개론 표시 -->
-    <template v-if="videoIntroId">
-      <div v-if="isLoading" class="loading-state fade-in" style="animation-delay: 0.2s">
-        <p>영상 정보를 불러오는 중...</p>
-      </div>
-      <div v-else-if="error" class="error-state fade-in" style="animation-delay: 0.2s">
-        <p>{{ error }}</p>
-        <button class="retry-button" @click="fetchVideoIntro">다시 시도</button>
-      </div>
-      <div v-else-if="videoIntro" class="content-section fade-in" style="animation-delay: 0.2s">
-        <div class="video-info">
-          <h2>{{ videoIntro.book }} 개론</h2>
-          <p class="description">{{ videoIntro.book }}의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
-        </div>
-
-        <div class="video-wrapper">
-          <div class="video-container">
-            <iframe width="100%" height="100%" :src="getEmbedUrl(videoIntro.url_link)" frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+      <!-- URL에 ID 파라미터가 있는 경우: 특정 영상 개론 표시 -->
+      <template v-if="videoIntroId">
+        <main class="main-content">
+          <!-- 로딩 상태 -->
+          <div v-if="isLoading" class="state-container loading fade-in" style="animation-delay: 0.2s">
+            <div class="loading-spinner"></div>
+            <p>영상 정보를 불러오는 중...</p>
           </div>
 
-          <a :href="videoIntro.url_link" target="_blank" class="youtube-button">
-            <img src="/youtube-icon.svg" alt="YouTube" class="youtube-icon">
-            YouTube 앱으로 보기
-          </a>
+          <!-- 에러 상태 -->
+          <div v-else-if="error" class="state-container error fade-in" style="animation-delay: 0.2s">
+            <div class="error-icon">!</div>
+            <h3>정보를 불러올 수 없습니다</h3>
+            <p>{{ error }}</p>
+            <button class="retry-button" @click="fetchVideoIntro">다시 시도</button>
+          </div>
+
+          <!-- 콘텐츠 -->
+          <template v-else-if="videoIntro">
+            <!-- 비디오 섹션 -->
+            <div class="card video-card fade-in" style="animation-delay: 0.1s">
+              <div class="video-wrapper">
+                <div class="video-container">
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    :src="getEmbedUrl(videoIntro.url_link)" 
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+                <a :href="videoIntro.url_link" target="_blank" class="youtube-deep-link">
+                  <span class="youtube-icon">▶</span>
+                  YouTube 앱으로 시청하기
+                </a>
+              </div>
+            </div>
+
+            <!-- 본문 섹션 -->
+            <div class="card content-card fade-in" style="animation-delay: 0.2s">
+              <div class="bible-header">
+                <h2>{{ videoIntro.book }} 개론</h2>
+              </div>
+              <div class="verse-container">
+                <p class="description">{{ videoIntro.book }}의 전체적인 흐름과 주제를 이해하고 깊이 있게 말씀을 묵상해보세요.</p>
+              </div>
+            </div>
+          </template>
+        </main>
+
+        <!-- 하단 플로팅 버튼 -->
+        <div v-if="videoIntro && !isLoading && !error" class="floating-footer fade-in" style="animation-delay: 0.3s">
+          <div class="footer-inner">
+            <button 
+              class="action-button" 
+              :class="{ 'completed': isCompleted }" 
+              @click="toggleCompletion" 
+              :disabled="isCompleting"
+            >
+              <span v-if="isCompleting" class="loading-spinner small"></span>
+              <template v-else>
+                <CheckCircleIcon class="btn-icon" />
+                <span>{{ completionStatus }}</span>
+              </template>
+            </button>
+          </div>
         </div>
-      </div>
-      <div v-if="videoIntro" class="bottom-controls fade-in" style="animation-delay: 0.3s">
-        <button class="complete-button" @click="toggleCompletion" :disabled="isLoading"
-          :class="{ 'completed': videoIntro.is_completed }">
-          {{ completionStatus }}
-        </button>
-      </div>
-    </template>
-    <!-- URL에 ID 파라미터가 없는 경우: IntroListContent (개론 목록) 표시 -->
-    <template v-else>
-      <IntroListContent />
-    </template>
+      </template>
+
+      <!-- URL에 ID 파라미터가 없는 경우: IntroListContent (개론 목록) 표시 -->
+      <template v-else>
+        <IntroListContent />
+      </template>
+    </div>
   </div>
 </template>
 
@@ -57,6 +96,7 @@ import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
 import IntroListContent from '~/components/IntroListContent.vue'
+import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue'
 import { useHead } from '#imports'
 
 useHead({
@@ -82,7 +122,7 @@ const authStore = useAuthStore()
 const { success, error: showError } = useToast()
 
 const videoIntro = ref(null)
-const isLoading = ref(true) // loading을 isLoading으로 변경
+const isLoading = ref(true)
 const error = ref(null)
 const isCompleted = ref(false)
 const isCompleting = ref(false)
@@ -231,6 +271,7 @@ const toggleCompletion = async () => {
     videoIntro.value.is_completed = !videoIntro.value.is_completed
     isCompleted.value = !isCompleted.value
     showError('완료 상태를 업데이트하는데 오류가 발생했습니다. 다시 시도해주세요.')
+    isCompleting.value = false
   }
 }
 
@@ -264,76 +305,120 @@ watch(videoIntroId, (newId, oldId) => {
 </script>
 
 <style scoped>
+/* Sanctuary Theme Variables - Uses global theme tokens */
+.sanctuary-theme {
+  --font-serif: 'Noto Serif KR', 'RIDIBatang', serif;
+  --font-sans: 'Pretendard', sans-serif;
+  --primary-color: #6366f1;
+  --primary-dark: #4f46e5;
+  --color-success: #10b981;
+  --color-success-dark: #059669;
+
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bg-pattern {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(var(--color-text-tertiary) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.1;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .container {
   max-width: 768px;
   margin: 0 auto;
-  background: var(--color-bg-primary);
   min-height: 100vh;
-  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  position: relative;
+  z-index: 1;
+  padding-bottom: 3rem;
 }
 
+/* Header */
 .header {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-secondary);
   position: sticky;
   top: 0;
-  z-index: 10;
-  box-shadow: var(--shadow-sm);
-  height: 48px;
-}
-
-.back-button {
-  background: none;
-  border: none;
-  padding: 0.375rem;
-  margin: -0.375rem;
-  margin-right: 0.5rem;
-  color: var(--text-primary);
-  cursor: pointer;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: var(--color-bg-primary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 50;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .header h1 {
+  font-family: var(--font-serif);
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
-.back-button svg {
-  width: 20px;
-  height: 20px;
+/* Header Button */
+.list-button-right {
+  margin-left: auto;
+  padding: 0.35rem 0.85rem;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: var(--font-sans);
 }
 
-.content-section {
+.list-button-right:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-dark);
+}
+
+/* Main Content */
+.main-content {
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
   background: var(--color-bg-card);
-  margin: 1rem;
-  padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
 }
 
-@media (max-width: 640px) {
-  .content-section, .loading-state, .error-state {
-    margin: 0.75rem;
-    padding: 1.25rem;
-  }
+/* Video Section */
+.video-card {
+  padding: 0;
 }
 
 .video-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  position: relative;
+  width: 100%;
 }
 
 .video-container {
   position: relative;
-  padding-bottom: 56.25%;
-  /* 16:9 비율 */
+  padding-bottom: 56.25%; /* 16:9 */
   height: 0;
-  overflow: hidden;
-  border-radius: 12px;
   background: #000;
 }
 
@@ -345,168 +430,218 @@ watch(videoIntroId, (newId, oldId) => {
   height: 100%;
 }
 
-.video-info {
-  padding-bottom: 1.5rem;
-  text-align: left;
+.youtube-deep-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-top: 1px solid var(--color-border-light);
+  transition: background 0.2s;
 }
 
-.video-info h2 {
+.youtube-deep-link:hover {
+  background: var(--color-bg-hover);
+}
+
+/* Content Section */
+.content-card {
+  padding: 1.5rem;
+  min-height: 200px;
+}
+
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  color: var(--color-text-secondary);
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--color-border-default);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-spinner.small {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+}
+
+.error-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
   font-size: 1.25rem;
-  font-weight: 600;
+}
+
+.retry-button {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  transition: all 0.2s;
+}
+
+.retry-button:hover {
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  margin-bottom: 0.75rem;
+}
+
+.bible-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px dashed var(--color-border-default);
+}
+
+.bible-header h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--color-text-primary);
+  margin: 0;
+  font-weight: 700;
+}
+
+.verse-container {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: var(--color-text-primary);
+  line-height: 1.8;
 }
 
 .description {
-  font-size: 0.95rem;
+  margin: 0;
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  opacity: 0;
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-.bottom-controls {
+/* Floating Footer */
+.floating-footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.25rem;
-  background: var(--color-bg-secondary);
-  box-shadow: 0 -1px 4px var(--shadow-color, rgba(0, 0, 0, 0.15));
-  max-width: 768px;
-  min-height: 50px;
-  margin: 0 auto;
-  z-index: 20;
-  flex-wrap: nowrap;
-  border-radius: 16px 16px 0 0;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
-@supports (-webkit-touch-callout: none) {
-  /* Safari 웹에서만 적용되도록 standalone 모드가 아닐 때만 패딩 추가 */
-  @media not all and (display-mode: standalone) {
-    .bottom-controls {
-      padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
-    }
-  }
-
-  /* PWA 홈 화면 앱(standalone 모드)에서는 safe-area-inset-bottom만 적용 */
-  @media (display-mode: standalone) {
-    .bottom-controls {
-      padding: 0.75rem 0.75rem calc(env(safe-area-inset-bottom)) 0.75rem;
-    }
-  }
-}
-
-.complete-button {
+.footer-inner {
   width: 100%;
-  padding: 0.875rem;
-  border: none;
-  background: var(--primary-color);
+  max-width: 768px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 1.5rem 2rem 0;
+}
+
+@media (min-width: 768px) {
+  .footer-inner {
+    justify-content: center;
+    padding-right: 0;
+  }
+}
+
+.action-button {
+  pointer-events: auto;
+  width: auto;
+  background: var(--color-success);
   color: white;
-  border-radius: 12px;
-  font-weight: 600;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
 }
 
-.complete-button:hover:not(:disabled) {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
+.btn-icon {
+  width: 20px;
+  height: 20px;
 }
 
-.complete-button:active:not(:disabled) {
-  transform: translateY(0);
+.action-button:hover {
+  background: var(--color-success-dark);
 }
 
-.complete-button:disabled {
+.action-button:active {
+  transform: scale(0.95);
+}
+
+.action-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.complete-button.completed {
-  background: var(--red-dark);
+.action-button.completed {
+  background: #ef4444;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
 }
 
-.complete-button.completed:hover:not(:disabled) {
-  background: var(--red-dark);
+.action-button.completed:hover {
+  background: #dc2626;
 }
 
-/* 로딩 스피너 스타일 추가 */
-.loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
+/* Animations */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-.youtube-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: #FF0000;
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background-color 0.2s;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.youtube-button:hover {
-  background-color: #FF0000;
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.youtube-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.list-button-right {
-  margin-left: auto; /* Pushes the button to the far right */
-  padding: 0.25rem 0.75rem;
-  background: var(--color-slate-100);
-  color: var(--color-slate-500);
-  border: 1px solid var(--color-slate-300);
-  border-radius: 8px;
-  font-size: 0.875rem; /* Slightly larger for better readability */
-  font-weight: 500;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.list-button-right:hover {
-  background: var(--color-slate-200);
-  color: var(--color-slate-600);
+/* Mobile Responsive Tweaks */
+@media (max-width: 640px) {
+  .bible-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .verse-container {
+    font-size: 1rem;
+  }
 }
 </style>
