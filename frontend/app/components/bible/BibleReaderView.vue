@@ -176,8 +176,14 @@
             v-for="i in tongdokProgress.total"
             :key="i"
             class="progress-segment"
-            :class="{ 'filled': i <= tongdokProgress.current }"
+            :class="{
+              'filled': i < tongdokProgress.current,
+              'current': i === tongdokProgress.current
+            }"
           ></div>
+        </div>
+        <div class="progress-text-indicator">
+          {{ tongdokProgress.current }}/{{ tongdokProgress.total }}
         </div>
       </div>
 
@@ -193,15 +199,16 @@
           이전
         </button>
 
-        <div class="chapter-info">
+        <button class="chapter-info" @click="$emit('open-book-selector')">
           <template v-if="isTongdokMode && formattedScheduleDate">
             <span class="schedule-date">{{ formattedScheduleDate }}</span>
             <span class="schedule-range">{{ tongdokScheduleRange }}</span>
           </template>
           <template v-else>
-            {{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}
+            <span class="chapter-info-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+            <ChevronDownIcon class="chapter-info-icon" :size="14" />
           </template>
-        </div>
+        </button>
 
         <button
           class="nav-button next"
@@ -993,6 +1000,9 @@ defineExpose({
 
 /* 통독 진행률 바 (인스타그램 스토리 스타일) */
 .tongdok-progress-area {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 1rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -1003,8 +1013,8 @@ defineExpose({
 
 .story-progress-bar {
   display: flex;
+  flex: 1;
   gap: 4px;
-  width: 100%;
 }
 
 .progress-segment {
@@ -1012,7 +1022,7 @@ defineExpose({
   height: 4px;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 2px;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 :root.dark .progress-segment {
@@ -1021,6 +1031,33 @@ defineExpose({
 
 .progress-segment.filled {
   background: var(--primary-color, #6366f1);
+}
+
+.progress-segment.current {
+  background: var(--color-success, #10b981);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  animation: pulse-segment 2s infinite;
+}
+
+.progress-text-indicator {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  white-space: nowrap;
+  min-width: 2rem;
+  text-align: right;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+:root.dark .progress-text-indicator {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+@keyframes pulse-segment {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 </style>
