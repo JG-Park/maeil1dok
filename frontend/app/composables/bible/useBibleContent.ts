@@ -83,7 +83,7 @@ export function useBibleContent(): UseBibleContentReturn {
 
   const content = ref('');
   const chapterTitle = ref('');
-  const isLoading = ref(false);
+  const isLoading = ref(true);  // 초기값 true: 페이지 로드 시 스켈레톤 표시
   const error = ref<Error | null>(null);
 
   // ============================================
