@@ -127,10 +127,12 @@ export default function App() {
   const handleKakaoLogin = async () => {
     try {
       const webRedirectUri = `${WEB_APP_URL}/auth/kakao/callback`;
+      const state = encodeURIComponent(JSON.stringify({ from: 'app', scheme: APP_SCHEME }));
+      const appRedirectUri = `${APP_SCHEME}://auth/kakao/callback`;
       
-      const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(webRedirectUri)}&response_type=code`;
+      const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(webRedirectUri)}&response_type=code&state=${state}`;
       
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, webRedirectUri);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, appRedirectUri);
       
       if (result.type === 'success' && result.url) {
         const url = new URL(result.url);
@@ -148,11 +150,12 @@ export default function App() {
   const handleGoogleLogin = async () => {
     try {
       const webRedirectUri = `${WEB_APP_URL}/auth/google/callback`;
+      const state = encodeURIComponent(JSON.stringify({ from: 'app', scheme: APP_SCHEME }));
+      const appRedirectUri = `${APP_SCHEME}://auth/google/callback`;
       
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(webRedirectUri)}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent`;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(webRedirectUri)}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent&state=${state}`;
       
-      // 웹 callback URL을 returnUrl로 사용 - ASWebAuthenticationSession이 직접 캡처
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, webRedirectUri);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, appRedirectUri);
       
       if (result.type === 'success' && result.url) {
         const url = new URL(result.url);
