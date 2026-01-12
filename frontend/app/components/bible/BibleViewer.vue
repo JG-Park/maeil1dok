@@ -1373,7 +1373,7 @@ defineExpose({
 
 .theme-dark .copy-menu {
   background: var(--color-bg-card-dark, #2d2d2d);
-  border-color: var(--color-border-dark, #404040);
+  border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
