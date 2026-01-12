@@ -151,7 +151,7 @@ const handleNavigate = (item: ScheduleDetail) => {
   }
 
   router.push({
-    path: '/reading',
+    path: '/bible',
     query
   })
   emit('close')
