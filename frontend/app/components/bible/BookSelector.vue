@@ -11,6 +11,20 @@
       <!-- 검색 입력은 header-extra에 배치하지 않음 -->
     </template>
 
+    <!-- 역본 선택 슬라이드 -->
+    <div class="version-slide-section">
+      <div class="version-scroll-container">
+        <button
+          v-for="(name, code) in VERSION_NAMES"
+          :key="code"
+          :class="['version-chip', { active: code === currentVersion }]"
+          @click="$emit('version-select', String(code))"
+        >
+          {{ name }}<span v-if="code === 'SAENEW' || code === 'WOORI'" class="new-badge">N</span>
+        </button>
+      </div>
+    </div>
+
     <!-- 검색 섹션 -->
     <div class="search-section">
       <div class="search-input-wrapper">
@@ -120,7 +134,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
-import { useBibleData, type SearchResult } from '~/composables/useBibleData';
+import { useBibleData, type SearchResult, VERSION_NAMES } from '~/composables/useBibleData';
 import SearchIcon from '~/components/icons/SearchIcon.vue';
 import XCircleIcon from '~/components/icons/XCircleIcon.vue';
 import SparkleIcon from '~/components/icons/SparkleIcon.vue';
@@ -130,11 +144,13 @@ const props = defineProps<{
   modelValue: boolean;
   currentBook: string;
   currentChapter: number;
+  currentVersion?: string;
 }>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   'select': [book: string, chapter: number, verse?: number];
+  'version-select': [version: string];
 }>();
 
 const { bibleBooks, getChaptersArray, parseSearchQuery } = useBibleData();
@@ -270,10 +286,83 @@ const scrollToSearchedChapter = (chapter: number) => {
 </script>
 
 <style scoped>
+/* 역본 선택 슬라이드 */
+.version-slide-section {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background-color: var(--color-bg-card, #fff);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.version-scroll-container {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0 1rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.version-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.version-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary, #6b7280);
+  background: var(--color-bg-primary, #f9fafb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.version-chip:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--text-primary, #1f2937);
+  border-color: var(--color-border, #d1d5db);
+}
+
+.version-chip:active {
+  transform: scale(0.98);
+}
+
+.version-chip.active {
+  background: var(--primary-color, #6366f1);
+  color: white;
+  border-color: var(--primary-color, #6366f1);
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+.version-chip .new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.0625rem 0.2rem;
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: white;
+  background: #dc6b6b;
+  border-radius: 3px;
+}
+
+.version-chip.active .new-badge {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* 검색 섹션 */
 .search-section {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--color-border, #e5e7eb);
+  transition: border-color 0.2s;
 }
 
 .search-input-wrapper {
@@ -287,6 +376,7 @@ const scrollToSearchedChapter = (chapter: number) => {
   left: 0.75rem;
   color: var(--text-tertiary, #9ca3af);
   pointer-events: none;
+  transition: color 0.2s;
 }
 
 .search-input {
@@ -297,7 +387,7 @@ const scrollToSearchedChapter = (chapter: number) => {
   font-size: 0.9375rem;
   background: var(--color-bg-primary, #f9fafb);
   color: var(--text-primary, #1f2937);
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .search-input:focus {
@@ -315,6 +405,13 @@ const scrollToSearchedChapter = (chapter: number) => {
   padding: 0.25rem;
   color: var(--text-tertiary, #9ca3af);
   cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.search-clear-button:hover {
+  background-color: var(--color-bg-hover, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
 }
 
 /* 검색 결과 미리보기 */
@@ -329,6 +426,7 @@ const scrollToSearchedChapter = (chapter: number) => {
   font-size: 0.75rem;
   color: var(--primary-color, #6366f1);
   margin-bottom: 0.5rem;
+  font-weight: 500;
 }
 
 .ai-sparkle {
@@ -353,6 +451,12 @@ const scrollToSearchedChapter = (chapter: number) => {
   transition: all 0.2s;
 }
 
+.search-result-item:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--text-primary, #1f2937);
+  border-color: var(--color-border, #d1d5db);
+}
+
 .search-result-item.selected {
   border-color: var(--primary-color, #6366f1);
   background: var(--primary-light, #eef2ff);
@@ -373,10 +477,17 @@ const scrollToSearchedChapter = (chapter: number) => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
 }
 
 .search-result-button:hover {
   background: var(--primary-dark, #4f46e5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(99, 102, 241, 0.25);
+}
+
+.search-result-button:active {
+  transform: translateY(0);
 }
 
 .result-book {
@@ -408,6 +519,7 @@ const scrollToSearchedChapter = (chapter: number) => {
   display: flex;
   flex: 1;
   overflow: hidden;
+  background-color: var(--color-bg-card, #fff);
 }
 
 .books-section {
@@ -415,6 +527,7 @@ const scrollToSearchedChapter = (chapter: number) => {
   border-right: 1px solid var(--color-border, #e5e7eb);
   overflow-y: auto;
   padding: 0.75rem;
+  transition: border-color 0.2s;
 }
 
 .testament {
@@ -460,10 +573,12 @@ const scrollToSearchedChapter = (chapter: number) => {
 .book-button.active {
   background: var(--primary-color, #6366f1);
   color: white;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
 }
 
 .chapters-section {
   width: 45%;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 0.75rem;
 }
@@ -486,8 +601,7 @@ const scrollToSearchedChapter = (chapter: number) => {
 
 .chapter-button {
   aspect-ratio: 1;
-  min-width: 44px;
-  min-height: 44px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -508,9 +622,158 @@ const scrollToSearchedChapter = (chapter: number) => {
 .chapter-button.active {
   background: var(--primary-color, #6366f1);
   color: white;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
 }
 
 .chapter-button.searched {
   box-shadow: 0 0 0 2px var(--primary-color, #6366f1);
+}
+
+/* Dark Mode Support */
+:root.dark .version-slide-section,
+[data-theme="dark"] .version-slide-section {
+  background-color: var(--color-bg-card);
+  border-bottom-color: var(--color-border);
+}
+
+:root.dark .version-chip,
+[data-theme="dark"] .version-chip {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--text-secondary);
+}
+
+:root.dark .version-chip:hover,
+[data-theme="dark"] .version-chip:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+}
+
+:root.dark .version-chip.active,
+[data-theme="dark"] .version-chip.active {
+  background-color: var(--primary-color, #818cf8);
+  border-color: var(--primary-color, #818cf8);
+  color: #fff;
+}
+
+:root.dark .search-section,
+[data-theme="dark"] .search-section {
+  border-bottom-color: var(--color-border);
+}
+
+:root.dark .search-input,
+[data-theme="dark"] .search-input {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--text-primary);
+}
+
+:root.dark .search-input:focus,
+[data-theme="dark"] .search-input:focus {
+  background-color: var(--color-bg-card);
+  border-color: var(--primary-color, #818cf8);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+:root.dark .search-icon,
+[data-theme="dark"] .search-icon {
+  color: var(--text-tertiary);
+}
+
+:root.dark .search-clear-button,
+[data-theme="dark"] .search-clear-button {
+  color: var(--text-tertiary);
+}
+
+:root.dark .search-clear-button:hover,
+[data-theme="dark"] .search-clear-button:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--text-primary);
+}
+
+:root.dark .search-result-item,
+[data-theme="dark"] .search-result-item {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--text-secondary);
+}
+
+:root.dark .search-result-item:hover,
+[data-theme="dark"] .search-result-item:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+}
+
+:root.dark .search-result-item.selected,
+[data-theme="dark"] .search-result-item.selected {
+  background-color: rgba(99, 102, 241, 0.2);
+  border-color: var(--primary-color, #818cf8);
+  color: var(--primary-color, #818cf8);
+}
+
+:root.dark .search-result-button,
+[data-theme="dark"] .search-result-button {
+  background-color: var(--primary-color, #818cf8);
+  color: #fff;
+}
+
+:root.dark .search-result-button:hover,
+[data-theme="dark"] .search-result-button:hover {
+  background-color: #6366f1;
+}
+
+:root.dark .modal-body,
+[data-theme="dark"] .modal-body {
+  background-color: var(--color-bg-card);
+}
+
+:root.dark .books-section,
+[data-theme="dark"] .books-section {
+  border-right-color: var(--color-border);
+}
+
+:root.dark .book-button,
+[data-theme="dark"] .book-button,
+:root.dark .chapter-button,
+[data-theme="dark"] .chapter-button {
+  background-color: var(--color-bg-secondary);
+  color: var(--text-secondary);
+}
+
+:root.dark .book-button:hover,
+[data-theme="dark"] .book-button:hover,
+:root.dark .chapter-button:hover,
+[data-theme="dark"] .chapter-button:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--text-primary);
+}
+
+:root.dark .book-button.active,
+[data-theme="dark"] .book-button.active,
+:root.dark .chapter-button.active,
+[data-theme="dark"] .chapter-button.active {
+  background-color: var(--primary-color, #818cf8);
+  color: #fff;
+}
+
+:root.dark .chapter-button.searched,
+[data-theme="dark"] .chapter-button.searched {
+  box-shadow: 0 0 0 2px var(--primary-color, #818cf8);
+}
+
+:root.dark .ai-result-label,
+[data-theme="dark"] .ai-result-label,
+:root.dark .ai-sparkle,
+[data-theme="dark"] .ai-sparkle {
+  color: var(--primary-color, #818cf8);
+}
+
+:root.dark .testament h4,
+[data-theme="dark"] .testament h4,
+:root.dark .chapters-section h4,
+[data-theme="dark"] .chapters-section h4 {
+  color: var(--text-tertiary);
 }
 </style>

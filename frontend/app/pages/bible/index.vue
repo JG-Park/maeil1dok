@@ -69,7 +69,9 @@
         v-model="showBookSelector"
         :current-book="currentBook"
         :current-chapter="currentChapter"
+        :current-version="currentVersion"
         @select="handleBookSelect"
+        @version-select="handleVersionSelect"
       />
 
       <VersionSelector
