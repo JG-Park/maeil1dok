@@ -829,6 +829,37 @@ defineExpose({
   gap: 0.125rem;
   font-size: 0.8125rem;
   color: var(--text-secondary, #6b7280);
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chapter-info:hover {
+  background: var(--color-slate-100, #f1f5f9);
+}
+
+.chapter-info:active {
+  background: var(--color-slate-200, #e2e8f0);
+  transform: scale(0.98);
+}
+
+.chapter-info-text {
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+}
+
+.chapter-info-icon {
+  color: var(--text-tertiary, #9ca3af);
+  margin-top: 2px;
+  transition: transform 0.2s ease;
+}
+
+.chapter-info:hover .chapter-info-icon {
+  transform: translateY(1px);
 }
 
 .chapter-info .schedule-date {
@@ -894,6 +925,22 @@ defineExpose({
 :root.dark .nav-button:hover:not(:disabled) {
   background: var(--color-slate-700, #334155);
   color: var(--color-slate-200, #e2e8f0);
+}
+
+:root.dark .chapter-info {
+  color: var(--text-secondary);
+}
+
+:root.dark .chapter-info:hover {
+  background: var(--color-slate-700, #334155);
+}
+
+:root.dark .chapter-info:active {
+  background: var(--color-slate-600, #475569);
+}
+
+:root.dark .chapter-info-text {
+  color: var(--text-primary);
 }
 
 :root.dark .tongdok-indicator {
