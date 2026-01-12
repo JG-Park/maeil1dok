@@ -1,122 +1,113 @@
 <template>
-  <Transition name="fade">
-    <div v-if="show" class="modal-overlay" @click="$emit('close')">
-      <div class="modal-wrapper" @click.stop>
-        <div class="modal">
-          <div class="modal-content">
-            <h3>플랜 선택</h3>
-            <div class="plan-list">
-              <button
-                v-for="subscription in subscriptions"
-                :key="subscription.plan_id"
-                class="plan-item"
-                :class="{ active: String(subscription.plan_id) === String(selectedPlanId) }"
-                @click="$emit('select', subscription)"
+  <BaseModal
+    v-model="isOpen"
+    title="플랜 선택"
+    size="sm"
+    @close="handleClose"
+  >
+    <div class="plan-list">
+      <button
+        v-for="subscription in subscriptions"
+        :key="subscription.plan_id"
+        class="plan-item"
+        :class="{ active: isSelected(subscription.plan_id) }"
+        @click="handleSelect(subscription)"
+      >
+        <div class="plan-item-content">
+          <div class="plan-info">
+            <div class="check-icon-wrapper">
+              <svg
+                v-show="isSelected(subscription.plan_id)"
+                class="check-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               >
-                <div class="plan-item-content">
-                  <div class="plan-info">
-                    <div class="check-icon-wrapper">
-                      <svg
-                        v-show="String(subscription.plan_id) === String(selectedPlanId)"
-                        class="check-icon"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </div>
-                    <span class="plan-name">{{ subscription.plan_name }}</span>
-                  </div>
-                  <div class="plan-badges">
-                    <span v-if="subscription.is_default" class="default-badge">기본</span>
-                  </div>
-                </div>
-              </button>
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
             </div>
-            <div class="modal-buttons">
-              <button class="cancel-button" @click="$emit('close')">취소</button>
-              <button class="manage-plan-button" @click="$emit('manage')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-                플랜 관리
-              </button>
-            </div>
+            <span class="plan-name">{{ subscription.plan_name }}</span>
+          </div>
+          <div class="plan-badges">
+            <span v-if="subscription.is_default" class="default-badge">기본</span>
           </div>
         </div>
-      </div>
+      </button>
     </div>
-  </Transition>
+
+    <template #footer>
+      <div class="modal-buttons">
+        <button class="cancel-button" @click="handleClose">취소</button>
+        <button class="manage-plan-button" @click="handleManage">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          플랜 관리
+        </button>
+      </div>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import BaseModal from '~/components/ui/modal/BaseModal.vue';
 import type { SubscriptionSummary } from '~/types/plan';
 
-defineProps<{
+const props = defineProps<{
   show: boolean;
   subscriptions: SubscriptionSummary[];
   selectedPlanId: number | string | null;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   close: [];
   select: [subscription: SubscriptionSummary];
   manage: [];
 }>();
+
+// v-model 바인딩을 위한 computed
+const isOpen = computed({
+  get: () => props.show,
+  set: (value: boolean) => {
+    if (!value) {
+      emit('close');
+    }
+  },
+});
+
+// 선택 여부 확인 (타입 안전한 비교)
+function isSelected(planId: number): boolean {
+  if (props.selectedPlanId === null) return false;
+  return Number(planId) === Number(props.selectedPlanId);
+}
+
+function handleClose() {
+  emit('close');
+}
+
+function handleSelect(subscription: SubscriptionSummary) {
+  emit('select', subscription);
+}
+
+function handleManage() {
+  emit('manage');
+}
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-wrapper {
-  width: 100%;
-  max-width: 400px;
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-content {
-  padding: 1.5rem;
-}
-
-.modal-content h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
 .plan-list {
   display: flex;
   flex-direction: column;
@@ -191,7 +182,7 @@ defineEmits<{
 .modal-buttons {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1.25rem;
+  width: 100%;
 }
 
 .cancel-button,
@@ -225,16 +216,5 @@ defineEmits<{
 
 .manage-plan-button:hover {
   background: var(--primary-dark);
-}
-
-/* Transition */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

@@ -476,9 +476,21 @@ function handleBulkAction(action: ReadingAction) {
   bulkEditState.value = { ...DEFAULT_BULK_EDIT_STATE };
 }
 
-function selectPlan(subscription: SubscriptionSummary) {
-  selectedPlanId.value = subscription.plan_id;
+async function selectPlan(subscription: SubscriptionSummary) {
+  const newPlanId = Number(subscription.plan_id);
+  const currentPlanId = selectedPlanId.value;
+
+  // 같은 플랜 선택 시 무시
+  if (currentPlanId === newPlanId) {
+    showPlanModal.value = false;
+    return;
+  }
+
+  selectedPlanId.value = newPlanId;
   showPlanModal.value = false;
+
+  // 플랜 변경 시 스케줄 다시 로드
+  await fetchSchedules();
 }
 
 // ============================================
