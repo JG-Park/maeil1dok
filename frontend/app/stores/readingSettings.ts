@@ -48,7 +48,7 @@ interface ReadingSettingsState {
 // Default settings
 const DEFAULT_SETTINGS: ReadingSettings = {
   theme: 'light',
-  fontFamily: 'ridi-batang',
+  fontFamily: 'kopub-batang',
   fontSize: 16,
   fontWeight: 'normal',
   lineHeight: 1.8, // 숫자형 (1.4 ~ 2.4 범위)
