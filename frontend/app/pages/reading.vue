@@ -3226,12 +3226,17 @@ const handleCopy = (type = "includeLocation") => {
 
 // verse 강조 함수
 function highlightVerses(start, end) {
-  document.querySelectorAll(".verse").forEach((el) => {
-    const n = parseInt(
-      el.querySelector(".verse-number").textContent.trim(),
-      10
-    );
-    if (n >= start && n <= end) {
+  const verses = document.querySelectorAll(".verse");
+  if (!verses.length) return;
+
+  verses.forEach((el) => {
+    const numEl = el.querySelector(".verse-number");
+    if (!numEl) return;
+    
+    // 숫자만 추출 (parseInt 사용으로 onBibleClick과 로직 일치)
+    const n = parseInt(numEl.textContent.trim(), 10);
+    
+    if (!isNaN(n) && n >= start && n <= end) {
       el.classList.add("selected-verse");
       
       // 위치 클래스 초기화
@@ -4457,25 +4462,29 @@ onUnmounted(() => {
   background-color: var(--color-slate-200) !important;
   transition: background-color 0.2s ease;
   border-radius: 8px;
+  position: relative; /* Ensure z-index works */
+  z-index: 1;
 }
 
-/* 선택된 절 연결 스타일 */
-:deep(.verse.selected-first) {
+/* 선택된 절 연결 스타일 - specificity 강화 */
+:deep(.verse.selected-verse.selected-first) {
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
   margin-bottom: 0 !important;
-  padding-bottom: 0.5rem; /* 마진 대신 패딩으로 간격 채움 */
+  padding-bottom: 0.5rem !important; /* 마진 대신 패딩으로 간격 채움 */
 }
 
-:deep(.verse.selected-middle) {
+:deep(.verse.selected-verse.selected-middle) {
   border-radius: 0 !important;
   margin-bottom: 0 !important;
-  padding-bottom: 0.5rem;
+  margin-top: 0 !important; /* 안전장치 */
+  padding-bottom: 0.5rem !important;
 }
 
-:deep(.verse.selected-last) {
+:deep(.verse.selected-verse.selected-last) {
   border-top-left-radius: 0 !important;
   border-top-right-radius: 0 !important;
+  margin-top: 0 !important; /* 안전장치 */
 }
 
 /* 하이라이트된 절이 선택되었을 때 - 외곽선으로 선택 표시 */

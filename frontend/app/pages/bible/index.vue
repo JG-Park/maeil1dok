@@ -173,6 +173,7 @@ import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useSelectedPlanStore } from '~/stores/selectedPlan';
 import { useSubscriptionStore } from '~/stores/subscription';
 import { useToast } from '~/composables/useToast';
+import { useModal } from '~/composables/useModal';
 import { useApi } from '~/composables/useApi';
 // 뷰 컴포넌트
 import BibleHome from '~/components/bible/BibleHome.vue';
@@ -211,6 +212,7 @@ const readingSettingsStore = useReadingSettingsStore();
 const selectedPlanStore = useSelectedPlanStore();
 const subscriptionStore = useSubscriptionStore();
 const toast = useToast();
+const modal = useModal();
 const api = useApi();
 const { handleApiError, handleUserActionError } = useErrorHandler();
 
@@ -575,9 +577,17 @@ const handleMarkAsRead = async () => {
 };
 
 // 통독모드: 종료 핸들러
-const handleExitTongdok = () => {
-  disableTongdokMode();
-  toast.info('통독모드를 종료했습니다');
+const handleExitTongdok = async () => {
+  const confirmed = await modal.confirm({
+    title: '통독모드 종료',
+    description: '통독모드를 종료하시겠습니까?',
+    confirmText: '종료',
+    cancelText: '취소',
+  });
+  
+  if (confirmed) {
+    disableTongdokMode();
+  }
 };
 
 // 통독모드: 오디오 링크 핸들러
@@ -865,8 +875,18 @@ onMounted(async () => {
         break;
     }
   } else {
+    // tongdokMode가 true이고 query params가 없는 경우 (새로고침 후)
+    // 반드시 저장된 reading position에서 복원해야 함
     viewMode.value = 'reader';
-    initFromQuery();
+    
+    const lastPos = await loadReadingPosition();
+    if (lastPos) {
+      currentBook.value = lastPos.book;
+      currentChapter.value = lastPos.chapter;
+      currentVersion.value = lastPos.version || 'GAE';
+      scrollPosition.value = lastPos.scroll_position || 0;
+    }
+    
     loadBibleContent(currentBook.value, currentChapter.value);
     
     // 통독모드 진입 시에도 URL 정리 (상태는 localStorage에서 관리)
