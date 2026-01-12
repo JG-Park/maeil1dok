@@ -17,14 +17,9 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Splash screen 유지
 SplashScreen.preventAutoHideAsync();
-
-// WebBrowser warmup (성능 최적화)
-WebBrowser.maybeCompleteAuthSession();
 
 // Notification 핸들러 설정
 Notifications.setNotificationHandler({
