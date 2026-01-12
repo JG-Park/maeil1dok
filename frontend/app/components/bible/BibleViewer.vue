@@ -866,6 +866,13 @@ defineExpose({
   transition: background-color 0.3s, color 0.3s;
 }
 
+@media (max-width: 768px) {
+  .bible-viewer {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+}
+
 /* 테마 */
 .theme-light {
   background: var(--color-bg-primary, #f9fafb);
