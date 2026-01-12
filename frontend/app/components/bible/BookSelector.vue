@@ -43,6 +43,8 @@
           ref="searchInputRef"
           :value="currentInputValue"
           type="text"
+          :inputmode="inputMode === 'search' ? 'text' : 'numeric'"
+          :enterkeyhint="inputMode === 'search' ? 'search' : 'done'"
           class="search-input"
           :class="{ 'numeric-input': inputMode !== 'search', 'input-error': inputError }"
           :placeholder="inputPlaceholder"
