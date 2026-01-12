@@ -2,8 +2,10 @@
  * Tongdok Mode Composable
  *
  * 통독모드 상태 관리 및 관련 기능 제공
+ * - localStorage를 통한 상태 영속화
+ * - URL 파라미터와의 동기화
  */
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useBibleData } from './useBibleData';
 import { useApi } from './useApi';
@@ -34,6 +36,53 @@ export interface ReadingDetailResponse {
   data?: ReadingDetailData;
 }
 
+// localStorage 키
+const TONGDOK_STATE_KEY = 'tongdokModeState';
+
+interface TongdokStateStorage {
+  enabled: boolean;
+  scheduleId: number | null;
+  planId: number | null;
+  updatedAt: string;
+}
+
+/**
+ * localStorage에서 통독모드 상태 로드
+ */
+const loadTongdokState = (): TongdokStateStorage | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(TONGDOK_STATE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * localStorage에 통독모드 상태 저장
+ */
+const saveTongdokState = (state: TongdokStateStorage): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(TONGDOK_STATE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn('Failed to save tongdok state:', e);
+  }
+};
+
+/**
+ * localStorage에서 통독모드 상태 삭제
+ */
+const clearTongdokState = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(TONGDOK_STATE_KEY);
+  } catch (e) {
+    console.warn('Failed to clear tongdok state:', e);
+  }
+};
+
 export const useTongdokMode = () => {
   const route = useRoute();
   const router = useRouter();
@@ -48,13 +97,35 @@ export const useTongdokMode = () => {
   const isCompleting = ref(false);
 
   /**
-   * 통독모드 초기화 (URL 파라미터 확인)
+   * 통독모드 초기화
+   * 우선순위: URL 파라미터 > localStorage
    */
   const initTongdokMode = (): void => {
     const { tongdok, schedule, plan } = route.query;
-    tongdokMode.value = tongdok === 'true' || !!plan;
-    tongdokScheduleId.value = schedule ? Number(schedule) : null;
-    tongdokPlanId.value = plan ? Number(plan) : null;
+
+    // 1. URL 파라미터가 있으면 우선 사용
+    if (tongdok === 'true' || plan) {
+      tongdokMode.value = true;
+      tongdokScheduleId.value = schedule ? Number(schedule) : null;
+      tongdokPlanId.value = plan ? Number(plan) : null;
+
+      // localStorage에도 저장
+      saveTongdokState({
+        enabled: true,
+        scheduleId: tongdokScheduleId.value,
+        planId: tongdokPlanId.value,
+        updatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // 2. URL에 없으면 localStorage에서 복원
+    const savedState = loadTongdokState();
+    if (savedState && savedState.enabled) {
+      tongdokMode.value = true;
+      tongdokScheduleId.value = savedState.scheduleId;
+      tongdokPlanId.value = savedState.planId;
+    }
   };
 
   /**
@@ -126,8 +197,8 @@ export const useTongdokMode = () => {
     tongdokMode.value = false;
     tongdokScheduleId.value = null;
     tongdokPlanId.value = null;
+    clearTongdokState();
 
-    // URL에서 통독 관련 파라미터 제거
     const { tongdok, schedule, plan, from, ...restQuery } = route.query;
     router.replace({ query: restQuery });
   };
@@ -135,19 +206,20 @@ export const useTongdokMode = () => {
   /**
    * 통독모드 켜기
    */
-  const enableTongdokMode = (scheduleId?: number): void => {
+  const enableTongdokMode = (scheduleId?: number, planId?: number): void => {
     tongdokMode.value = true;
     if (scheduleId) {
       tongdokScheduleId.value = scheduleId;
     }
+    if (planId) {
+      tongdokPlanId.value = planId;
+    }
 
-    // URL에 통독 관련 파라미터 추가
-    router.replace({
-      query: {
-        ...route.query,
-        tongdok: 'true',
-        ...(scheduleId && { schedule: scheduleId.toString() })
-      }
+    saveTongdokState({
+      enabled: true,
+      scheduleId: tongdokScheduleId.value,
+      planId: tongdokPlanId.value,
+      updatedAt: new Date().toISOString(),
     });
   };
 
@@ -304,6 +376,12 @@ export const useTongdokMode = () => {
         schedule_ids: [tongdokScheduleId.value],
         action: 'complete'
       });
+
+      clearTongdokState();
+      tongdokMode.value = false;
+      tongdokScheduleId.value = null;
+      tongdokPlanId.value = null;
+
       return true;
     } catch (error) {
       console.error('통독 완료 처리 실패:', error);

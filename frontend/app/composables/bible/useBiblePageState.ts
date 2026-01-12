@@ -227,16 +227,10 @@ export function useBiblePageState(): UseBiblePageStateReturn {
       }
     }
 
-    // version이 없으면 기본값 GAE 사용
     if (version && typeof version === 'string' && versionNames[version]) {
       currentVersion.value = version;
     } else {
       currentVersion.value = 'GAE';
-    }
-
-    // URL 정리 (쿼리 파라미터 제거)
-    if (Object.keys(query).length > 0) {
-      router.replace({ path: '/bible', query: {} });
     }
   };
 
