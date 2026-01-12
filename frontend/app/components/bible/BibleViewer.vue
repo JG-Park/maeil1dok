@@ -953,23 +953,30 @@ defineExpose({
   opacity: 0.4;
 }
 
-/* 다크모드에서 하이라이트 스타일 조정 */
-.theme-dark .bible-content :deep(.verse.highlighted) {
-  /* 다크모드에서 파스텔톤 배경을 더 어둡고 채도 높게 조정 */
-  filter: saturate(1.3) brightness(0.85);
-  /* 텍스트가 잘 보이도록 색상 조정 */
-  color: var(--color-bg-primary, #1a1a1a);
+/* 다크모드에서 하이라이트 스타일 조정 - 밝은 배경에 어두운 텍스트 */
+.theme-dark .bible-content :deep(.verse.highlighted),
+:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) {
+  /* 다크모드에서 밝은 파스텔 배경에 어두운 텍스트로 가독성 확보 */
+  color: #1a1a1a !important;
 }
 
-.theme-dark .bible-content :deep(.verse.highlighted)::before {
-  /* 다크모드에서 왼쪽 indicator가 잘 보이도록 */
-  opacity: 0.6;
-}
-
+/* 다크모드 하이라이트 내 절 번호 - 어두운 색상 */
 .theme-dark .bible-content :deep(.verse.highlighted) .verse-number,
-.theme-dark .bible-content :deep(.verse.highlighted .verse-num) {
-  /* 다크모드 하이라이트 내 절 번호 색상 */
-  color: var(--primary-dark, #4338ca);
+.theme-dark .bible-content :deep(.verse.highlighted .verse-num),
+:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) .verse-number,
+:root[data-theme="dark"] .bible-content :deep(.verse.highlighted .verse-num) {
+  color: #4a4a4a !important;
+}
+
+/* 다크모드 하이라이트 내 인명/지명 강조 - 어두운 색상 */
+.theme-dark .bible-content :deep(.verse.highlighted) .bible-name,
+:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) .bible-name {
+  color: #5c4033 !important;
+}
+
+.theme-dark .bible-content :deep(.verse.highlighted) .bible-area,
+:root[data-theme="dark"] .bible-content :deep(.verse.highlighted) .bible-area {
+  color: #3d5a3a !important;
 }
 
 /* 인명/지명 강조 스타일 (reading.vue 동일) */
@@ -1254,6 +1261,20 @@ defineExpose({
 
 .theme-dark .bible-content :deep(.verse.selected-verse) {
   background-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+/* 하이라이트된 절이 선택되었을 때 - 더 짙은 색으로 강조 */
+.bible-content :deep(.verse.highlighted.selected-verse) {
+  filter: brightness(0.88) saturate(1.2);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
+/* 다크모드에서 하이라이트된 절이 선택되었을 때 */
+.theme-dark .bible-content :deep(.verse.highlighted.selected-verse),
+:root[data-theme="dark"] .bible-content :deep(.verse.highlighted.selected-verse) {
+  filter: brightness(0.82) saturate(1.3);
+  color: #1a1a1a !important;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.2);
 }
 
 /* 절 hover 효과 */

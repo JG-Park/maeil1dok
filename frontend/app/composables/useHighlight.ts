@@ -120,9 +120,13 @@ export const useHighlight = () => {
     try {
       isHighlightLoading.value = true;
       const response = await api.post('/api/v1/todos/bible/highlights/', data);
-      const newHighlight = response.data;
-      chapterHighlights.value.push(newHighlight);
-      return newHighlight;
+      const newHighlight = response.data || response;
+      if (newHighlight?.id) {
+        chapterHighlights.value.push(newHighlight);
+        return newHighlight;
+      }
+      console.error('하이라이트 생성 응답 형식 오류:', response);
+      return null;
     } catch (error) {
       console.error('하이라이트 생성 실패:', error);
       return null;
@@ -143,15 +147,16 @@ export const useHighlight = () => {
     try {
       isHighlightLoading.value = true;
       const response = await api.put(`/api/v1/todos/bible/highlights/${id}/`, data);
-      const updated = response.data;
+      const updated = response.data || response;
 
-      // 로컬 상태 업데이트
-      const index = chapterHighlights.value.findIndex(h => h.id === id);
-      if (index !== -1) {
-        chapterHighlights.value[index] = updated;
+      if (updated?.id) {
+        const index = chapterHighlights.value.findIndex(h => h.id === id);
+        if (index !== -1) {
+          chapterHighlights.value[index] = updated;
+        }
+        return updated;
       }
-
-      return updated;
+      return null;
     } catch (error) {
       console.error('하이라이트 수정 실패:', error);
       return null;

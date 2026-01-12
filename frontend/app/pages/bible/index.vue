@@ -464,13 +464,17 @@ const handleHighlightSave = async (data: { color: string; memo: string }) => {
 
   try {
     if (existingHighlight) {
-      await updateHighlight(existingHighlight.id, {
+      const result = await updateHighlight(existingHighlight.id, {
         color: data.color,
         memo: data.memo
       });
-      toast.success('하이라이트가 수정되었습니다');
+      if (result) {
+        toast.success('하이라이트가 수정되었습니다');
+      } else {
+        toast.error('하이라이트 수정에 실패했습니다');
+      }
     } else {
-      await createHighlight({
+      const result = await createHighlight({
         book: currentBook.value,
         chapter: currentChapter.value,
         start_verse: highlightSelection.value.start,
@@ -478,7 +482,11 @@ const handleHighlightSave = async (data: { color: string; memo: string }) => {
         color: data.color,
         memo: data.memo
       });
-      toast.success('하이라이트가 추가되었습니다');
+      if (result) {
+        toast.success('하이라이트가 추가되었습니다');
+      } else {
+        toast.error('하이라이트 추가에 실패했습니다');
+      }
     }
   } catch (error) {
     handleApiError(error, '하이라이트 저장');
