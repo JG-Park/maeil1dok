@@ -803,6 +803,13 @@ defineExpose({
   transition: background-color 0.3s, color 0.3s;
 }
 
+@media (max-width: 768px) {
+  .bible-viewer {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
 /* 테마 */
 .theme-light {
   background: var(--color-bg-primary, #f9fafb);
@@ -836,6 +843,11 @@ defineExpose({
   transition: background-color 0.3s ease-in-out;
   padding: 0.25rem 0.35rem;
   border-radius: 8px;
+}
+
+/* verse-group은 block으로 (내부에 여러 verse-line 포함) */
+.bible-content :deep(.verse.verse-group) {
+  display: block;
 }
 
 /* 절 번호 스타일 (reading.vue 동일) */
@@ -884,42 +896,20 @@ defineExpose({
 /* 인명/지명 강조 스타일 (reading.vue 동일) */
 .bible-content :deep(.bible-name) {
   color: var(--highlight-name-color, #7c5a3c);
-  cursor: pointer;
   text-decoration-line: underline;
   text-decoration-style: dotted;
   text-decoration-color: currentColor;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
-  transition: all 0.15s ease;
-}
-
-.bible-content :deep(.bible-name:hover) {
-  text-decoration-style: solid;
-  opacity: 0.8;
-}
-
-.bible-content :deep(.bible-name:active) {
-  opacity: 0.6;
 }
 
 .bible-content :deep(.bible-area) {
   color: var(--highlight-place-color, #5a6e54);
-  cursor: pointer;
   text-decoration-line: underline;
   text-decoration-style: dotted;
   text-decoration-color: currentColor;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
-  transition: all 0.15s ease;
-}
-
-.bible-content :deep(.bible-area:hover) {
-  text-decoration-style: solid;
-  opacity: 0.8;
-}
-
-.bible-content :deep(.bible-area:active) {
-  opacity: 0.6;
 }
 
 /* 인명/지명 강조 비활성화 */

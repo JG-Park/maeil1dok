@@ -377,6 +377,15 @@ defineExpose({
   min-height: 0;
 }
 
+
+@media (max-width: 768px) {
+  .bible-header,
+  .tongdok-indicator {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
 /* 헤더 */
 .bible-header {
   display: flex;
@@ -1183,6 +1192,14 @@ defineExpose({
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .bible-header,
+  .tongdok-indicator {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 
 </style>
