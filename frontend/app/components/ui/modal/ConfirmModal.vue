@@ -166,12 +166,12 @@ function handleCancel() {
 }
 
 .confirm-btn-primary {
-  background: var(--color-primary, #3b82f6);
+  background: var(--color-primary, #10b981);
   color: white;
 }
 
 .confirm-btn-primary:hover {
-  background: var(--color-primary-dark, #2563eb);
+  background: var(--color-primary-dark, #059669);
 }
 
 .confirm-btn-danger {

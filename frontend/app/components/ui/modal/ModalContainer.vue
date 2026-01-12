@@ -184,9 +184,9 @@ const transitionName = computed(() => {
   transform: translateY(100%);
 }
 
-/* Responsive: Bottom sheet on mobile */
+/* Responsive: Bottom sheet on mobile (except sm size) */
 @media (max-width: 640px) {
-  .modal-container:not(.modal-size-full) {
+  .modal-container:not(.modal-size-full):not(.modal-size-sm) {
     width: 100%;
     max-width: 100%;
     border-radius: var(--modal-radius-bottom);
@@ -195,6 +195,12 @@ const transitionName = computed(() => {
     left: 0;
     right: 0;
     max-height: 90vh;
+  }
+  
+  /* sm 사이즈는 모바일에서도 가운데 표시 */
+  .modal-size-sm {
+    width: calc(100% - 2rem);
+    max-width: var(--modal-width-sm);
   }
 }
 

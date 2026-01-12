@@ -120,3 +120,42 @@ Key models:
 - `UserBibleProgress` - Tracks user's reading completion
 - `BibleReadingPlan` - Different reading plan options
 - `PlanSubscription` - User's plan subscriptions
+
+## UI Component Guidelines
+
+### Modal (통합 모달 시스템)
+
+모든 모달은 통합 모달 시스템을 사용합니다. 개별 모달 컴포넌트를 직접 구현하지 마세요.
+
+**사용 방법:**
+```typescript
+import { useModal } from '~/composables/useModal';
+
+const modal = useModal();
+
+// Confirm 모달 (확인/취소)
+const confirmed = await modal.confirm({
+  title: '제목',
+  description: '설명 텍스트',
+  confirmText: '확인',    // optional, default: '확인'
+  cancelText: '취소',     // optional, default: '취소'
+  confirmVariant: 'danger', // optional: 'primary' | 'danger'
+  icon: 'warning'         // optional: 'warning' | 'error' | 'info' | 'success'
+});
+
+// Alert 모달 (확인만)
+await modal.alert({
+  title: '제목',
+  description: '설명 텍스트',
+  confirmText: '확인',    // optional
+  icon: 'info'            // optional
+});
+```
+
+**컴포넌트 위치:**
+- `components/ui/modal/ModalHost.vue` - 모달 호스트 (app.vue에 배치)
+- `components/ui/modal/ModalContainer.vue` - 모달 컨테이너
+- `components/ui/modal/ConfirmModal.vue` - 확인 모달
+- `components/ui/modal/AlertModal.vue` - 알림 모달
+- `composables/useModal.ts` - 모달 composable
+- `composables/useModalState.ts` - 모달 상태 관리

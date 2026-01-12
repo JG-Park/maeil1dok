@@ -7,15 +7,13 @@
         class="modal-wrapper"
         :style="{ zIndex: modal.options.zIndex }"
       >
-        <!-- Overlay (z-index: base) -->
-        <Transition name="modal-overlay">
-          <div
-            v-if="modal.options.showOverlay"
-            class="modal-overlay"
-            :style="{ zIndex: modal.options.zIndex }"
-            @click="handleOverlayClick(modal)"
-          />
-        </Transition>
+        <!-- Overlay (z-index: base) - wrapper와 함께 트랜지션 -->
+        <div
+          v-if="modal.options.showOverlay"
+          class="modal-overlay"
+          :style="{ zIndex: modal.options.zIndex }"
+          @click="handleOverlayClick(modal)"
+        />
 
         <!-- Modal Container (z-index는 ModalContainer 내부에서 처리) -->
         <ModalContainer
@@ -109,15 +107,21 @@ watch(state.isOpen, (isOpen) => {
   position: fixed;
   inset: 0;
   background: var(--modal-overlay-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   pointer-events: auto;
 }
 
-/* Stack transition */
+/* Stack transition - overlay와 modal이 동시에 트랜지션 */
 .modal-stack-enter-active,
 .modal-stack-leave-active {
   transition: opacity var(--modal-duration) var(--modal-easing);
+}
+
+.modal-stack-enter-active .modal-overlay,
+.modal-stack-leave-active .modal-overlay {
+  transition: opacity var(--modal-duration) var(--modal-easing),
+              backdrop-filter var(--modal-duration) var(--modal-easing);
 }
 
 .modal-stack-enter-from,
@@ -125,23 +129,18 @@ watch(state.isOpen, (isOpen) => {
   opacity: 0;
 }
 
-/* Overlay transition */
-.modal-overlay-enter-active,
-.modal-overlay-leave-active {
-  transition: opacity var(--modal-duration) var(--modal-easing);
-}
-
-.modal-overlay-enter-from,
-.modal-overlay-leave-to {
-  opacity: 0;
+.modal-stack-enter-from .modal-overlay,
+.modal-stack-leave-to .modal-overlay {
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
 }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .modal-stack-enter-active,
   .modal-stack-leave-active,
-  .modal-overlay-enter-active,
-  .modal-overlay-leave-active {
+  .modal-stack-enter-active .modal-overlay,
+  .modal-stack-leave-active .modal-overlay {
     transition: opacity 100ms;
   }
 }

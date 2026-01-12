@@ -243,17 +243,22 @@ onUnmounted(() => {
 
 /* Body */
 .base-modal-body {
-  flex: 1;
+  flex: 1 1 0; /* grow, shrink, basis=0으로 확장 */
   width: 100%;
   min-width: 0;
+  min-height: 0; /* 중요: flex 자식이 shrink 가능 */
   overflow-x: hidden;
   overflow-y: auto;
   padding: 1rem;
   box-sizing: border-box;
 }
 
+/* no-padding: flex 컨테이너로 동작, 자식에서 스크롤 */
 .base-modal-body.no-padding {
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 자식에서 스크롤 제어 */
 }
 
 /* Footer */
@@ -317,6 +322,7 @@ onUnmounted(() => {
     width: 100%;
     max-width: 100%;
     border-radius: 20px 20px 0 0;
+    height: 90vh; /* 고정 높이로 바디 확장 공간 확보 */
     max-height: 90vh;
   }
 
