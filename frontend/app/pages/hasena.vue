@@ -1,73 +1,88 @@
 <template>
-  <div class="container">
-    <div class="header fade-in" style="animation-delay: 0s">
-      <button class="back-button" @click="$router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </button>
-      <h1>하세나하시조</h1>
-    </div>
+  <div class="sanctuary-theme">
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <button class="back-button" @click="$router.back()" aria-label="뒤로 가기">
+          <ChevronLeftIcon class="icon" />
+        </button>
+        <h1>하세나하시조</h1>
+        <div class="w-10"></div> <!-- Spacer for centering -->
+      </header>
 
-    <!-- 비디오 섹션 -->
-    <div class="content-section video-section fade-in" style="animation-delay: 0.1s">
-      <div class="video-wrapper">
-        <div class="video-container">
-          <iframe width="100%" height="100%" :src="videoUrl" title="YouTube video player" frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen></iframe>
+      <main class="main-content">
+        <!-- 비디오 섹션 -->
+        <div class="card video-card fade-in" style="animation-delay: 0.1s">
+          <div class="video-wrapper">
+            <div class="video-container">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                :src="videoUrl" 
+                title="YouTube video player" 
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            </div>
+
+            <a v-if="isMobile" :href="youtubeAppUrl" target="_blank" class="youtube-deep-link">
+              <span class="youtube-icon">▶</span>
+              YouTube 앱으로 시청하기
+            </a>
+          </div>
         </div>
 
-        <a v-if="isMobile" :href="youtubeAppUrl" target="_blank" class="youtube-button">
-          <img src="/youtube-icon.svg" alt="YouTube" class="youtube-icon">
-          YouTube 앱으로 보기
-        </a>
-      </div>
-    </div>
+        <!-- 본문 섹션 -->
+        <div class="card content-card fade-in" style="animation-delay: 0.2s">
+          <!-- 로딩 상태 -->
+          <div v-if="isLoading" class="state-container loading">
+            <div class="loading-spinner"></div>
+            <p>오늘의 말씀을 불러오고 있습니다...</p>
+          </div>
 
-    <!-- 본문 섹션 -->
-    <div class="content-section bible-section fade-in" style="animation-delay: 0.2s">
-      <!-- 로딩 상태 -->
-      <div v-if="isLoading" class="loading-state">
-        <div class="loading-spinner"></div>
-        <p>하세나 본문을 불러오는 중...</p>
-      </div>
+          <!-- 에러 상태 -->
+          <div v-else-if="error" class="state-container error">
+            <div class="error-icon">!</div>
+            <h3>말씀을 불러올 수 없습니다</h3>
+            <p>{{ error }}</p>
+          </div>
 
-      <!-- 에러 상태 -->
-      <div v-else-if="error" class="error-state">
-        <div class="error-message">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <h3>본문을 불러올 수 없습니다</h3>
-          <p>{{ error }}</p>
+          <!-- 본문 내용 -->
+          <div v-else class="bible-content-wrapper">
+            <div class="bible-header">
+              <span class="date-badge">{{ formattedDate }}</span>
+              <h2>{{ bibleTitle }}</h2>
+            </div>
+
+            <div class="verse-container" v-html="parsedContent"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- 하단 플로팅 버튼 -->
+      <div class="floating-footer fade-in" style="animation-delay: 0.3s">
+        <div class="footer-inner">
+          <button 
+            class="action-button" 
+            :class="{ 'completed': isButtonCompleted }" 
+            :disabled="hasenaStore.isLoading"
+            @click="handleComplete"
+          >
+            <span v-if="hasenaStore.isLoading" class="loading-spinner small"></span>
+            <template v-else>
+              <CheckCircleIcon class="btn-icon" />
+              <span>{{ buttonText }}</span>
+            </template>
+          </button>
         </div>
       </div>
 
-      <!-- 본문 내용 -->
-      <div v-else class="bible-content">
-        <div class="bible-header">
-          <h2>{{ bibleTitle }}</h2>
-          <div class="date-info">{{ formattedDate }}</div>
-        </div>
-
-        <div class="verse-container" v-html="parsedContent"></div>
-      </div>
+      <!-- Toast 컴포넌트 -->
+      <Toast ref="toast" />
     </div>
-
-    <div class="bottom-controls fade-in" style="animation-delay: 0.3s">
-      <button class="complete-button" :class="{ 'completed': isButtonCompleted }" :disabled="hasenaStore.isLoading"
-        @click="handleComplete">
-        <span v-if="hasenaStore.isLoading" class="loading-spinner small"></span>
-        <span v-else>{{ buttonText }}</span>
-      </button>
-    </div>
-
-    <!-- Toast 컴포넌트 -->
-    <Toast ref="toast" />
   </div>
 </template>
 
@@ -78,6 +93,8 @@ import { useAuthStore } from '~/stores/auth'
 import { useHasenaStore } from '~/stores/hasena'
 import { useRouter } from 'vue-router'
 import Toast from '~/components/Toast.vue'
+import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue'
+import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue'
 
 const api = useApi()
 const auth = useAuthStore()
@@ -189,7 +206,7 @@ const fetchHasenaStatus = async () => {
 
 // 반응형 상태 관리를 위한 computed 속성
 const isButtonCompleted = computed(() => hasenaStore.isCompleted)
-const buttonText = computed(() => isButtonCompleted.value ? '하세나 취소' : '오늘의 하세나 완료')
+const buttonText = computed(() => isButtonCompleted.value ? '미완료로 변경' : '완료하기')
 
 // handleComplete 함수 강화
 const handleComplete = async () => {
@@ -261,297 +278,153 @@ onMounted(() => {
 </script>
 
 <style>
-.bible-section {
-  margin-bottom: 2.5rem !important;
-}
-
+/* Global Styles for injected HTML content */
 .verse {
   display: flex;
   align-items: flex-start;
-  font-weight: normal;
-  letter-spacing: -0.04em;
+  margin-bottom: 0.75rem;
+  line-height: 1.8;
 }
 
 .verse-number {
-  color: var(--primary-color);
-  font-weight: 500;
-  margin-right: 0.3rem;
-  min-width: 0.8em;
-  flex-shrink: 0;
-  text-align: right;
-  font-size: 0.75em;
-  font-family: 'Pretendard', sans-serif;
-  position: relative;
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 0.5rem;
+  min-width: 1.2rem;
+  font-size: 0.85em;
+  padding-top: 0.2em;
+  font-family: var(--font-sans);
 }
 
 .verse-text {
+  color: var(--text-main);
   flex: 1;
-}
-
-/* 모바일 대응 스타일도 전역으로 이동 */
-@media (max-width: 640px) {
-  .verse {
-    margin-bottom: 1.75rem;
-  }
-
-  .verse-number {
-    font-size: 0.8125rem;
-    padding-top: 0.3rem;
-  }
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 </style>
 
 <style scoped>
-@font-face {
-  font-family: 'RIDIBatang';
-  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
-  font-weight: normal;
-  font-style: normal;
+/* Sanctuary Theme Variables */
+.sanctuary-theme {
+  --bg-color: #F9F8F6;
+  --card-bg: #FFFFFF;
+  --text-main: #2C3333;
+  --text-sub: #6B7280;
+  --accent: #4A5D53;
+  --accent-light: #E8ECE9;
+  --paper-shadow: 0 4px 20px rgba(44, 51, 51, 0.04);
+  --font-serif: 'Noto Serif KR', 'RIDIBatang', serif;
+  --font-sans: 'Pretendard', sans-serif;
+  --primary-color: #4A5D53; /* Override original var if needed */
+
+  font-family: var(--font-sans);
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  min-height: 100vh;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bg-pattern {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(var(--text-sub) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.1;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .container {
   max-width: 768px;
   margin: 0 auto;
-  background: #f5f5f5;
   min-height: 100vh;
-  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  position: relative;
+  z-index: 1;
+  padding-bottom: 3rem;
 }
 
+/* Header */
 .header {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: white;
   position: sticky;
   top: 0;
-  z-index: 10;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  height: 48px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: rgba(249, 248, 246, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 50;
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+
+.header h1 {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
 }
 
 .back-button {
   background: none;
   border: none;
-  padding: 0.375rem;
-  margin: -0.375rem;
-  margin-right: 0.5rem;
-  color: var(--text-primary);
+  padding: 0.5rem;
+  margin-left: -0.5rem;
   cursor: pointer;
-}
-
-.header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.back-button svg {
-  width: 20px;
-  height: 20px;
-}
-
-.content-section {
-  background: white;
-  margin: 1rem;
-  padding: 0.85rem;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-
-.bible-content {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 0vw;
-  /* iOS에서 폰트 크기 자동 조정 방지 */
-  -webkit-text-size-adjust: none;
-  text-size-adjust: none;
-}
-
-.bible-header {
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.bible-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0.35rem 0 0 0;
-}
-
-.date-info {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.verse-container {
-  font-family: 'RIDIBatang', serif;
-  margin-bottom: 0.5rem;
-  font-weight: normal;
-  letter-spacing: -0.04em;
-}
-
-/* iOS Safari에서 폰트 렌더링 최적화 */
-@supports (-webkit-touch-callout: none) {
-  .verse-container {
-    letter-spacing: -0.015em;
-  }
-}
-
-.bottom-controls {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.25rem;
-  background: white;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.15);
-  max-width: 768px;
-  min-height: 50px;
-  margin: 0 auto;
-  z-index: 20;
-  flex-wrap: nowrap;
-  border-radius: 16px 16px 0 0;
-}
-
-@supports (-webkit-touch-callout: none) {
-  /* Safari 웹에서만 적용되도록 standalone 모드가 아닐 때만 패딩 추가 */
-  @media not all and (display-mode: standalone) {
-    .bottom-controls {
-      padding: 0.5rem 0.15rem calc(0.5rem + env(safe-area-inset-bottom)) 0.15rem;
-    }
-  }
-
-  /* PWA 홈 화면 앱(standalone 모드)에서는 safe-area-inset-bottom만 적용 */
-  @media (display-mode: standalone) {
-    .bottom-controls {
-      padding: 0.75rem 0.75rem calc(env(safe-area-inset-bottom)) 0.75rem;
-    }
-  }
-}
-
-.complete-button {
-  width: 100%;
-  padding: 0.875rem;
-  border: none;
-  background: var(--primary-color);
-  color: white;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  border-radius: 50%;
+  transition: background 0.2s;
 }
 
-.complete-button:hover:not(:disabled) {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
+.back-button:hover {
+  background: rgba(0,0,0,0.05);
 }
 
-.complete-button:active:not(:disabled) {
-  transform: translateY(0);
+.back-button .icon {
+  width: 24px;
+  height: 24px;
 }
 
-.complete-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.complete-button.completed {
-  background: var(--red-dark);
-}
-
-.complete-button.completed:hover:not(:disabled) {
-  background: var(--red-dark);
-}
-
-.loading-state,
-.error-state {
+/* Main Content */
+.main-content {
+  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-secondary);
+  gap: 1.5rem;
 }
 
-.loading-spinner {
-  width: 2rem;
-  height: 2rem;
-  border: 2px solid var(--primary-light);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: var(--paper-shadow);
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.02);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  opacity: 0;
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-/* 비디오 섹션 스타일 */
-.video-section {
-  margin-bottom: 1rem;
-}
-
-.video-info {
-  padding-bottom: 1.5rem;
-  text-align: left;
-}
-
-.video-info h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.75rem;
-}
-
-.description {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
+/* Video Section */
+.video-card {
+  padding: 0;
 }
 
 .video-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  position: relative;
+  width: 100%;
 }
 
 .video-container {
   position: relative;
-  padding-bottom: 56.25%;
-  /* 16:9 비율 */
+  padding-bottom: 56.25%; /* 16:9 */
   height: 0;
-  overflow: hidden;
-  border-radius: 12px;
   background: #000;
 }
 
@@ -563,26 +436,181 @@ onMounted(() => {
   height: 100%;
 }
 
-.youtube-button {
+.youtube-deep-link {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background-color: #FF0000;
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-weight: 500;
+  padding: 0.75rem;
+  background: #f1f1f1;
+  color: #333;
   text-decoration: none;
-  transition: background-color 0.2s;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  transition: background 0.2s;
 }
 
-.youtube-button:hover {
-  background-color: #FF0000;
+.youtube-deep-link:hover {
+  background: #e5e5e5;
 }
 
-.youtube-icon {
-  width: 24px;
-  height: 24px;
+/* Content Section */
+.content-card {
+  padding: 1.5rem;
+  min-height: 200px;
+}
+
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  color: var(--text-sub);
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--accent-light);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.error-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.bible-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px dashed rgba(0,0,0,0.1);
+}
+
+.date-badge {
+  display: inline-block;
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.bible-header h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--text-main);
+  margin: 0;
+  font-weight: 700;
+}
+
+.verse-container {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: #374151;
+}
+
+/* Floating Footer */
+.floating-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.footer-inner {
+  width: 100%;
+  max-width: 768px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 1.5rem 2rem 0;
+}
+
+.action-button {
+  pointer-events: auto;
+  width: auto;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px rgba(74, 93, 83, 0.4);
+}
+
+.btn-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.action-button:active {
+  transform: scale(0.95);
+}
+
+.action-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.action-button.completed {
+  background: #ef4444;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Mobile Responsive Tweaks */
+@media (max-width: 640px) {
+  .bible-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .verse-container {
+    font-size: 1rem;
+  }
 }
 </style>
