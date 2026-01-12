@@ -14,18 +14,6 @@
     <!-- 팝오버 -->
     <Transition name="popover-fade">
       <div v-if="isOpen" class="popover-content" @click.stop>
-        <!-- 오늘의 통독 (로그인 사용자만) -->
-        <template v-if="isAuthenticated">
-          <button class="popover-item tongdok-item" @click="handleTodayTongdok">
-            <div class="item-icon">
-              <CalendarCheckIcon />
-            </div>
-            <div class="item-content">
-              <span class="item-label">오늘의 통독</span>
-            </div>
-          </button>
-        </template>
-
         <!-- 성경통독표 -->
         <button class="popover-item" @click="handleReadingPlan">
           <div class="item-icon">
@@ -77,7 +65,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, defineComponent, h } from 'vue';
-import { useAuthStore } from '~/stores/auth';
 
 // 아이콘 컴포넌트들
 const EllipsisIcon = defineComponent({
@@ -109,31 +96,11 @@ const BookmarkOutlineIcon = defineComponent({
   }
 });
 
-const BookmarkFilledIcon = defineComponent({
-  render() {
-    return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'currentColor' }, [
-      h('path', { d: 'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z' }),
-    ]);
-  }
-});
-
 const SettingsIcon = defineComponent({
   render() {
     return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
       h('circle', { cx: 12, cy: 12, r: 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
       h('path', { d: 'M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-    ]);
-  }
-});
-
-const CalendarCheckIcon = defineComponent({
-  render() {
-    return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('rect', { x: 3, y: 4, width: 18, height: 18, rx: 2, ry: 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-      h('line', { x1: 16, y1: 2, x2: 16, y2: 6, 'stroke-linecap': 'round' }),
-      h('line', { x1: 8, y1: 2, x2: 8, y2: 6, 'stroke-linecap': 'round' }),
-      h('line', { x1: 3, y1: 10, x2: 21, y2: 10, 'stroke-linecap': 'round' }),
-      h('path', { d: 'M9 16l2 2 4-4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
     ]);
   }
 });
@@ -157,12 +124,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'note-click': [];
-  'today-tongdok': [];
   'reading-plan-click': [];
 }>();
-
-const authStore = useAuthStore();
-const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 const popoverRef = ref<HTMLElement | null>(null);
 const isOpen = ref(false);
@@ -191,11 +154,6 @@ const handleBookmarkList = () => {
 const handleSettings = () => {
   closePopover();
   navigateTo('/bible/settings');
-};
-
-const handleTodayTongdok = () => {
-  emit('today-tongdok');
-  closePopover();
 };
 
 const handleReadingPlan = () => {
@@ -378,14 +336,5 @@ onUnmounted(() => {
 
 :root.dark .popover-divider {
   background: var(--color-border);
-}
-
-/* 통독 버튼 강조 */
-.tongdok-item .item-icon {
-  color: var(--primary-color, #6366f1);
-}
-
-.tongdok-item .item-label {
-  font-weight: 500;
 }
 </style>

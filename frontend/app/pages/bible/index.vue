@@ -119,6 +119,16 @@
         @close="showSettingsModal = false"
       />
 
+      <!-- 통독 플랜 선택 모달 -->
+      <PlanSelectorModal
+        :show="showTongdokPlanModal"
+        :subscriptions="subscriptions"
+        :selected-plan-id="selectedPlanStore.selectedPlanId"
+        @close="showTongdokPlanModal = false"
+        @select="handleTongdokPlanSelect"
+        @manage="handleTongdokPlanManage"
+      />
+
       <!-- 성경통독표 모달 -->
       <Teleport to="body">
         <Transition name="modal-fade">
@@ -169,6 +179,7 @@ import { useAuthGuard } from '~/composables/useAuthGuard';
 import { useAuthStore } from '~/stores/auth';
 import { useReadingSettingsStore } from '~/stores/readingSettings';
 import { useSelectedPlanStore } from '~/stores/selectedPlan';
+import { useSubscriptionStore } from '~/stores/subscription';
 import { useToast } from '~/composables/useToast';
 import { useApi } from '~/composables/useApi';
 // 뷰 컴포넌트
@@ -184,6 +195,7 @@ import NoteQuickModal from '~/components/bible/NoteQuickModal.vue';
 import HighlightModal from '~/components/bible/HighlightModal.vue';
 import ReadingSettingsModal from '~/components/ReadingSettingsModal.vue';
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue';
+import PlanSelectorModal from '~/components/schedule/PlanSelectorModal.vue';
 
 // 기타
 import Toast from '~/components/Toast.vue';
@@ -201,6 +213,7 @@ const authStore = useAuthStore();
 const { requireAuth } = useAuthGuard();
 const readingSettingsStore = useReadingSettingsStore();
 const selectedPlanStore = useSelectedPlanStore();
+const subscriptionStore = useSubscriptionStore();
 const toast = useToast();
 const api = useApi();
 const { handleApiError, handleUserActionError } = useErrorHandler();
@@ -304,6 +317,16 @@ const {
 const bibleReaderViewRef = ref<InstanceType<typeof BibleReaderView> | null>(null);
 const scrollPosition = ref(0);
 const showScheduleModal = ref(false);
+const showTongdokPlanModal = ref(false);
+
+// 구독 목록 (플랜 선택 모달용)
+const subscriptions = computed(() => 
+  subscriptionStore.subscriptions.map(sub => ({
+    plan_id: sub.plan_id,
+    plan_name: sub.plan_name,
+    is_default: sub.is_default,
+  }))
+);
 
 // 통독모드 관련
 const isTongdokMode = computed(() => tongdokMode.value);
@@ -354,20 +377,8 @@ const currentSelectionHighlight = computed(() => {
   ) || null;
 });
 
-// 쿼리 파라미터에서 초기값 설정 후 URL 정리 (composable wrapper with tongdok mode)
 const initFromQuery = () => {
-  const { tongdok, schedule, plan } = route.query;
-
-  // 기본 book/chapter/version 초기화는 composable에 위임
   initFromQueryBase(route.query);
-
-  // 통독모드 초기화 (index.vue에서만 처리)
-  if (tongdok === 'true' || plan) {
-    tongdokMode.value = true;
-    if (schedule) {
-      tongdokScheduleId.value = Number(schedule);
-    }
-  }
 };
 
 // 성경 본문 로드 (composable wrapper)
@@ -572,31 +583,42 @@ const handleAudioLink = (audioLink: string) => {
 
 // 통독모드: 오늘의 통독 시작 핸들러
 const handleTodayTongdok = async () => {
-  try {
-    // 선택된 플랜 ID 확인
-    const planId = selectedPlanStore.effectivePlanId;
-    if (!planId) {
-      toast.error('선택된 플랜이 없습니다. 메인 화면에서 플랜을 선택해주세요.');
+  // 선택된 플랜 ID 확인
+  const planId = selectedPlanStore.effectivePlanId;
+  
+  // 플랜이 없으면 구독 목록을 로드하고 모달 표시
+  if (!planId) {
+    await subscriptionStore.fetchSubscriptions();
+    
+    if (subscriptions.value.length === 0) {
+      toast.info('구독 중인 플랜이 없습니다. 플랜 관리에서 플랜을 구독해주세요.');
       return;
     }
+    
+    // 구독 목록이 있으면 플랜 선택 모달 표시
+    showTongdokPlanModal.value = true;
+    return;
+  }
 
+  // 플랜이 있으면 바로 통독 시작
+  await startTongdokWithPlan(planId);
+};
+
+// 플랜 선택 후 통독 시작
+const startTongdokWithPlan = async (planId: number) => {
+  try {
     // 오늘의 스케줄 조회
     const response = await api.get(`/api/v1/todos/schedules/today/?plan_id=${planId}`);
 
     if (response.data.success && response.data.schedules && response.data.schedules.length > 0) {
       const schedule = response.data.schedules[0];
 
-      // 통독모드 활성화
-      tongdokMode.value = true;
-      tongdokScheduleId.value = schedule.id;
-      tongdokPlanId.value = planId;
+      enableTongdokMode(schedule.id, planId);
 
-      // 읽기 상세 정보 설정 (plan_detail이 있는 경우)
       if (schedule.plan_detail) {
         setReadingDetailResponse({ data: { plan_detail: schedule.plan_detail } });
       }
 
-      // 해당 책/장으로 이동
       handleBookSelect(schedule.book_code, schedule.start_chapter);
 
       toast.success('오늘의 통독을 시작합니다');
@@ -606,6 +628,23 @@ const handleTodayTongdok = async () => {
   } catch (error) {
     handleApiError(error, '통독 일정 로드');
   }
+};
+
+// 플랜 선택 모달에서 플랜 선택 핸들러
+const handleTongdokPlanSelect = async (subscription: { plan_id: number; plan_name: string; is_default: boolean }) => {
+  showTongdokPlanModal.value = false;
+  
+  // 선택한 플랜을 저장
+  selectedPlanStore.setSelectedPlanId(subscription.plan_id);
+  
+  // 통독 시작
+  await startTongdokWithPlan(subscription.plan_id);
+};
+
+// 플랜 선택 모달에서 플랜 관리로 이동
+const handleTongdokPlanManage = () => {
+  showTongdokPlanModal.value = false;
+  router.push('/plans');
 };
 
 // 성경통독표에서 일정 선택 핸들러
@@ -624,9 +663,7 @@ interface ScheduleSelectPayload {
 const handleScheduleSelect = (schedule: ScheduleSelectPayload) => {
   showScheduleModal.value = false;
 
-  tongdokMode.value = true;
-  tongdokScheduleId.value = schedule.id;
-  tongdokPlanId.value = selectedPlanStore.effectivePlanId;
+  enableTongdokMode(schedule.id, selectedPlanStore.effectivePlanId ?? undefined);
 
   if (schedule.plan_detail) {
     setReadingDetailResponse({ data: { plan_detail: schedule.plan_detail } });
@@ -838,22 +875,15 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  // cleanup
   cleanupReadingPosition();
   if (typeof window !== 'undefined') {
     window.removeEventListener('beforeunload', handleBeforeUnload);
   }
-  // 페이지 이탈 시 위치 저장
-  if (!tongdokMode.value) {
-    saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value, true);
-  }
+  saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value, true);
 });
 
-// beforeunload 핸들러
 const handleBeforeUnload = () => {
-  if (!tongdokMode.value) {
-    saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value, true);
-  }
+  saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value, true);
 };
 
 // route.query 변경 감지 (딥링크 처리)
@@ -890,13 +920,10 @@ watch(
   }
 );
 
-// 책/장/역본 변경 시 위치 저장 (통독모드가 아닐 때)
 watch(
   [() => currentBook.value, () => currentChapter.value, () => currentVersion.value],
   () => {
-    if (!tongdokMode.value) {
-      saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value);
-    }
+    saveReadingPosition(currentBook.value, currentChapter.value, currentVersion.value);
   },
   { flush: 'post' }
 );
