@@ -28,58 +28,57 @@
       <slot name="bottom"></slot>
     </template>
 
-    <!-- 절 클릭 복사 메뉴 -->
-    <Transition name="copy-menu-fade">
-      <div v-if="showCopyMenu" class="copy-menu" ref="copyMenuRef">
-        <span class="copy-menu-label">
-          {{ clickSelectedVerses.length === 1 ? '복사' : '구간 복사' }}
-        </span>
-        <div class="copy-menu-buttons">
-          <template v-if="clickSelectedVerses.length === 1">
-            <button class="copy-button" @click="handleClickCopy('includeLocation')">
-              위치 포함
+    <!-- 절 클릭 복사 메뉴 (액션 메뉴 아래에 표시) -->
+    <Teleport to="body">
+      <Transition name="copy-menu-fade">
+        <div v-if="showCopyMenu" class="copy-menu" ref="copyMenuRef" :style="copyMenuPosition">
+          <span class="copy-menu-label">
+            {{ clickSelectedVerses.length === 1 ? '복사' : '구간 복사' }}
+          </span>
+          <div class="copy-menu-buttons">
+            <template v-if="clickSelectedVerses.length === 1">
+              <button class="copy-button" @click="handleClickCopy('includeLocation')">
+                위치 포함
+              </button>
+              <span class="action-divider">|</span>
+              <button class="copy-button" @click="handleClickCopy('numOnly')">
+                절 번호만
+              </button>
+              <span class="action-divider">|</span>
+              <button class="copy-button" @click="handleClickCopy('textOnly')">
+                내용만
+              </button>
+            </template>
+            <template v-else>
+              <button class="copy-button" @click="handleClickCopy('includeLocationRange')">
+                위치 포함
+              </button>
+              <span class="action-divider">|</span>
+              <button class="copy-button" @click="handleClickCopy('excludeLocationRange')">
+                절 번호만
+              </button>
+            </template>
+            <button class="copy-button cancel" @click="clearClickSelection">
+              <XMarkIcon :size="14" />
             </button>
-            <span class="action-divider">|</span>
-            <button class="copy-button" @click="handleClickCopy('numOnly')">
-              절 번호만
-            </button>
-            <span class="action-divider">|</span>
-            <button class="copy-button" @click="handleClickCopy('textOnly')">
-              내용만
-            </button>
-          </template>
-          <template v-else>
-            <button class="copy-button" @click="handleClickCopy('includeLocationRange')">
-              위치 포함
-            </button>
-            <span class="action-divider">|</span>
-            <button class="copy-button" @click="handleClickCopy('excludeLocationRange')">
-              절 번호만
-            </button>
-          </template>
-          <button class="copy-button cancel" @click="clearClickSelection">
-            <XMarkIcon :size="14" />
-          </button>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <!-- 텍스트 드래그 선택 액션 메뉴 (기존) -->
     <Teleport to="body">
       <Transition name="action-menu">
         <div
           v-if="showActionMenu"
+          ref="actionMenuRef"
           class="verse-action-menu"
           :style="actionMenuPosition"
           @click.stop
         >
-          <button class="action-button" @click="handleBookmark">
-            <BookmarkIcon :size="18" />
-            <span>북마크</span>
-          </button>
-          <button class="action-button" @click="handleHighlight">
+          <button class="action-button" @click="handleHighlightOrRemove">
             <PenIcon :size="18" />
-            <span>하이라이트</span>
+            <span>{{ isSelectedVerseHighlighted ? '제거' : '하이라이트' }}</span>
           </button>
           <button class="action-button" @click="handleCopy">
             <CopyIcon :size="18" />
@@ -101,7 +100,6 @@ import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/r
 import { ACTION_MENU, TIMING } from '~/constants/bible';
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue';
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
-import BookmarkIcon from '~/components/icons/BookmarkIcon.vue';
 import PenIcon from '~/components/icons/PenIcon.vue';
 import CopyIcon from '~/components/icons/CopyIcon.vue';
 import ShareIcon from '~/components/icons/ShareIcon.vue';
@@ -134,6 +132,7 @@ const emit = defineEmits<{
   'verse-select': [verses: { start: number; end: number; text: string }];
   bookmark: [verses: { start: number; end: number; text: string }];
   highlight: [verses: { start: number; end: number; text: string }];
+  'highlight-delete': [highlightId: number];
   copy: [text: string];
   share: [text: string];
 }>();
@@ -146,6 +145,7 @@ const effectiveTheme = computed(() => settingsStore.effectiveTheme);
 // Refs
 const viewerRef = ref<HTMLElement | null>(null);
 const copyMenuRef = ref<HTMLElement | null>(null);
+const actionMenuRef = ref<HTMLElement | null>(null);
 
 // ====== 선택 시스템 상태 ======
 // 선택 모드: 'click' (절 클릭) | 'drag' (텍스트 드래그) | null
@@ -162,6 +162,7 @@ const showActionMenu = ref(false);
 const selectedVerses = ref({ start: 0, end: 0 });
 const selectedText = ref('');
 const actionMenuPosition = ref({ top: '0px', left: '0px' });
+const copyMenuPosition = ref({ top: '0px', left: '0px' });
 
 // 클릭된 절 요소 참조 (액션 메뉴 위치 계산용)
 const clickedVerseElement = ref<Element | null>(null);
@@ -179,6 +180,24 @@ const viewerStyle = computed(() => ({
 const getHighlightForVerse = (verseNum: number): Highlight | undefined => {
   return props.highlights.find(
     h => verseNum >= h.start_verse && verseNum <= h.end_verse
+  );
+};
+
+// 현재 선택된 절이 하이라이트되어 있는지 확인
+const isSelectedVerseHighlighted = computed(() => {
+  if (!selectedVerses.value.start) return false;
+  return props.highlights.some(
+    h => h.start_verse === selectedVerses.value.start &&
+         h.end_verse === selectedVerses.value.end
+  );
+});
+
+// 현재 선택된 절의 하이라이트 정보 가져오기
+const getSelectedVerseHighlight = (): Highlight | undefined => {
+  if (!selectedVerses.value.start) return undefined;
+  return props.highlights.find(
+    h => h.start_verse === selectedVerses.value.start &&
+         h.end_verse === selectedVerses.value.end
   );
 };
 
@@ -569,16 +588,6 @@ const hideActionMenu = () => {
 };
 
 // 액션 핸들러
-const handleBookmark = () => {
-  emit('bookmark', {
-    start: selectedVerses.value.start,
-    end: selectedVerses.value.end,
-    text: selectedText.value,
-  });
-  hideActionMenu();
-  clearSelection();
-};
-
 const handleHighlight = () => {
   emit('highlight', {
     start: selectedVerses.value.start,
@@ -589,12 +598,32 @@ const handleHighlight = () => {
   clearSelection();
 };
 
+// 하이라이트 추가 또는 제거 핸들러
+const handleHighlightOrRemove = () => {
+  const existingHighlight = getSelectedVerseHighlight();
+  if (existingHighlight) {
+    // 기존 하이라이트가 있으면 삭제 이벤트 발생
+    emit('highlight-delete', existingHighlight.id);
+    hideActionMenu();
+    clearAllSelections();
+  } else {
+    // 하이라이트 추가
+    handleHighlight();
+  }
+};
+
 const handleCopy = async () => {
+  // 현재 액션 메뉴 위치를 저장하고 복사 메뉴 위치 계산
+  const actionMenuTop = parseInt(actionMenuPosition.value.top) || 0;
+  const actionMenuLeft = parseInt(actionMenuPosition.value.left) || 0;
+  
   // 액션 메뉴를 숨기고 복사 메뉴 표시
   hideActionMenu();
   
   // 클릭 선택 모드에서는 복사 메뉴 표시
   if (selectionMode.value === 'click') {
+    // 복사 메뉴를 액션 메뉴 위치 아래에 표시
+    positionCopyMenu(actionMenuTop, actionMenuLeft);
     showCopyMenu.value = true;
     return;
   }
@@ -634,8 +663,42 @@ const handleCopy = async () => {
     }
     
     selectionMode.value = 'click'; // 복사 메뉴는 클릭 모드로 처리
+    // 복사 메뉴를 액션 메뉴 위치 아래에 표시
+    positionCopyMenu(actionMenuTop, actionMenuLeft);
     showCopyMenu.value = true;
   }
+};
+
+// 복사 메뉴 위치 계산 (액션 메뉴 아래에 표시)
+const positionCopyMenu = (actionTop: number, actionLeft: number) => {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const copyMenuWidth = 280; // 예상 복사 메뉴 너비
+  const copyMenuHeight = 50; // 예상 복사 메뉴 높이
+  const actionMenuHeight = 70; // 액션 메뉴 높이
+  const gap = 8; // 메뉴 간 간격
+  
+  // 액션 메뉴 아래에 표시
+  let top = actionTop + actionMenuHeight + gap;
+  let left = actionLeft;
+  
+  // 화면 하단을 벗어나면 액션 메뉴 위에 표시
+  if (top + copyMenuHeight > viewportHeight - 20) {
+    top = actionTop - copyMenuHeight - gap;
+  }
+  
+  // 화면 좌우 경계 처리
+  if (left < 10) {
+    left = 10;
+  }
+  if (left + copyMenuWidth > viewportWidth - 10) {
+    left = viewportWidth - copyMenuWidth - 10;
+  }
+  
+  copyMenuPosition.value = {
+    top: `${top}px`,
+    left: `${left}px`,
+  };
 };
 
 const handleShare = async () => {
@@ -643,13 +706,14 @@ const handleShare = async () => {
   const verseRef = selectedVerses.value.start === selectedVerses.value.end
     ? `${selectedVerses.value.start}절`
     : `${selectedVerses.value.start}-${selectedVerses.value.end}절`;
-  const shareText = `${selectedText.value}\n\n- ${bookName} ${props.chapter}장 ${verseRef}`;
+  const locationText = `${bookName} ${props.chapter}장 ${verseRef}`;
 
   if (navigator.share) {
     try {
+      // title만 위치 정보를 포함, text는 내용만 (중복 방지)
       await navigator.share({
-        title: `${bookName} ${props.chapter}장 ${verseRef}`,
-        text: shareText,
+        title: locationText,
+        text: selectedText.value,
       });
     } catch {
       // User cancelled or error
@@ -1208,16 +1272,13 @@ defineExpose({
 /* 복사 메뉴 */
 .copy-menu {
   position: fixed;
-  bottom: 120px;
-  left: 50%;
-  transform: translateX(-50%);
   background: var(--color-bg-card, #fff);
   padding: 0.5rem 0.75rem;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  z-index: 100;
+  z-index: 1001;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--color-border, #e5e7eb);
   min-width: 200px;
@@ -1290,20 +1351,20 @@ defineExpose({
 /* 복사 메뉴 애니메이션 */
 .copy-menu-fade-enter-active,
 .copy-menu-fade-leave-active {
-  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .copy-menu-fade-enter-from,
 .copy-menu-fade-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(16px) scale(0.98);
+  transform: translateY(-8px) scale(0.98);
 }
 
 .copy-menu-fade-enter-to,
 .copy-menu-fade-leave-from {
   opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateY(0) scale(1);
 }
 
 /* ====== 새한글(KNT) 전용 스타일 ====== */

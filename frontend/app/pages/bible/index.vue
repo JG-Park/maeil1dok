@@ -54,6 +54,7 @@
         @scroll="handleScrollPosition"
         @bookmark="handleBookmarkAction"
         @highlight="handleHighlightAction"
+        @highlight-delete="handleHighlightDeleteDirect"
         @copy="handleCopyAction"
         @share="handleShareAction"
         @exit-tongdok="handleExitTongdok"
@@ -484,8 +485,22 @@ const handleHighlightSave = async (data: { color: string; memo: string }) => {
   }
 };
 
-// 하이라이트 삭제
+// 하이라이트 삭제 (모달에서 호출)
 const handleHighlightDelete = async (highlightId: number) => {
+  try {
+    const success = await deleteHighlight(highlightId);
+    if (success) {
+      toast.success('하이라이트가 삭제되었습니다');
+    } else {
+      toast.error('하이라이트 삭제에 실패했습니다');
+    }
+  } catch (error) {
+    handleApiError(error, '하이라이트 삭제');
+  }
+};
+
+// 하이라이트 직접 삭제 (액션 메뉴에서 호출 - 확인 없이 바로 삭제)
+const handleHighlightDeleteDirect = async (highlightId: number) => {
   try {
     const success = await deleteHighlight(highlightId);
     if (success) {

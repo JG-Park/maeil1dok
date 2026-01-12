@@ -11,11 +11,37 @@
               <div v-if="isOpen" class="menu-panel">
                 <div class="menu-header">
                   <h2>메뉴</h2>
-                  <button class="close-button" @click="$emit('close')" aria-label="메뉴 닫기">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
-                  </button>
+                  <div class="header-actions">
+                    <!-- 다크모드 토글 버튼 -->
+                    <button 
+                      class="theme-toggle-button" 
+                      @click="toggleTheme"
+                      :title="currentTheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'"
+                      aria-label="테마 전환"
+                    >
+                      <!-- Sun icon (다크모드일 때 표시) -->
+                      <svg v-if="currentTheme === 'dark'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                      </svg>
+                      <!-- Moon icon (라이트모드일 때 표시) -->
+                      <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                      </svg>
+                    </button>
+                    <button class="close-button" @click="$emit('close')" aria-label="메뉴 닫기">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <nav class="menu-items">
@@ -134,6 +160,7 @@
 
 <script setup>
 import { useAuthStore } from '@/stores/auth'
+import { useReadingSettingsStore } from '@/stores/readingSettings'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -142,7 +169,15 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 const authStore = useAuthStore()
+const readingSettingsStore = useReadingSettingsStore()
 const user = computed(() => authStore.user)
+
+// Theme
+const currentTheme = computed(() => readingSettingsStore.effectiveTheme)
+const toggleTheme = () => {
+  const newTheme = currentTheme.value === 'dark' ? 'light' : 'dark'
+  readingSettingsStore.updateSetting('theme', newTheme)
+}
 
 const close = () => {
   emit('close')
@@ -197,6 +232,36 @@ const close = () => {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-slate-100, #f1f5f9);
+  color: var(--color-slate-700, #334155);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-button:hover {
+  background: var(--color-slate-200, #e2e8f0);
+  transform: scale(1.05);
+}
+
+.theme-toggle-button:active {
+  transform: scale(0.95);
 }
 
 .close-button {
@@ -410,6 +475,77 @@ const close = () => {
     padding: 1.25rem 2rem;
     font-size: 1rem;
   }
+}
+
+/* ====== 다크모드 스타일 ====== */
+:root.dark .menu-panel {
+  background: var(--color-bg-primary, #1a1a1a);
+  box-shadow: -4px 0 25px rgba(0, 0, 0, 0.4);
+}
+
+:root.dark .menu-header h2 {
+  color: var(--text-primary, #f3f4f6);
+}
+
+:root.dark .close-button {
+  color: var(--text-secondary, #9ca3af);
+  background: var(--primary-color, #4f46e5);
+}
+
+:root.dark .close-button svg {
+  color: white;
+}
+
+:root.dark .close-button:hover {
+  background: var(--primary-dark, #4338ca);
+  color: white;
+}
+
+:root.dark .menu-item {
+  color: var(--text-primary, #f3f4f6);
+}
+
+:root.dark .menu-item svg {
+  stroke: var(--text-secondary, #9ca3af);
+}
+
+:root.dark .menu-item:hover {
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.1));
+  color: var(--primary-color, #818cf8);
+}
+
+:root.dark .menu-item:hover svg {
+  stroke: var(--primary-color, #818cf8);
+}
+
+:root.dark .menu-divider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .menu-footer {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .app-version {
+  color: var(--text-secondary, #9ca3af);
+}
+
+:root.dark .github-link {
+  color: var(--text-secondary, #9ca3af);
+}
+
+:root.dark .github-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #f3f4f6);
+}
+
+:root.dark .theme-toggle-button {
+  background: var(--color-slate-700, #334155);
+  color: var(--color-slate-200, #e2e8f0);
+}
+
+:root.dark .theme-toggle-button:hover {
+  background: var(--color-slate-600, #475569);
 }
 
 </style>
