@@ -131,4 +131,15 @@ const profileLink = computed(() => {
     padding: 1.25rem;
   }
 }
+
+[data-theme="dark"] .sub-card {
+  background: var(--color-bg-card);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .icon-box {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
 </style>

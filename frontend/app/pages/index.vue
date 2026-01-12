@@ -122,4 +122,13 @@ const showMenu = ref(false);
   z-index: 0;
   pointer-events: none;
 }
+
+[data-theme="dark"] .bg-pattern {
+  background: linear-gradient(180deg, var(--bg-color) 0%, #222222 100%);
+}
+
+[data-theme="dark"] .logo-img {
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
+}
 </style>

@@ -648,4 +648,55 @@ function startRandomReading() {
   opacity: 0.3;
   box-shadow: var(--paper-shadow);
 }
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .reading-card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-card);
+}
+
+[data-theme="dark"] .main-card {
+  background: var(--color-bg-card);
+}
+
+[data-theme="dark"] .hasena-card {
+  background: linear-gradient(135deg, #451a03 0%, #78350f 100%);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="dark"] .hasena-btn {
+  color: #fcd34d !important;
+  border-bottom-color: #fcd34d !important;
+}
+
+[data-theme="dark"] .intro-card {
+  background: linear-gradient(135deg, #172554 0%, #1e3a8a 100%);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .intro-btn {
+  color: #93c5fd !important;
+  border-bottom-color: #93c5fd !important;
+}
+
+[data-theme="dark"] .all-done-card {
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .progress-bar-bg {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .suggestion-badge {
+  background: rgba(0, 0, 0, 0.4);
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .skeleton-label,
+[data-theme="dark"] .skeleton-title,
+[data-theme="dark"] .skeleton-desc,
+[data-theme="dark"] .skeleton-progress {
+  background: rgba(255, 255, 255, 0.05);
+}
 </style>

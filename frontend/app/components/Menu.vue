@@ -48,7 +48,7 @@
                   <!-- 공지사항 메뉴 아이템 추가 (가장 위에 배치) -->
                   <NuxtLink to="/notice" class="menu-item" @click="$emit('close')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                      stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path
                         d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
                       </path>
@@ -78,7 +78,7 @@
                   </NuxtLink>
 
                   <NuxtLink to="/plans" class="menu-item" @click="$emit('close')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     <span>플랜 관리</span>
                   </NuxtLink>
 
@@ -478,73 +478,73 @@ const close = () => {
 }
 
 /* ====== 다크모드 스타일 ====== */
-:root.dark .menu-panel {
+[data-theme="dark"] .menu-panel {
   background: var(--color-bg-primary, #1a1a1a);
   box-shadow: -4px 0 25px rgba(0, 0, 0, 0.4);
 }
 
-:root.dark .menu-header h2 {
+[data-theme="dark"] .menu-header h2 {
   color: var(--text-primary, #f3f4f6);
 }
 
-:root.dark .close-button {
+[data-theme="dark"] .close-button {
   color: var(--text-secondary, #9ca3af);
-  background: var(--primary-color, #4f46e5);
+  background: transparent;
 }
 
-:root.dark .close-button svg {
-  color: white;
-}
-
-:root.dark .close-button:hover {
-  background: var(--primary-dark, #4338ca);
-  color: white;
-}
-
-:root.dark .menu-item {
+[data-theme="dark"] .close-button svg {
   color: var(--text-primary, #f3f4f6);
 }
 
-:root.dark .menu-item svg {
+[data-theme="dark"] .close-button:hover {
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.1));
+  color: white;
+}
+
+[data-theme="dark"] .menu-item {
+  color: var(--text-primary, #f3f4f6);
+}
+
+[data-theme="dark"] .menu-item svg {
   stroke: var(--text-secondary, #9ca3af);
 }
 
-:root.dark .menu-item:hover {
+[data-theme="dark"] .menu-item:hover {
   background: var(--color-bg-hover, rgba(255, 255, 255, 0.1));
   color: var(--primary-color, #818cf8);
 }
 
-:root.dark .menu-item:hover svg {
+[data-theme="dark"] .menu-item:hover svg {
   stroke: var(--primary-color, #818cf8);
 }
 
-:root.dark .menu-divider {
+[data-theme="dark"] .menu-divider {
   background: rgba(255, 255, 255, 0.1);
 }
 
-:root.dark .menu-footer {
+[data-theme="dark"] .menu-footer {
   border-top-color: rgba(255, 255, 255, 0.1);
 }
 
-:root.dark .app-version {
+[data-theme="dark"] .app-version {
   color: var(--text-secondary, #9ca3af);
 }
 
-:root.dark .github-link {
+[data-theme="dark"] .github-link {
   color: var(--text-secondary, #9ca3af);
 }
 
-:root.dark .github-link:hover {
+[data-theme="dark"] .github-link:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary, #f3f4f6);
 }
 
-:root.dark .theme-toggle-button {
+[data-theme="dark"] .theme-toggle-button {
   background: var(--color-slate-700, #334155);
   color: var(--color-slate-200, #e2e8f0);
 }
 
-:root.dark .theme-toggle-button:hover {
+[data-theme="dark"] .theme-toggle-button:hover {
   background: var(--color-slate-600, #475569);
 }
 

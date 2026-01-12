@@ -38,53 +38,72 @@ const profileLink = computed(() => {
 </script>
 
 <style scoped>
+/* 글래스모피즘 플로팅 네비게이션 - bible-bottom-area 스타일과 통일 */
 .floating-nav {
   position: fixed;
-  bottom: 2rem;
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(44, 51, 51, 0.9);
-  backdrop-filter: blur(10px);
-  padding: 0.5rem 0.5rem;
-  border-radius: 999px;
+  z-index: 100;
+  max-width: calc(100% - 32px);
+
+  /* 글래스모피즘 */
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  /* 레이아웃 */
+  padding: 0.5rem 0.75rem;
   display: flex;
   gap: 0.25rem;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  z-index: 100;
-  max-width: 90%;
 }
 
 .nav-item {
-  padding: 0.75rem 1.25rem;
-  color: rgba(255,255,255,0.6);
+  padding: 0.625rem 1rem;
+  color: var(--color-slate-600, #475569);
   text-decoration: none;
   font-size: 0.875rem;
-  border-radius: 999px;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  background: transparent;
 }
 
 .nav-item:hover:not(.active) {
-  color: white;
-  background: rgba(255,255,255,0.1);
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .nav-item.active {
-  background: white;
-  color: #2C3333; /* var(--text-main) */
+  background: var(--primary-color, #6366f1);
+  color: white;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .nav-label {
   display: inline-block;
 }
 
+/* iOS 안전영역 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .floating-nav {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
 @media (max-width: 400px) {
   .nav-item {
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.75rem;
   }
   
   .nav-label {
@@ -94,5 +113,30 @@ const profileLink = computed(() => {
   .nav-item.active .nav-label {
     display: inline-block;
   }
+}
+
+/* ====== 다크모드 스타일 ====== */
+[data-theme="dark"] .floating-nav {
+  background: rgba(36, 36, 36, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 -4px 24px rgba(0, 0, 0, 0.4),
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .nav-item {
+  color: var(--color-text-secondary, #9ca3af);
+}
+
+[data-theme="dark"] .nav-item:hover:not(.active) {
+  color: var(--color-accent-primary, #6bc99f);
+  background: rgba(107, 201, 159, 0.1);
+}
+
+[data-theme="dark"] .nav-item.active {
+  background: var(--color-accent-primary, #6bc99f);
+  color: var(--color-text-inverse, #1f2937);
+  box-shadow: 0 2px 8px rgba(107, 201, 159, 0.3);
 }
 </style>
