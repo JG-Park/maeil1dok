@@ -37,6 +37,17 @@
           </div>
         </button>
 
+        <!-- 현재 장 북마크 토글 (통독 모드에서만 표시) -->
+        <button v-if="showBookmarkToggle" class="popover-item" :class="{ active: isBookmarked }" @click="handleBookmarkToggle">
+          <div class="item-icon">
+            <BookmarkFilledIcon v-if="isBookmarked" />
+            <BookmarkOutlineIcon v-else />
+          </div>
+          <div class="item-content">
+            <span class="item-label">{{ isBookmarked ? '북마크 삭제' : '북마크 추가' }}</span>
+          </div>
+        </button>
+
         <!-- 북마크 목록 -->
         <button class="popover-item" @click="handleBookmarkList">
           <div class="item-icon">
@@ -96,6 +107,14 @@ const BookmarkOutlineIcon = defineComponent({
   }
 });
 
+const BookmarkFilledIcon = defineComponent({
+  render() {
+    return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'currentColor', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('path', { d: 'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+    ]);
+  }
+});
+
 const SettingsIcon = defineComponent({
   render() {
     return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
@@ -120,11 +139,14 @@ const ListCheckIcon = defineComponent({
 
 const props = defineProps<{
   noteCount: number;
+  showBookmarkToggle?: boolean;
+  isBookmarked?: boolean;
 }>();
 
 const emit = defineEmits<{
   'note-click': [];
   'reading-plan-click': [];
+  'bookmark-toggle': [];
 }>();
 
 const popoverRef = ref<HTMLElement | null>(null);
@@ -143,6 +165,11 @@ const closePopover = () => {
 
 const handleNote = () => {
   emit('note-click');
+  closePopover();
+};
+
+const handleBookmarkToggle = () => {
+  emit('bookmark-toggle');
   closePopover();
 };
 

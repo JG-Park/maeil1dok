@@ -2,39 +2,37 @@
   <div class="bible-reader-view">
     <!-- 헤더 -->
     <header class="bible-header">
-      <button class="back-button" @click="$emit('back')">
-        <ChevronLeftIcon />
-      </button>
-
-      <button
-        class="bookmark-toggle-button"
-        :class="{ 'is-bookmarked': isBookmarked }"
-        @click="$emit('bookmark-toggle')"
-        :title="isBookmarked ? '북마크 삭제' : '북마크 추가'"
-      >
-        <BookmarkFilledIcon v-if="isBookmarked" :size="20" />
-        <BookmarkOutlineIcon v-else :size="20" />
-      </button>
-
-      <!-- 책/장 선택 + 통독중 배지 (그룹으로 묶어서 붙어있음) -->
-      <div class="book-selector-group">
-        <button class="book-selector-trigger" @click="$emit('open-book-selector')">
-          <span class="book-chapter-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
-          <ChevronDownIcon class="selector-icon" />
+      <!-- 통독 모드: [dot] [창세기 1장] [x] -->
+      <div v-if="isTongdokMode" class="book-selector-group tongdok-mode">
+        <button class="book-selector-trigger tongdok-trigger" @click="$emit('open-book-selector')">
+          <span class="tongdok-status-dot"></span>
+          <span class="book-chapter-text tongdok-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
         </button>
-        <!-- 통독중 배지 (클릭 시 종료) -->
         <button 
-          v-if="isTongdokMode" 
-          class="tongdok-badge-inline" 
+          class="tongdok-exit-btn" 
           @click="$emit('exit-tongdok')" 
           title="통독모드 종료"
         >
-          <span class="status-dot"></span>
-          통독중
-          <svg class="close-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
+        </button>
+      </div>
+
+      <!-- 일반 모드: [창세기 1장] [북마크] -->
+      <div v-else class="book-selector-group">
+        <button class="book-selector-trigger" @click="$emit('open-book-selector')">
+          <span class="book-chapter-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+          <span
+            class="bookmark-toggle-icon"
+            :class="{ 'is-bookmarked': isBookmarked }"
+            @click.stop="$emit('bookmark-toggle')"
+            :title="isBookmarked ? '북마크 삭제' : '북마크 추가'"
+          >
+            <BookmarkFilledIcon v-if="isBookmarked" :size="18" />
+            <BookmarkOutlineIcon v-else :size="18" />
+          </span>
         </button>
       </div>
 
@@ -78,9 +76,12 @@
       <div class="header-actions">
         <BibleToolPopover
           :note-count="noteCount"
+          :show-bookmark-toggle="isTongdokMode"
+          :is-bookmarked="isBookmarked"
           @note-click="$emit('note-click')"
           @open-settings="$emit('open-settings')"
           @reading-plan-click="$emit('reading-plan-click')"
+          @bookmark-toggle="$emit('bookmark-toggle')"
         />
         <!-- 통독모드 버튼 (로그인 사용자, 비통독 모드일 때) -->
         <button
@@ -179,7 +180,7 @@
       </div>
 
       <nav class="bible-navigation">
-        <!-- 홈 아이콘 -->
+        <!-- 홈 아이콘 (왼쪽 끝) -->
         <NuxtLink to="/" class="side-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -187,50 +188,46 @@
           </svg>
         </NuxtLink>
 
-        <!-- 이전 장 -->
-        <button
-          class="nav-button prev"
-          :disabled="!hasPrevChapter"
-          @click="$emit('prev-chapter')"
-        >
-          <ChevronLeftIcon />
-        </button>
+        <!-- 중앙: 이전/장정보/다음 그룹 -->
+        <div class="center-nav-group">
+          <button
+            class="nav-button prev"
+            :disabled="!hasPrevChapter"
+            @click="$emit('prev-chapter')"
+          >
+            <ChevronLeftIcon />
+          </button>
 
-        <!-- 중앙: 장 정보 -->
-        <button class="chapter-info" :class="{ 'is-tongdok': isTongdokMode && shortScheduleDate }" @click="$emit('open-book-selector')">
+          <button class="chapter-info" :class="{ 'is-tongdok': isTongdokMode && shortScheduleDate }" @click="$emit('open-book-selector')">
           <template v-if="isTongdokMode && shortScheduleDate">
-            <span class="tongdok-status-badge">
-              <span class="status-dot-small"></span>
-              통독중
-            </span>
-            <span class="schedule-short-date">{{ shortScheduleDate }}</span>
-            <div class="vertical-divider"></div>
-            <div 
-              class="tongdok-completion-group"
-              @click.stop="$emit('tongdok-complete-click')"
-              title="통독 완료하기"
-            >
-              <div class="tongdok-checkbox-wrapper">
-                <div class="tongdok-custom-checkbox"></div>
+              <span class="schedule-short-date">{{ shortScheduleDate }}</span>
+              <div class="vertical-divider"></div>
+              <div 
+                class="tongdok-completion-group"
+                @click.stop="$emit('tongdok-complete-click')"
+                title="통독 완료하기"
+              >
+                <div class="tongdok-checkbox-wrapper">
+                  <div class="tongdok-custom-checkbox"></div>
+                </div>
+                <span class="schedule-range">{{ tongdokScheduleRange }}</span>
               </div>
-              <span class="schedule-range">{{ tongdokScheduleRange }}</span>
-            </div>
-          </template>
-          <template v-else>
-            <span class="chapter-info-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
-          </template>
-        </button>
+            </template>
+            <template v-else>
+              <span class="chapter-info-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+            </template>
+          </button>
 
-        <!-- 다음 장 -->
-        <button
-          class="nav-button next"
-          :disabled="!hasNextChapter"
-          @click="$emit('next-chapter')"
-        >
-          <ChevronRightIcon />
-        </button>
+          <button
+            class="nav-button next"
+            :disabled="!hasNextChapter"
+            @click="$emit('next-chapter')"
+          >
+            <ChevronRightIcon />
+          </button>
+        </div>
 
-        <!-- 프로필 아이콘 -->
+        <!-- 프로필 아이콘 (오른쪽 끝) -->
         <NuxtLink :to="profileLink" class="side-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -413,7 +410,7 @@ defineExpose({
 .bible-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   padding: 0.75rem 1rem;
   background: var(--color-bg-card, #fff);
   position: sticky;
@@ -479,7 +476,7 @@ defineExpose({
 .book-selector-trigger {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   padding: 0.25rem 0;
   background: transparent;
   border: none;
@@ -494,13 +491,37 @@ defineExpose({
 }
 
 .book-chapter-text {
-  font-size: 1.125rem;
+  font-size: 1.375rem;
   font-weight: 700;
   color: var(--text-primary, #1f2937);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: -0.02em;
+}
+
+/* 북마크 아이콘 (XX장 옆) */
+.bookmark-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 0.125rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.bookmark-toggle-icon:hover {
+  color: var(--text-secondary, #6b7280);
+}
+
+.bookmark-toggle-icon.is-bookmarked {
+  color: var(--primary-color, #6366f1);
+}
+
+.bookmark-toggle-icon.is-bookmarked:hover {
+  color: var(--primary-dark, #4f46e5);
 }
 
 .selector-icon {
@@ -516,7 +537,7 @@ defineExpose({
   color: var(--text-secondary, #6b7280);
 }
 
-/* 책/장 선택 + 통독중 배지 그룹 (붙어있음) */
+/* 책/장 선택 그룹 */
 .book-selector-group {
   display: flex;
   align-items: center;
@@ -525,21 +546,72 @@ defineExpose({
   min-width: 0;
 }
 
-/* 통독중 배지 - 플랫한 텍스트 스타일 */
+/* 통독 모드 book-selector-group */
+.book-selector-group.tongdok-mode {
+  gap: 0.25rem;
+}
+
+/* 통독 모드 트리거 */
+.book-selector-trigger.tongdok-trigger {
+  gap: 0.375rem;
+}
+
+/* 통독 모드 상태 dot (초록색) */
+.tongdok-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-success, #10b981);
+  flex-shrink: 0;
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+/* 통독 모드 텍스트 (초록색) */
+.book-chapter-text.tongdok-text {
+  color: var(--color-success, #10b981);
+}
+
+/* 통독 모드 종료 버튼 */
+.tongdok-exit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--text-tertiary, #9ca3af);
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.tongdok-exit-btn:hover {
+  color: var(--text-secondary, #6b7280);
+  background: var(--color-bg-hover, #f3f4f6);
+}
+
+.tongdok-exit-btn:active {
+  transform: scale(0.9);
+}
+
+/* 통독중 배지 - 플랫한 텍스트 스타일 (레거시) */
 .tongdok-badge-inline {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.25rem; /* 패딩 축소 */
-  background: transparent; /* 배경 제거 */
+  padding: 0.25rem 0.375rem;
+  background: transparent;
   color: var(--primary-color);
-  border: none; /* 테두리 제거 */
+  border: none;
   border-radius: 0;
-  font-size: 0.75rem; /* 크기 약간 키움 */
+  font-size: 0.9375rem;
   font-weight: 700;
   flex-shrink: 0;
   cursor: pointer;
   transition: all 0.2s;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .tongdok-badge-inline:hover {
@@ -591,8 +663,9 @@ defineExpose({
 .tongdok-actions-inline {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 0.125rem;
+  flex: 1;
 }
 
 /* 통독 액션 버튼 (듣기, 가이드) - 심플한 링크 스타일로 변경 */
@@ -693,39 +766,23 @@ defineExpose({
 }
 
 /* 반응형 - 좁은 화면 */
-@media (max-width: 480px) {
-  /* 액션 버튼 레이블 숨김 (아이콘만) */
-  .tongdok-action-btn span {
-    display: none;
-  }
-  
-  .tongdok-action-btn {
-    padding: 0.375rem;
-  }
-}
-
 @media (max-width: 420px) {
   .book-chapter-text {
-    font-size: 1rem;
+    font-size: 1.25rem;
   }
   
   .tongdok-badge-inline {
-    font-size: 0.625rem;
-    padding: 0.125rem 0.375rem;
+    font-size: 0.8125rem;
   }
 }
 
 @media (max-width: 360px) {
-  /* 듣기/가이드 숨김, 완료만 표시 */
-  .tongdok-actions-inline .tongdok-action-btn:not(.complete) {
-    display: none;
+  .book-chapter-text {
+    font-size: 1.125rem;
   }
-}
-
-@media (max-width: 340px) {
-  /* 통독중 텍스트 숨김 (X만 표시) */
+  
   .tongdok-badge-inline {
-    padding: 0.25rem;
+    font-size: 0.75rem;
   }
 }
 
@@ -1021,10 +1078,19 @@ defineExpose({
 .bible-navigation {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.5rem 0.5rem;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
   min-height: 50px;
+  gap: 1rem;
+}
+
+/* 중앙 네비게이션 그룹 (이전/장정보/다음) */
+.center-nav-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.25rem;
+  flex: 1;
 }
 
 /* 사이드 네비게이션 아이템 (홈/프로필) */
@@ -1131,8 +1197,8 @@ defineExpose({
 
 /* 통독 모드일 때 챕터 정보 버튼 스타일 */
 .chapter-info.is-tongdok {
-  padding: 0.375rem 0.75rem;
-  gap: 0.5rem;
+  padding: 0.25rem 0;
+  gap: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1176,18 +1242,18 @@ defineExpose({
 
 .vertical-divider {
   width: 1px;
-  height: 12px;
+  height: 10px;
   background-color: var(--color-border-default, #e5e7eb);
-  margin: 0 0.125rem;
+  margin: 0;
   flex-shrink: 0;
 }
 
 .tongdok-completion-group {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.125rem;
   cursor: pointer;
-  padding: 0.125rem 0.25rem;
+  padding: 0.125rem 0;
   border-radius: 6px;
   transition: background 0.2s;
   white-space: nowrap;
@@ -1240,6 +1306,23 @@ defineExpose({
   color: var(--color-text-primary);
 }
 
+[data-theme="dark"] .book-chapter-text.tongdok-text {
+  color: var(--color-success, #34d399);
+}
+
+[data-theme="dark"] .tongdok-status-dot {
+  background-color: var(--color-success, #34d399);
+}
+
+[data-theme="dark"] .tongdok-exit-btn {
+  color: var(--color-text-tertiary);
+}
+
+[data-theme="dark"] .tongdok-exit-btn:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+}
+
 [data-theme="dark"] .selector-icon {
   color: var(--color-text-tertiary);
 }
@@ -1248,7 +1331,7 @@ defineExpose({
   color: var(--color-text-secondary);
 }
 
-/* 통독중 배지 다크모드 */
+/* 통독중 배지 다크모드 (레거시) */
 [data-theme="dark"] .tongdok-badge-inline:hover {
   color: var(--primary-color);
   background: transparent;
@@ -1295,6 +1378,19 @@ defineExpose({
 }
 
 [data-theme="dark"] .bookmark-toggle-button.is-bookmarked {
+  color: var(--color-accent-primary);
+}
+
+/* 북마크 아이콘 다크모드 (XX장 옆) */
+[data-theme="dark"] .bookmark-toggle-icon {
+  color: var(--color-text-tertiary);
+}
+
+[data-theme="dark"] .bookmark-toggle-icon:hover {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .bookmark-toggle-icon.is-bookmarked {
   color: var(--color-accent-primary);
 }
 
