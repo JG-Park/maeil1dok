@@ -12,8 +12,8 @@
     :style="viewerStyle"
     @scroll="handleScroll"
   >
-    <!-- 로딩 상태 -->
-    <LoadingSpinner v-if="isLoading" text="성경을 불러오는 중..." :size="40" />
+    <!-- 로딩 상태 - 스켈레톤 UI -->
+    <BibleViewerSkeleton v-if="isLoading" :verse-count="10" />
 
     <!-- 성경 본문 -->
     <template v-else>
@@ -101,7 +101,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings';
 import { ACTION_MENU, TIMING } from '~/constants/bible';
-import LoadingSpinner from '~/components/common/LoadingSpinner.vue';
+import BibleViewerSkeleton from '~/components/bible/BibleViewerSkeleton.vue';
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
 import PenIcon from '~/components/icons/PenIcon.vue';
 import CopyIcon from '~/components/icons/CopyIcon.vue';
