@@ -166,7 +166,15 @@ const handleSubmit = async () => {
     if (response.access) {
       auth.setTokens(response.access, response.refresh)
       auth.setUser(response.user)
-      // 네비게이션 스토어에서 리다이렉트 URL 소비 (로그인 전 접근하려던 페이지)
+      
+      if ((window as any).notifyAuthStateChanged) {
+        (window as any).notifyAuthStateChanged({
+          token: response.access,
+          refreshToken: response.refresh,
+          user: response.user
+        })
+      }
+      
       const redirectUrl = consumeRedirectUrl() || '/'
       navigateTo(redirectUrl)
     }

@@ -166,6 +166,15 @@ const handleSubmit = async () => {
     if (response.access) {
       auth.setTokens(response.access, response.refresh)
       auth.setUser(response.user)
+      
+      if ((window as any).notifyAuthStateChanged) {
+        (window as any).notifyAuthStateChanged({
+          token: response.access,
+          refreshToken: response.refresh,
+          user: response.user
+        })
+      }
+      
       const redirectUrl = consumeRedirectUrl() || '/'
       navigateTo(redirectUrl)
     }

@@ -225,15 +225,29 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Initialize listeners (should be called once from plugin)
     initializeListeners() {
       if (!process.client) return
 
-      // 다중 탭 동기화 설정
       this.setupStorageSync()
-
-      // Visibility API 설정 (백그라운드 탭 처리)
       this.setupVisibilityHandler()
+      this.setupNativeAppCallbacks()
+    },
+
+    setupNativeAppCallbacks() {
+      if (!window.__nativeBridge?.isNativeApp()) return
+
+      window.__nativeBridge.registerAuthCallback(
+        (credentials) => {
+          this.token = credentials.token
+          this.refreshToken = credentials.refreshToken
+          this.user = credentials.user
+          this.saveToLocalStorage()
+          this.startTokenRefreshTimer()
+        },
+        () => {
+          this.logout()
+        }
+      )
     },
 
     // 다중 탭 간 인증 상태 동기화
@@ -331,6 +345,8 @@ export const useAuthStore = defineStore('auth', {
         const readingSettingsStore = useReadingSettingsStore()
         await readingSettingsStore.onLogin()
 
+        this.notifyNativeAuthLogin()
+
         return true
       } catch (error) {
         this.logout()
@@ -372,6 +388,8 @@ export const useAuthStore = defineStore('auth', {
           const readingSettingsStore = useReadingSettingsStore()
           await readingSettingsStore.onLogin()
 
+          this.notifyNativeAuthLogin()
+
           return true
         } else if (data.needsSignup) {
           return data
@@ -396,6 +414,8 @@ export const useAuthStore = defineStore('auth', {
 
           const readingSettingsStore = useReadingSettingsStore()
           await readingSettingsStore.onLogin()
+
+          this.notifyNativeAuthLogin()
         }
         return response
       } catch (error) {
@@ -410,6 +430,8 @@ export const useAuthStore = defineStore('auth', {
 
         const readingSettingsStore = useReadingSettingsStore()
         await readingSettingsStore.onLogin()
+
+        this.notifyNativeAuthLogin()
 
         return true
       }
@@ -451,6 +473,10 @@ export const useAuthStore = defineStore('auth', {
         } catch (error) {
           console.debug('Failed to clear navigation store:', error)
         }
+        
+        if (window.__nativeBridge?.isNativeApp()) {
+          window.__nativeBridge.sendToNative({ type: 'auth:logout' })
+        }
       }
 
       this.isLoggingOut = false
@@ -490,6 +516,21 @@ export const useAuthStore = defineStore('auth', {
       if (timeLeft !== null && timeLeft < 5 * 60) {
         await this.refreshAccessToken()
       }
+    },
+
+    notifyNativeAuthLogin() {
+      if (!process.client || typeof window === 'undefined') return
+      if (!window.__nativeBridge?.isNativeApp()) return
+      if (!this.token || !this.user) return
+
+      window.__nativeBridge.sendToNative({
+        type: 'auth:login',
+        data: {
+          token: this.token,
+          refreshToken: this.refreshToken || '',
+          user: this.user
+        }
+      })
     },
 
     async refreshAccessToken() {

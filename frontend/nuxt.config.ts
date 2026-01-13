@@ -109,19 +109,13 @@ export default defineNuxtConfig({
         // { name: 'naver-site-verification', content: 'YOUR_NAVER_VERIFICATION_CODE' },
       ],
       script: [
-        // Theme resolver: FOUC prevention (must run before any content renders)
         {
           innerHTML: `(function(){var t='light';try{var s=localStorage.getItem('readingSettings');if(s){var p=JSON.parse(s);if(p.theme){t=p.theme==='system'?window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light':p.theme}}}catch(e){t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)})();`,
           tagPosition: 'head',
         },
         {
-          src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8742107706365412',
-          async: true,
-          crossorigin: 'anonymous'
-        },
-        {
           src: 'https://kit.fontawesome.com/addd9ad2f2.js',
-          defer: true,  // 렌더 블로킹 방지
+          defer: true,
           crossorigin: 'anonymous'
         }
       ]

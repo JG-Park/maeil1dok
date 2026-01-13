@@ -50,7 +50,6 @@ const OAUTH_DOMAINS = [
   'oauth.google.com',
 ];
 
-// Auth 상태 타입
 interface AuthState {
   isLoggedIn: boolean;
   accessToken: string | null;
@@ -76,6 +75,8 @@ export default function App() {
   });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [webViewKey, setWebViewKey] = useState(0);
+  const [pendingSignupUrl, setPendingSignupUrl] = useState<string | null>(null);
 
   // 저장된 인증 상태 로드
   useEffect(() => {
@@ -108,9 +109,13 @@ export default function App() {
     }
   };
 
-  // 로그아웃
   const handleLogout = async () => {
     try {
+      await fetch(`${API_URL}/api/v1/auth/logout/`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => {});
+      
       await AsyncStorage.removeItem(STORAGE_KEY);
       setAuthState({
         isLoggedIn: false,
@@ -118,6 +123,7 @@ export default function App() {
         refreshToken: null,
         user: null,
       });
+      setWebViewKey((prev) => prev + 1);
       setShowLogin(true);
     } catch (error) {
       console.error('Failed to logout:', error);
@@ -194,10 +200,9 @@ export default function App() {
         });
         setShowLogin(false);
       } else if (data.needsSignup) {
-        // 회원가입 필요 - WebView로 이동
         const signupUrl = `${WEB_APP_URL}/auth/${provider}/setup?provider=${provider}&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+        setPendingSignupUrl(signupUrl);
         setShowLogin(false);
-        webViewRef.current?.injectJavaScript(`window.location.href = '${signupUrl}';`);
       } else {
         console.error('Login failed:', data);
       }
@@ -319,21 +324,17 @@ export default function App() {
   const handleShouldStartLoadWithRequest = (request: { url: string }) => {
     const { url } = request;
 
-    // /login 페이지로 이동 시 네이티브 로그인 화면 표시
     if (url.includes('/login') && url.startsWith(WEB_APP_URL)) {
       handleLogout();
       return false;
     }
 
-    // OAuth 도메인은 WebView에서 열기
     const isOAuthDomain = OAUTH_DOMAINS.some((domain) => url.includes(domain));
     if (isOAuthDomain) {
       return true;
     }
 
-    // 외부 링크는 기본 브라우저에서 열기
     if (!url.startsWith(WEB_APP_URL) && !url.startsWith('about:')) {
-      Linking.openURL(url);
       return false;
     }
 
@@ -378,13 +379,17 @@ export default function App() {
     }
   };
 
-  // 로딩 완료 핸들러
   const handleLoadEnd = () => {
     setIsLoading(false);
     setIsError(false);
     SplashScreen.hideAsync();
     injectPushToken();
     injectAuthToken();
+    
+    if (pendingSignupUrl) {
+      webViewRef.current?.injectJavaScript(`window.location.href = '${pendingSignupUrl}';`);
+      setPendingSignupUrl(null);
+    }
   };
 
   // 에러 핸들러
@@ -394,6 +399,39 @@ export default function App() {
     SplashScreen.hideAsync();
   };
 
+  // Native → WebView 토큰 주입 (native:auth 이벤트)
+  const sendAuthToWebView = (credentials: { token: string; refreshToken: string; user: any } | null) => {
+    if (!webViewRef.current) return;
+    
+    if (credentials) {
+      webViewRef.current.injectJavaScript(`
+        (function() {
+          // localStorage에 토큰 저장
+          const authData = {
+            token: '${credentials.token}',
+            refreshToken: '${credentials.refreshToken}',
+            user: ${JSON.stringify(credentials.user)}
+          };
+          localStorage.setItem('auth', JSON.stringify(authData));
+          
+          // native:auth 이벤트 발생 (새 규약)
+          window.dispatchEvent(new CustomEvent('native:auth', { 
+            detail: { type: 'token', data: authData }
+          }));
+        })();
+      `);
+    } else {
+      webViewRef.current.injectJavaScript(`
+        (function() {
+          localStorage.removeItem('auth');
+          window.dispatchEvent(new CustomEvent('native:auth', { 
+            detail: { type: 'logout' }
+          }));
+        })();
+      `);
+    }
+  };
+
   // WebView에서 메시지 수신
   const handleMessage = (event: { nativeEvent: { data: string } }) => {
     try {
@@ -401,22 +439,64 @@ export default function App() {
       console.log('Message from WebView:', message);
 
       switch (message.type) {
+        // 새 규약: WebView → Native 메시지
+        case 'auth:login':
+          // WebView에서 로그인 성공 (회원가입 완료 등)
+          if (message.data) {
+            saveAuthState({
+              isLoggedIn: true,
+              accessToken: message.data.token,
+              refreshToken: message.data.refreshToken,
+              user: message.data.user,
+            });
+          }
+          break;
+          
+        case 'auth:logout':
+          // WebView에서 로그아웃 요청
+          handleLogout();
+          break;
+          
+        case 'auth:expired':
+          // WebView에서 세션 만료 감지 → 토큰 갱신 시도
+          // TODO: 토큰 갱신 로직 구현 (현재는 로그아웃)
+          console.log('Session expired, logging out...');
+          handleLogout();
+          break;
+          
+        case 'auth:request':
+          // WebView에서 현재 인증 상태 요청
+          if (authState.accessToken) {
+            sendAuthToWebView({
+              token: authState.accessToken,
+              refreshToken: authState.refreshToken || '',
+              user: authState.user,
+            });
+          } else {
+            sendAuthToWebView(null);
+          }
+          break;
+          
+        case 'navigate':
+          // 외부 링크 열기
+          if (message.url) {
+            WebBrowser.openBrowserAsync(message.url, {
+              presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+            });
+          }
+          break;
+          
+        // 하위 호환: 기존 메시지 타입 (점진적 제거 예정)
         case 'requestPushToken':
           injectPushToken();
           break;
         case 'requestAuthToken':
           injectAuthToken();
           break;
-        case 'navigate':
-          if (message.url) {
-            Linking.openURL(message.url);
-          }
-          break;
         case 'logout':
           handleLogout();
           break;
         case 'authStateChanged':
-          // WebView에서 인증 상태 변경 알림
           if (message.data) {
             saveAuthState({
               isLoggedIn: !!message.data.token,
@@ -540,6 +620,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#faf8f6" />
       <WebView
+        key={webViewKey}
         ref={webViewRef}
         source={{ uri: WEB_APP_URL }}
         style={styles.webView}
