@@ -149,6 +149,16 @@
                   </NuxtLink>
                 </nav>
 
+                <!-- 하단 법적 링크 -->
+                <div class="menu-footer">
+                  <div class="legal-links">
+                    <NuxtLink to="/terms" @click="$emit('close')">이용약관</NuxtLink>
+                    <span class="divider">|</span>
+                    <NuxtLink to="/privacy" @click="$emit('close')">개인정보처리방침</NuxtLink>
+                    <span class="divider">|</span>
+                    <NuxtLink to="/company" @click="$emit('close')">회사정보</NuxtLink>
+                  </div>
+                </div>
               </div>
             </Transition>
           </div>
@@ -328,6 +338,36 @@ const close = () => {
   margin: 0.75rem 0;
 }
 
+.menu-footer {
+  padding: 1rem 0.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-top: auto;
+}
+
+.legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.legal-links a {
+  color: var(--text-tertiary, #9ca3af);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.legal-links a:hover {
+  color: var(--text-secondary, #6b7280);
+}
+
+.legal-links .divider {
+  color: var(--text-tertiary, #d1d5db);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.25s ease;
@@ -463,6 +503,26 @@ const close = () => {
 
 [data-theme="dark"] .theme-toggle-button:hover {
   background: var(--color-slate-600, #475569);
+}
+
+[data-theme="dark"] .menu-footer {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .legal-links {
+  color: var(--text-tertiary, #6b7280);
+}
+
+[data-theme="dark"] .legal-links a {
+  color: var(--text-tertiary, #6b7280);
+}
+
+[data-theme="dark"] .legal-links a:hover {
+  color: var(--text-secondary, #9ca3af);
+}
+
+[data-theme="dark"] .legal-links .divider {
+  color: var(--text-tertiary, #4b5563);
 }
 
 </style>
