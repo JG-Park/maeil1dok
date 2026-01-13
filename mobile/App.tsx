@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   BackHandler,
   Platform,
-  SafeAreaView,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -16,6 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
@@ -60,7 +60,8 @@ interface AuthState {
 
 const STORAGE_KEY = '@maeil1dok_auth';
 
-export default function App() {
+function AppContent() {
+  const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -518,7 +519,7 @@ export default function App() {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#faf8f6" />
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#4A90A4" />
+          <ActivityIndicator size="large" color="#4B9F7E" />
         </View>
       </SafeAreaView>
     );
@@ -679,11 +680,14 @@ export default function App() {
           (function() {
             window.isReactNativeWebView = true;
             window.isAndroidApp = ${Platform.OS === 'android'};
+            window.nativeInsets = { top: ${insets.top}, bottom: ${insets.bottom}, left: ${insets.left}, right: ${insets.right} };
             window.requestNativePushToken = function() {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'requestPushToken' }));
             };
+            document.documentElement.style.setProperty('--native-top-inset', '${insets.top}px');
+            document.documentElement.style.setProperty('--native-bottom-inset', '${insets.bottom}px');
+            document.body.classList.add('native-app');
             if (${Platform.OS === 'android'}) {
-              document.documentElement.style.setProperty('--native-bottom-inset', '24px');
               document.body.classList.add('android-native-app');
             }
           })();
@@ -691,13 +695,13 @@ export default function App() {
         `}
         renderLoading={() => (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4A90A4" />
+            <ActivityIndicator size="large" color="#4B9F7E" />
           </View>
         )}
       />
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#4A90A4" />
+          <ActivityIndicator size="large" color="#4B9F7E" />
         </View>
       )}
     </SafeAreaView>
@@ -708,7 +712,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#faf8f6',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   webView: {
     flex: 1,
@@ -795,6 +798,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Pretendard-Medium',
     fontSize: 14,
     color: '#000000',
+    letterSpacing: -0.8,
   },
   googleButton: {
     flexDirection: 'row',
@@ -812,6 +816,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Pretendard-Medium',
     fontSize: 14,
     color: '#1f2937',
+    letterSpacing: -0.8,
   },
   divider: {
     flexDirection: 'row',
@@ -828,6 +833,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     fontSize: 14,
     color: '#64748b',
+    letterSpacing: -0.7,
   },
   inputGroup: {
     borderRadius: 6,
@@ -847,6 +853,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     borderWidth: 1,
     borderColor: '#cbd5e1',
+    letterSpacing: -0.8,
   },
   inputTop: {
     borderTopLeftRadius: 6,
@@ -858,7 +865,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
   },
   submitButton: {
-    backgroundColor: '#4A90A4',
+    backgroundColor: '#4B9F7E',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 6,
@@ -876,6 +883,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Pretendard-Medium',
     color: '#fff',
     fontSize: 14,
+    letterSpacing: -0.8,
   },
   authLinks: {
     alignItems: 'center',
@@ -885,13 +893,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Pretendard-Regular',
     color: '#64748b',
     fontSize: 14,
+    letterSpacing: -0.7,
   },
   registerLink: {
     fontFamily: 'Pretendard-Medium',
-    color: '#4A90A4',
+    color: '#4B9F7E',
     fontSize: 14,
     paddingVertical: 8,
     paddingHorizontal: 16,
+    letterSpacing: -0.7,
   },
   errorContainer: {
     flex: 1,
@@ -922,7 +932,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#4A90A4',
+    backgroundColor: '#4B9F7E',
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
@@ -933,3 +943,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}

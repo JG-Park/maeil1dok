@@ -97,8 +97,8 @@ const isActive = (path) => {
   display: block;
 }
 
-:global(.android-native-app) .bottom-nav-container {
-  padding-bottom: 48px;
+:global(.native-app) .bottom-nav-container {
+  padding-bottom: var(--native-bottom-inset, 0px);
 }
 
 /* Desktop: Hide bottom navigation on very large screens */
