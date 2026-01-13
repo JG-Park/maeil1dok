@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-매일일독 (Maeil1Dok) is a Bible reading tracking application for 높은뜻 푸른교회. It helps users systematically complete Bible reading with a 45-week reading schedule.
+매일일독 (Maeil1Dok) is a Bible reading tracking application. It helps users systematically complete Bible reading with a structured reading schedule.
 
 ## Tech Stack
 

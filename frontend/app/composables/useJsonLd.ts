@@ -17,7 +17,7 @@ export const useJsonLd = () => {
             name: '매일일독',
             url: 'https://maeil1dok.app',
             logo: 'https://maeil1dok.app/icon-512x512.png',
-            description: '높은뜻 푸른교회의 성경 통독 관리 서비스',
+            description: '올해는 매일일독과 함께 성경일독!',
           }),
         },
       ],
@@ -41,7 +41,7 @@ export const useJsonLd = () => {
             inLanguage: 'ko-KR',
             publisher: {
               '@type': 'Organization',
-              name: '높은뜻 푸른교회',
+              name: '매일일독',
             },
           }),
         },

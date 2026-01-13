@@ -116,7 +116,7 @@ def send_verification_email(to_email: str, token: str, nickname: str = None) -> 
                         회원가입을 요청하지 않으셨다면 이 메일을 무시해 주세요.
                     </p>
                     <p style="color: #9CA3AF; font-size: 12px; margin: 15px 0 0 0;">
-                        © 매일일독 - 높은뜻 푸른교회
+                        © 매일일독
                     </p>
                 </td>
             </tr>
@@ -197,7 +197,7 @@ def send_password_reset_email(to_email: str, token: str, nickname: str = None) -
                         계정 보안에 문제가 있다고 생각되시면 즉시 비밀번호를 변경해 주세요.
                     </p>
                     <p style="color: #9CA3AF; font-size: 12px; margin: 15px 0 0 0;">
-                        © 매일일독 - 높은뜻 푸른교회
+                        © 매일일독
                     </p>
                 </td>
             </tr>
@@ -244,8 +244,8 @@ def send_welcome_email(to_email: str, nickname: str) -> bool:
                 <td style="padding: 40px 30px;">
                     <h2 style="color: #1F2937; margin: 0 0 20px 0; font-size: 22px;">{nickname}님, 환영합니다!</h2>
                     <p style="color: #4B5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                        매일일독과 함께 45주간의 성경통독 여정을 시작하세요.<br>
-                        높은뜻 푸른교회의 성경통독표를 기반으로 매일매일 읽을 본문을 안내해 드립니다.
+                        매일일독과 함께 성경통독 여정을 시작하세요.<br>
+                        성경통독표를 기반으로 매일매일 읽을 본문을 안내해 드립니다.
                     </p>
                     <div style="background-color: #F3F4F6; border-radius: 8px; padding: 20px; margin: 20px 0;">
                         <h3 style="color: #1F2937; margin: 0 0 15px 0; font-size: 16px;">📖 매일일독의 주요 기능</h3>
@@ -271,7 +271,7 @@ def send_welcome_email(to_email: str, nickname: str) -> bool:
             <tr>
                 <td style="padding: 30px; background-color: #F9FAFB; text-align: center; border-top: 1px solid #E5E7EB;">
                     <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
-                        © 매일일독 - 높은뜻 푸른교회
+                        © 매일일독
                     </p>
                 </td>
             </tr>
