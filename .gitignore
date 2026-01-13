@@ -85,3 +85,16 @@ logo/
 
 # Temporary docs
 docs/global-ui-infrastructure/
+
+# Mobile Build Artifacts
+*.apk
+*.aab
+*.ipa
+
+# Mobile Credentials
+mobile/credentials/
+mobile/credentials.json
+mobile/google-service-account.json
+
+# Vercel
+.vercel/
