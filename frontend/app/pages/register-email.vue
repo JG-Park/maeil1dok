@@ -93,6 +93,15 @@
           </NuxtLink>
         </div>
       </form>
+
+      <!-- 하단 법적 링크 -->
+      <div class="legal-links">
+        <NuxtLink to="/terms">이용약관</NuxtLink>
+        <span class="divider-dot">|</span>
+        <NuxtLink to="/privacy">개인정보처리방침</NuxtLink>
+        <span class="divider-dot">|</span>
+        <NuxtLink to="/company">사업자 정보</NuxtLink>
+      </div>
     </div>
   </div>
 </template>
@@ -462,6 +471,30 @@ const handleBack = () => {
 .register-link:hover {
   background-color: var(--primary-light);
   color: var(--primary-dark);
+}
+
+.legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-slate-400);
+  margin-top: 0.5rem;
+}
+
+.legal-links a {
+  color: var(--color-slate-400);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.legal-links a:hover {
+  color: var(--color-slate-600);
+}
+
+.legal-links .divider-dot {
+  color: var(--color-slate-300);
 }
 
 @media (max-width: 640px) {
