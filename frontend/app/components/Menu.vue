@@ -340,8 +340,15 @@ const close = () => {
 
 .menu-footer {
   padding: 1rem 0.5rem;
+  padding-bottom: 1rem;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   margin-top: auto;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .menu-footer {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
 }
 
 .legal-links {
@@ -409,13 +416,6 @@ const close = () => {
     transform: translateX(2px);
   }
 }
-
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .menu-panel {
-    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-  }
-}
-
 
 /* Tablet: iPad Mini and similar */
 @media (min-width: 768px) {
