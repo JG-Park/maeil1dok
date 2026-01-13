@@ -167,11 +167,14 @@ const handleSubmit = async () => {
       auth.setTokens(response.access, response.refresh)
       auth.setUser(response.user)
       
-      if ((window as any).notifyAuthStateChanged) {
-        (window as any).notifyAuthStateChanged({
-          token: response.access,
-          refreshToken: response.refresh,
-          user: response.user
+      if (window.__nativeBridge?.isNativeApp()) {
+        window.__nativeBridge.sendToNative({
+          type: 'auth:login',
+          data: {
+            token: response.access,
+            refreshToken: response.refresh,
+            user: response.user
+          }
         })
       }
       

@@ -641,32 +641,10 @@ export default function App() {
         allowsInlineMediaPlayback={true}
         injectedJavaScript={`
           (function() {
-            // React Native WebView 감지 플래그
             window.isReactNativeWebView = true;
             
-            // 푸시 토큰 요청 함수
             window.requestNativePushToken = function() {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'requestPushToken' }));
-            };
-            
-            // 인증 토큰 요청 함수
-            window.requestNativeAuthToken = function() {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'requestAuthToken' }));
-            };
-            
-            // 외부 링크 열기 함수
-            window.openExternalLink = function(url) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'navigate', url: url }));
-            };
-            
-            // 로그아웃 함수
-            window.nativeLogout = function() {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'logout' }));
-            };
-            
-            // 인증 상태 변경 알림 함수
-            window.notifyAuthStateChanged = function(data) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'authStateChanged', data: data }));
             };
           })();
           true;
