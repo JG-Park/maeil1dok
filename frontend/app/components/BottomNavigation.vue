@@ -93,8 +93,12 @@ const isActive = (path) => {
   background: var(--color-bg-card);
   border-top: 1px solid var(--color-slate-200);
   z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   display: block;
+}
+
+:global(.android-native-app) .bottom-nav-container {
+  padding-bottom: 48px;
 }
 
 /* Desktop: Hide bottom navigation on very large screens */

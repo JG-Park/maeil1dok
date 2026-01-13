@@ -343,17 +343,18 @@ def email_register(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def email_login(request):
-    """이메일/비밀번호로 로그인"""
-    email = request.data.get('email')
+    """이메일 또는 아이디/비밀번호로 로그인 (레거시 아이디 로그인 지원)"""
+    identifier = request.data.get('email')
     password = request.data.get('password')
     
-    if not email or not password:
-        return Response({'error': '이메일과 비밀번호를 입력해주세요.'}, status=400)
+    if not identifier or not password:
+        return Response({'error': '이메일(또는 아이디)과 비밀번호를 입력해주세요.'}, status=400)
     
     try:
-        user = User.objects.get(email=email)
-        if not user.check_password(password):
-            return Response({'error': '이메일 또는 비밀번호가 올바르지 않습니다.'}, status=400)
+        user = User.objects.filter(Q(email=identifier) | Q(username=identifier)).first()
+        
+        if not user or not user.check_password(password):
+            return Response({'error': '이메일/아이디 또는 비밀번호가 올바르지 않습니다.'}, status=400)
         
         refresh = RefreshToken.for_user(user)
         response = Response({
@@ -363,13 +364,11 @@ def email_login(request):
         })
         set_auth_cookies(response, str(refresh.access_token), str(refresh))
         
-        logger.info(f"이메일 로그인 성공: user_id={user.id}")
+        logger.info(f"로그인 성공: user_id={user.id}, identifier={identifier}")
         return response
         
-    except User.DoesNotExist:
-        return Response({'error': '이메일 또는 비밀번호가 올바르지 않습니다.'}, status=400)
     except Exception as e:
-        logger.error(f"이메일 로그인 중 오류: {str(e)}", exc_info=True)
+        logger.error(f"로그인 중 오류: {str(e)}", exc_info=True)
         return Response({'error': '로그인 처리 중 오류가 발생했습니다.'}, status=400)
 
 

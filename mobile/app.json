@@ -52,7 +52,8 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -66,12 +67,13 @@
         }
       ],
       "expo-splash-screen",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "extra": {
       "webAppUrl": "https://maeil1dok.app",
       "apiUrl": "https://api.maeil1dok.app",
-      "kakaoClientId": "b3b685162aade1f8d8db7c2c35bade15",
+      "kakaoClientId": "1e2c46689a5200779c15e6a356b1a8ab",
       "googleClientId": "199679842064-qm1eb0kenunp27qto2rj50pesb1mdkip.apps.googleusercontent.com",
       "eas": {
         "projectId": "d5d66055-f76e-4c18-b741-78143327e3ca"
