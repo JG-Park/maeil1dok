@@ -26,15 +26,6 @@
         <QuickAccessGrid />
       </main>
 
-      <!-- 하단 법적 링크 -->
-      <footer class="home-footer">
-        <NuxtLink to="/privacy">개인정보처리방침</NuxtLink>
-        <span class="divider">|</span>
-        <NuxtLink to="/terms">이용약관</NuxtLink>
-        <span class="divider">|</span>
-        <NuxtLink to="/company">회사정보</NuxtLink>
-      </footer>
-
       <FloatingNav />
       
       <Menu :is-open="showMenu" @close="showMenu = false" />
@@ -205,30 +196,5 @@ onMounted(() => {
 [data-theme="dark"] .logo-img {
   filter: brightness(0) invert(1);
   opacity: 0.9;
-}
-
-/* Footer */
-.home-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 2rem 0 1rem;
-  font-size: 0.75rem;
-  color: var(--text-sub);
-}
-
-.home-footer a {
-  color: var(--text-sub);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.home-footer a:hover {
-  color: var(--text-main);
-}
-
-.home-footer .divider {
-  opacity: 0.4;
 }
 </style>
