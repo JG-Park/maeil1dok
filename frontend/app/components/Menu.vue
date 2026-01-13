@@ -149,23 +149,6 @@
                   </NuxtLink>
                 </nav>
 
-                <!-- 하단 정보 영역 추가 -->
-                <div class="menu-footer">
-                  <div class="app-version">
-                    <img src="@/assets/images/maeil1dok_footer.png" alt="매일일독" class="footer-logo"><span> v2.6.4</span>
-                  </div>
-                  <div class="github-link-container">
-                    <a href="https://github.com/JG-Park/maeil1dok/" target="_blank" rel="noopener noreferrer"
-                      class="github-link">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
-                        xmlns="http://www.w3.org/2000/svg" class="github-icon">
-                        <path
-                          d="M12 2C6.477 2 2 6.477 2 12C2 16.418 4.865 20.166 8.84 21.489C9.34 21.581 9.52 21.276 9.52 21.012C9.52 20.775 9.512 20.143 9.508 19.308C6.726 19.91 6.139 17.96 6.139 17.96C5.685 16.811 5.028 16.508 5.028 16.508C4.128 15.927 5.095 15.939 5.095 15.939C6.092 16.01 6.626 16.929 6.626 16.929C7.521 18.452 8.969 18.007 9.54 17.752C9.631 17.09 9.889 16.646 10.175 16.419C7.955 16.189 5.62 15.367 5.62 11.613C5.62 10.546 6.01 9.678 6.646 9.003C6.545 8.75 6.197 7.797 6.746 6.602C6.746 6.602 7.586 6.335 9.497 7.78C10.3 7.559 11.15 7.449 12 7.444C12.85 7.449 13.7 7.559 14.504 7.78C16.414 6.335 17.253 6.602 17.253 6.602C17.803 7.797 17.455 8.75 17.354 9.003C17.991 9.678 18.379 10.546 18.379 11.613C18.379 15.376 16.04 16.185 13.813 16.411C14.172 16.692 14.492 17.253 14.492 18.105C14.492 19.308 14.479 20.683 14.479 21.012C14.479 21.278 14.657 21.586 15.165 21.487C19.137 20.161 22 16.416 22 12C22 6.477 17.523 2 12 2Z" />
-                      </svg>
-                      GitHub
-                    </a>
-                  </div>
-                </div>
               </div>
             </Transition>
           </div>
@@ -345,31 +328,6 @@ const close = () => {
   margin: 0.75rem 0;
 }
 
-.menu-footer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: auto;
-  padding: 1rem 0.5rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.app-version {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  opacity: 0.8;
-  gap: 0.25rem;
-}
-
-.app-version img {
-  max-height: 0.75rem;;
-}
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.25s ease;
@@ -419,37 +377,6 @@ const close = () => {
 }
 
 
-/* GitHub 링크 스타일 */
-.github-link-container {
-  display: flex;
-  justify-content: center;
-}
-
-.github-link {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  text-decoration: none;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.github-link:hover {
-  background: rgba(0, 0, 0, 0.03);
-  color: var(--text-primary);
-}
-
-.github-icon {
-  opacity: 0.7;
-}
-
-.github-link:hover .github-icon {
-  opacity: 1;
-}
-
 /* Tablet: iPad Mini and similar */
 @media (min-width: 768px) {
   .menu-content {
@@ -464,11 +391,6 @@ const close = () => {
   .menu-item svg {
     width: 22px;
     height: 22px;
-  }
-
-  .github-link {
-    padding: 1rem 1.5rem;
-    font-size: 0.9375rem;
   }
 }
 
@@ -486,11 +408,6 @@ const close = () => {
   .menu-item svg {
     width: 24px;
     height: 24px;
-  }
-
-  .github-link {
-    padding: 1.25rem 2rem;
-    font-size: 1rem;
   }
 }
 
@@ -537,23 +454,6 @@ const close = () => {
 
 [data-theme="dark"] .menu-divider {
   background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .menu-footer {
-  border-top-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .app-version {
-  color: var(--text-secondary, #9ca3af);
-}
-
-[data-theme="dark"] .github-link {
-  color: var(--text-secondary, #9ca3af);
-}
-
-[data-theme="dark"] .github-link:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary, #f3f4f6);
 }
 
 [data-theme="dark"] .theme-toggle-button {
