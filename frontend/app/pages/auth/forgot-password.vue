@@ -69,6 +69,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '~/composables/useApi'
 import { useModal } from '~/composables/useModal'
+import { useNavigation } from '~/composables/useNavigation'
 import { useHead } from '#imports'
 
 useHead({
@@ -81,6 +82,7 @@ useHead({
 const router = useRouter()
 const api = useApi()
 const modal = useModal()
+const { goBack: navGoBack } = useNavigation()
 
 const email = ref('')
 const loading = ref(false)
@@ -103,7 +105,7 @@ const handleSubmit = async () => {
 }
 
 const goBack = () => {
-  router.back()
+  navGoBack('/login')
 }
 
 const goToLogin = () => {
