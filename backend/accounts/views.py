@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -63,6 +63,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def social_login(request):
     try:
@@ -232,6 +233,7 @@ def check_nickname(request):
     return Response({'available': not exists})
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def complete_kakao_signup(request):
     try:
@@ -290,6 +292,7 @@ def complete_kakao_signup(request):
 # ========================================
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def email_register(request):
     """이메일/비밀번호로 회원가입"""
@@ -342,6 +345,7 @@ def email_register(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def email_login(request):
     """이메일 또는 아이디/비밀번호로 로그인 (레거시 아이디 로그인 지원)"""
@@ -378,6 +382,7 @@ def email_login(request):
 # ========================================
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def social_login_v2(request):
     """
@@ -498,6 +503,7 @@ def social_login_v2(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def complete_social_signup(request):
     """소셜 회원가입 완료 (통합)"""
@@ -946,6 +952,7 @@ def _transfer_user_data(from_user, to_user):
 # ========================================
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def send_verification_email_view(request):
     """이메일 인증 메일 발송"""
@@ -972,6 +979,7 @@ def send_verification_email_view(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def verify_email(request):
     """이메일 인증 토큰 검증"""
@@ -1032,6 +1040,7 @@ def resend_verification_email(request):
 # ========================================
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def request_password_reset(request):
     """비밀번호 재설정 요청"""
@@ -1066,6 +1075,7 @@ def request_password_reset(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def verify_reset_token(request):
     """비밀번호 재설정 토큰 유효성 검사"""
@@ -1086,6 +1096,7 @@ def verify_reset_token(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def reset_password(request):
     token = request.data.get('token')
