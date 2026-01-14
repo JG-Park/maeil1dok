@@ -34,21 +34,21 @@
 
       <!-- 구분선 -->
       <div class="divider">
-        <span>또는 이메일로 계속</span>
+        <span>또는 이메일/아이디로 계속</span>
       </div>
 
-      <!-- 이메일 로그인 폼 -->
+      <!-- 이메일/아이디 로그인 폼 -->
       <form @submit.prevent="handleSubmit" class="login-form">
         <div class="input-group">
-          <label for="email" class="visually-hidden">이메일</label>
+          <label for="email" class="visually-hidden">이메일 또는 아이디</label>
           <input
             id="email"
             v-model="email"
-            type="email"
+            type="text"
             required
-            autocomplete="email"
+            autocomplete="username"
             class="form-input input-top"
-            placeholder="이메일"
+            placeholder="이메일 또는 아이디"
           >
 
           <label for="password" class="visually-hidden">비밀번호</label>
