@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex items-center justify-center">
     <div class="text-center">
-      <p>로그인 처리 중입니다...</p>
+      <p>{{ statusMessage }}</p>
     </div>
   </div>
 </template>
@@ -13,6 +13,8 @@ import { useApi } from '~/composables/useApi'
 const route = useRoute()
 const auth = useAuthStore()
 const { consumeRedirectUrl } = useNavigation()
+
+const statusMessage = ref('처리 중입니다...')
 
 const parseStateParam = () => {
   const state = route.query.state as string
@@ -35,15 +37,73 @@ onMounted(async () => {
   const { code } = route.query
   const stateData = parseStateParam()
   const isFromApp = stateData?.from === 'app'
+  const isLinkAction = stateData?.action === 'link'
 
-  if (provider === 'kakao' && code) {
+  if (!code) {
+    navigateTo('/login')
+    return
+  }
+
+  // 계정 연결 (로그인된 상태에서 다른 소셜 계정 연결)
+  if (isLinkAction && auth.isAuthenticated) {
+    statusMessage.value = '계정 연결 중입니다...'
+    await handleLinkSocialAccount(provider as string, code as string)
+    return
+  }
+
+  // 일반 로그인
+  statusMessage.value = '로그인 처리 중입니다...'
+  if (provider === 'kakao') {
     await handleKakaoCallback(code as string, isFromApp, stateData?.scheme)
-  } else if (provider === 'google' && code) {
+  } else if (provider === 'google') {
     await handleGoogleCallback(code as string, isFromApp, stateData?.scheme)
   } else {
     navigateTo('/login')
   }
 })
+
+// 계정 연결 처리
+const handleLinkSocialAccount = async (provider: string, code: string) => {
+  try {
+    const api = useApi()
+    const response = await api.post('/api/v1/auth/link-social/', {
+      provider,
+      code
+    })
+
+    // 연결 성공
+    navigateTo({
+      path: '/account/settings',
+      query: { linked: 'success', provider }
+    })
+  } catch (error: any) {
+    const errorData = error?.data || error?.response?.data || {}
+    
+    // 다른 계정에 이미 연동된 경우 - 병합 페이지로 리다이렉트
+    if (errorData.can_merge) {
+      // 병합 정보를 sessionStorage에 저장하고 설정 페이지로 이동
+      sessionStorage.setItem('merge_info', JSON.stringify({
+        provider,
+        code,
+        current_account: errorData.current_account,
+        other_account: errorData.other_account
+      }))
+      
+      navigateTo({
+        path: '/account/settings',
+        query: { action: 'merge' }
+      })
+      return
+    }
+
+    // 기타 에러
+    console.error('[Link Social] Error:', error)
+    navigateTo({
+      path: '/account/settings',
+      query: { linked: 'error', message: errorData.error || '연결 실패' }
+    })
+  }
+}
 
 const handleKakaoCallback = async (code: string, isFromApp = false, appScheme?: string) => {
   try {
@@ -152,4 +212,4 @@ const handleGoogleCallback = async (code: string, isFromApp = false, appScheme?:
     }
   }
 }
-</script> 
+</script>

@@ -225,6 +225,95 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- 계정 병합 모달 -->
+    <Teleport to="body">
+      <div v-if="showMergeModal && mergeInfo" class="modal-overlay" @click="closeMergeModal">
+        <div class="merge-modal-content" @click.stop>
+          <h3 class="modal-title">계정 병합</h3>
+          <p class="merge-description">
+            이 {{ getProviderDisplayName(mergeInfo.provider) }} 계정은 다른 매일일독 계정에 연결되어 있습니다.<br>
+            <strong>어느 계정을 유지하시겠습니까?</strong>
+          </p>
+          
+          <div class="merge-accounts">
+            <!-- 현재 계정 -->
+            <div 
+              class="account-card"
+              :class="{ 'selected': false }"
+              @click="handleMerge('current')"
+            >
+              <div class="account-badge">현재 로그인</div>
+              <div class="account-avatar">
+                <img v-if="mergeInfo.current_account.profile_image" :src="mergeInfo.current_account.profile_image" alt="">
+                <div v-else class="avatar-placeholder">
+                  {{ mergeInfo.current_account.nickname?.charAt(0) || '?' }}
+                </div>
+              </div>
+              <div class="account-info">
+                <p class="account-nickname">{{ mergeInfo.current_account.nickname }}</p>
+                <p class="account-email">{{ mergeInfo.current_account.email || '이메일 없음' }}</p>
+                <p class="account-providers">
+                  <span v-for="p in mergeInfo.current_account.providers" :key="p" class="provider-tag">
+                    {{ getProviderDisplayName(p) }}
+                  </span>
+                  <span v-if="mergeInfo.current_account.has_password" class="provider-tag password">비밀번호</span>
+                </p>
+                <p class="account-date">가입: {{ formatDate(mergeInfo.current_account.created_at) }}</p>
+              </div>
+              <button 
+                class="select-btn" 
+                :disabled="mergeLoading"
+                @click.stop="handleMerge('current')"
+              >
+                이 계정 유지
+              </button>
+            </div>
+
+            <!-- 다른 계정 -->
+            <div 
+              class="account-card"
+              @click="handleMerge('other')"
+            >
+              <div class="account-badge other">{{ getProviderDisplayName(mergeInfo.provider) }} 연결 계정</div>
+              <div class="account-avatar">
+                <img v-if="mergeInfo.other_account.profile_image" :src="mergeInfo.other_account.profile_image" alt="">
+                <div v-else class="avatar-placeholder">
+                  {{ mergeInfo.other_account.nickname?.charAt(0) || '?' }}
+                </div>
+              </div>
+              <div class="account-info">
+                <p class="account-nickname">{{ mergeInfo.other_account.nickname }}</p>
+                <p class="account-email">{{ mergeInfo.other_account.email || '이메일 없음' }}</p>
+                <p class="account-providers">
+                  <span v-for="p in mergeInfo.other_account.providers" :key="p" class="provider-tag">
+                    {{ getProviderDisplayName(p) }}
+                  </span>
+                  <span v-if="mergeInfo.other_account.has_password" class="provider-tag password">비밀번호</span>
+                </p>
+                <p class="account-date">가입: {{ formatDate(mergeInfo.other_account.created_at) }}</p>
+              </div>
+              <button 
+                class="select-btn" 
+                :disabled="mergeLoading"
+                @click.stop="handleMerge('other')"
+              >
+                이 계정 유지
+              </button>
+            </div>
+          </div>
+
+          <p class="merge-warning">
+            선택하지 않은 계정은 30일 후 완전히 삭제됩니다.<br>
+            해당 계정의 소셜 연결만 유지 계정으로 이전됩니다.
+          </p>
+
+          <button class="btn-cancel-full" @click="closeMergeModal" :disabled="mergeLoading">
+            취소
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -264,6 +353,16 @@ const resendingEmail = ref(false)
 const emailCooldown = ref(0)
 let emailCooldownTimer: NodeJS.Timeout | null = null
 
+// Merge modal
+const showMergeModal = ref(false)
+const mergeInfo = ref<{
+  provider: string
+  code: string
+  current_account: any
+  other_account: any
+} | null>(null)
+const mergeLoading = ref(false)
+
 const emailButtonText = computed(() => {
   if (resendingEmail.value) return '전송 중...'
   if (emailCooldown.value > 0) return `${emailCooldown.value}초`
@@ -299,14 +398,16 @@ const fetchLinkedAccounts = async () => {
 }
 
 const handleLinkKakao = () => {
-  const redirectUri = encodeURIComponent(config.public.KAKAO_REDIRECT_URI + '?action=link')
-  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
+  const redirectUri = encodeURIComponent(config.public.KAKAO_REDIRECT_URI)
+  const state = encodeURIComponent(JSON.stringify({ action: 'link' }))
+  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&state=${state}`
   window.location.href = kakaoAuthUrl
 }
 
 const handleLinkGoogle = () => {
-  const redirectUri = encodeURIComponent(config.public.GOOGLE_REDIRECT_URI + '?action=link')
-  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${config.public.GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent`
+  const redirectUri = encodeURIComponent(config.public.GOOGLE_REDIRECT_URI)
+  const state = encodeURIComponent(JSON.stringify({ action: 'link' }))
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${config.public.GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent&state=${state}`
   window.location.href = googleAuthUrl
 }
 
@@ -435,11 +536,99 @@ const handleBack = () => {
   goBack('/')
 }
 
-onMounted(() => {
+// 계정 병합 처리
+const handleMerge = async (keepAccount: 'current' | 'other') => {
+  if (!mergeInfo.value) return
+  
+  mergeLoading.value = true
+  try {
+    const response = await api.post('/api/v1/auth/merge-accounts/', {
+      provider: mergeInfo.value.provider,
+      code: mergeInfo.value.code,
+      keep_account: keepAccount
+    })
+    
+    const data = response.data || response
+    
+    // 다른 계정을 선택한 경우 새 토큰으로 교체
+    if (keepAccount === 'other' && data.access) {
+      auth.setTokens(data.access, data.refresh)
+      auth.setUser(data.user)
+    }
+    
+    showMergeModal.value = false
+    mergeInfo.value = null
+    
+    await modal.alert({
+      title: '계정 병합 완료',
+      description: '계정이 병합되었습니다. 삭제될 계정은 30일 후 완전히 삭제됩니다.',
+      icon: 'success'
+    })
+    
+    await fetchLinkedAccounts()
+  } catch (error: any) {
+    await modal.alert({
+      title: '병합 실패',
+      description: error?.data?.error || '계정 병합에 실패했습니다.',
+      icon: 'error'
+    })
+  } finally {
+    mergeLoading.value = false
+  }
+}
+
+const closeMergeModal = () => {
+  showMergeModal.value = false
+  mergeInfo.value = null
+}
+
+const getProviderDisplayName = (provider: string) => {
+  return provider === 'kakao' ? '카카오' : provider === 'google' ? '구글' : provider
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+onMounted(async () => {
   if (!auth.isAuthenticated) {
     navigateTo('/login')
     return
   }
+  
+  const route = useRoute()
+  
+  // 연결 결과 처리
+  if (route.query.linked === 'success') {
+    const providerName = route.query.provider === 'kakao' ? '카카오' : '구글'
+    await modal.alert({
+      title: '연결 완료',
+      description: `${providerName} 계정이 연결되었습니다.`,
+      icon: 'success'
+    })
+    // query 파라미터 제거
+    navigateTo('/account/settings', { replace: true })
+  } else if (route.query.linked === 'error') {
+    await modal.alert({
+      title: '연결 실패',
+      description: route.query.message as string || '계정 연결에 실패했습니다.',
+      icon: 'error'
+    })
+    navigateTo('/account/settings', { replace: true })
+  }
+  
+  // 병합 모달 처리
+  if (route.query.action === 'merge') {
+    const storedMergeInfo = sessionStorage.getItem('merge_info')
+    if (storedMergeInfo) {
+      mergeInfo.value = JSON.parse(storedMergeInfo)
+      showMergeModal.value = true
+      sessionStorage.removeItem('merge_info')
+    }
+    navigateTo('/account/settings', { replace: true })
+  }
+  
   fetchLinkedAccounts()
 })
 
@@ -891,9 +1080,218 @@ onUnmounted(() => {
   color: var(--color-slate-100);
 }
 
+/* Merge Modal */
+.merge-modal-content {
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.merge-description {
+  font-size: 0.9375rem;
+  color: var(--color-slate-600);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.merge-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.account-card {
+  position: relative;
+  padding: 1rem;
+  border: 2px solid var(--color-slate-200);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.account-card:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.account-badge {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  padding: 2px 8px;
+  background: var(--primary-color);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.account-badge.other {
+  background: var(--color-slate-500);
+}
+
+.account-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-info {
+  margin-bottom: 0.75rem;
+}
+
+.account-nickname {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-slate-800);
+  margin: 0 0 0.25rem;
+}
+
+.account-email {
+  font-size: 0.8125rem;
+  color: var(--color-slate-500);
+  margin: 0 0 0.5rem;
+}
+
+.account-providers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+}
+
+.provider-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--color-slate-100);
+  color: var(--color-slate-600);
+  font-size: 0.6875rem;
+  border-radius: 4px;
+}
+
+.provider-tag.password {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.account-date {
+  font-size: 0.75rem;
+  color: var(--color-slate-400);
+  margin: 0;
+}
+
+.select-btn {
+  width: 100%;
+  padding: 0.625rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.select-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.select-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.merge-warning {
+  font-size: 0.8125rem;
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.btn-cancel-full {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--color-slate-100);
+  border: 1px solid var(--color-slate-200);
+  color: var(--color-slate-700);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-cancel-full:hover:not(:disabled) {
+  background: var(--color-slate-200);
+}
+
+.btn-cancel-full:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+[data-theme="dark"] .merge-modal-content {
+  background: var(--color-bg-secondary);
+}
+
+[data-theme="dark"] .merge-description {
+  color: var(--color-slate-400);
+}
+
+[data-theme="dark"] .account-card {
+  border-color: var(--color-slate-600);
+  background: var(--color-bg-primary);
+}
+
+[data-theme="dark"] .account-card:hover {
+  border-color: var(--primary-color);
+  background: var(--color-slate-700);
+}
+
+[data-theme="dark"] .account-nickname {
+  color: var(--color-slate-100);
+}
+
+[data-theme="dark"] .provider-tag {
+  background: var(--color-slate-700);
+  color: var(--color-slate-300);
+}
+
+[data-theme="dark"] .merge-warning {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+[data-theme="dark"] .btn-cancel-full {
+  background: var(--color-slate-700);
+  border-color: var(--color-slate-600);
+  color: var(--color-slate-300);
+}
+
 @media (max-width: 640px) {
   .settings-box {
     padding: 0.75rem;
+  }
+  
+  .merge-modal-content {
+    padding: 1rem;
+    max-width: calc(100% - 2rem);
   }
 }
 </style>

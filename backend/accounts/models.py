@@ -22,6 +22,19 @@ class User(AbstractUser):
     )
     email_verified = models.BooleanField(default=False, help_text="이메일 인증 여부")
     
+    # 계정 병합/삭제 관련 필드
+    scheduled_deletion_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="계정 삭제 예정 시간 (병합 후 30일)"
+    )
+    merged_into = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='merged_accounts',
+        help_text="이 계정이 병합된 대상 계정"
+    )
+    
     # related_name 추가
     groups = models.ManyToManyField(
         'auth.Group',

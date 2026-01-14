@@ -20,6 +20,7 @@ from django.db.models import Q
 import requests
 from django.conf import settings
 from django.utils import timezone
+from datetime import timedelta
 from todos.models import BibleReadingPlan, PlanSubscription
 import logging
 import uuid
@@ -590,7 +591,11 @@ def get_linked_accounts(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def link_social_account(request):
-    """소셜 계정 연동 추가"""
+    """
+    소셜 계정 연동 추가
+    
+    이미 다른 계정에 연동된 경우 병합을 위한 상세 정보 반환
+    """
     user = request.user
     provider = request.data.get('provider')
     access_token = request.data.get('access_token')
@@ -634,16 +639,36 @@ def link_social_account(request):
         existing = SocialAccount.objects.filter(
             provider=provider, 
             provider_id=provider_id
-        ).first()
+        ).select_related('user').first()
         
         if existing:
             if existing.user_id == user.id:
                 return Response({'error': '이미 연동된 계정입니다.'}, status=400)
             else:
+                other_user = existing.user
+                # 병합을 위한 상세 정보 반환
                 return Response({
                     'error': '이 소셜 계정은 다른 사용자에게 연동되어 있습니다.',
                     'can_merge': True,
-                    'other_user_nickname': existing.user.nickname
+                    'current_account': {
+                        'id': user.id,
+                        'nickname': user.nickname,
+                        'email': user.email,
+                        'profile_image': user.profile_image,
+                        'providers': list(user.social_accounts.values_list('provider', flat=True)),
+                        'has_password': user.has_password_set(),
+                        'created_at': user.date_joined.isoformat(),
+                    },
+                    'other_account': {
+                        'id': other_user.id,
+                        'nickname': other_user.nickname,
+                        'email': other_user.email,
+                        'profile_image': other_user.profile_image,
+                        'providers': list(other_user.social_accounts.values_list('provider', flat=True)),
+                        'has_password': other_user.has_password_set(),
+                        'created_at': other_user.date_joined.isoformat(),
+                    },
+                    'provider': provider,
                 }, status=409)
         
         # 연동 추가
@@ -729,26 +754,38 @@ def set_password(request):
 @permission_classes([IsAuthenticated])
 def merge_accounts(request):
     """
-    계정 병합
-    - 현재 로그인한 계정을 주 계정으로 유지
-    - 대상 계정의 데이터를 현재 계정으로 이전
-    - 대상 계정은 비활성화
+    계정 병합 API
+    
+    사용자가 어느 계정을 유지할지 선택 가능:
+    - keep_account='current': 현재 로그인한 계정 유지
+    - keep_account='other': 소셜 연동된 다른 계정 유지
+    
+    선택된 계정의 데이터만 유지하고, 다른 계정의 소셜 연동만 이전
+    삭제될 계정은 30일 후 삭제 예정으로 표시
     """
     user = request.user
-    target_provider = request.data.get('provider')
-    target_access_token = request.data.get('access_token')
+    provider = request.data.get('provider')
+    code = request.data.get('code')
+    keep_account = request.data.get('keep_account', 'current')  # 'current' or 'other'
     
-    if not target_provider or not target_access_token:
-        return Response({'error': '병합할 소셜 계정 정보가 필요합니다.'}, status=400)
+    if not provider or not code:
+        return Response({'error': '소셜 계정 정보가 필요합니다.'}, status=400)
+    
+    if keep_account not in ['current', 'other']:
+        return Response({'error': 'keep_account는 current 또는 other여야 합니다.'}, status=400)
     
     try:
-        # 대상 소셜 계정 정보 가져오기
-        if target_provider == 'kakao':
-            social_info = get_kakao_user_info_by_token(target_access_token)
+        # 소셜 계정 정보 가져오기
+        if provider == 'kakao':
+            social_info = get_kakao_user_info(code)
             provider_id = str(social_info.get('id'))
-        elif target_provider == 'google':
-            social_info = get_google_user_info_by_token(target_access_token)
+            email = social_info.get('kakao_account', {}).get('email')
+            profile_image = social_info.get('properties', {}).get('profile_image')
+        elif provider == 'google':
+            social_info = get_google_user_info(code)
             provider_id = social_info.get('sub')
+            email = social_info.get('email')
+            profile_image = social_info.get('picture')
         else:
             return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
         
@@ -756,42 +793,78 @@ def merge_accounts(request):
             return Response({'error': '소셜 계정 정보를 가져올 수 없습니다.'}, status=400)
         
         # 대상 계정 찾기
-        target_social = SocialAccount.objects.filter(
-            provider=target_provider,
+        other_social = SocialAccount.objects.filter(
+            provider=provider,
             provider_id=provider_id
         ).select_related('user').first()
         
-        if not target_social:
+        if not other_social:
             # 레거시 계정 확인
-            legacy_id = f"{target_provider}_{provider_id}"
-            target_user = User.objects.filter(username=legacy_id).first()
-            if not target_user:
+            legacy_id = f"{provider}_{provider_id}"
+            other_user = User.objects.filter(username=legacy_id).first()
+            if not other_user:
                 return Response({'error': '병합할 계정을 찾을 수 없습니다.'}, status=404)
         else:
-            target_user = target_social.user
+            other_user = other_social.user
         
-        if target_user.id == user.id:
+        if other_user.id == user.id:
             return Response({'error': '같은 계정입니다.'}, status=400)
         
-        with transaction.atomic():
-            # 대상 계정의 데이터를 현재 계정으로 이전
-            _transfer_user_data(from_user=target_user, to_user=user)
-            
-            # 대상 계정의 소셜 연동을 현재 계정으로 이전
-            SocialAccount.objects.filter(user=target_user).update(user=user)
-            
-            # 대상 계정 비활성화
-            target_user.is_active = False
-            target_user.username = f"merged_{target_user.id}_{target_user.username}"
-            target_user.save()
-            
-            logger.info(f"계정 병합 완료: 주계정={user.id}, 병합된계정={target_user.id}")
+        # 어느 계정을 유지할지 결정
+        if keep_account == 'current':
+            keep_user = user
+            delete_user = other_user
+        else:
+            keep_user = other_user
+            delete_user = user
         
-        return Response({
+        with transaction.atomic():
+            # 삭제될 계정의 소셜 연동을 유지할 계정으로 이전
+            SocialAccount.objects.filter(user=delete_user).update(user=keep_user)
+            
+            # 새로 연결하려던 소셜 계정이 이미 있으면 스킵, 없으면 생성
+            if not SocialAccount.objects.filter(user=keep_user, provider=provider, provider_id=provider_id).exists():
+                SocialAccount.objects.create(
+                    user=keep_user,
+                    provider=provider,
+                    provider_id=provider_id,
+                    email=email,
+                    profile_image=profile_image,
+                    extra_data=social_info
+                )
+            
+            # 삭제될 계정 30일 후 삭제 예정으로 표시
+            delete_user.is_active = False
+            delete_user.scheduled_deletion_at = timezone.now() + timedelta(days=30)
+            delete_user.merged_into = keep_user
+            delete_user.username = f"merged_{delete_user.id}_{timezone.now().strftime('%Y%m%d%H%M%S')}"
+            delete_user.nickname = f"삭제예정_{delete_user.id}"
+            delete_user.save()
+            
+            logger.info(f"계정 병합 완료: 유지={keep_user.id}, 삭제예정={delete_user.id}")
+        
+        # 유지된 계정이 현재 로그인 계정이 아닌 경우 새 토큰 발급
+        result = {
             'success': True,
-            'message': '계정이 병합되었습니다.',
-            'merged_user_id': target_user.id
-        })
+            'message': '계정이 병합되었습니다. 삭제될 계정은 30일 후 완전히 삭제됩니다.',
+            'kept_user_id': keep_user.id,
+            'deleted_user_id': delete_user.id,
+        }
+        
+        if keep_account == 'other':
+            # 다른 계정을 선택한 경우 새 토큰 발급
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(keep_user)
+            result['access'] = str(refresh.access_token)
+            result['refresh'] = str(refresh)
+            result['user'] = {
+                'id': keep_user.id,
+                'nickname': keep_user.nickname,
+                'email': keep_user.email,
+                'profile_image': keep_user.profile_image,
+            }
+        
+        return Response(result)
         
     except Exception as e:
         logger.error(f"계정 병합 오류: {str(e)}", exc_info=True)
