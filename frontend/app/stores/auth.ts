@@ -338,7 +338,10 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Login failed')
         }
 
-        this.setTokens(response.access, response.refresh)
+        // 쿠키 모드: 서버가 HttpOnly 쿠키로 토큰 설정, JS에 저장하지 않음
+        if (!this.useCookieAuth) {
+          this.setTokens(response.access, response.refresh)
+        }
         await this.fetchUser()
 
         const readingSettingsStore = useReadingSettingsStore()
@@ -379,7 +382,9 @@ export const useAuthStore = defineStore('auth', {
         const data = response.data || response
 
         if (data.access) {
-          this.setTokens(data.access, data.refresh)
+          if (!this.useCookieAuth) {
+            this.setTokens(data.access, data.refresh)
+          }
           this.setUser(data.user)
 
           const readingSettingsStore = useReadingSettingsStore()
@@ -404,7 +409,9 @@ export const useAuthStore = defineStore('auth', {
           code
         })
         if (response.access) {
-          this.setTokens(response.access, response.refresh)
+          if (!this.useCookieAuth) {
+            this.setTokens(response.access, response.refresh)
+          }
           this.setUser(response.user)
 
           const readingSettingsStore = useReadingSettingsStore()
@@ -418,7 +425,9 @@ export const useAuthStore = defineStore('auth', {
 
     async loginWithKakaoResponse(response: any) {
       if (response.access) {
-        this.setTokens(response.access, response.refresh)
+        if (!this.useCookieAuth) {
+          this.setTokens(response.access, response.refresh)
+        }
         this.setUser(response.user)
 
         const readingSettingsStore = useReadingSettingsStore()
@@ -473,19 +482,18 @@ export const useAuthStore = defineStore('auth', {
       this.isLoggingOut = false
     },
 
-    // 토큰 자동 갱신 타이머 시작
     startTokenRefreshTimer() {
-      // 기존 타이머가 있다면 중지
       this.stopTokenRefreshTimer()
 
-      if (!process.client || !this.token) return
+      if (!process.client) return
+      
+      const shouldRun = this.useCookieAuth ? !!this.user : !!this.token
+      if (!shouldRun) return
 
-      // 5분마다 토큰 만료 시간 체크 (서버 부하 감소 및 배터리 절약)
       this.refreshInterval = setInterval(() => {
         this.checkAndRefreshToken()
-      }, 5 * 60 * 1000) // 5분
+      }, 5 * 60 * 1000)
 
-      // 초기 실행
       this.checkAndRefreshToken()
     },
 
