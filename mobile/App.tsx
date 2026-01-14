@@ -13,8 +13,6 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Alert,
-  AppState,
-  AppStateStatus,
 } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +22,6 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
 import * as WebBrowser from 'expo-web-browser';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 
 SplashScreen.preventAutoHideAsync();
@@ -53,39 +50,6 @@ const OAUTH_DOMAINS = [
   'oauth.google.com',
 ];
 
-interface AuthState {
-  isLoggedIn: boolean;
-  accessToken: string | null;
-  refreshToken: string | null;
-  user: any | null;
-}
-
-const STORAGE_KEY = '@maeil1dok_auth';
-const TOKEN_REFRESH_THRESHOLD = 5 * 60;
-
-function decodeJWT(token: string): { exp?: number } | null {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
-
-function getTokenExpiryTime(token: string): number | null {
-  const decoded = decodeJWT(token);
-  if (!decoded?.exp) return null;
-  const now = Math.floor(Date.now() / 1000);
-  return decoded.exp - now;
-}
-
 function AppContent() {
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
@@ -95,13 +59,6 @@ function AppContent() {
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [fontsLoaded, setFontsLoaded] = useState(false);
   
-  const [authState, setAuthState] = useState<AuthState>({
-    isLoggedIn: false,
-    accessToken: null,
-    refreshToken: null,
-    user: null,
-  });
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
@@ -119,117 +76,10 @@ function AppContent() {
         'Pretendard-Bold': require('./assets/fonts/Pretendard-Bold.otf'),
       });
       setFontsLoaded(true);
+      SplashScreen.hideAsync();
     };
     loadFonts();
   }, []);
-
-  useEffect(() => {
-    const loadAuthState = async () => {
-      try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed.accessToken) {
-            setAuthState(parsed);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load auth state:', error);
-      } finally {
-        setIsAuthLoading(false);
-        SplashScreen.hideAsync();
-      }
-    };
-    loadAuthState();
-  }, []);
-
-  const saveAuthState = async (state: AuthState) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      setAuthState(state);
-    } catch (error) {
-      console.error('Failed to save auth state:', error);
-    }
-  };
-
-  const refreshAccessToken = async (): Promise<boolean> => {
-    if (!authState.refreshToken) return false;
-
-    try {
-      const response = await fetch(`${API_URL}/api/v1/auth/token/refresh/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh: authState.refreshToken }),
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        await handleLogout();
-        showNativeLogin();
-        return false;
-      }
-
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      if (!data.access) return false;
-
-      const newState: AuthState = {
-        isLoggedIn: true,
-        accessToken: data.access,
-        refreshToken: data.refresh || authState.refreshToken,
-        user: authState.user,
-      };
-      await saveAuthState(newState);
-      sendAuthToWebView({
-        token: data.access,
-        refreshToken: newState.refreshToken || '',
-        user: authState.user,
-      });
-      return true;
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      return false;
-    }
-  };
-
-  const checkAndRefreshToken = async () => {
-    if (!authState.accessToken || !authState.isLoggedIn) return;
-
-    const timeLeft = getTokenExpiryTime(authState.accessToken);
-    if (timeLeft !== null && timeLeft < TOKEN_REFRESH_THRESHOLD) {
-      await refreshAccessToken();
-    }
-  };
-
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active' && authState.isLoggedIn) {
-        checkAndRefreshToken();
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription.remove();
-  }, [authState.isLoggedIn, authState.accessToken]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch(`${API_URL}/api/v1/auth/logout/`, {
-        method: 'POST',
-        credentials: 'include',
-      }).catch(() => {});
-      
-      await AsyncStorage.removeItem(STORAGE_KEY);
-      setAuthState({
-        isLoggedIn: false,
-        accessToken: null,
-        refreshToken: null,
-        user: null,
-      });
-    } catch (error) {
-      console.error('Failed to logout:', error);
-    }
-  };
 
   const showNativeLogin = () => {
     setEmail('');
@@ -262,17 +112,12 @@ function AppContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (data.access) {
-        await saveAuthState({
-          isLoggedIn: true,
-          accessToken: data.access,
-          refreshToken: data.refresh,
-          user: data.user,
-        });
         setShowLogin(false);
         setWebViewKey((prev) => prev + 1);
       } else {
@@ -338,17 +183,12 @@ function AppContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, code, redirect_uri: redirectUri }),
+        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (data.access) {
-        await saveAuthState({
-          isLoggedIn: true,
-          accessToken: data.access,
-          refreshToken: data.refresh,
-          user: data.user,
-        });
         setShowLogin(false);
         setWebViewKey((prev) => prev + 1);
       } else if (data.needsSignup) {
@@ -459,22 +299,6 @@ function AppContent() {
     return true;
   };
 
-  const injectAuthToken = () => {
-    if (authState.accessToken && webViewRef.current) {
-      webViewRef.current.injectJavaScript(`
-        (function() {
-          const authData = {
-            token: '${authState.accessToken}',
-            refreshToken: '${authState.refreshToken}',
-            user: ${JSON.stringify(authState.user)}
-          };
-          localStorage.setItem('auth', JSON.stringify(authData));
-          window.dispatchEvent(new CustomEvent('nativeAuthToken', { detail: authData }));
-        })();
-      `);
-    }
-  };
-
   const injectPushToken = () => {
     if (pushToken && webViewRef.current) {
       webViewRef.current.injectJavaScript(`
@@ -491,7 +315,6 @@ function AppContent() {
     setIsError(false);
     SplashScreen.hideAsync();
     injectPushToken();
-    injectAuthToken();
     if (pendingUrl) {
       webViewRef.current?.injectJavaScript(`window.location.href = '${pendingUrl}';`);
       setPendingUrl(null);
@@ -504,62 +327,14 @@ function AppContent() {
     SplashScreen.hideAsync();
   };
 
-  const sendAuthToWebView = (credentials: { token: string; refreshToken: string; user: any } | null) => {
-    if (!webViewRef.current) return;
-    if (credentials) {
-      webViewRef.current.injectJavaScript(`
-        (function() {
-          const authData = {
-            token: '${credentials.token}',
-            refreshToken: '${credentials.refreshToken}',
-            user: ${JSON.stringify(credentials.user)}
-          };
-          localStorage.setItem('auth', JSON.stringify(authData));
-          window.dispatchEvent(new CustomEvent('native:auth', { detail: { type: 'token', data: authData } }));
-        })();
-      `);
-    } else {
-      webViewRef.current.injectJavaScript(`
-        (function() {
-          localStorage.removeItem('auth');
-          window.dispatchEvent(new CustomEvent('native:auth', { detail: { type: 'logout' } }));
-        })();
-      `);
-    }
-  };
-
   const handleMessage = (event: { nativeEvent: { data: string } }) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       switch (message.type) {
-        case 'auth:login':
-          if (message.data) {
-            saveAuthState({
-              isLoggedIn: true,
-              accessToken: message.data.token,
-              refreshToken: message.data.refreshToken,
-              user: message.data.user,
-            });
-          }
-          break;
         case 'auth:logout':
-          handleLogout();
-          showNativeLogin();
-          break;
         case 'auth:expired':
-          handleLogout();
+        case 'logout':
           showNativeLogin();
-          break;
-        case 'auth:request':
-          if (authState.accessToken) {
-            sendAuthToWebView({
-              token: authState.accessToken,
-              refreshToken: authState.refreshToken || '',
-              user: authState.user,
-            });
-          } else {
-            sendAuthToWebView(null);
-          }
           break;
         case 'navigate':
           if (message.url) {
@@ -570,23 +345,6 @@ function AppContent() {
           break;
         case 'requestPushToken':
           injectPushToken();
-          break;
-        case 'requestAuthToken':
-          injectAuthToken();
-          break;
-        case 'logout':
-          handleLogout();
-          showNativeLogin();
-          break;
-        case 'authStateChanged':
-          if (message.data) {
-            saveAuthState({
-              isLoggedIn: !!message.data.token,
-              accessToken: message.data.token,
-              refreshToken: message.data.refreshToken,
-              user: message.data.user,
-            });
-          }
           break;
       }
     } catch (error) {
@@ -600,7 +358,7 @@ function AppContent() {
     webViewRef.current?.reload();
   };
 
-  if (isAuthLoading || !fontsLoaded) {
+  if (!fontsLoaded) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#faf8f6" />
