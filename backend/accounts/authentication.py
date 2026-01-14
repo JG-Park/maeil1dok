@@ -53,20 +53,20 @@ class CookieJWTAuthentication(JWTAuthentication):
 
 
 def get_cookie_settings():
-    """
-    환경에 따른 쿠키 설정 반환
-
-    프로덕션: Secure=True, SameSite=None (크로스 도메인 쿠키)
-    개발: Secure=False, SameSite=Lax
-    """
     is_production = not settings.DEBUG
+    cookie_domain = getattr(settings, 'COOKIE_DOMAIN', None)
 
-    return {
+    cookie_settings = {
         'httponly': True,
-        'secure': is_production,  # HTTPS only in production
+        'secure': is_production,
         'samesite': 'None' if is_production else 'Lax',
         'path': '/',
     }
+
+    if cookie_domain:
+        cookie_settings['domain'] = cookie_domain
+
+    return cookie_settings
 
 
 def set_auth_cookies(response, access_token, refresh_token=None):

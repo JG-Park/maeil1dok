@@ -218,6 +218,8 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET') 
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')
 
+COOKIE_DOMAIN = os.environ.get('COOKIE_DOMAIN', None)
+
 # 필수 환경변수 검증
 required_env_vars = [
     'KAKAO_CLIENT_ID',

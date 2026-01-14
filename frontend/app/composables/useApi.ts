@@ -69,22 +69,21 @@ export const useApi = () => {
     // 쿠키 기반 인증: refreshToken이 null이어도 서버에서 쿠키로 갱신 시도
     // localStorage 기반 인증: refreshToken이 있을 때만 시도
     if (response.status === 401) {
-      // 쿠키 기반 인증이거나 refreshToken이 있는 경우 갱신 시도
       if (auth.useCookieAuth || auth.refreshToken) {
-        const refreshSuccess = await auth.refreshAccessToken()
-        if (refreshSuccess) {
-          // 갱신된 헤더로 재시도
+        const refreshResult = await auth.refreshAccessToken()
+
+        if (refreshResult === 'success') {
           options.headers = getHeaders()
           response = await fetch(url, options)
-        } else {
-          // 토큰 갱신 실패 시 로그아웃 (이미 로그인된 사용자만 해당)
+        } else if (refreshResult === 'auth_error') {
           if (authStore.isAuthenticated) {
             auth.logout()
           }
           throw new ApiError('Authentication failed', 401)
+        } else {
+          throw new ApiError('Network error during token refresh', 503)
         }
       } else {
-        // 토큰 갱신 불가 - 미인증 상태
         throw new ApiError('Not authenticated', 401)
       }
     }

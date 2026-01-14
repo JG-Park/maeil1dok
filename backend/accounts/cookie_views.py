@@ -13,6 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.middleware.csrf import get_token
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 from .authentication import (
     set_auth_cookies,
@@ -92,17 +93,17 @@ class CookieTokenRefreshView(TokenRefreshView):
             refresh = RefreshToken(refresh_token)
             access_token = str(refresh.access_token)
 
-            # 토큰 로테이션이 활성화된 경우 새 refresh 토큰 생성
             if settings.SIMPLE_JWT.get('ROTATE_REFRESH_TOKENS', False):
-                # 기존 토큰 블랙리스트 처리
                 if settings.SIMPLE_JWT.get('BLACKLIST_AFTER_ROTATION', False):
                     try:
                         refresh.blacklist()
                     except AttributeError:
                         pass
 
-                # 새 refresh 토큰 생성
-                refresh = RefreshToken.for_user(refresh.payload.get('user_id'))
+                User = get_user_model()
+                user_id = refresh.payload.get('user_id')
+                user = User.objects.get(id=user_id)
+                refresh = RefreshToken.for_user(user)
                 new_refresh_token = str(refresh)
             else:
                 new_refresh_token = refresh_token

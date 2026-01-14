@@ -242,16 +242,6 @@ onMounted(async () => {
   isLoading.value = true;
 
   try {
-    // authStore가 이미 초기화되었는지 확인
-    if (!authStore.user && typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        await authStore.fetchUser().catch(() => {
-          authStore.logout();
-        });
-      }
-    }
-
     if (authStore.isAuthenticated) {
       await fetchUserPlans();
     }

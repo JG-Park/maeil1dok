@@ -13,17 +13,17 @@ interface User {
   has_usable_password_flag?: boolean
 }
 
+type RefreshResult = 'success' | 'auth_error' | 'network_error'
+
 interface AuthState {
   user: User | null
-  // 토큰은 HttpOnly 쿠키에 저장됨 (XSS 방지)
-  // 아래 필드들은 하위 호환 및 상태 추적용으로만 사용
   token: string | null
   refreshToken: string | null
   refreshInterval: NodeJS.Timeout | null
   storageListenerAttached: boolean
   isRefreshing: boolean
+  refreshPromise: Promise<RefreshResult> | null
   isLoggingOut: boolean
-  // 쿠키 기반 인증 사용 여부
   useCookieAuth: boolean
 }
 
@@ -81,8 +81,9 @@ export const useAuthStore = defineStore('auth', {
     refreshInterval: null,
     storageListenerAttached: false,
     isRefreshing: false,
+    refreshPromise: null,
     isLoggingOut: false,
-    useCookieAuth: true  // 쿠키 기반 인증 활성화
+    useCookieAuth: true
   }),
 
   getters: {
@@ -149,7 +150,10 @@ export const useAuthStore = defineStore('auth', {
         try {
           await this.fetchUser()
           // 사용자 정보를 성공적으로 가져오면 인증됨
-          // 타이머는 쿠키 기반에서는 불필요 (서버가 쿠키 갱신)
+          // 쿠키 기반에서도 토큰 갱신 타이머 필요 (access_token은 1시간 후 만료됨)
+          if (process.client) {
+            this.startTokenRefreshTimer()
+          }
           return
         } catch (error: any) {
           // 에러 상태 코드 확인 (ApiError.status 또는 error.response.status)
@@ -187,15 +191,13 @@ export const useAuthStore = defineStore('auth', {
         // 1. 토큰 만료 시간 확인
         const timeLeft = getTokenExpiryTime(this.token)
 
-        // 토큰이 이미 만료되었으면 refresh 시도
         if (timeLeft !== null && timeLeft <= 0) {
-          const refreshSuccess = await this.refreshAccessToken()
-          if (!refreshSuccess) {
-            // Refresh failed - try one more time after a short delay
+          const refreshResult = await this.refreshAccessToken()
+          if (refreshResult !== 'success') {
             await new Promise(resolve => setTimeout(resolve, 2000))
 
-            const retrySuccess = await this.refreshAccessToken()
-            if (!retrySuccess) {
+            const retryResult = await this.refreshAccessToken()
+            if (retryResult === 'auth_error') {
               this.logout()
               return
             }
@@ -286,22 +288,19 @@ export const useAuthStore = defineStore('auth', {
       this.storageListenerAttached = true
     },
 
-    // Visibility API로 백그라운드 탭 처리
     setupVisibilityHandler() {
       if (!process.client) return
 
       const handleVisibilityChange = () => {
-        if (document.hidden) {
-          // 탭이 백그라운드로 갈 때 타이머 중지 (브라우저 throttle 방지)
-        } else {
-          // 탭이 다시 활성화될 때
-          if (this.token && this.refreshToken) {
-            // 즉시 토큰 상태 체크
-            this.checkAndRefreshToken()
+        if (document.hidden) return
 
-            // 타이머 재시작
-            this.startTokenRefreshTimer()
-          }
+        const shouldRefresh = this.useCookieAuth
+          ? !!this.user
+          : !!(this.token && this.refreshToken)
+
+        if (shouldRefresh) {
+          this.checkAndRefreshToken()
+          this.startTokenRefreshTimer()
         }
       }
 
@@ -506,15 +505,25 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // 토큰 만료 시간 체크 및 필요시 갱신
     async checkAndRefreshToken() {
+      if (this.useCookieAuth) {
+        if (!this.user) return
+        const result = await this.refreshAccessToken()
+        if (result === 'auth_error') {
+          this.logout()
+        }
+        return
+      }
+
       if (!this.token || !this.refreshToken) return
 
       const timeLeft = getTokenExpiryTime(this.token)
 
-      // 토큰이 5분 이내에 만료되면 갱신
       if (timeLeft !== null && timeLeft < 5 * 60) {
-        await this.refreshAccessToken()
+        const result = await this.refreshAccessToken()
+        if (result === 'auth_error') {
+          this.logout()
+        }
       }
     },
 
@@ -533,46 +542,65 @@ export const useAuthStore = defineStore('auth', {
       })
     },
 
-    async refreshAccessToken() {
-      // 이미 갱신 중이면 중복 요청 방지
-      if (this.isRefreshing) {
-        return false
+    async refreshAccessToken(): Promise<RefreshResult> {
+      if (this.isRefreshing && this.refreshPromise) {
+        return this.refreshPromise
       }
 
-      // 쿠키 기반 인증: refreshToken이 null이어도 서버에서 쿠키로 갱신 가능
-      // localStorage 기반 인증: refreshToken이 있어야 갱신 가능
       if (!this.useCookieAuth && !this.refreshToken) {
-        return false
+        return 'auth_error'
       }
 
-      const api = useApi()
       this.isRefreshing = true
+      this.refreshPromise = this._doRefresh()
 
       try {
-        // 쿠키 기반: 서버가 쿠키에서 refresh token을 읽음 (credentials: 'include')
-        // localStorage 기반: request body에 refresh token 포함
-        const requestBody = this.useCookieAuth ? {} : { refresh: this.refreshToken }
-
-        const response = await api.post('/api/v1/auth/token/refresh/', requestBody)
-
-        if (!response || !response.access) {
-          throw new Error('Token refresh failed')
-        }
-
-        // 쿠키 기반: 서버가 새 토큰을 쿠키에 설정함
-        // localStorage 기반: 응답에서 토큰을 받아 저장
-        if (!this.useCookieAuth) {
-          const newRefreshToken = response.refresh || this.refreshToken
-          this.setTokens(response.access, newRefreshToken)
-        }
-
-        return true
-      } catch (error) {
-        // 갱신 실패 시 로그아웃하지 않음 - 호출자가 처리
-        console.debug('Token refresh failed:', error)
-        return false
+        return await this.refreshPromise
       } finally {
         this.isRefreshing = false
+        this.refreshPromise = null
+      }
+    },
+
+    async _doRefresh(): Promise<RefreshResult> {
+      const config = useRuntimeConfig()
+      const baseUrl = process.server
+        ? (process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8019')
+        : config.public.apiBase
+
+      try {
+        const requestBody = this.useCookieAuth ? {} : { refresh: this.refreshToken }
+
+        const response = await fetch(`${baseUrl}/api/v1/auth/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          credentials: 'include'
+        })
+
+        if (response.status === 401 || response.status === 403) {
+          return 'auth_error'
+        }
+
+        if (!response.ok) {
+          return 'network_error'
+        }
+
+        const data = await response.json()
+
+        if (!data || !data.access) {
+          return 'auth_error'
+        }
+
+        if (!this.useCookieAuth) {
+          const newRefreshToken = data.refresh || this.refreshToken
+          this.setTokens(data.access, newRefreshToken!)
+        }
+
+        return 'success'
+      } catch (error) {
+        console.debug('Token refresh failed:', error)
+        return 'network_error'
       }
     }
   }
