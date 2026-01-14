@@ -13,6 +13,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Alert,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,6 +61,30 @@ interface AuthState {
 }
 
 const STORAGE_KEY = '@maeil1dok_auth';
+const TOKEN_REFRESH_THRESHOLD = 5 * 60;
+
+function decodeJWT(token: string): { exp?: number } | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+function getTokenExpiryTime(token: string): number | null {
+  const decoded = decodeJWT(token);
+  if (!decoded?.exp) return null;
+  const now = Math.floor(Date.now() / 1000);
+  return decoded.exp - now;
+}
 
 function AppContent() {
   const insets = useSafeAreaInsets();
@@ -125,6 +151,66 @@ function AppContent() {
       console.error('Failed to save auth state:', error);
     }
   };
+
+  const refreshAccessToken = async (): Promise<boolean> => {
+    if (!authState.refreshToken) return false;
+
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: authState.refreshToken }),
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        await handleLogout();
+        showNativeLogin();
+        return false;
+      }
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      if (!data.access) return false;
+
+      const newState: AuthState = {
+        isLoggedIn: true,
+        accessToken: data.access,
+        refreshToken: data.refresh || authState.refreshToken,
+        user: authState.user,
+      };
+      await saveAuthState(newState);
+      sendAuthToWebView({
+        token: data.access,
+        refreshToken: newState.refreshToken || '',
+        user: authState.user,
+      });
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  };
+
+  const checkAndRefreshToken = async () => {
+    if (!authState.accessToken || !authState.isLoggedIn) return;
+
+    const timeLeft = getTokenExpiryTime(authState.accessToken);
+    if (timeLeft !== null && timeLeft < TOKEN_REFRESH_THRESHOLD) {
+      await refreshAccessToken();
+    }
+  };
+
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active' && authState.isLoggedIn) {
+        checkAndRefreshToken();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [authState.isLoggedIn, authState.accessToken]);
 
   const handleLogout = async () => {
     try {

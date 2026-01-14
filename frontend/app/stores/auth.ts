@@ -198,24 +198,22 @@ export const useAuthStore = defineStore('auth', {
 
             const retryResult = await this.refreshAccessToken()
             if (retryResult === 'auth_error') {
+              this.notifyNativeAuthExpired()
               this.logout()
               return
             }
           }
         }
 
-        // 2. 서버에서 사용자 정보를 가져와 토큰 유효성 확인
         try {
           await this.fetchUser()
         } catch (error: any) {
-          // Only logout if it's a permanent auth error (401/403)
-          // Network errors, 500s, etc should NOT logout
           const statusCode = error?.status || error?.response?.status
           if (statusCode === 401 || statusCode === 403) {
+            this.notifyNativeAuthExpired()
             this.logout()
             return
           }
-          // Otherwise, continue - we have cached user data
         }
 
         // 3. Timer is automatically started by setTokens(), but ensure it's running
@@ -510,6 +508,7 @@ export const useAuthStore = defineStore('auth', {
         if (!this.user) return
         const result = await this.refreshAccessToken()
         if (result === 'auth_error') {
+          this.notifyNativeAuthExpired()
           this.logout()
         }
         return
@@ -522,6 +521,7 @@ export const useAuthStore = defineStore('auth', {
       if (timeLeft !== null && timeLeft < 5 * 60) {
         const result = await this.refreshAccessToken()
         if (result === 'auth_error') {
+          this.notifyNativeAuthExpired()
           this.logout()
         }
       }
@@ -540,6 +540,28 @@ export const useAuthStore = defineStore('auth', {
           user: this.user
         }
       })
+    },
+
+    syncTokenToNativeApp(accessToken: string, refreshToken: string) {
+      if (!process.client || typeof window === 'undefined') return
+      if (!window.__nativeBridge?.isNativeApp()) return
+      if (!this.user) return
+
+      window.__nativeBridge.sendToNative({
+        type: 'auth:login',
+        data: {
+          token: accessToken,
+          refreshToken: refreshToken,
+          user: this.user
+        }
+      })
+    },
+
+    notifyNativeAuthExpired() {
+      if (!process.client || typeof window === 'undefined') return
+      if (!window.__nativeBridge?.isNativeApp()) return
+
+      window.__nativeBridge.sendToNative({ type: 'auth:expired' })
     },
 
     async refreshAccessToken(): Promise<RefreshResult> {
@@ -592,10 +614,13 @@ export const useAuthStore = defineStore('auth', {
           return 'auth_error'
         }
 
+        const newRefreshToken = data.refresh || this.refreshToken
+
         if (!this.useCookieAuth) {
-          const newRefreshToken = data.refresh || this.refreshToken
           this.setTokens(data.access, newRefreshToken!)
         }
+
+        this.syncTokenToNativeApp(data.access, newRefreshToken!)
 
         return 'success'
       } catch (error) {
