@@ -190,13 +190,18 @@ if DEBUG:
 
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
-_csrf_cookie_domain = os.environ.get('CSRF_COOKIE_DOMAIN', None)
-if _csrf_cookie_domain:
-    CSRF_COOKIE_DOMAIN = _csrf_cookie_domain
+_cookie_domain = os.environ.get('COOKIE_DOMAIN', '.maeil1dok.app' if not DEBUG else None)
+_cookie_samesite = os.environ.get('COOKIE_SAMESITE', 'Lax')
+
+COOKIE_SAMESITE = _cookie_samesite
+CSRF_COOKIE_SAMESITE = _cookie_samesite
+
+if _cookie_domain:
+    CSRF_COOKIE_DOMAIN = _cookie_domain
+    COOKIE_DOMAIN = _cookie_domain
 
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '[]')
 try:

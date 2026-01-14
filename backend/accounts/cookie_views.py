@@ -102,21 +102,25 @@ class CookieTokenRefreshView(TokenRefreshView):
 
                 User = get_user_model()
                 user_id = refresh.payload.get('user_id')
-                user = User.objects.get(id=user_id)
+                try:
+                    user = User.objects.get(id=user_id)
+                except User.DoesNotExist:
+                    logger.warning(f"Token refresh failed: user {user_id} not found")
+                    return Response(
+                        {'error': 'User not found'},
+                        status=status.HTTP_401_UNAUTHORIZED
+                    )
                 refresh = RefreshToken.for_user(user)
                 new_refresh_token = str(refresh)
             else:
                 new_refresh_token = refresh_token
 
-            # 응답 생성
             response_data = {
                 'access': access_token,
                 'refresh': new_refresh_token,
             }
 
             response = Response(response_data, status=status.HTTP_200_OK)
-
-            # HttpOnly 쿠키 업데이트
             set_auth_cookies(response, access_token, new_refresh_token)
 
             return response

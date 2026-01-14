@@ -37,6 +37,11 @@ class CookieJWTAuthentication(JWTAuthentication):
             return None
 
         user = self.get_user(validated_token)
+        
+        token_version = validated_token.get('token_version', 0)
+        if token_version < user.token_version:
+            logger.debug(f"Token version mismatch: token={token_version}, user={user.token_version}")
+            return None
 
         if used_cookie:
             self.enforce_csrf(request)
@@ -56,11 +61,12 @@ class CookieJWTAuthentication(JWTAuthentication):
 def get_cookie_settings():
     is_production = not settings.DEBUG
     cookie_domain = getattr(settings, 'COOKIE_DOMAIN', None)
+    samesite = getattr(settings, 'COOKIE_SAMESITE', 'Lax')
 
     cookie_settings = {
         'httponly': True,
         'secure': is_production,
-        'samesite': 'None' if is_production else 'Lax',
+        'samesite': samesite,
         'path': '/',
     }
 
@@ -102,21 +108,17 @@ def set_auth_cookies(response, access_token, refresh_token=None):
 
 
 def clear_auth_cookies(response):
-    """
-    인증 쿠키 삭제 (로그아웃)
-    """
     cookie_settings = get_cookie_settings()
+    
+    delete_kwargs = {
+        'path': cookie_settings['path'],
+        'samesite': cookie_settings['samesite'],
+    }
+    if 'domain' in cookie_settings:
+        delete_kwargs['domain'] = cookie_settings['domain']
 
-    response.delete_cookie(
-        key=ACCESS_TOKEN_COOKIE,
-        path=cookie_settings['path'],
-        samesite=cookie_settings['samesite']
-    )
-    response.delete_cookie(
-        key=REFRESH_TOKEN_COOKIE,
-        path=cookie_settings['path'],
-        samesite=cookie_settings['samesite']
-    )
+    response.delete_cookie(key=ACCESS_TOKEN_COOKIE, **delete_kwargs)
+    response.delete_cookie(key=REFRESH_TOKEN_COOKIE, **delete_kwargs)
 
     return response
 
