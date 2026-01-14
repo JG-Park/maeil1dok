@@ -1,6 +1,5 @@
 import { useRuntimeConfig } from '#app'
 import { useAuthStore } from '../stores/auth'
-import axios from 'axios'
 
 type AxiosConfig = {
   headers?: Record<string, string>
@@ -12,30 +11,37 @@ type AxiosRequestConfig = AxiosConfig;
 
 export const useApi = () => {
   const config = useRuntimeConfig()
-  const baseURL = config.public.apiBaseUrl
 
   const auth = useAuthStore()
 
   const getBaseUrl = () => {
-    // Docker Compose 환경에서 SSR 시 컨테이너 간 통신
     if (process.server) {
-      // Docker 환경에서는 서비스명으로 접근
-      // 로컬 개발 시에는 포트 8019 사용
       return process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8019'
     }
-    
-    // 클라이언트에서는 설정된 apiBase 사용
-    // 개발 환경: localhost:8019, 프로덕션: api.maeil1dok.app
     return config.public.apiBase
   }
 
-  const getHeaders = () => {
-    const headers = {
+  const getCsrfToken = (): string | null => {
+    if (typeof document === 'undefined') return null
+    const match = document.cookie.match(/csrftoken=([^;]+)/)
+    const token = match?.[1]
+    return token !== undefined ? token : null
+  }
+
+  const getHeaders = (includeCsrf: boolean = false): Record<string, string> => {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
     
     if (auth.token) {
       headers['Authorization'] = `Bearer ${auth.token}`
+    }
+
+    if (includeCsrf) {
+      const csrfToken = getCsrfToken()
+      if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken
+      }
     }
     
     return headers
@@ -73,7 +79,10 @@ export const useApi = () => {
         const refreshResult = await auth.refreshAccessToken()
 
         if (refreshResult === 'success') {
-          options.headers = getHeaders()
+          const isMutatingMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(
+            (options.method || 'GET').toUpperCase()
+          )
+          options.headers = getHeaders(isMutatingMethod)
           response = await fetch(url, options)
         } else if (refreshResult === 'auth_error') {
           if (authStore.isAuthenticated) {
@@ -128,9 +137,8 @@ export const useApi = () => {
         return { data: { success: false, message: 'Authentication required' } };
       }
 
-      // 인증 확인 엔드포인트는 requiresAuth=false로 호출 (서버로 요청 보내야 함)
       const response = await fetchWithRetry(fullUrl, {
-        headers: getHeaders(),
+        headers: getHeaders(false),
         credentials: 'include'
       }, requiresAuth && !isAuthCheckEndpoint)
 
@@ -146,13 +154,12 @@ export const useApi = () => {
 
     try {
       const isFormData = data instanceof FormData;
-      const headers = getHeaders();
+      const headers = getHeaders(true);
 
       if (isFormData) {
         delete headers['Content-Type'];
       }
 
-      // 인증이 필요 없는 공개 엔드포인트 정의
       const publicEndpoints = [
         '/api/v1/auth/register/',
         '/api/v1/auth/token/',
@@ -192,7 +199,7 @@ export const useApi = () => {
     try {
       const response = await fetchWithRetry(fullUrl, {
         method: 'PUT',
-        headers: getHeaders(),
+        headers: getHeaders(true),
         body: JSON.stringify(data),
         credentials: 'include'
       })
@@ -209,7 +216,7 @@ export const useApi = () => {
     try {
       const response = await fetchWithRetry(fullUrl, {
         method: 'PATCH',
-        headers: getHeaders(),
+        headers: getHeaders(true),
         body: JSON.stringify(data),
         credentials: 'include'
       })
@@ -229,7 +236,7 @@ export const useApi = () => {
       try {
         const response = await fetchWithRetry(`${getBaseUrl()}${url}`, {
           method: 'DELETE',
-          headers: getHeaders(),
+          headers: getHeaders(true),
           credentials: 'include'
         })
         return response.json()
@@ -239,7 +246,14 @@ export const useApi = () => {
     },
     async upload(url: string, formData: FormData) {
       try {
-        const headers = auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {}
+        const headers: Record<string, string> = {}
+        if (auth.token) {
+          headers['Authorization'] = `Bearer ${auth.token}`
+        }
+        const csrfToken = getCsrfToken()
+        if (csrfToken) {
+          headers['X-CSRFToken'] = csrfToken
+        }
 
         const response = await fetchWithRetry(`${getBaseUrl()}${url}`, {
           method: 'POST',

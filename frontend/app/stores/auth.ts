@@ -118,12 +118,17 @@ export const useAuthStore = defineStore('auth', {
 
     saveToLocalStorage() {
       try {
-        const authData = {
-          token: this.token,
-          refreshToken: this.refreshToken,
-          user: this.user
+        if (this.useCookieAuth) {
+          const userData = { user: this.user }
+          localStorage.setItem('auth', JSON.stringify(userData))
+        } else {
+          const authData = {
+            token: this.token,
+            refreshToken: this.refreshToken,
+            user: this.user
+          }
+          localStorage.setItem('auth', JSON.stringify(authData))
         }
-        localStorage.setItem('auth', JSON.stringify(authData))
       } catch (error) {
         console.error('Failed to save auth to localStorage:', error)
       }
@@ -134,8 +139,10 @@ export const useAuthStore = defineStore('auth', {
         const authData = localStorage.getItem('auth')
         if (authData) {
           const parsed = JSON.parse(authData)
-          this.token = parsed.token
-          this.refreshToken = parsed.refreshToken
+          if (!this.useCookieAuth) {
+            this.token = parsed.token
+            this.refreshToken = parsed.refreshToken
+          }
           this.user = parsed.user
         }
       } catch (error) {
@@ -159,9 +166,8 @@ export const useAuthStore = defineStore('auth', {
           // 에러 상태 코드 확인 (ApiError.status 또는 error.response.status)
           const statusCode = error?.status || error?.response?.status
 
-          // 401/403이면 미인증 상태 - localStorage fallback 시도
           if (statusCode === 401 || statusCode === 403) {
-            // 쿠키 인증 실패, localStorage fallback 시도
+            console.warn('[Auth] Cookie auth failed, falling back to localStorage (deprecated)')
             this.useCookieAuth = false
           } else {
             // 네트워크 오류 등 - 일시적 문제로 간주
@@ -171,15 +177,11 @@ export const useAuthStore = defineStore('auth', {
         }
       }
 
-      // 하위 호환: localStorage 기반 인증 (마이그레이션 완료 후 제거 예정)
       if (process.client && typeof window !== 'undefined') {
         this.loadFromLocalStorage()
       }
 
-      // We only need to validate and refresh user data if we have a token
       if (!this.token || !this.refreshToken) {
-        // 토큰이 없으면 인증되지 않은 상태 - user 정보도 초기화
-        // localStorage에서 로드된 user 정보가 있더라도 토큰 없이는 API 호출 불가
         this.user = null
         if (process.client && typeof window !== 'undefined') {
           localStorage.removeItem('auth')
@@ -342,8 +344,6 @@ export const useAuthStore = defineStore('auth', {
         const readingSettingsStore = useReadingSettingsStore()
         await readingSettingsStore.onLogin()
 
-        this.notifyNativeAuthLogin()
-
         return true
       } catch (error) {
         this.logout()
@@ -385,8 +385,6 @@ export const useAuthStore = defineStore('auth', {
           const readingSettingsStore = useReadingSettingsStore()
           await readingSettingsStore.onLogin()
 
-          this.notifyNativeAuthLogin()
-
           return true
         } else if (data.needsSignup) {
           return data
@@ -411,8 +409,6 @@ export const useAuthStore = defineStore('auth', {
 
           const readingSettingsStore = useReadingSettingsStore()
           await readingSettingsStore.onLogin()
-
-          this.notifyNativeAuthLogin()
         }
         return response
       } catch (error) {
@@ -427,8 +423,6 @@ export const useAuthStore = defineStore('auth', {
 
         const readingSettingsStore = useReadingSettingsStore()
         await readingSettingsStore.onLogin()
-
-        this.notifyNativeAuthLogin()
 
         return true
       }
@@ -527,36 +521,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    notifyNativeAuthLogin() {
-      if (!process.client || typeof window === 'undefined') return
-      if (!window.__nativeBridge?.isNativeApp()) return
-      if (!this.token || !this.user) return
-
-      window.__nativeBridge.sendToNative({
-        type: 'auth:login',
-        data: {
-          token: this.token,
-          refreshToken: this.refreshToken || '',
-          user: this.user
-        }
-      })
-    },
-
-    syncTokenToNativeApp(accessToken: string, refreshToken: string) {
-      if (!process.client || typeof window === 'undefined') return
-      if (!window.__nativeBridge?.isNativeApp()) return
-      if (!this.user) return
-
-      window.__nativeBridge.sendToNative({
-        type: 'auth:login',
-        data: {
-          token: accessToken,
-          refreshToken: refreshToken,
-          user: this.user
-        }
-      })
-    },
-
     notifyNativeAuthExpired() {
       if (!process.client || typeof window === 'undefined') return
       if (!window.__nativeBridge?.isNativeApp()) return
@@ -593,9 +557,17 @@ export const useAuthStore = defineStore('auth', {
       try {
         const requestBody = this.useCookieAuth ? {} : { refresh: this.refreshToken }
 
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        if (process.client && typeof document !== 'undefined') {
+          const csrfMatch = document.cookie.match(/csrftoken=([^;]+)/)
+          if (csrfMatch) {
+            headers['X-CSRFToken'] = csrfMatch[1]
+          }
+        }
+
         const response = await fetch(`${baseUrl}/api/v1/auth/token/refresh/`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(requestBody),
           credentials: 'include'
         })
@@ -619,8 +591,6 @@ export const useAuthStore = defineStore('auth', {
         if (!this.useCookieAuth) {
           this.setTokens(data.access, newRefreshToken!)
         }
-
-        this.syncTokenToNativeApp(data.access, newRefreshToken!)
 
         return 'success'
       } catch (error) {
