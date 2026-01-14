@@ -21,6 +21,7 @@ class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
         raw_token = request.COOKIES.get(ACCESS_TOKEN_COOKIE)
         used_cookie = raw_token is not None
+        validated_token = None
 
         if raw_token is None:
             header = self.get_header(request)
@@ -29,11 +30,30 @@ class CookieJWTAuthentication(JWTAuthentication):
             raw_token = self.get_raw_token(header)
             if raw_token is None:
                 return None
+            used_cookie = False
 
         try:
             validated_token = self.get_validated_token(raw_token)
         except TokenError as e:
             logger.debug(f"Token validation failed: {e}")
+            if not used_cookie:
+                return None
+
+        if validated_token is None and used_cookie:
+            header = self.get_header(request)
+            if header is None:
+                return None
+            raw_token = self.get_raw_token(header)
+            if raw_token is None:
+                return None
+            used_cookie = False
+            try:
+                validated_token = self.get_validated_token(raw_token)
+            except TokenError as e:
+                logger.debug(f"Header token validation also failed: {e}")
+                return None
+
+        if validated_token is None:
             return None
 
         user = self.get_user(validated_token)
