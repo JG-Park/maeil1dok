@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from rest_framework import serializers
 from .models import (
@@ -263,7 +264,8 @@ class CatchupPreviewRequestSerializer(serializers.Serializer):
     max_daily_readings = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     max_daily_chapters = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     weekend_multiplier = serializers.DecimalField(
-        max_digits=3, decimal_places=1, default=1.0, min_value=0.5, max_value=3.0
+        max_digits=3, decimal_places=1, default=Decimal('1.0'),
+        min_value=Decimal('0.5'), max_value=Decimal('3.0')
     )
     target_rejoin_date = serializers.DateField(required=False, allow_null=True)
 
