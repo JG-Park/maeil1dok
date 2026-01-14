@@ -61,6 +61,7 @@ urlpatterns = [
     path('link-social/', views.link_social_account, name='link_social_account'),
     path('unlink-social/', views.unlink_social_account, name='unlink_social_account'),
     path('set-password/', views.set_password, name='set_password'),
+    path('logout-all/', views.logout_all_devices, name='logout_all_devices'),
     
     # ========================================
     # 계정 병합

@@ -8,31 +8,23 @@ from datetime import timedelta
 class User(AbstractUser):
     nickname = models.CharField(max_length=50, unique=True)
     
-    # 소셜 로그인 필드 (레거시 - 하위 호환용, 새 SocialAccount 모델 사용 권장)
     is_social = models.BooleanField(default=False)
     social_provider = models.CharField(max_length=20, null=True, blank=True)
     social_id = models.CharField(max_length=100, null=True, blank=True)
     profile_image = models.URLField(max_length=500, null=True, blank=True)
     
-    # 이메일/비밀번호 인증 지원
     email = models.EmailField(null=True, blank=True)
-    has_usable_password_flag = models.BooleanField(
-        default=False, 
-        help_text="사용자가 비밀번호를 설정했는지 여부 (소셜 전용 계정은 False)"
-    )
-    email_verified = models.BooleanField(default=False, help_text="이메일 인증 여부")
+    has_usable_password_flag = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
     
-    # 계정 병합/삭제 관련 필드
-    scheduled_deletion_at = models.DateTimeField(
-        null=True, blank=True,
-        help_text="계정 삭제 예정 시간 (병합 후 30일)"
-    )
+    token_version = models.PositiveIntegerField(default=0)
+    
+    scheduled_deletion_at = models.DateTimeField(null=True, blank=True)
     merged_into = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='merged_accounts',
-        help_text="이 계정이 병합된 대상 계정"
+        related_name='merged_accounts'
     )
     
     # related_name 추가

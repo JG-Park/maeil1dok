@@ -721,7 +721,6 @@ def unlink_social_account(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def set_password(request):
-    """비밀번호 설정 (소셜 계정 사용자용)"""
     user = request.user
     serializer = SetPasswordSerializer(data=request.data)
     
@@ -731,7 +730,6 @@ def set_password(request):
     new_password = serializer.validated_data['new_password']
     current_password = serializer.validated_data.get('current_password')
     
-    # 이미 비밀번호가 있는 경우 현재 비밀번호 확인
     if user.has_password_set():
         if not current_password:
             return Response({'error': '현재 비밀번호를 입력해주세요.'}, status=400)
@@ -740,10 +738,22 @@ def set_password(request):
     
     user.set_password(new_password)
     user.has_usable_password_flag = True
-    user.save()
+    user.token_version += 1
+    user.save(update_fields=['password', 'has_usable_password_flag', 'token_version'])
     
     logger.info(f"비밀번호 설정 완료: user_id={user.id}")
     return Response({'success': True, 'message': '비밀번호가 설정되었습니다.'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_all_devices(request):
+    user = request.user
+    user.token_version += 1
+    user.save(update_fields=['token_version'])
+    
+    logger.info(f"모든 기기에서 로그아웃: user_id={user.id}")
+    return Response({'success': True, 'message': '모든 기기에서 로그아웃되었습니다.'})
 
 
 # ========================================
@@ -1078,7 +1088,6 @@ def verify_reset_token(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def reset_password(request):
-    """비밀번호 재설정 완료"""
     token = request.data.get('token')
     new_password = request.data.get('new_password')
     
@@ -1099,7 +1108,8 @@ def reset_password(request):
     user = token_obj.user
     user.set_password(new_password)
     user.has_usable_password_flag = True
-    user.save()
+    user.token_version += 1
+    user.save(update_fields=['password', 'has_usable_password_flag', 'token_version'])
     
     token_obj.use_token()
     
