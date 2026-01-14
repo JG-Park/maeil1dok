@@ -132,24 +132,36 @@ class CookieTokenRefreshView(TokenRefreshView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def cookie_logout(request):
-    """
-    로그아웃: 쿠키 삭제 및 refresh 토큰 블랙리스트 처리
-    """
-    response = Response({'message': 'Logged out successfully'}, status=status.HTTP_200_OK)
+    blacklist_success = False
+    blacklist_error = None
 
-    # Refresh 토큰 블랙리스트 처리
     refresh_token = request.COOKIES.get(REFRESH_TOKEN_COOKIE)
     if refresh_token:
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            logger.info("Refresh token blacklisted")
-        except (TokenError, AttributeError) as e:
-            logger.warning(f"Failed to blacklist token: {e}")
+        for attempt in range(2):
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+                blacklist_success = True
+                logger.info("Refresh token blacklisted")
+                break
+            except (TokenError, AttributeError) as e:
+                blacklist_error = str(e)
+                if attempt == 0:
+                    logger.warning(f"Blacklist attempt {attempt + 1} failed: {e}, retrying...")
+                else:
+                    logger.error(f"Failed to blacklist token after {attempt + 1} attempts: {e}")
+    else:
+        blacklist_success = True
 
-    # 쿠키 삭제
+    if blacklist_success:
+        response = Response({'message': 'Logged out successfully'}, status=status.HTTP_200_OK)
+    else:
+        response = Response(
+            {'message': 'Logged out, but token revocation failed', 'warning': blacklist_error},
+            status=status.HTTP_200_OK
+        )
+
     clear_auth_cookies(response)
-
     return response
 
 
