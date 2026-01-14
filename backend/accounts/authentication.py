@@ -27,59 +27,50 @@ class CookieJWTAuthentication(JWTAuthentication):
         auth_header = self.get_header(request)
         has_header = auth_header is not None
         
-        logger.warning(f"[AUTH] path={request.path}, has_cookie={has_cookie}, has_header={has_header}")
+        logger.debug(f"[AUTH] path={request.path}, has_cookie={has_cookie}, has_header={has_header}")
 
         if raw_token is None:
             if auth_header is None:
-                logger.warning(f"[AUTH] No cookie and no header - returning None")
                 return None
             raw_token = self.get_raw_token(auth_header)
             if raw_token is None:
-                logger.warning(f"[AUTH] Header exists but no token extracted")
                 return None
             used_cookie = False
-            logger.warning(f"[AUTH] Using header token")
 
         try:
             validated_token = self.get_validated_token(raw_token)
-            logger.warning(f"[AUTH] Token validated successfully (from {'cookie' if used_cookie else 'header'})")
         except TokenError as e:
-            logger.warning(f"[AUTH] Token validation failed: {e}")
+            logger.debug(f"[AUTH] Token validation failed: {e}")
             if not used_cookie:
                 return None
 
         if validated_token is None and used_cookie:
-            logger.warning(f"[AUTH] Cookie token invalid, trying header fallback")
             if auth_header is None:
-                logger.warning(f"[AUTH] No header to fallback to")
                 return None
             raw_token = self.get_raw_token(auth_header)
             if raw_token is None:
-                logger.warning(f"[AUTH] Header exists but no token extracted for fallback")
                 return None
             used_cookie = False
             try:
                 validated_token = self.get_validated_token(raw_token)
-                logger.warning(f"[AUTH] Header fallback token validated successfully")
             except TokenError as e:
-                logger.warning(f"[AUTH] Header fallback token also failed: {e}")
+                logger.debug(f"[AUTH] Header fallback token also failed: {e}")
                 return None
 
         if validated_token is None:
-            logger.warning(f"[AUTH] validated_token is None at end")
             return None
 
         user = self.get_user(validated_token)
         
         token_version = validated_token.get('token_version', 0)
         if token_version < user.token_version:
-            logger.warning(f"[AUTH] Token version mismatch: token={token_version}, user={user.token_version}")
+            logger.debug(f"[AUTH] Token version mismatch: token={token_version}, user={user.token_version}")
             return None
 
-        if used_cookie:
+        require_csrf = used_cookie and not has_header
+        if require_csrf:
             self.enforce_csrf(request)
 
-        logger.warning(f"[AUTH] Success - user={user.id}")
         return user, validated_token
 
     def enforce_csrf(self, request):
