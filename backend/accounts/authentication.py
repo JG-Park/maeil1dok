@@ -1,39 +1,27 @@
-"""
-HttpOnly Cookie 기반 JWT 인증
-
-보안 개선:
-- JWT 토큰을 HttpOnly 쿠키에 저장하여 XSS 공격으로부터 보호
-- Access Token: httpOnly=True, secure=True, sameSite=None (크로스 도메인)
-- Refresh Token: httpOnly=True, secure=True, sameSite=None
-- CSRF 토큰으로 추가 보호
-"""
-
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import AuthenticationFailed
+from django.middleware.csrf import CsrfViewMiddleware
 from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
-# 쿠키 이름 상수
 ACCESS_TOKEN_COOKIE = 'access_token'
 REFRESH_TOKEN_COOKIE = 'refresh_token'
 
 
+class CSRFCheck(CsrfViewMiddleware):
+    def _reject(self, request, reason):
+        return reason
+
+
 class CookieJWTAuthentication(JWTAuthentication):
-    """
-    HttpOnly 쿠키에서 JWT 토큰을 읽는 인증 클래스
-
-    기존 Authorization 헤더 방식도 fallback으로 지원하여
-    점진적 마이그레이션 가능
-    """
-
     def authenticate(self, request):
-        # 1. 먼저 쿠키에서 토큰 확인
         raw_token = request.COOKIES.get(ACCESS_TOKEN_COOKIE)
+        used_cookie = raw_token is not None
 
-        # 2. 쿠키에 없으면 기존 Authorization 헤더에서 확인 (하위 호환)
         if raw_token is None:
             header = self.get_header(request)
             if header is None:
@@ -42,14 +30,27 @@ class CookieJWTAuthentication(JWTAuthentication):
             if raw_token is None:
                 return None
 
-        # 3. 토큰 검증
         try:
             validated_token = self.get_validated_token(raw_token)
         except TokenError as e:
             logger.debug(f"Token validation failed: {e}")
             return None
 
-        return self.get_user(validated_token), validated_token
+        user = self.get_user(validated_token)
+
+        if used_cookie:
+            self.enforce_csrf(request)
+
+        return user, validated_token
+
+    def enforce_csrf(self, request):
+        if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
+            return
+
+        check = CSRFCheck(lambda req: None)
+        reason = check.process_view(request, None, (), {})
+        if reason:
+            raise AuthenticationFailed(f'CSRF validation failed: {reason}')
 
 
 def get_cookie_settings():

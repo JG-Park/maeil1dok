@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import json
 from pathlib import Path
 from datetime import timedelta
 
@@ -144,7 +145,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '[]')
 try:
-    import json
     CORS_ALLOWED_ORIGINS = json.loads(CORS_ALLOWED_ORIGINS)
 except json.JSONDecodeError:
     CORS_ALLOWED_ORIGINS = [
@@ -187,6 +187,38 @@ if DEBUG:
         'http://192.168.0.41:3000',
     ]
     CORS_ALLOWED_ORIGINS = list(set(CORS_ALLOWED_ORIGINS))
+
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+
+_csrf_cookie_domain = os.environ.get('CSRF_COOKIE_DOMAIN', None)
+if _csrf_cookie_domain:
+    CSRF_COOKIE_DOMAIN = _csrf_cookie_domain
+
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '[]')
+try:
+    CSRF_TRUSTED_ORIGINS = json.loads(CSRF_TRUSTED_ORIGINS)
+except json.JSONDecodeError:
+    CSRF_TRUSTED_ORIGINS = []
+
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS += [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:3019',
+        'http://127.0.0.1:3019',
+        'http://192.168.0.41:3000',
+    ]
+    CSRF_TRUSTED_ORIGINS = list(set(CSRF_TRUSTED_ORIGINS))
+elif not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://maeil1dok.app',
+        'https://www.maeil1dok.app',
+        'https://api.maeil1dok.app',
+    ]
 
 # JWT 설정 추가
 REST_FRAMEWORK = {
