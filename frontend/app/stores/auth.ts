@@ -596,7 +596,12 @@ export const useAuthStore = defineStore('auth', {
 
         const newRefreshToken = data.refresh || this.refreshToken
 
-        if (!this.useCookieAuth) {
+        if (this.useCookieAuth) {
+          // 쿠키 모드에서도 새 토큰을 메모리에 임시 저장
+          // OAuth 리다이렉트 후 쿠키가 즉시 반영되지 않는 경우를 위해
+          // Authorization 헤더로 토큰을 전달할 수 있도록 함
+          this.token = data.access
+        } else {
           this.setTokens(data.access, newRefreshToken!)
         }
 

@@ -33,7 +33,7 @@ export const useApi = () => {
       'Content-Type': 'application/json',
     }
     
-    if (!auth.useCookieAuth && auth.token) {
+    if (auth.token) {
       headers['Authorization'] = `Bearer ${auth.token}`
     }
 
@@ -247,7 +247,7 @@ export const useApi = () => {
     async upload(url: string, formData: FormData) {
       try {
         const headers: Record<string, string> = {}
-        if (!auth.useCookieAuth && auth.token) {
+        if (auth.token) {
           headers['Authorization'] = `Bearer ${auth.token}`
         }
         const csrfToken = getCsrfToken()

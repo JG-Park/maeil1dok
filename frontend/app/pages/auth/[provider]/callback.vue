@@ -45,7 +45,19 @@ onMounted(async () => {
   }
 
   // 계정 연결 (로그인된 상태에서 다른 소셜 계정 연결)
-  if (isLinkAction && auth.isAuthenticated) {
+  // OAuth 리다이렉트 후 페이지가 새로 로드되므로 auth 초기화 필요
+  if (isLinkAction) {
+    statusMessage.value = '인증 확인 중입니다...'
+    await auth.initializeAuth()
+    
+    if (!auth.isAuthenticated) {
+      navigateTo({
+        path: '/account/settings',
+        query: { linked: 'error', message: '로그인이 필요합니다' }
+      })
+      return
+    }
+    
     statusMessage.value = '계정 연결 중입니다...'
     await handleLinkSocialAccount(provider as string, code as string)
     return
