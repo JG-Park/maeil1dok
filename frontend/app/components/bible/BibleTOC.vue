@@ -40,7 +40,7 @@
         @click="handleSelectBook(book.id)"
       >
         <span class="book-name">{{ book.name }}</span>
-        <span class="book-chapters">{{ book.chapters }}장</span>
+        <span class="book-chapters">{{ book.chapters }}{{ getChapterUnit(book.id) }}</span>
       </button>
     </div>
   </div>
@@ -57,7 +57,7 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
-const { bibleBooks } = useBibleData();
+const { bibleBooks, getChapterUnit } = useBibleData();
 
 const activeTab = ref<'old' | 'new'>('old');
 

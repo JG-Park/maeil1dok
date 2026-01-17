@@ -95,7 +95,7 @@ const locationText = computed(() => {
     }
     return `${props.bookName} ${props.chapter}:${props.startVerse}-${props.endVerse}`;
   }
-  return `${props.bookName} ${props.chapter}장`;
+  return `${props.bookName} ${props.chapter}${props.book === 'psa' ? '편' : '장'}`;
 });
 
 const colors = [

@@ -10,7 +10,7 @@
               <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>{{ bookName }} {{ chapter }}장</span>
+            <span>{{ bookName }} {{ chapter }}{{ book === 'psa' ? '편' : '장' }}</span>
           </div>
 
           <div class="form-group">

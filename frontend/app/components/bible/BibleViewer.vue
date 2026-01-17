@@ -711,10 +711,11 @@ const positionCopyMenu = (actionTop: number, _actionLeft: number) => {
 
 const handleShare = async () => {
   const bookName = props.book;
+  const chapterUnit = bookName === '시편' ? '편' : '장';
   const verseRef = selectedVerses.value.start === selectedVerses.value.end
     ? `${selectedVerses.value.start}절`
     : `${selectedVerses.value.start}-${selectedVerses.value.end}절`;
-  const locationText = `${bookName} ${props.chapter}장 ${verseRef}`;
+  const locationText = `${bookName} ${props.chapter}${chapterUnit} ${verseRef}`;
 
   if (navigator.share) {
     try {

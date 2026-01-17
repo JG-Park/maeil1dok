@@ -154,7 +154,7 @@
               <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: `${bookProgress.percentage}%` }"></div>
               </div>
-              <span class="progress-text">{{ bookProgress.read }} / {{ bookProgress.total }}장 <span class="progress-percentage">({{ bookProgress.percentage }}%)</span></span>
+              <span class="progress-text">{{ bookProgress.read }} / {{ bookProgress.total }}{{ chapterSuffix }} <span class="progress-percentage">({{ bookProgress.percentage }}%)</span></span>
             </div>
           </ClientOnly>
         </div>

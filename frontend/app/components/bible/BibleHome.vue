@@ -57,7 +57,7 @@
         <button class="continue-card" @click="$emit('continue-reading')">
           <div class="continue-info">
             <span class="book-name">{{ lastPosition.book_name }}</span>
-            <span class="chapter">{{ lastPosition.chapter }}장</span>
+            <span class="chapter">{{ lastPosition.chapter }}{{ getChapterUnit(lastPosition.book) }}</span>
           </div>
           <ArrowRightIcon :size="20" />
         </button>
@@ -195,7 +195,7 @@
             @click="handleRecordClick(record)"
           >
             <span class="record-location">
-              {{ record.book_name }} {{ record.chapter }}장
+              {{ record.book_name }} {{ record.chapter }}{{ getChapterUnit(record.book) }}
             </span>
             <span class="record-date">
               {{ formatDate(record.read_date) }}
@@ -243,7 +243,7 @@ import CalendarIcon from '~/components/icons/CalendarIcon.vue';
 const router = useRouter();
 const api = useApi();
 const { loadReadingPosition } = useReadingPosition();
-const { getBookName } = useBibleData();
+const { getBookName, getChapterUnit } = useBibleData();
 const { handleSilentError } = useErrorHandler();
 const authStore = useAuthStore();
 const selectedPlanStore = useSelectedPlanStore();
@@ -358,10 +358,10 @@ async function loadTodaySchedule() {
       const firstSchedule = schedules[0];
       const completedCount = schedules.filter((s: any) => s.is_completed).length;
 
-      // 시작장~끝장 범위 문자열 생성
-      let range = `${firstSchedule.start_chapter}장`;
+      const unit = getChapterUnit(firstSchedule.book_code);
+      let range = `${firstSchedule.start_chapter}${unit}`;
       if (firstSchedule.end_chapter && firstSchedule.end_chapter !== firstSchedule.start_chapter) {
-        range = `${firstSchedule.start_chapter}-${firstSchedule.end_chapter}장`;
+        range = `${firstSchedule.start_chapter}-${firstSchedule.end_chapter}${unit}`;
       }
 
       todaySchedule.value = {

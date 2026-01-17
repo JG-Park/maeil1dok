@@ -232,9 +232,10 @@ export const useBibleData = () => {
     bookChapters[book.id] = book.chapters;
   });
 
-  /**
-   * 책 ID로 책 이름 조회
-   */
+  const isPsalms = (bookId: string): boolean => bookId === 'psa';
+
+  const getChapterUnit = (bookId: string): string => isPsalms(bookId) ? '편' : '장';
+
   const getBookName = (bookId: string): string => {
     return bookNames[bookId] || bookId;
   };
@@ -264,12 +265,15 @@ export const useBibleData = () => {
     const results: SearchResult[] = [];
 
     // 패턴들 (절 지원 추가)
-    const pattern1 = /^(.+?)\s*(\d+)\s*(?:장\s*)?[:\s절]?\s*(\d+)\s*절?$/;
-    const pattern2 = /^(.+?)\s+(\d+)\s*장?$/;
+    // 구분자가 있는 패턴들 (장:절 형태)
+    const pattern1 = /^(.+?)\s*(\d+)\s*(?:장\s*)?[:\s절]\s*(\d+)\s*절?$/;  // 구분자 필수
+    const pattern2 = /^(.+?)\s+(\d+)\s*(?:장|편)?$/;  // 책 이름 + 공백 + 숫자
     const pattern3 = /^([가-힣ㄱ-ㅎ]+)(\d+)\s*(?:장\s*)?[:\s절]\s*(\d+)\s*절?$/;
-    const pattern3b = /^([ㄱ-ㅎ]+)(\d{4})$/;
-    const pattern3c = /^([ㄱ-ㅎ]+)(\d{3})$/;
-    const pattern4 = /^([가-힣ㄱ-ㅎ]+)(\d{1,2})$/;
+    // 초성 + 숫자 조합 (장절 해석)
+    const pattern3b = /^([ㄱ-ㅎ]+)(\d{4})$/;  // 초성 + 4자리
+    const pattern3c = /^([ㄱ-ㅎ]+)(\d{3})$/;  // 초성 + 3자리
+    // 책이름 + 숫자만 (장/편 번호로 해석) - 시편 150편 지원을 위해 \d+ 사용
+    const pattern4 = /^([가-힣ㄱ-ㅎ]+)(\d+)$/;
     const pattern5 = /^([가-힣ㄱ-ㅎ]+)$/;
     const pattern6 = /^([a-z0-9]+)\s*(\d+)[:\s](\d+)$/i;
     const pattern7 = /^([a-z0-9]+)\s*(\d*)$/i;
@@ -279,69 +283,45 @@ export const useBibleData = () => {
     let verse: number | null = null;
     let alternativeInterpretations: Array<{ chapter: number; verse: number }> = [];
 
-    // 패턴 매칭
+    // 패턴 매칭 - 우선순위: 명시적 장절 > 책이름+숫자 > 책이름만
     let match = trimmed.match(pattern3b);
     if (match && match[1] && match[2]) {
       bookName = match[1];
       const digits = match[2];
       chapter = parseInt(digits.slice(0, 2), 10);
       verse = parseInt(digits.slice(2), 10);
-    } else {
-      match = trimmed.match(pattern3c);
-      if (match && match[1] && match[2]) {
-        bookName = match[1];
-        const digits = match[2];
-        chapter = parseInt(digits.slice(0, 1), 10);
-        verse = parseInt(digits.slice(1), 10);
-        alternativeInterpretations.push({
-          chapter: parseInt(digits.slice(0, 2), 10),
-          verse: parseInt(digits.slice(2), 10)
-        });
-      } else {
-        match = trimmed.match(pattern3);
-        if (match && match[1] && match[2] && match[3]) {
-          bookName = match[1];
-          chapter = parseInt(match[2], 10);
-          verse = parseInt(match[3], 10);
-        } else {
-          match = trimmed.match(pattern1);
-          if (match && match[1] && match[2] && match[3]) {
-            bookName = match[1].trim();
-            chapter = parseInt(match[2], 10);
-            verse = parseInt(match[3], 10);
-          } else {
-            match = trimmed.match(pattern6);
-            if (match && match[1] && match[2] && match[3]) {
-              bookName = match[1].toLowerCase();
-              chapter = parseInt(match[2], 10);
-              verse = parseInt(match[3], 10);
-            } else {
-              match = trimmed.match(pattern2);
-              if (match && match[1] && match[2]) {
-                bookName = match[1].trim();
-                chapter = parseInt(match[2], 10);
-              } else {
-                match = trimmed.match(pattern4);
-                if (match && match[1] && match[2]) {
-                  bookName = match[1];
-                  chapter = parseInt(match[2], 10);
-                } else {
-                  match = trimmed.match(pattern5);
-                  if (match && match[1]) {
-                    bookName = match[1];
-                  } else {
-                    match = trimmed.match(pattern7);
-                    if (match && match[1]) {
-                      bookName = match[1].toLowerCase();
-                      chapter = match[2] ? parseInt(match[2], 10) : null;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+    } else if ((match = trimmed.match(pattern3c)) && match[1] && match[2]) {
+      bookName = match[1];
+      const digits = match[2];
+      chapter = parseInt(digits.slice(0, 1), 10);
+      verse = parseInt(digits.slice(1), 10);
+      alternativeInterpretations.push({
+        chapter: parseInt(digits.slice(0, 2), 10),
+        verse: parseInt(digits.slice(2), 10)
+      });
+    } else if ((match = trimmed.match(pattern3)) && match[1] && match[2] && match[3]) {
+      bookName = match[1];
+      chapter = parseInt(match[2], 10);
+      verse = parseInt(match[3], 10);
+    } else if ((match = trimmed.match(pattern1)) && match[1] && match[2] && match[3]) {
+      bookName = match[1].trim();
+      chapter = parseInt(match[2], 10);
+      verse = parseInt(match[3], 10);
+    } else if ((match = trimmed.match(pattern6)) && match[1] && match[2] && match[3]) {
+      bookName = match[1].toLowerCase();
+      chapter = parseInt(match[2], 10);
+      verse = parseInt(match[3], 10);
+    } else if ((match = trimmed.match(pattern2)) && match[1] && match[2]) {
+      bookName = match[1].trim();
+      chapter = parseInt(match[2], 10);
+    } else if ((match = trimmed.match(pattern4)) && match[1] && match[2]) {
+      bookName = match[1];
+      chapter = parseInt(match[2], 10);
+    } else if ((match = trimmed.match(pattern5)) && match[1]) {
+      bookName = match[1];
+    } else if ((match = trimmed.match(pattern7)) && match[1]) {
+      bookName = match[1].toLowerCase();
+      chapter = match[2] ? parseInt(match[2], 10) : null;
     }
 
     if (!bookName) return [];
@@ -451,7 +431,6 @@ export const useBibleData = () => {
   };
 
   return {
-    // 상수
     bibleBooks: BIBLE_BOOKS,
     versionNames: VERSION_NAMES,
     bookAliases: BOOK_ALIASES,
@@ -459,10 +438,11 @@ export const useBibleData = () => {
     bookNames,
     bookChapters,
 
-    // 함수
     getBookName,
     getChapterCount,
     getChaptersArray,
+    getChapterUnit,
+    isPsalms,
     parseSearchQuery,
     extractChosung,
     isChosungOnly,

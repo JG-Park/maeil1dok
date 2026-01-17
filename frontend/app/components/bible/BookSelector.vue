@@ -31,14 +31,14 @@
       <div v-if="inputMode !== 'search'" class="selection-status">
         <button class="status-badge" @click="resetToSearchMode">
           <span>{{ confirmedBookName }}</span>
-          <span v-if="confirmedChapter"> {{ confirmedChapter }}장</span>
+          <span v-if="confirmedChapter"> {{ confirmedChapter }}{{ getChapterUnit(confirmedBookId) }}</span>
           <XCircleIcon :size="14" />
         </button>
       </div>
 
       <div class="search-input-wrapper">
         <SearchIcon v-if="inputMode === 'search'" class="search-icon" :size="18" />
-        <span v-else class="input-prefix">{{ inputMode === 'chapter' ? '장' : '절' }}</span>
+        <span v-else class="input-prefix">{{ inputMode === 'chapter' ? getChapterUnit(confirmedBookId) : '절' }}</span>
         <input
           ref="searchInputRef"
           :value="currentInputValue"
@@ -76,7 +76,7 @@
             @click="selectSearchResult(index)"
           >
             <span class="result-book">{{ result.bookName }}</span>
-            <span v-if="result.chapter" class="result-chapter">{{ result.chapter }}장</span>
+            <span v-if="result.chapter" class="result-chapter">{{ result.chapter }}{{ getChapterUnit(result.bookId) }}</span>
             <span v-if="result.verse" class="result-verse">{{ result.verse }}절</span>
           </button>
         </div>
@@ -84,17 +84,16 @@
         <!-- 선택된 결과로 이동 버튼 -->
         <button v-if="currentSearchResult" class="search-result-button" @click="goToSearchResult">
           <span class="result-book">{{ currentSearchResult.bookName }}</span>
-          <span v-if="currentSearchResult.chapter" class="result-chapter">{{ currentSearchResult.chapter }}장</span>
+          <span v-if="currentSearchResult.chapter" class="result-chapter">{{ currentSearchResult.chapter }}{{ getChapterUnit(currentSearchResult.bookId) }}</span>
           <span v-if="currentSearchResult.verse" class="result-verse">{{ currentSearchResult.verse }}절</span>
-          <span v-else-if="!currentSearchResult.chapter" class="result-hint">장을 선택해주세요</span>
+          <span v-else-if="!currentSearchResult.chapter" class="result-hint">{{ getChapterUnit(currentSearchResult.bookId) }}을 선택해주세요</span>
           <span class="result-action">바로가기</span>
           <ArrowRightIcon class="result-arrow" :size="18" />
         </button>
       </div>
 
-      <!-- 장/절 입력 힌트 -->
       <div v-if="inputMode === 'chapter'" class="input-hint">
-        숫자 입력 후 Enter (최대 {{ getChaptersArray(confirmedBookId).length }}장)
+        숫자 입력 후 Enter (최대 {{ getChaptersArray(confirmedBookId).length }}{{ getChapterUnit(confirmedBookId) }})
       </div>
       <div v-if="inputMode === 'verse'" class="input-hint">
         절 입력 후 Enter, 또는 그냥 Enter로 이동
@@ -145,7 +144,7 @@
             ]"
             @click="selectChapter(chapter)"
           >
-            <span class="chapter-num">{{ chapter }}장</span>
+            <span class="chapter-num">{{ chapter }}{{ getChapterUnit(selectedBookId) }}</span>
           </button>
         </div>
       </div>
@@ -176,7 +175,9 @@ const emit = defineEmits<{
 
 const { bibleBooks, getChaptersArray, parseSearchQuery } = useBibleData();
 
-// 입력 모드: 'search' | 'chapter' | 'verse'
+const isPsalms = (bookId: string) => bookId === 'psa';
+const getChapterUnit = (bookId: string) => isPsalms(bookId) ? '편' : '장';
+
 type InputMode = 'search' | 'chapter' | 'verse';
 
 // 상태
@@ -210,12 +211,12 @@ const currentSearchResult = computed<SearchResult | null>(() => {
   return results[index] ?? null;
 });
 
-// 현재 입력 필드 placeholder
 const inputPlaceholder = computed(() => {
+  const unit = getChapterUnit(confirmedBookId.value);
   if (inputMode.value === 'chapter') {
-    return `${confirmedBookName.value} 몇 장?`;
+    return `${confirmedBookName.value} 몇 ${unit}?`;
   } else if (inputMode.value === 'verse') {
-    return `${confirmedBookName.value} ${confirmedChapter.value}장 몇 절? (생략 가능)`;
+    return `${confirmedBookName.value} ${confirmedChapter.value}${unit} 몇 절? (생략 가능)`;
   }
   return '예: 창1:3, ㅊㅅㄱ, 요한 3:16';
 });
