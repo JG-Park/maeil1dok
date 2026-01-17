@@ -20,7 +20,7 @@
           :class="['version-chip', { active: code === currentVersion }]"
           @click="$emit('version-select', String(code))"
         >
-          {{ name }}<span v-if="code === 'SAENEW' || code === 'WOORI'" class="new-badge">N</span>
+          {{ name }}<span v-if="code === 'KNT' || code === 'WOORI'" class="new-badge">N</span>
         </button>
       </div>
     </div>

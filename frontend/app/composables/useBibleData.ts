@@ -20,12 +20,11 @@ export interface SearchResult {
   maxChapters: number;
 }
 
-// 성경 역본 정보
 export const VERSION_NAMES = Object.freeze({
   GAE: "개역개정",
-  SAENEW: "새번역",
-  WOORI: "우리말성경",
   KNT: "새한글",
+  WOORI: "우리말성경",
+  SAENEW: "새번역",
   HAN: "개역한글",
   SAE: "표준새번역",
   COG: "공동번역",
