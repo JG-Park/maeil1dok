@@ -6,11 +6,10 @@
       <header class="home-header">
         <div class="logo-wrapper">
           <NuxtImg
-            src="@/assets/images/로고_투명.png"
+            src="/images/로고_투명.png"
             alt="Maeil1dok"
             class="logo-img"
             loading="lazy"
-            format="webp"
           />
         </div>
         <div class="header-actions">

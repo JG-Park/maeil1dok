@@ -117,7 +117,7 @@
               <div class="setting-info">
                 <div class="provider-badge kakao">
                   <NuxtImg
-                    src="@/assets/images/kakao.png"
+                    src="/images/kakao.png"
                     width="16"
                     height="16"
                     alt="카카오"

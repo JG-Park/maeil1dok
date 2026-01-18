@@ -3,7 +3,7 @@
     <header class="header">
       <NuxtLink to="/" class="logo-link">
         <NuxtImg
-          src="~/assets/images/로고_투명.png"
+          src="/images/로고_투명.png"
           alt="매일일독"
           class="logo"
           loading="lazy"

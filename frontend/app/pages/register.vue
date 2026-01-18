@@ -12,7 +12,7 @@
       <div>
         <NuxtImg
           class="mx-auto h-8 w-auto object-contain"
-          src="@/assets/images/로고_투명.png"
+          src="/images/로고_투명.png"
           alt="매일일독"
           loading="lazy"
           format="webp"
@@ -69,7 +69,7 @@
           <div class="flex gap-4 justify-center">
             <button type="button" @click="handleKakaoLogin" class="social-button kakao-button">
               <NuxtImg
-                src="@/assets/images/kakao.png"
+                src="/images/kakao.png"
                 width="16"
                 height="16"
                 alt="카카오 로고"

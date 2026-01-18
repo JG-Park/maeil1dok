@@ -11,7 +11,7 @@
       <!-- 로고 -->
       <div class="logo-container">
         <NuxtImg
-          src="@/assets/images/로고_투명.png"
+          src="/images/로고_투명.png"
           alt="매일일독"
           class="logo"
           loading="lazy"
@@ -23,7 +23,7 @@
       <div class="social-buttons">
         <button type="button" @click="handleKakaoLogin" class="kakao-button">
           <NuxtImg
-            src="@/assets/images/kakao.png"
+            src="/images/kakao.png"
             width="16"
             height="16"
             alt="카카오 로고"
