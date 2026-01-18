@@ -107,7 +107,7 @@ class UserBibleProgressSerializer(serializers.ModelSerializer):
         fields = ['id', 'subscription', 'plan_name', 'is_completed', 'completed_at', 'date', 'schedule']
         
     def get_date(self, obj):
-        # schedule을 통해 날짜 정보 가져오기
+        # N+1 방지를 위해 schedule을 select_related로 가져오세요.
         return obj.schedule.date if obj.schedule else None
 
 class BibleProgressResponse(serializers.Serializer):
@@ -128,7 +128,7 @@ class BibleProgressResponse(serializers.Serializer):
 
 class BibleReadingPlanSerializer(serializers.ModelSerializer):
     created_by_username = serializers.SerializerMethodField()
-    subscriber_count = serializers.SerializerMethodField()
+    subscriber_count = serializers.IntegerField(read_only=True, default=0)
     
     class Meta:
         model = BibleReadingPlan
@@ -140,11 +140,14 @@ class BibleReadingPlanSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_by', 'created_by_username', 'subscriber_count']
     
     def get_created_by_username(self, obj):
+        # N+1 방지를 위해 created_by를 select_related로 가져오세요.
         if obj.created_by:
             return obj.created_by.username
         return None
     
     def get_subscriber_count(self, obj):
+        if hasattr(obj, 'subscriber_count'):
+            return obj.subscriber_count
         return obj.plansubscription_set.filter(is_active=True).count()
 
 class PlanSubscriptionSerializer(serializers.ModelSerializer):

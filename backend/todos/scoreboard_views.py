@@ -405,6 +405,15 @@ def get_group_scoreboard(request, group_id):
                      to_attr='current_membership')
         )
 
+        # 플랜 구독 Prefetch
+        members = members.prefetch_related(
+            Prefetch(
+                'plansubscription_set',
+                queryset=PlanSubscription.objects.filter(plan=plan, is_active=True),
+                to_attr='active_plan_subscriptions'
+            )
+        )
+
         # 정렬
         members = members.order_by('-completed_count')
 
@@ -412,11 +421,8 @@ def get_group_scoreboard(request, group_id):
         leaderboard = []
         for user in members:
             # 플랜 구독 확인
-            subscription = PlanSubscription.objects.filter(
-                user=user,
-                plan=plan,
-                is_active=True
-            ).first()
+            subscriptions = getattr(user, 'active_plan_subscriptions', [])
+            subscription = subscriptions[0] if subscriptions else None
 
             if not subscription:
                 continue

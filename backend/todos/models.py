@@ -60,6 +60,9 @@ class DailyBibleSchedule(models.Model):
     
     class Meta:
         ordering = ['date']
+        indexes = [
+            models.Index(fields=['plan', 'date'], name='schedule_plan_date_idx'),
+        ]
 
     def __str__(self):
         return f"{self.plan.name} - {self.date}: {self.book} {self.start_chapter}-{self.end_chapter}장"
@@ -106,6 +109,11 @@ class UserBibleProgress(models.Model):
         self.is_completed = False
         self.completed_at = None
         self.save()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['subscription', 'is_completed'], name='progress_sub_completed_idx'),
+        ]
 
     @property
     def status(self):
