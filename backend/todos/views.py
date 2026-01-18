@@ -139,9 +139,10 @@ def update_bible_progress(request):
                     'error': '존재하지 않는 스케줄입니다.'
                 }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            logger.error(f"Error in update_bible_progress schedule lookup: {str(e)}", exc_info=True)
             return Response({
                 'success': False,
-                'error': f'스케줄 조회 중 오류가 발생했습니다: {str(e)}'
+                'error': '요청 처리 중 오류가 발생했습니다.'
             }, status=status.HTTP_400_BAD_REQUEST)
             
         # 2. 스케줄의 plan_id와 요청의 plan_id 일치 여부 검증
@@ -206,7 +207,7 @@ def update_bible_progress(request):
         logger.error(f"Error in update_bible_progress: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
@@ -252,7 +253,7 @@ def get_reading_history(request):
         return Response({'error': 'Invalid plan ID or month format'}, status=400)
     except Exception as e:
         logger.error(f"Error in get_reading_history: {str(e)}", exc_info=True)
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': '요청 처리 중 오류가 발생했습니다.'}, status=500)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -313,8 +314,9 @@ def get_schedules_for_month(request):
         return Response([DailyBibleScheduleSerializer(schedule).data for schedule in schedules])
         
     except Exception as e:
+        logger.error(f"Error in get_schedules_for_month: {str(e)}", exc_info=True)
         return Response({
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=500)
 
 class IsStaffOrReadOnly(permissions.BasePermission):
@@ -441,7 +443,8 @@ class DailyBibleScheduleViewSet(viewsets.ModelViewSet):
                     success_count += 1
                 except Exception as e:
                     error_count += 1
-                    errors.append(f"행 {index + 2}: {str(e)}")
+                    logger.error(f"Error in upload_excel row {index + 2}: {str(e)}", exc_info=True)
+                    errors.append(f"행 {index + 2}: 처리 중 오류가 발생했습니다.")
             
             return Response({
                 "detail": f"{success_count}개의 일정이 처리되었습니다. 오류: {error_count}개",
@@ -454,8 +457,9 @@ class DailyBibleScheduleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
+            logger.error(f"Error in upload_excel: {str(e)}", exc_info=True)
             return Response(
-                {"detail": f"파일 처리 중 오류가 발생했습니다: {str(e)}"}, 
+                {"detail": "요청 처리 중 오류가 발생했습니다."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -514,7 +518,8 @@ class DailyBibleScheduleViewSet(viewsets.ModelViewSet):
         except BibleReadingPlan.DoesNotExist:
             return Response({"error": f"Plan with id {plan_id} not found"}, status=404)
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            logger.error(f"Error in debug_plan_schedules: {str(e)}", exc_info=True)
+            return Response({"error": "요청 처리 중 오류가 발생했습니다."}, status=500)
 
     @action(detail=True, methods=['post'])
     def generate_test_schedules(self, request, pk=None):
@@ -618,19 +623,20 @@ class BibleReadingPlanViewSet(viewsets.ModelViewSet):
 @permission_classes([permissions.AllowAny])
 def plan_subscription_list(request):
     """플랜 구독 목록 조회 및 생성"""
-    # 비로그인 사용자인 경우 기본 플랜 반환
+    # 비로그인 사용자인 경우 활성화된 모든 공개 플랜 반환
     if not request.user.is_authenticated:
-        default_plan = BibleReadingPlan.objects.filter(is_default=True).first()
-        if not default_plan:
+        public_plans = BibleReadingPlan.objects.filter(is_active=True).order_by('-is_default', 'name')
+        if not public_plans.exists():
             return Response({
-                'error': '기본 플랜이 설정되지 않았습니다.'
+                'error': '활성화된 플랜이 없습니다.'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        return Response({
-            'plan_id': default_plan.id,
-            'plan_name': default_plan.name,
-            'is_default': True
-        })
+        # 기본 플랜이 먼저 오도록 정렬된 목록 반환
+        return Response([{
+            'plan_id': plan.id,
+            'plan_name': plan.name,
+            'is_default': plan.is_default
+        } for plan in public_plans])
 
     # GET 요청 처리 (구독 목록 조회)
     if request.method == 'GET':
@@ -862,7 +868,7 @@ def get_chapter_detail(request):
 
     except Exception as e:
         logger.error(f"Error in get_chapter_detail: {str(e)}", exc_info=True)
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': '요청 처리 중 오류가 발생했습니다.'}, status=500)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -972,7 +978,7 @@ def get_today_schedules(request):
         logger.error(f"Error in get_today_schedules: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
@@ -1005,7 +1011,7 @@ def get_user_plans(request):
         
     except Exception as e:
         logger.error(f"Error in get_user_plans: {str(e)}", exc_info=True)
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': '요청 처리 중 오류가 발생했습니다.'}, status=500)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -1020,7 +1026,7 @@ def get_available_plans(request):
         })
     except Exception as e:
         logger.error(f"Error in get_available_plans: {str(e)}", exc_info=True)
-        return Response({'success': False, 'error': str(e)}, status=500)
+        return Response({'success': False, 'error': '요청 처리 중 오류가 발생했습니다.'}, status=500)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -1229,7 +1235,7 @@ def get_next_reading_position(request):
         return Response({
             'success': False,
             'status': 'error',
-            'message': str(e)
+            'message': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET', 'POST'])
@@ -1259,7 +1265,7 @@ def video_intro_list(request):
         except Exception as e:
             logger.error(f"[디버그] 영상 개론 목록 조회 오류: {str(e)}", exc_info=True)
             return Response(
-                {"detail": f"영상 개론 목록 조회 중 오류가 발생했습니다: {str(e)}"}, 
+                {"detail": "요청 처리 중 오류가 발생했습니다."}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -1374,9 +1380,9 @@ def upload_video_intros(request):
             dtypes = df.dtypes.to_dict()
             logger.debug(f"컬럼 데이터 유형: {dtypes}")
         except Exception as e:
-            logger.error(f"엑셀 파일 읽기 오류: {str(e)}")
+            logger.error(f"엑셀 파일 읽기 오류: {str(e)}", exc_info=True)
             return Response(
-                {'detail': f'엑셀 파일을 읽는 중 오류가 발생했습니다: {str(e)}'}, 
+                {'detail': '요청 처리 중 오류가 발생했습니다.'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -1516,8 +1522,8 @@ def upload_video_intros(request):
                         logger.info(f"생성: {book_name}")
                         
                 except Exception as e:
-                    logger.error(f"{index+2}행 처리 중 오류: {str(e)}")
-                    errors.append(f"{index+2}행: {str(e)}")
+                    logger.error(f"{index+2}행 처리 중 오류: {str(e)}", exc_info=True)
+                    errors.append(f"{index+2}행: 처리 중 오류가 발생했습니다.")
         
         # 결과 반환
         result = {
@@ -1532,7 +1538,7 @@ def upload_video_intros(request):
     except Exception as e:
         logger.error(f"업로드 처리 중 예외 발생: {str(e)}", exc_info=True)
         return Response(
-            {'detail': f'업로드 중 오류가 발생했습니다: {str(e)}'}, 
+            {'detail': '요청 처리 중 오류가 발생했습니다.'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -1648,7 +1654,7 @@ def get_user_video_intros(request):
     except Exception as e:
         logger.error(f"[디버그] 영상 개론 목록 조회 오류: {str(e)}", exc_info=True)
         return Response(
-            {'detail': f'영상 개론 목록을 조회하는 중 오류가 발생했습니다: {str(e)}'}, 
+            {'detail': '요청 처리 중 오류가 발생했습니다.'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -1734,8 +1740,9 @@ def hasena_record_list(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
+            logger.error(f"Error in hasena_record_list: {str(e)}", exc_info=True)
             return Response(
-                {'detail': f'하세나 기록 생성 중 오류가 발생했습니다: {str(e)}'}, 
+                {'detail': '요청 처리 중 오류가 발생했습니다.'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -1803,8 +1810,9 @@ def update_video_intro_progress(request):
         })
         
     except Exception as e:
+        logger.error(f"Error in update_video_intro_progress: {str(e)}", exc_info=True)
         return Response(
-            {'detail': f'진행 상황 업데이트 중 오류가 발생했습니다: {str(e)}'}, 
+            {'detail': '요청 처리 중 오류가 발생했습니다.'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -2018,7 +2026,8 @@ def upload_schedules_excel(request):
                     success_count += 1
                 except Exception as e:
                     error_count += 1
-                    errors.append(f"행 {index + 2}: {str(e)}")
+                    logger.error(f"Error in upload_schedules_excel row {index + 2}: {str(e)}", exc_info=True)
+                    errors.append(f"행 {index + 2}: 처리 중 오류가 발생했습니다.")
             
             return Response({
                 "detail": f"{success_count}개의 일정이 처리되었습니다. 오류: {error_count}개",
@@ -2031,17 +2040,15 @@ def upload_schedules_excel(request):
                 status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
-            import traceback
-            print(traceback.format_exc())  # 서버 로그에 상세 오류 출력
+            logger.error(f"Error in upload_schedules_excel: {str(e)}", exc_info=True)
             return Response(
-                {"detail": f"파일 처리 중 오류가 발생했습니다: {str(e)}"}, 
+                {"detail": "요청 처리 중 오류가 발생했습니다."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())  # 서버 로그에 상세 오류 출력
+        logger.error(f"Error in upload_schedules_excel request: {str(e)}", exc_info=True)
         return Response(
-            {"detail": f"요청 처리 중 오류가 발생했습니다: {str(e)}"}, 
+            {"detail": "요청 처리 중 오류가 발생했습니다."}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -2067,10 +2074,12 @@ def get_total_users(request):
             'total_users': total_users
         })
     except Exception as e:
+        logger.error(f"Error in get_total_users: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])  # IsAuthenticated, IsAdminUser에서 AllowAny로 변경
@@ -2117,9 +2126,10 @@ def get_plan_stats(request):
             'today_completed_users': len(completed_users)
         })
     except Exception as e:
+        logger.error(f"Error in get_plan_stats: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
@@ -2214,7 +2224,7 @@ def get_progress_stats(request):
         logger.error(f"Error in get_progress_stats: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -2249,9 +2259,10 @@ def increment_visitor_count(request):
             'counted': True
         })
     except Exception as e:
+        logger.error(f"Error in increment_visitor_count: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
@@ -2270,9 +2281,10 @@ def get_visitor_stats(request):
             'total_visitors': total_visitors
         })
     except Exception as e:
+        logger.error(f"Error in get_visitor_stats: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': str(e)
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -2320,8 +2332,9 @@ def hasena_record_update(request):
             )
             
     except Exception as e:
+        logger.error(f"Error in hasena_record_update: {str(e)}", exc_info=True)
         return Response(
-            {'detail': f'하세나 완료 처리 중 오류가 발생했습니다: {str(e)}'}, 
+            {'detail': '요청 처리 중 오류가 발생했습니다.'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -2349,10 +2362,12 @@ def get_user_hasena_status(request):
         })
         
     except Exception as e:
+        logger.error(f"Error in get_user_hasena_status: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'detail': f'하세나 상태 조회 중 오류가 발생했습니다: {str(e)}'
+            'error': '요청 처리 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 # ============================================
@@ -2382,9 +2397,10 @@ def reading_position_view(request):
                 return Response({'success': True, 'position': serializer.data})
             return Response({'success': True, 'position': None})
         except Exception as e:
+            logger.error(f"Error in reading_position_view GET: {str(e)}", exc_info=True)
             return Response({
                 'success': False,
-                'detail': str(e)
+                'detail': '요청 처리 중 오류가 발생했습니다.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     elif request.method == 'POST':
@@ -2399,9 +2415,10 @@ def reading_position_view(request):
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error(f"Error in reading_position_view POST: {str(e)}", exc_info=True)
             return Response({
                 'success': False,
-                'detail': str(e)
+                'detail': '요청 처리 중 오류가 발생했습니다.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

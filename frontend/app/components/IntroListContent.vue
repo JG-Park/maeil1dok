@@ -1,7 +1,7 @@
 <template>
   <div class="bible-schedule-wrapper">
-    <!-- 플랜 선택 컨트롤 -->
-    <div v-if="authStore.isAuthenticated && activeSubscriptions.length > 0" class="fixed-controls">
+    <!-- 플랜 선택 컨트롤 (항상 표시) -->
+    <div class="fixed-controls">
       <div class="top-row">
         <div class="plan-selector fade-in" style="animation-delay: 0.05s">
           <button class="plan-select-button" @click="showPlanModal = true">
@@ -13,6 +13,14 @@
           </button>
         </div>
       </div>
+
+      <!-- 비로그인 사용자 기본 플랜 안내 메시지 -->
+      <Transition name="slide-fade">
+        <div v-if="showDefaultPlanMessage && !authStore.isAuthenticated"
+          class="bulk-edit-indicator default-plan-indicator">
+          <span class="bulk-edit-message">비로그인 사용자는 <strong>{{ defaultPlanName }}</strong>이 기본 선택되요.</span>
+        </div>
+      </Transition>
     </div>
 
     <div class="schedule-body">
@@ -113,7 +121,7 @@
     <!-- 플랜 선택 모달 -->
     <PlanSelectorModal
       :show="showPlanModal"
-      :subscriptions="activeSubscriptions"
+      :subscriptions="subscriptions"
       :selected-plan-id="selectedPlanId"
       @close="showPlanModal = false"
       @select="selectPlan"
@@ -128,9 +136,15 @@ import { useRouter } from "vue-router";
 import { useApi } from "~/composables/useApi";
 import { useAuthStore } from "~/stores/auth";
 import { useToast } from "~/composables/useToast";
-import { useSubscriptionStore } from "~/stores/subscription";
+import { usePlanApi } from "~/composables/usePlanApi";
 import { useSelectedPlanStore } from "~/stores/selectedPlan";
 import PlanSelectorModal from "~/components/schedule/PlanSelectorModal.vue";
+
+// 애니메이션 딜레이 상수
+const ANIMATION_DELAYS = {
+  DEFAULT_PLAN_MESSAGE_SHOW: 500,
+  DEFAULT_PLAN_MESSAGE_HIDE: 3000,
+};
 
 const introductions = ref([]);
 const loading = ref(true);
@@ -138,7 +152,7 @@ const error = ref(null);
 const router = useRouter();
 const api = useApi();
 const authStore = useAuthStore();
-const subscriptionStore = useSubscriptionStore();
+const planApi = usePlanApi();
 const selectedPlanStore = useSelectedPlanStore();
 const { success, error: showError } = useToast();
 
@@ -148,37 +162,36 @@ const isToggling = reactive({});
 // 플랜 선택 모달 상태
 const showPlanModal = ref(false);
 
-// 활성화된 구독 목록 (SubscriptionSummary 형태로 변환)
-const activeSubscriptions = computed(() => {
-  return subscriptionStore.activeSubscriptions.map(sub => ({
-    plan_id: sub.plan_id,
-    plan_name: sub.plan_name,
-    is_default: sub.is_default
-  }));
-});
+// 플랜 목록 (로그인/비로그인 모두 지원)
+const subscriptions = ref([]);
+
+// 비로그인 사용자 기본 플랜 안내 메시지 상태
+const showDefaultPlanMessage = ref(false);
+const defaultPlanName = ref('');
 
 // 선택된 플랜 ID
-const selectedPlanId = computed(() => {
-  return selectedPlanStore.effectivePlanId;
+const selectedPlanId = computed({
+  get: () => selectedPlanStore.selectedPlanId,
+  set: (val) => selectedPlanStore.setSelectedPlanId(val),
 });
 
 // 선택된 플랜 이름
 const selectedPlanName = computed(() => {
   if (selectedPlanId.value) {
-    const plan = activeSubscriptions.value.find(
+    const plan = subscriptions.value.find(
       (sub) => sub.plan_id === selectedPlanId.value
     );
     if (plan) return plan.plan_name;
   }
-  if (activeSubscriptions.value.length > 0) {
-    return activeSubscriptions.value[0].plan_name;
+  if (subscriptions.value.length > 0) {
+    return subscriptions.value[0].plan_name;
   }
   return "플랜 선택";
 });
 
 // 플랜 선택 핸들러
 const selectPlan = (subscription) => {
-  selectedPlanStore.setSelectedPlanId(subscription.plan_id);
+  selectedPlanId.value = subscription.plan_id;
   showPlanModal.value = false;
   // 플랜 변경 시 개론 목록 다시 로드
   fetchIntroductions();
@@ -189,6 +202,44 @@ const goToPlanManagement = () => {
   showPlanModal.value = false;
   router.push("/plans");
 };
+
+// 플랜 구독 목록 가져오기 (로그인/비로그인 모두 지원)
+async function fetchSubscriptions() {
+  const data = await planApi.fetchSubscriptions();
+  subscriptions.value = data;
+  handleSubscriptionSelection(data);
+}
+
+// 플랜 선택 처리 (비로그인 사용자 기본 플랜 설정 포함)
+function handleSubscriptionSelection(subscriptionData) {
+  // 1. Store에 저장된 플랜이 있으면 사용
+  if (selectedPlanStore.selectedPlanId) {
+    const planExists = subscriptionData.some(
+      (sub) => sub.plan_id === selectedPlanStore.selectedPlanId
+    );
+    if (planExists) return;
+  }
+
+  // 2. 기본 플랜 설정
+  if (subscriptionData.length > 0 && !selectedPlanId.value) {
+    // 기본 플랜 찾기
+    const defaultPlan = subscriptionData.find(sub => sub.is_default);
+    selectedPlanId.value = defaultPlan ? defaultPlan.plan_id : subscriptionData[0].plan_id;
+
+    // 비로그인 사용자에게 안내 메시지 표시
+    if (!authStore.isAuthenticated) {
+      defaultPlanName.value = defaultPlan ? defaultPlan.plan_name : subscriptionData[0].plan_name;
+      showDefaultPlanMessage.value = false;
+
+      setTimeout(() => {
+        showDefaultPlanMessage.value = true;
+        setTimeout(() => {
+          showDefaultPlanMessage.value = false;
+        }, ANIMATION_DELAYS.DEFAULT_PLAN_MESSAGE_HIDE);
+      }, ANIMATION_DELAYS.DEFAULT_PLAN_MESSAGE_SHOW);
+    }
+  }
+}
 
 const fetchIntroductions = async () => {
   loading.value = true;
@@ -345,38 +396,22 @@ const initializeData = async () => {
   // localStorage에서 저장된 플랜 ID 복원
   selectedPlanStore.initializeFromStorage();
   
-  // 로그인된 경우 구독 정보 가져오기
-  if (authStore.isAuthenticated) {
-    await subscriptionStore.fetchSubscriptions();
-    
-    // 저장된 플랜이 없거나 유효하지 않으면 첫 번째 활성 구독으로 설정
-    const activeSubs = subscriptionStore.activeSubscriptions;
-    if (activeSubs.length > 0) {
-      const storedPlanId = selectedPlanStore.selectedPlanId;
-      const isValidPlan = activeSubs.some(sub => sub.plan_id === storedPlanId);
-      
-      if (!storedPlanId || !isValidPlan) {
-        // 기본 플랜이 있으면 사용, 없으면 첫 번째 플랜
-        const defaultPlan = activeSubs.find(sub => sub.is_default);
-        selectedPlanStore.setSelectedPlanId(defaultPlan ? defaultPlan.plan_id : activeSubs[0].plan_id);
-      }
-    }
-  }
+  // 플랜 목록 가져오기 (로그인/비로그인 모두)
+  await fetchSubscriptions();
   
-  await fetchIntroductions();
+  // 플랜이 선택되어 있으면 개론 목록 가져오기
+  if (selectedPlanId.value) {
+    await fetchIntroductions();
+  }
 };
 
 // 인증 상태 변경 감지
 watch(
   () => authStore.isAuthenticated,
-  async (newAuthState) => {
+  async () => {
     // 인증 상태가 변경되면 데이터 다시 가져오기
-    if (newAuthState) {
-      await subscriptionStore.fetchSubscriptions();
-    } else {
-      subscriptionStore.clearSubscriptions();
-    }
-    fetchIntroductions();
+    await fetchSubscriptions();
+    await fetchIntroductions();
   }
 );
 
