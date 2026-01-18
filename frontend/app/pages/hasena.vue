@@ -51,7 +51,7 @@
               <h2>{{ bibleTitle }}</h2>
             </div>
 
-            <div class="verse-container" v-html="parsedContent"></div>
+            <div class="verse-container" v-html="sanitizedContent"></div>
           </div>
         </div>
       </main>
@@ -86,6 +86,7 @@ import { useApi } from '~/composables/useApi'
 import { useAuthStore } from '~/stores/auth'
 import { useHasenaStore } from '~/stores/hasena'
 import { useRouter } from 'vue-router'
+import { useSanitize } from '~/composables/useSanitize'
 import Toast from '~/components/Toast.vue'
 import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue'
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue'
@@ -95,6 +96,7 @@ const auth = useAuthStore()
 const hasenaStore = useHasenaStore()
 const router = useRouter()
 const toast = ref(null)
+const { sanitize } = useSanitize()
 
 // 비디오 관련 상수
 const videoUrl = ref('https://www.youtube.com/embed/videoseries?list=PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL')
@@ -109,6 +111,7 @@ const isLoading = ref(true)
 const error = ref(null)
 const bibleTitle = ref('')
 const parsedContent = ref('')
+const sanitizedContent = computed(() => sanitize(parsedContent.value))
 
 // 날짜 관련
 const today = new Date()

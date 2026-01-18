@@ -14,6 +14,7 @@ import { useReadingSettingsStore } from "~/stores/readingSettings";
 import Toast from "~/components/Toast.vue";
 import BibleScheduleContent from "~/components/BibleScheduleContent.vue";
 import ReadingSettingsModal from "~/components/ReadingSettingsModal.vue";
+import { useSanitize } from "~/composables/useSanitize";
 
 // 라우터 및 스토어 설정
 const route = useRoute();
@@ -22,6 +23,7 @@ const authStore = useAuthStore();
 const readingSettingsStore = useReadingSettingsStore();
 const api = useApi();
 const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch();
+const { sanitize } = useSanitize();
 
 // 토스트 상태
 const toast = ref(null);
@@ -42,6 +44,7 @@ const fontSize = computed(() => readingSettingsStore.settings.fontSize);
 
 // 성경 내용 상태 관리
 const bibleContent = ref("");
+const sanitizedBibleContent = computed(() => sanitize(bibleContent.value));
 const chapterTitle = ref("");
 const sectionTitle = ref("");
 const currentBook = ref("");
@@ -3587,7 +3590,7 @@ onUnmounted(() => {
         <div v-else class="bible-content text-adjustable"
           :class="{ 'verse-joining': viewOptions.verseJoining }"
           :style="readingSettingsStore.cssVariables"
-          v-html="bibleContent"
+          v-html="sanitizedBibleContent"
           @click="onBibleClick"></div>
       </div>
     </div>

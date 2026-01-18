@@ -102,6 +102,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings';
 import { ACTION_MENU, TIMING } from '~/constants/bible';
 import { useSwipe } from '~/composables/useSwipe';
+import { useSanitize } from '~/composables/useSanitize';
 import BibleViewerSkeleton from '~/components/bible/BibleViewerSkeleton.vue';
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
 import PenIcon from '~/components/icons/PenIcon.vue';
@@ -162,6 +163,8 @@ useSwipe(viewerRef, {
 // ====== 선택 시스템 상태 ======
 // 선택 모드: 'click' (절 클릭) | 'drag' (텍스트 드래그) | null
 const selectionMode = ref<'click' | 'drag' | null>(null);
+
+const { sanitize } = useSanitize();
 
 // 절 클릭 선택 상태 (복사 메뉴용 데이터)
 const showCopyMenu = ref(false);
@@ -245,7 +248,7 @@ const renderedContent = computed(() => {
     );
   }
 
-  return content;
+  return sanitize(content);
 });
 
 // 스크롤 핸들러 (throttle 적용)
