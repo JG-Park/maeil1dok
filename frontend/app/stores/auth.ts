@@ -18,16 +18,13 @@ type RefreshResult = 'success' | 'auth_error' | 'network_error'
 interface AuthState {
   user: User | null
   token: string | null
-  refreshToken: string | null
-  refreshInterval: NodeJS.Timeout | null
+  refreshInterval: ReturnType<typeof setInterval> | null
   storageListenerAttached: boolean
   isRefreshing: boolean
   refreshPromise: Promise<RefreshResult> | null
   isLoggingOut: boolean
-  useCookieAuth: boolean
 }
 
-// JWT 디코딩 유틸리티
 function decodeJWT(token: string): any {
   try {
     const base64Url = token.split('.')[1]
@@ -45,7 +42,6 @@ function decodeJWT(token: string): any {
   }
 }
 
-// 토큰 만료 시간 확인 (초 단위로 남은 시간 반환)
 function getTokenExpiryTime(token: string): number | null {
   const decoded = decodeJWT(token)
   if (!decoded || !decoded.exp) return null
@@ -64,7 +60,6 @@ interface KakaoLoginResponse {
   user?: User
 }
 
-// 전역 window 타입 확장
 declare global {
   interface Window {
     __pinia?: {
@@ -74,35 +69,25 @@ declare global {
 }
 
 export const useAuthStore = defineStore('auth', {
+
   state: (): AuthState => ({
     user: null,
     token: null,
-    refreshToken: null,
     refreshInterval: null,
     storageListenerAttached: false,
     isRefreshing: false,
     refreshPromise: null,
-    isLoggingOut: false,
-    useCookieAuth: true
+    isLoggingOut: false
   }),
 
   getters: {
-    // 쿠키 기반 인증: 사용자 정보가 있으면 인증됨
-    // (토큰은 HttpOnly 쿠키에 저장되어 JavaScript에서 접근 불가)
     isAuthenticated: (state) => !!state.user,
   },
 
   actions: {
-    setTokens(access: string, refresh: string) {
+    setAccessToken(access: string) {
       this.token = access
-      this.refreshToken = refresh
 
-      // Manually save to localStorage since pinia-plugin-persistedstate doesn't work properly
-      if (process.client && typeof window !== 'undefined') {
-        this.saveToLocalStorage()
-      }
-
-      // Automatically start token refresh timer when tokens are set
       if (process.client) {
         this.startTokenRefreshTimer()
       }
@@ -110,7 +95,6 @@ export const useAuthStore = defineStore('auth', {
 
     setUser(user: User) {
       this.user = user
-      // Manually save to localStorage
       if (process.client && typeof window !== 'undefined') {
         this.saveToLocalStorage()
       }
@@ -118,16 +102,11 @@ export const useAuthStore = defineStore('auth', {
 
     saveToLocalStorage() {
       try {
-        if (this.useCookieAuth) {
+        if (this.user) {
           const userData = { user: this.user }
           localStorage.setItem('auth', JSON.stringify(userData))
         } else {
-          const authData = {
-            token: this.token,
-            refreshToken: this.refreshToken,
-            user: this.user
-          }
-          localStorage.setItem('auth', JSON.stringify(authData))
+          localStorage.removeItem('auth')
         }
       } catch (error) {
         console.error('Failed to save auth to localStorage:', error)
@@ -137,12 +116,10 @@ export const useAuthStore = defineStore('auth', {
     loadFromLocalStorage() {
       try {
         const authData = localStorage.getItem('auth')
-        if (authData) {
-          const parsed = JSON.parse(authData)
-          if (!this.useCookieAuth) {
-            this.token = parsed.token
-            this.refreshToken = parsed.refreshToken
-          }
+        if (!authData) return
+
+        const parsed = JSON.parse(authData)
+        if (parsed && parsed.user) {
           this.user = parsed.user
         }
       } catch (error) {
@@ -150,80 +127,25 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async initializeAuth() {
-      // 쿠키 기반 인증: 서버에서 사용자 정보를 가져와 인증 상태 확인
-      // HttpOnly 쿠키는 JavaScript에서 접근 불가하므로 서버 요청으로 확인
-      if (this.useCookieAuth) {
-        try {
-          await this.fetchUser()
-          // 사용자 정보를 성공적으로 가져오면 인증됨
-          // 쿠키 기반에서도 토큰 갱신 타이머 필요 (access_token은 1시간 후 만료됨)
-          if (process.client) {
-            this.startTokenRefreshTimer()
-          }
-          return
-        } catch (error: any) {
-          // 에러 상태 코드 확인 (ApiError.status 또는 error.response.status)
-          const statusCode = error?.status || error?.response?.status
-
-          if (statusCode === 401 || statusCode === 403) {
-            console.warn('[Auth] Cookie auth failed, falling back to localStorage (deprecated)')
-            this.useCookieAuth = false
-          } else {
-            // 네트워크 오류 등 - 일시적 문제로 간주
-            console.debug('Cookie auth check failed (non-auth error):', error?.message || error)
-            return
-          }
-        }
-      }
-
-      if (process.client && typeof window !== 'undefined') {
-        this.loadFromLocalStorage()
-      }
-
-      if (!this.token || !this.refreshToken) {
-        this.user = null
-        if (process.client && typeof window !== 'undefined') {
-          localStorage.removeItem('auth')
-        }
-        return
-      }
-
+    async restoreUserFromCookie() {
       try {
-        // 1. 토큰 만료 시간 확인
-        const timeLeft = getTokenExpiryTime(this.token)
-
-        if (timeLeft !== null && timeLeft <= 0) {
-          const refreshResult = await this.refreshAccessToken()
-          if (refreshResult !== 'success') {
-            await new Promise(resolve => setTimeout(resolve, 2000))
-
-            const retryResult = await this.refreshAccessToken()
-            if (retryResult === 'auth_error') {
-              this.notifyNativeAuthExpired()
-              this.logout()
-              return
-            }
+        await this.fetchUser()
+      } catch (error: any) {
+        const statusCode = error?.status || error?.response?.status
+        if (statusCode === 401 || statusCode === 403) {
+          this.user = null
+          if (process.client && typeof window !== 'undefined') {
+            this.saveToLocalStorage()
           }
         }
+      }
+    },
 
-        try {
-          await this.fetchUser()
-        } catch (error: any) {
-          const statusCode = error?.status || error?.response?.status
-          if (statusCode === 401 || statusCode === 403) {
-            this.notifyNativeAuthExpired()
-            this.logout()
-            return
-          }
-        }
+    async initializeAuth() {
+      await this.restoreUserFromCookie()
 
-        // 3. Timer is automatically started by setTokens(), but ensure it's running
-        if (!this.refreshInterval) {
-          this.startTokenRefreshTimer()
-        }
-      } catch (error) {
-        // Don't logout on unexpected errors - keep existing session
+      if (this.user && process.client) {
+        this.startTokenRefreshTimer()
       }
     },
 
@@ -240,10 +162,8 @@ export const useAuthStore = defineStore('auth', {
 
       window.__nativeBridge.registerAuthCallback(
         (credentials) => {
-          this.token = credentials.token
-          this.refreshToken = credentials.refreshToken
-          this.user = credentials.user
-          this.saveToLocalStorage()
+          this.setAccessToken(credentials.token)
+          this.setUser(credentials.user)
           this.startTokenRefreshTimer()
         },
         () => {
@@ -252,34 +172,25 @@ export const useAuthStore = defineStore('auth', {
       )
     },
 
-    // 다중 탭 간 인증 상태 동기화
     setupStorageSync() {
       if (!process.client || this.storageListenerAttached) return
 
       const handleStorageChange = (event: StorageEvent) => {
-        // auth 관련 localStorage 변경만 처리
         if (event.key === 'auth') {
           try {
             const newValue = event.newValue ? JSON.parse(event.newValue) : null
 
             if (newValue) {
-              // 다른 탭에서 로그인 또는 토큰 갱신
-              if (newValue.token && newValue.token !== this.token) {
-                this.token = newValue.token
-                this.refreshToken = newValue.refreshToken
+              if (newValue.user && newValue.user.id !== this.user?.id) {
                 this.user = newValue.user
-
-                // 타이머 재시작
                 this.startTokenRefreshTimer()
               }
             } else {
-              // 다른 탭에서 로그아웃
-              if (this.token) {
+              if (this.user) {
                 this.logout()
               }
             }
           } catch (error) {
-            // Silent fail
           }
         }
       }
@@ -294,11 +205,7 @@ export const useAuthStore = defineStore('auth', {
       const handleVisibilityChange = () => {
         if (document.hidden) return
 
-        const shouldRefresh = this.useCookieAuth
-          ? !!this.user
-          : !!(this.token && this.refreshToken)
-
-        if (shouldRefresh) {
+        if (this.user) {
           this.checkAndRefreshToken()
           this.startTokenRefreshTimer()
         }
@@ -309,21 +216,14 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser() {
       const api = useApi()
-      try {
-        const response = await api.get('/api/v1/auth/user/')
-        // Handle both wrapped and unwrapped responses
-        const userData = response.data || response
+      const response = await api.get('/api/v1/auth/user/')
+      const userData = response.data || response
 
-        // Validate that we have a valid user object, not an error response
-        // The guard in useApi returns { success: false, message: '...' } when not authenticated
-        if (!userData || userData.success === false || !userData.id) {
-          throw new Error('Invalid user data received')
-        }
-
-        this.setUser(userData)
-      } catch (error) {
-        throw error
+      if (!userData || userData.success === false || !userData.id) {
+        throw new Error('Invalid user data received')
       }
+
+      this.setUser(userData)
     },
 
     async login(username: string, password: string) {
@@ -338,10 +238,6 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Login failed')
         }
 
-        // 쿠키 모드: 서버가 HttpOnly 쿠키로 토큰 설정, JS에 저장하지 않음
-        if (!this.useCookieAuth) {
-          this.setTokens(response.access, response.refresh)
-        }
         await this.fetchUser()
 
         const readingSettingsStore = useReadingSettingsStore()
@@ -382,9 +278,6 @@ export const useAuthStore = defineStore('auth', {
         const data = response.data || response
 
         if (data.access) {
-          if (!this.useCookieAuth) {
-            this.setTokens(data.access, data.refresh)
-          }
           this.setUser(data.user)
 
           const readingSettingsStore = useReadingSettingsStore()
@@ -409,9 +302,6 @@ export const useAuthStore = defineStore('auth', {
           code
         })
         if (response.access) {
-          if (!this.useCookieAuth) {
-            this.setTokens(response.access, response.refresh)
-          }
           this.setUser(response.user)
 
           const readingSettingsStore = useReadingSettingsStore()
@@ -425,9 +315,6 @@ export const useAuthStore = defineStore('auth', {
 
     async loginWithKakaoResponse(response: any) {
       if (response.access) {
-        if (!this.useCookieAuth) {
-          this.setTokens(response.access, response.refresh)
-        }
         this.setUser(response.user)
 
         const readingSettingsStore = useReadingSettingsStore()
@@ -446,25 +333,18 @@ export const useAuthStore = defineStore('auth', {
       this.isLoggingOut = true
       this.stopTokenRefreshTimer()
 
-      if (this.useCookieAuth && this.user) {
-        try {
-          const api = useApi()
-          await api.post('/api/v1/auth/logout/')
-        } catch (error) {
-          console.error('Server logout failed:', error)
-        }
+      try {
+        const api = useApi()
+        await api.post('/api/v1/auth/logout/')
+      } catch (error) {
+        console.error('Server logout failed:', error)
       }
 
       this.user = null
       this.token = null
-      this.refreshToken = null
 
       if (process.client && typeof window !== 'undefined') {
-        try {
-          localStorage.removeItem('auth')
-        } catch (error) {
-          console.error('Failed to clear auth from localStorage:', error)
-        }
+        this.saveToLocalStorage()
 
         try {
           const { useNavigationStore } = await import('~/stores/navigation')
@@ -473,7 +353,7 @@ export const useAuthStore = defineStore('auth', {
         } catch (error) {
           console.debug('Failed to clear navigation store:', error)
         }
-        
+
         if (window.__nativeBridge?.isNativeApp()) {
           window.__nativeBridge.sendToNative({ type: 'auth:logout' })
         }
@@ -486,9 +366,8 @@ export const useAuthStore = defineStore('auth', {
       this.stopTokenRefreshTimer()
 
       if (!process.client) return
-      
-      const shouldRun = this.useCookieAuth ? !!this.user : !!this.token
-      if (!shouldRun) return
+
+      if (!this.user) return
 
       this.refreshInterval = setInterval(() => {
         this.checkAndRefreshToken()
@@ -497,7 +376,6 @@ export const useAuthStore = defineStore('auth', {
       this.checkAndRefreshToken()
     },
 
-    // 토큰 자동 갱신 타이머 중지
     stopTokenRefreshTimer() {
       if (this.refreshInterval) {
         clearInterval(this.refreshInterval)
@@ -506,26 +384,11 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async checkAndRefreshToken() {
-      if (this.useCookieAuth) {
-        if (!this.user) return
-        const result = await this.refreshAccessToken()
-        if (result === 'auth_error') {
-          this.notifyNativeAuthExpired()
-          this.logout()
-        }
-        return
-      }
-
-      if (!this.token || !this.refreshToken) return
-
-      const timeLeft = getTokenExpiryTime(this.token)
-
-      if (timeLeft !== null && timeLeft < 5 * 60) {
-        const result = await this.refreshAccessToken()
-        if (result === 'auth_error') {
-          this.notifyNativeAuthExpired()
-          this.logout()
-        }
+      if (!this.user) return
+      const result = await this.refreshAccessToken()
+      if (result === 'auth_error') {
+        this.notifyNativeAuthExpired()
+        this.logout()
       }
     },
 
@@ -539,10 +402,6 @@ export const useAuthStore = defineStore('auth', {
     async refreshAccessToken(): Promise<RefreshResult> {
       if (this.isRefreshing && this.refreshPromise) {
         return this.refreshPromise
-      }
-
-      if (!this.useCookieAuth && !this.refreshToken) {
-        return 'auth_error'
       }
 
       this.isRefreshing = true
@@ -563,7 +422,7 @@ export const useAuthStore = defineStore('auth', {
         : config.public.apiBase
 
       try {
-        const requestBody = this.useCookieAuth ? {} : { refresh: this.refreshToken }
+        const requestBody = {}
 
         const headers: Record<string, string> = { 'Content-Type': 'application/json' }
         if (process.client && typeof document !== 'undefined') {
@@ -594,16 +453,7 @@ export const useAuthStore = defineStore('auth', {
           return 'auth_error'
         }
 
-        const newRefreshToken = data.refresh || this.refreshToken
-
-        if (this.useCookieAuth) {
-          // 쿠키 모드에서도 새 토큰을 메모리에 임시 저장
-          // OAuth 리다이렉트 후 쿠키가 즉시 반영되지 않는 경우를 위해
-          // Authorization 헤더로 토큰을 전달할 수 있도록 함
-          this.token = data.access
-        } else {
-          this.setTokens(data.access, newRefreshToken!)
-        }
+        this.setAccessToken(data.access)
 
         return 'success'
       } catch (error) {
@@ -613,29 +463,22 @@ export const useAuthStore = defineStore('auth', {
     }
   }
 
-  // Note: We're manually handling localStorage persistence
-  // instead of using pinia-plugin-persistedstate which doesn't work properly with Nuxt 3
 }) 
 
-// 전역 타입 선언 추가
-declare global {
-  interface Window {
-    __pinia?: {
-      auth?: any;
-      getAuth?: () => ReturnType<typeof useAuthStore>;
-    };
-  }
-}
-
-// 브라우저 환경에서 스토어를 전역 window 객체에 노출
-// 안전한 방식으로 수정 - 하이드레이션 후 실행되도록 변경
-export function exposeStore() {
-  if (process.client && typeof window !== 'undefined') {
-    // 프로토타입이 있는 일반 객체 사용
-    if (!window.__pinia) {
-      window.__pinia = Object.create(Object.prototype);
+  declare global {
+    interface Window {
+      __pinia?: {
+        auth?: any;
+        getAuth?: () => ReturnType<typeof useAuthStore>;
+      };
     }
-    // 스토어 인스턴스를 함수로 노출
-    window.__pinia.getAuth = () => useAuthStore();
   }
-}
+
+  export function exposeStore() {
+    if (process.client && typeof window !== 'undefined') {
+      if (!window.__pinia) {
+        window.__pinia = Object.create(Object.prototype);
+      }
+      window.__pinia.getAuth = () => useAuthStore();
+    }
+  }

@@ -71,11 +71,8 @@ export const useApi = () => {
 
     let response = await fetch(url, options)
 
-    // 401 에러 발생 시 토큰 갱신 후 재시도
-    // 쿠키 기반 인증: refreshToken이 null이어도 서버에서 쿠키로 갱신 시도
-    // localStorage 기반 인증: refreshToken이 있을 때만 시도
     if (response.status === 401) {
-      if (auth.useCookieAuth || auth.refreshToken) {
+      if (auth.isAuthenticated) {
         const refreshResult = await auth.refreshAccessToken()
 
         if (refreshResult === 'success') {
