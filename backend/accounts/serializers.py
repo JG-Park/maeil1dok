@@ -21,6 +21,12 @@ class UserSerializer(serializers.ModelSerializer):
         # superuser나 staff 권한이 있는 경우 admin으로 간주
         return obj.is_superuser or obj.is_staff
 
+
+class PublicUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'nickname', 'profile_image')
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     
@@ -68,7 +74,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """사용자 프로필 시리얼라이저"""
-    user = UserSerializer(read_only=True)
+    user = serializers.SerializerMethodField()
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     is_following = serializers.SerializerMethodField()
@@ -84,6 +90,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['joined_date', 'total_completed_days', 'current_streak', 'longest_streak']
     
+    def get_user(self, obj):
+        serializer_class = self.context.get('user_serializer_class')
+        if serializer_class is None:
+            request = self.context.get('request')
+            if request and request.user == obj.user:
+                serializer_class = UserSerializer
+            else:
+                serializer_class = PublicUserSerializer
+        return serializer_class(obj.user, context=self.context).data
+
     def get_followers_count(self, obj):
         return obj.user.followers.count()
     

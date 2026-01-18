@@ -11,7 +11,8 @@ from .models import User, UserProfile, Follow, UserAchievement, UserReadingSetti
 from .serializers import (
     UserProfileSerializer, FollowSerializer,
     UserAchievementSerializer, UserCalendarDataSerializer,
-    UserSearchSerializer
+    UserSearchSerializer, UserSerializer,
+    PublicUserSerializer
 )
 from .achievement_config import ACHIEVEMENT_METADATA
 from todos.models import UserBibleProgress, PlanSubscription, DailyBibleSchedule, UserPlanDisplaySettings
@@ -37,7 +38,16 @@ def get_user_profile(request, user_id):
             status_code=status.HTTP_403_FORBIDDEN
         )
     
-    serializer = UserProfileSerializer(profile, context={'request': request})
+    if request.user == user:
+        serializer = UserProfileSerializer(profile, context={'request': request})
+    else:
+        serializer = UserProfileSerializer(
+            profile,
+            context={
+                'request': request,
+                'user_serializer_class': PublicUserSerializer
+            }
+        )
     return StandardResponse.success(
         data={'profile': serializer.data},
         message='프로필을 성공적으로 조회했습니다.'
