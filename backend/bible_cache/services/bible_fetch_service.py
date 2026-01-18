@@ -13,6 +13,17 @@ from bible_cache.models import BibleContentCache
 
 logger = logging.getLogger(__name__)
 
+# 지연 임포트를 위한 API.Bible 서비스 참조
+_api_bible_service = None
+
+def get_api_bible_service():
+    """API.Bible 서비스 지연 로딩 (순환 참조 방지)"""
+    global _api_bible_service
+    if _api_bible_service is None:
+        from bible_cache.services.api_bible_service import ApiBibleService
+        _api_bible_service = ApiBibleService
+    return _api_bible_service
+
 # bskorea.or.kr 기본 URL
 BSKOREA_BASE_URL = 'https://www.bskorea.or.kr'
 
@@ -21,6 +32,7 @@ DURANNO_BASE_URL = 'https://www.duranno.com/bdictionary'
 
 # 지원하는 번역본 목록
 SUPPORTED_VERSIONS = frozenset({
+    # 한글 역본
     'KNT',      # 새한글성경
     'GAE',      # 개역개정
     'HAN',      # 개역한글
@@ -29,7 +41,16 @@ SUPPORTED_VERSIONS = frozenset({
     'COG',      # 공동번역
     'COGNEW',   # 공동번역 개정판
     'WOORI',    # 우리말성경 (두라노)
+    # 원어/영어 역본 (API.Bible)
+    'HEB',      # 히브리어 (Westminster Leningrad Codex)
+    'GRK',      # 헬라어 (SBL Greek New Testament)
+    'KJV',      # 영어 (King James Version)
+    'WEB',      # 영어 (World English Bible)
+    'ASV',      # 영어 (American Standard Version)
 })
+
+# API.Bible 역본 목록 (외부 API 사용)
+API_BIBLE_VERSIONS = frozenset({'HEB', 'GRK', 'KJV', 'WEB', 'ASV'})
 
 # 요청 타임아웃 (초)
 REQUEST_TIMEOUT = 15
@@ -207,6 +228,12 @@ class BibleFetchService:
         Returns:
             Tuple[content, content_type, source_url]
         """
+        # API.Bible 역본인 경우
+        if version in API_BIBLE_VERSIONS:
+            ApiBibleService = get_api_bible_service()
+            return ApiBibleService.fetch_chapter(version, book, chapter)
+        
+        # 한글 역본
         if version == 'KNT':
             return BibleFetchService._fetch_knt(book, chapter)
         elif version == 'WOORI':

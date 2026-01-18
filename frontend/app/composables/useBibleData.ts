@@ -29,7 +29,34 @@ export const VERSION_NAMES = Object.freeze({
   SAE: "표준새번역",
   COG: "공동번역",
   COGNEW: "공동번역 개정판",
+  HEB: "히브리어 (WLC)",
+  GRK: "헬라어 (SBLGNT)",
+  KJV: "KJV",
+  WEB: "WEB",
+  ASV: "ASV",
 }) as Record<string, string>;
+
+export const VERSION_CATEGORIES = Object.freeze({
+  korean: ['GAE', 'KNT', 'WOORI', 'SAENEW', 'HAN', 'SAE', 'COG', 'COGNEW'],
+  original: ['HEB', 'GRK'],
+  english: ['KJV', 'WEB', 'ASV'],
+});
+
+export const VERSION_META = Object.freeze({
+  HEB: { direction: 'rtl', language: 'hebrew', testament: 'old' },
+  GRK: { direction: 'ltr', language: 'greek', testament: 'new' },
+  KJV: { direction: 'ltr', language: 'english', testament: 'both' },
+  WEB: { direction: 'ltr', language: 'english', testament: 'both' },
+  ASV: { direction: 'ltr', language: 'english', testament: 'both' },
+  GAE: { direction: 'ltr', language: 'korean', testament: 'both' },
+  KNT: { direction: 'ltr', language: 'korean', testament: 'both' },
+  WOORI: { direction: 'ltr', language: 'korean', testament: 'both' },
+  SAENEW: { direction: 'ltr', language: 'korean', testament: 'both' },
+  HAN: { direction: 'ltr', language: 'korean', testament: 'both' },
+  SAE: { direction: 'ltr', language: 'korean', testament: 'both' },
+  COG: { direction: 'ltr', language: 'korean', testament: 'both' },
+  COGNEW: { direction: 'ltr', language: 'korean', testament: 'both' },
+}) as Record<string, { direction: string; language: string; testament: string }>;
 
 // 성경 책 정보
 export const BIBLE_BOOKS: { old: BibleBook[]; new: BibleBook[] } = {

@@ -149,6 +149,7 @@ def get_supported_versions(request):
     URL: GET /api/v1/bible-cache/versions/
     """
     VERSION_NAMES = {
+        # 한글 역본
         'KNT': '새한글',
         'GAE': '개역개정',
         'HAN': '개역한글',
@@ -157,6 +158,13 @@ def get_supported_versions(request):
         'COG': '공동번역',
         'COGNEW': '공동번역 개정판',
         'WOORI': '우리말성경',
+        # 원어 역본
+        'HEB': '히브리어 (WLC)',
+        'GRK': '헬라어 (SBLGNT)',
+        # 영어 역본
+        'KJV': 'KJV',
+        'WEB': 'WEB',
+        'ASV': 'ASV',
     }
 
     versions = [
