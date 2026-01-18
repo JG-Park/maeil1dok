@@ -3,13 +3,18 @@
     <h3 class="section-title">Explore</h3>
     
     <div class="grid-2">
-      <NuxtLink to="/plan" class="sub-card">
-        <div class="icon-box">
-          <CalendarIcon size="24" />
+      <div class="sub-card" @click="navigateTo('/plan')">
+        <div class="card-header">
+          <div class="icon-box">
+            <CalendarIcon size="24" />
+          </div>
+          <div class="manage-btn" @click.stop="navigateTo('/plans')">
+            플랜 관리
+          </div>
         </div>
         <div class="sub-title">통독표</div>
         <div class="sub-desc">전체 계획 보기</div>
-      </NuxtLink>
+      </div>
       
       <NuxtLink to="/intro" class="sub-card">
         <div class="icon-box">
@@ -102,6 +107,35 @@ const profileLink = computed(() => {
   box-shadow: 0 8px 20px rgba(44, 51, 51, 0.06);
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.card-header .icon-box {
+  margin-bottom: 0;
+}
+
+.manage-btn {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 99px;
+  background: var(--bg-color);
+  color: var(--text-sub);
+  font-weight: 600;
+  transition: all 0.2s;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.manage-btn:hover {
+  color: var(--text-main);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
+}
+
 .icon-box {
   width: 40px;
   height: 40px;
@@ -141,5 +175,17 @@ const profileLink = computed(() => {
 [data-theme="dark"] .icon-box {
   background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .manage-btn {
+  background: var(--color-bg-tertiary);
+  color: var(--text-sub);
+  border-color: rgba(255,255,255,0.05);
+}
+
+[data-theme="dark"] .manage-btn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border-color: rgba(255,255,255,0.2);
 }
 </style>
