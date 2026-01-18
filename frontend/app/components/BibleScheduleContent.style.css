@@ -103,17 +103,17 @@
   }
 
   .month-scroll::-webkit-scrollbar-track {
-    background: var(--color-slate-100);
+    background: var(--color-bg-card);
     border-radius: 3px;
   }
 
   .month-scroll::-webkit-scrollbar-thumb {
-    background-color: var(--color-slate-300);
+    background-color: var(--color-border-default);
     border-radius: 3px;
   }
 
   .month-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-slate-400);
+    background-color: var(--color-text-muted);
   }
 }
 
@@ -205,17 +205,17 @@
   }
 
   .control-buttons::-webkit-scrollbar-track {
-    background: var(--color-slate-100);
+    background: var(--color-bg-card);
     border-radius: 2px;
   }
 
   .control-buttons::-webkit-scrollbar-thumb {
-    background-color: var(--color-slate-300);
+    background-color: var(--color-border-default);
     border-radius: 2px;
   }
 
   .control-buttons::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-slate-400);
+    background-color: var(--color-text-muted);
   }
 }
 
