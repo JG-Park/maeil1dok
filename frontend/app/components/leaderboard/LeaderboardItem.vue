@@ -7,13 +7,14 @@
     </td>
     <td class="user-cell">
       <div class="user-info">
-        <img
+        <NuxtImg
           v-if="user.profile_image && !imageError"
           :src="user.profile_image"
           :alt="user.nickname"
           class="user-avatar"
+          loading="lazy"
           @error="handleImageError"
-        >
+        />
         <div v-else class="user-avatar-placeholder">
           <i class="fa-solid fa-user"></i>
         </div>

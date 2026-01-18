@@ -144,12 +144,13 @@
             >
               <div class="member-info">
                 <div class="member-avatar">
-                  <img
+                  <NuxtImg
                     v-if="member.user.profile_image"
                     :src="member.user.profile_image"
                     :alt="member.user.nickname"
                     class="avatar-image"
-                  >
+                    loading="lazy"
+                  />
                   <div v-else class="avatar-placeholder">
                     {{ member.user.nickname?.charAt(0) || '?' }}
                   </div>

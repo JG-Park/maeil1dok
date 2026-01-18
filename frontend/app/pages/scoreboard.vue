@@ -57,13 +57,14 @@
             >
               <div class="medal-icon">{{ index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉' }}</div>
               <div class="avatar-wrapper">
-                <img
+                <NuxtImg
                   v-if="entry.user.profile_image && !avatarErrors[entry.user.id]"
                   :src="entry.user.profile_image"
                   :alt="entry.user.nickname"
                   class="top-avatar"
+                  loading="lazy"
                   @error="() => handleAvatarError(entry.user.id)"
-                >
+                />
                 <div v-else class="top-avatar-placeholder">
                   <i class="fa-solid fa-user"></i>
                 </div>

@@ -8,7 +8,13 @@
       </button>
 
       <div class="logo-container">
-        <img src="@/assets/images/로고_투명.png" alt="매일일독" class="logo">
+        <NuxtImg
+          src="@/assets/images/로고_투명.png"
+          alt="매일일독"
+          class="logo"
+          loading="lazy"
+          format="webp"
+        />
       </div>
 
       <div v-if="!submitted" class="form-container">

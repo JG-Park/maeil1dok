@@ -1,12 +1,13 @@
 <template>
   <div class="user-card">
     <NuxtLink :to="`/profile/${user.id}`" class="user-info">
-      <img 
-        v-if="user.profile_image" 
-        :src="user.profile_image" 
+      <NuxtImg
+        v-if="user.profile_image"
+        :src="user.profile_image"
         :alt="user.nickname"
         class="user-avatar"
-      >
+        loading="lazy"
+      />
       <div v-else class="user-avatar-placeholder">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

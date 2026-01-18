@@ -14,13 +14,14 @@
         <label class="form-label">프로필 이미지</label>
         <div class="avatar-section">
           <div class="avatar-wrapper">
-            <img
+            <NuxtImg
               v-if="profile.user.profile_image && !imageError"
               :src="profile.user.profile_image"
               :alt="profile.user.nickname"
               class="avatar-image"
+              loading="lazy"
               @error="handleImageError"
-            >
+            />
             <div v-else class="avatar-placeholder">
               <i class="fa-solid fa-user"></i>
             </div>

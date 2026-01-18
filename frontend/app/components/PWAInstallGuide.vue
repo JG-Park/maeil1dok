@@ -35,11 +35,13 @@
             <div class="step-details">
               <h3 class="step-title">Safari 브라우저로 매일일독에 접속하기</h3>
               <p class="step-desc">Safari 브라우저로 매일일독에 접속하고, 하단의 '공유' 버튼을 탭하세요.</p>
-              <img 
-                src="/iOS1.png" 
-                alt="Safari 공유 버튼" 
-                class="step-image" 
-                @click="openImageModal('/iOS1.png')" 
+              <NuxtImg
+                src="/iOS1.png"
+                alt="Safari 공유 버튼"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/iOS1.png')"
               />
             </div>
           </div>
@@ -49,11 +51,13 @@
             <div class="step-details">
               <h3 class="step-title">홈 화면에 추가 옵션 선택하기</h3>
               <p class="step-desc">위로 쓸어올리고 '홈 화면에 추가' 옵션을 선택하세요.</p>
-              <img 
-                src="/iOS2.png" 
-                alt="홈 화면에 추가 옵션" 
-                class="step-image" 
-                @click="openImageModal('/iOS2.png')" 
+              <NuxtImg
+                src="/iOS2.png"
+                alt="홈 화면에 추가 옵션"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/iOS2.png')"
               />
             </div>
           </div>
@@ -63,11 +67,13 @@
             <div class="step-details">
               <h3 class="step-title">추가 확인하기</h3>
               <p class="step-desc">우측 상단의 '추가'를 탭하세요.</p>
-              <img 
-                src="/iOS3.png" 
-                alt="추가 확인" 
-                class="step-image" 
-                @click="openImageModal('/iOS3.png')" 
+              <NuxtImg
+                src="/iOS3.png"
+                alt="추가 확인"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/iOS3.png')"
               />
             </div>
           </div>
@@ -77,11 +83,13 @@
             <div class="step-details">
               <h3 class="step-title">앱 실행하기</h3>
               <p class="step-desc">이제 앱으로 매일일독을 사용할 수 있습니다!</p>
-              <img 
-                src="/iOS4.png" 
-                alt="홈 화면 아이콘" 
-                class="step-image" 
-                @click="openImageModal('/iOS4.png')" 
+              <NuxtImg
+                src="/iOS4.png"
+                alt="홈 화면 아이콘"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/iOS4.png')"
               />
             </div>
           </div>
@@ -102,11 +110,13 @@
                 <p class="tip">💡 설치 버튼이 나타나면 '설치'를 탭하고 3단계로 진행하세요.</p>
                 <p class="tip">💡 설치 버튼이 없으면 주소창 오른쪽의 메뉴(⋮)를 탭하세요.</p>
               </div>
-              <img 
-                src="/Android1.png" 
-                alt="Chrome 브라우저" 
-                class="step-image" 
-                @click="openImageModal('/Android1.png')" 
+              <NuxtImg
+                src="/Android1.png"
+                alt="Chrome 브라우저"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/Android1.png')"
               />
             </div>
           </div>
@@ -116,11 +126,13 @@
             <div class="step-details">
               <h3 class="step-title">홈 화면에 추가 선택하기</h3>
               <p class="step-desc">메뉴 목록에서 '홈 화면에 추가'를 선택하세요.</p>
-              <img 
-                src="/Android2.png" 
-                alt="홈 화면에 추가 옵션" 
-                class="step-image" 
-                @click="openImageModal('/Android2.png')" 
+              <NuxtImg
+                src="/Android2.png"
+                alt="홈 화면에 추가 옵션"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/Android2.png')"
               />
             </div>
           </div>
@@ -130,11 +142,13 @@
             <div class="step-details">
               <h3 class="step-title">설치 확인하기</h3>
               <p class="step-desc">'설치'를 선택하세요.</p>
-              <img 
-                src="/Android3.png" 
-                alt="설치 버튼" 
-                class="step-image" 
-                @click="openImageModal('/Android3.png')" 
+              <NuxtImg
+                src="/Android3.png"
+                alt="설치 버튼"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/Android3.png')"
               />
             </div>
           </div>
@@ -144,11 +158,13 @@
             <div class="step-details">
               <h3 class="step-title">앱 실행하기</h3>
               <p class="step-desc">매일일독이 앱으로 설치되고 홈 화면에서 실행할 수 있습니다.</p>
-              <img 
-                src="/Android4.png" 
-                alt="설치 완료" 
-                class="step-image" 
-                @click="openImageModal('/Android4.png')" 
+              <NuxtImg
+                src="/Android4.png"
+                alt="설치 완료"
+                class="step-image"
+                loading="lazy"
+                format="webp"
+                @click="openImageModal('/Android4.png')"
               />
             </div>
           </div>
@@ -201,7 +217,13 @@
           @touchmove="handleTouchMove"
           @touchend="handleTouchEnd"
         >
-          <img :src="currentImage" alt="확대된 이미지" class="modal-image" />
+          <NuxtImg
+            :src="currentImage"
+            alt="확대된 이미지"
+            class="modal-image"
+            loading="lazy"
+            format="webp"
+          />
         </div>
       </div>
     </BaseModal>

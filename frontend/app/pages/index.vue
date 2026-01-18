@@ -5,7 +5,13 @@
     <div class="container">
       <header class="home-header">
         <div class="logo-wrapper">
-          <img src="~/assets/images/로고_투명.png" alt="Maeil1dok" class="logo-img" />
+          <NuxtImg
+            src="~/assets/images/로고_투명.png"
+            alt="Maeil1dok"
+            class="logo-img"
+            loading="lazy"
+            format="webp"
+          />
         </div>
         <div class="header-actions">
           <button class="theme-toggle-btn" @click="toggleTheme" :aria-label="isDark ? '라이트 모드로 전환' : '다크 모드로 전환'">

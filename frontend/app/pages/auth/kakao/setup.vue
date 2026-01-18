@@ -13,11 +13,13 @@
 
       <!-- Header -->
       <div>
-        <img 
-          class="mx-auto h-8 w-auto object-contain" 
-          src="@/assets/images/로고_투명.png" 
+        <NuxtImg
+          class="mx-auto h-8 w-auto object-contain"
+          src="@/assets/images/로고_투명.png"
           alt="매일일독"
-        >
+          loading="lazy"
+          format="webp"
+        />
         <p class="mt-3 text-center text-gray-600">
           매일일독에서 사용하실 닉네임을 입력해주세요
         </p>

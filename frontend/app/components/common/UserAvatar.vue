@@ -1,11 +1,12 @@
 <template>
-  <img
+  <NuxtImg
     v-if="src && !hasError"
     :src="src"
     :alt="alt"
     :class="['user-avatar', sizeClass]"
+    loading="lazy"
     @error="handleError"
-  >
+  />
   <div v-else :class="['user-avatar-placeholder', sizeClass]">
     <i class="fa-solid fa-user"></i>
   </div>

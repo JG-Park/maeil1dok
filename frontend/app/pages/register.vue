@@ -10,7 +10,13 @@
       </button>
 
       <div>
-        <img class="mx-auto h-8 w-auto object-contain" src="@/assets/images/로고_투명.png" alt="매일일독">
+        <NuxtImg
+          class="mx-auto h-8 w-auto object-contain"
+          src="@/assets/images/로고_투명.png"
+          alt="매일일독"
+          loading="lazy"
+          format="webp"
+        />
       </div>
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="rounded-md shadow-sm space-y-4">
@@ -62,7 +68,14 @@
 
           <div class="flex gap-4 justify-center">
             <button type="button" @click="handleKakaoLogin" class="social-button kakao-button">
-              <img src="@/assets/images/kakao.png" width="16" height="16" alt="카카오 로고">
+              <NuxtImg
+                src="@/assets/images/kakao.png"
+                width="16"
+                height="16"
+                alt="카카오 로고"
+                loading="lazy"
+                format="webp"
+              />
               카카오로 시작하기
             </button>
           </div>

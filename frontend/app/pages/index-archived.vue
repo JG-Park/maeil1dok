@@ -464,10 +464,12 @@
         <div class="progress-container">
           <div class="progress-item">
             <div class="progress-icon">
-              <img
+              <NuxtImg
                 src="@/assets/images/높은뜻 푸른교회 아이콘.png"
                 alt="교회 아이콘"
                 class="church-icon"
+                loading="lazy"
+                format="webp"
               />
             </div>
             <div class="progress-bar">

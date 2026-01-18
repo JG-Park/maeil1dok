@@ -22,13 +22,19 @@
         <!-- 프로필 섹션 -->
         <section class="settings-section">
           <h2 class="section-title">프로필</h2>
-          <div class="profile-card">
-            <div class="profile-avatar">
-              <img v-if="user?.profile_image" :src="user.profile_image" :alt="user.nickname">
-              <div v-else class="avatar-placeholder">
-                {{ user?.nickname?.charAt(0) || '?' }}
+            <div class="profile-card">
+              <div class="profile-avatar">
+                <NuxtImg
+                  v-if="user?.profile_image"
+                  :src="user.profile_image"
+                  :alt="user.nickname"
+                  loading="lazy"
+                />
+                <div v-else class="avatar-placeholder">
+                  {{ user?.nickname?.charAt(0) || '?' }}
+                </div>
               </div>
-            </div>
+
             <div class="profile-info">
               <p class="profile-nickname">{{ user?.nickname }}</p>
               <p class="profile-email">{{ linkedAccounts?.email || '이메일 없음' }}</p>
@@ -110,7 +116,14 @@
             <div class="setting-item">
               <div class="setting-info">
                 <div class="provider-badge kakao">
-                  <img src="@/assets/images/kakao.png" width="16" height="16" alt="카카오">
+                  <NuxtImg
+                    src="@/assets/images/kakao.png"
+                    width="16"
+                    height="16"
+                    alt="카카오"
+                    loading="lazy"
+                    format="webp"
+                  />
                   <span>카카오</span>
                 </div>
                 <p class="setting-description">
@@ -245,7 +258,12 @@
             >
               <div class="account-badge">현재 로그인</div>
               <div class="account-avatar">
-                <img v-if="mergeInfo.current_account.profile_image" :src="mergeInfo.current_account.profile_image" alt="">
+                <NuxtImg
+                  v-if="mergeInfo.current_account.profile_image"
+                  :src="mergeInfo.current_account.profile_image"
+                  alt=""
+                  loading="lazy"
+                />
                 <div v-else class="avatar-placeholder">
                   {{ mergeInfo.current_account.nickname?.charAt(0) || '?' }}
                 </div>
@@ -277,7 +295,12 @@
             >
               <div class="account-badge other">{{ getProviderDisplayName(mergeInfo.provider) }} 연결 계정</div>
               <div class="account-avatar">
-                <img v-if="mergeInfo.other_account.profile_image" :src="mergeInfo.other_account.profile_image" alt="">
+                <NuxtImg
+                  v-if="mergeInfo.other_account.profile_image"
+                  :src="mergeInfo.other_account.profile_image"
+                  alt=""
+                  loading="lazy"
+                />
                 <div v-else class="avatar-placeholder">
                   {{ mergeInfo.other_account.nickname?.charAt(0) || '?' }}
                 </div>

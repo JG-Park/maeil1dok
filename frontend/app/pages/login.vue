@@ -10,13 +10,26 @@
 
       <!-- 로고 -->
       <div class="logo-container">
-        <img src="@/assets/images/로고_투명.png" alt="매일일독" class="logo">
+        <NuxtImg
+          src="@/assets/images/로고_투명.png"
+          alt="매일일독"
+          class="logo"
+          loading="lazy"
+          format="webp"
+        />
       </div>
 
       <!-- 카카오 로그인 버튼 -->
       <div class="social-buttons">
         <button type="button" @click="handleKakaoLogin" class="kakao-button">
-          <img src="@/assets/images/kakao.png" width="16" height="16" alt="카카오 로고">
+          <NuxtImg
+            src="@/assets/images/kakao.png"
+            width="16"
+            height="16"
+            alt="카카오 로고"
+            loading="lazy"
+            format="webp"
+          />
           카카오로 시작하기
         </button>
 
