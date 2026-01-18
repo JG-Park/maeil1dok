@@ -240,9 +240,17 @@ def complete_kakao_signup(request):
         nickname = request.data.get('nickname')
         kakao_id = request.data.get('kakao_id')
         profile_image = request.data.get('profile_image')
+        access_token = request.data.get('access_token')
         
-        if not nickname or not kakao_id:
+        if not nickname or not kakao_id or not access_token:
             return Response({'error': '필수 정보가 누락되었습니다.'}, status=400)
+        
+        user_info = get_kakao_user_info_by_token(access_token)
+        verified_kakao_id = user_info.get('id')
+        if not verified_kakao_id:
+            return Response({'error': '카카오 계정 인증에 실패했습니다.'}, status=400)
+        if str(verified_kakao_id) != str(kakao_id):
+            return Response({'error': '카카오 계정 정보가 일치하지 않습니다.'}, status=400)
             
         social_id = f"kakao_{kakao_id}"
         
@@ -513,9 +521,24 @@ def complete_social_signup(request):
         nickname = request.data.get('nickname')
         email = request.data.get('email')
         profile_image = request.data.get('profile_image')
+        access_token = request.data.get('access_token')
         
-        if not provider or not provider_id or not nickname:
+        if not provider or not provider_id or not nickname or not access_token:
             return Response({'error': '필수 정보가 누락되었습니다.'}, status=400)
+        
+        if provider == 'kakao':
+            social_info = get_kakao_user_info_by_token(access_token)
+            verified_provider_id = social_info.get('id')
+        elif provider == 'google':
+            social_info = get_google_user_info_by_token(access_token)
+            verified_provider_id = social_info.get('sub')
+        else:
+            return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
+        
+        if not verified_provider_id:
+            return Response({'error': '소셜 계정 인증에 실패했습니다.'}, status=400)
+        if str(verified_provider_id) != str(provider_id):
+            return Response({'error': '소셜 계정 정보가 일치하지 않습니다.'}, status=400)
         
         # 닉네임 중복 확인
         if User.objects.filter(nickname=nickname).exists():
