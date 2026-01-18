@@ -172,6 +172,9 @@
 
 /* Dark Theme */
 [data-theme="dark"] {
+  /* Browser native dark mode support (scrollbars, form controls) */
+  color-scheme: dark;
+
   /* ===== Global Design Tokens ===== */
 
   /* Background */
