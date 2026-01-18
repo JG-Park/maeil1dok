@@ -646,8 +646,15 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .tab-button:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   background: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .tab-button.active {
+  color: var(--color-accent-primary);
+  background: transparent;
+  border-bottom-color: var(--color-accent-primary);
+  font-weight: 600;
 }
 
 .tab-button.active {
@@ -657,11 +664,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-[data-theme="dark"] .tab-button.active {
-  color: var(--text-primary);
-  background: var(--color-bg-card);
-  border-bottom-color: var(--text-primary);
-}
+
 
 .tab-content {
   min-height: 300px;

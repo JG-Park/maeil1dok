@@ -287,14 +287,15 @@ onUnmounted(() => {
 
 /* Dark Mode Overrides */
 [data-theme="dark"] .search-input {
-  background: var(--color-input-bg);
-  border-color: var(--color-input-border);
+  background: var(--color-bg-tertiary);
+  border-color: transparent;
   color: var(--color-text-primary);
 }
 
 [data-theme="dark"] .search-input:focus {
-  border-color: var(--color-input-focus);
-  box-shadow: 0 0 0 3px rgba(107, 201, 159, 0.2); /* using accent color */
+  background: var(--color-bg-secondary);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(107, 201, 159, 0.15);
 }
 
 [data-theme="dark"] .search-input::placeholder {
@@ -313,9 +314,10 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .filter-tab.active {
-  background: var(--color-text-primary); /* Inverting logic for contrast */
-  color: var(--color-bg-primary);
-  border-color: var(--color-text-primary);
+  background: var(--color-accent-primary);
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .header-create-button:hover {
