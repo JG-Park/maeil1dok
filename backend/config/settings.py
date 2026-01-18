@@ -231,6 +231,19 @@ REST_FRAMEWORK = {
         # HttpOnly Cookie 기반 인증 (쿠키 우선, Authorization 헤더 fallback)
         'accounts.authentication.CookieJWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour'
+    },
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
 }
 
 # JWT 토큰 설정
@@ -254,6 +267,10 @@ KAKAO_REDIRECT_URI = os.environ.get('KAKAO_REDIRECT_URI')
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET') 
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')
+
+# API.Bible 설정 (히브리어/헬라어/영어 성경)
+# https://scripture.api.bible/ 에서 무료 API 키 발급
+API_BIBLE_KEY = os.environ.get('API_BIBLE_KEY')
 
 COOKIE_DOMAIN = os.environ.get('COOKIE_DOMAIN', None)
 
@@ -284,7 +301,7 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',
+        'level': 'DEBUG' if DEBUG else 'INFO',
     },
 }
 
