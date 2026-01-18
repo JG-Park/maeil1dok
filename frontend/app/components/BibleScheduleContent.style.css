@@ -103,7 +103,7 @@
   }
 
   .month-scroll::-webkit-scrollbar-track {
-    background: var(--color-bg-card);
+    background: transparent;
     border-radius: 3px;
   }
 
@@ -205,7 +205,7 @@
   }
 
   .control-buttons::-webkit-scrollbar-track {
-    background: var(--color-bg-card);
+    background: transparent;
     border-radius: 2px;
   }
 
