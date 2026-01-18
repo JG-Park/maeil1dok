@@ -10,13 +10,14 @@
           <div class="profile-header">
             <div class="profile-user">
               <div class="avatar-wrapper">
-                <img
+                <NuxtImg
                   v-if="profile.user.profile_image && !avatarError"
                   :src="profile.user.profile_image"
                   :alt="profile.user.nickname"
                   class="profile-avatar"
+                  loading="lazy"
                   @error="handleAvatarError"
-                >
+                />
                 <div v-else class="profile-avatar-placeholder">
                   <i class="fa-solid fa-user"></i>
                 </div>
@@ -332,7 +333,7 @@ onUnmounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-:root.dark .profile-card {
+[data-theme="dark"] .profile-card {
   background: var(--color-bg-card);
   border-color: var(--color-border);
 }
@@ -366,7 +367,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-:root.dark .profile-avatar {
+[data-theme="dark"] .profile-avatar {
   border-color: var(--color-border);
 }
 
@@ -384,7 +385,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-:root.dark .profile-avatar-placeholder {
+[data-theme="dark"] .profile-avatar-placeholder {
   border-color: var(--color-border);
   background: var(--color-bg-tertiary);
 }
@@ -403,7 +404,7 @@ onUnmounted(() => {
   letter-spacing: -0.02em;
 }
 
-:root.dark .profile-name {
+[data-theme="dark"] .profile-name {
   color: var(--text-primary);
 }
 
@@ -413,7 +414,7 @@ onUnmounted(() => {
   margin: 0 0 0.5rem 0;
 }
 
-:root.dark .profile-meta {
+[data-theme="dark"] .profile-meta {
   color: var(--text-secondary);
 }
 
@@ -424,7 +425,7 @@ onUnmounted(() => {
   font-size: 0.9375rem;
 }
 
-:root.dark .profile-bio {
+[data-theme="dark"] .profile-bio {
   color: var(--text-secondary);
 }
 
@@ -451,7 +452,7 @@ onUnmounted(() => {
   color: white;
 }
 
-:root.dark .btn-primary {
+[data-theme="dark"] .btn-primary {
   background: var(--primary-color);
   color: white;
 }
@@ -461,7 +462,7 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-:root.dark .btn-primary:hover {
+[data-theme="dark"] .btn-primary:hover {
   background: var(--primary-hover, #3B7E63);
 }
 
@@ -471,7 +472,7 @@ onUnmounted(() => {
   color: #475569;
 }
 
-:root.dark .btn-secondary {
+[data-theme="dark"] .btn-secondary {
   background: var(--color-bg-tertiary);
   border-color: var(--color-border);
   color: var(--text-primary);
@@ -483,7 +484,7 @@ onUnmounted(() => {
   color: #1E293B;
 }
 
-:root.dark .btn-secondary:hover {
+[data-theme="dark"] .btn-secondary:hover {
   background: var(--color-bg-hover);
   color: var(--text-primary);
 }
@@ -499,7 +500,7 @@ onUnmounted(() => {
   margin-bottom: 1.5rem;
 }
 
-:root.dark .follow-stats {
+[data-theme="dark"] .follow-stats {
   border-color: var(--color-border);
 }
 
@@ -514,7 +515,7 @@ onUnmounted(() => {
   font-family: 'Pretendard', sans-serif;
 }
 
-:root.dark .follow-button {
+[data-theme="dark"] .follow-button {
   color: var(--text-secondary);
 }
 
@@ -522,7 +523,7 @@ onUnmounted(() => {
   color: #1E293B;
 }
 
-:root.dark .follow-button:hover {
+[data-theme="dark"] .follow-button:hover {
   color: var(--text-primary);
 }
 
@@ -532,7 +533,7 @@ onUnmounted(() => {
   margin-right: 0.125rem;
 }
 
-:root.dark .follow-count {
+[data-theme="dark"] .follow-count {
   color: var(--text-primary);
 }
 
@@ -549,7 +550,7 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-:root.dark .mutual-follow {
+[data-theme="dark"] .mutual-follow {
   background: rgba(5, 150, 105, 0.2);
   color: #34d399;
 }
@@ -575,16 +576,16 @@ onUnmounted(() => {
 }
 
 .stat-value.primary { color: #1E293B; }
-:root.dark .stat-value.primary { color: var(--text-primary); }
+[data-theme="dark"] .stat-value.primary { color: var(--text-primary); }
 
 .stat-value.success { color: #059669; }
-:root.dark .stat-value.success { color: #34d399; }
+[data-theme="dark"] .stat-value.success { color: #34d399; }
 
 .stat-value.purple { color: #7C3AED; }
-:root.dark .stat-value.purple { color: #a78bfa; }
+[data-theme="dark"] .stat-value.purple { color: #a78bfa; }
 
 .stat-value.orange { color: #EA580C; }
-:root.dark .stat-value.orange { color: #fb923c; }
+[data-theme="dark"] .stat-value.orange { color: #fb923c; }
 
 .stat-label {
   font-size: 0.75rem;
@@ -592,7 +593,7 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-:root.dark .stat-label {
+[data-theme="dark"] .stat-label {
   color: var(--text-secondary);
 }
 
@@ -605,7 +606,7 @@ onUnmounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-:root.dark .tab-section {
+[data-theme="dark"] .tab-section {
   background: var(--color-bg-card);
   border-color: var(--color-border);
 }
@@ -616,7 +617,7 @@ onUnmounted(() => {
   background: #F8FAFC;
 }
 
-:root.dark .tab-nav {
+[data-theme="dark"] .tab-nav {
   border-color: var(--color-border);
   background: var(--color-bg-tertiary);
 }
@@ -635,7 +636,7 @@ onUnmounted(() => {
   font-family: 'Pretendard', sans-serif;
 }
 
-:root.dark .tab-button {
+[data-theme="dark"] .tab-button {
   color: var(--text-secondary);
 }
 
@@ -644,7 +645,7 @@ onUnmounted(() => {
   background: #F1F5F9;
 }
 
-:root.dark .tab-button:hover {
+[data-theme="dark"] .tab-button:hover {
   color: var(--text-primary);
   background: var(--color-bg-hover);
 }
@@ -656,7 +657,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-:root.dark .tab-button.active {
+[data-theme="dark"] .tab-button.active {
   color: var(--text-primary);
   background: var(--color-bg-card);
   border-bottom-color: var(--text-primary);
@@ -685,7 +686,7 @@ onUnmounted(() => {
   border-radius: 8px;
 }
 
-:root.dark .calendar-loading-overlay {
+[data-theme="dark"] .calendar-loading-overlay {
   background: rgba(0, 0, 0, 0.5);
 }
 
@@ -698,7 +699,7 @@ onUnmounted(() => {
   animation: spin 0.8s linear infinite;
 }
 
-:root.dark .loading-spinner {
+[data-theme="dark"] .loading-spinner {
   border-color: var(--color-border);
   border-top-color: var(--primary-color);
 }
@@ -746,7 +747,7 @@ onUnmounted(() => {
     border-radius: 8px;
   }
 
-  :root.dark .stat-item {
+  [data-theme="dark"] .stat-item {
     background: var(--color-bg-tertiary);
   }
 }

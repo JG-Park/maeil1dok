@@ -495,6 +495,11 @@ watch(videoIntroId, (newId, oldId) => {
   font-size: 1.25rem;
 }
 
+[data-theme="dark"] .error-icon {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
 .retry-button {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;

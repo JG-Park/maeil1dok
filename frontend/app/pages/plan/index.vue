@@ -131,4 +131,23 @@ async function handleRangeSelect({ action, scheduleIds, planId }: RangeSelectPay
   color: white;
   border-color: var(--primary-color);
 }
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .edit-mode-button {
+  background: var(--color-button-default);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-default);
+}
+
+[data-theme="dark"] .edit-mode-button:hover {
+  background: var(--color-button-hover);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .edit-mode-button:active,
+[data-theme="dark"] .edit-mode-button.active {
+  background: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent-primary);
+}
 </style>
