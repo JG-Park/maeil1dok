@@ -1072,13 +1072,13 @@ onUnmounted(() => {
 [data-theme="dark"] .setting-label,
 [data-theme="dark"] .provider-badge,
 [data-theme="dark"] .modal-title {
-  color: var(--color-slate-100);
+  color: var(--color-text-primary);
 }
 
 [data-theme="dark"] .profile-email,
 [data-theme="dark"] .setting-description,
 [data-theme="dark"] .section-note {
-  color: var(--color-slate-400);
+  color: var(--color-text-secondary);
 }
 
 [data-theme="dark"] .profile-card,
