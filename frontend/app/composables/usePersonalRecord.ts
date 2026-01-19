@@ -5,7 +5,7 @@
  */
 import { ref } from 'vue';
 import { useApi } from '~/composables/useApi';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 
 interface ReadingRecord {
   id: number;
@@ -24,7 +24,7 @@ interface BookProgress {
 
 export const usePersonalRecord = () => {
   const api = useApi();
-  const authStore = useAuthStore();
+  const auth = useAuthService();
 
   // 책별 읽은 장 캐시 (Map<book, Set<chapter>>)
   const readChapters = ref<Map<string, Set<number>>>(new Map());
@@ -35,7 +35,7 @@ export const usePersonalRecord = () => {
    * 특정 책의 읽은 장 목록 조회
    */
   const fetchReadChapters = async (book: string): Promise<void> => {
-    if (!authStore.isAuthenticated) return;
+    if (!auth.isAuthenticated.value) return;
 
     isLoading.value = true;
     error.value = null;
@@ -61,7 +61,7 @@ export const usePersonalRecord = () => {
    * 장 읽음 표시
    */
   const markAsRead = async (book: string, chapter: number): Promise<boolean> => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       throw new Error('로그인이 필요합니다');
     }
 

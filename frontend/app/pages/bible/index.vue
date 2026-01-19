@@ -181,6 +181,7 @@ import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useBookmark } from '~/composables/useBookmark';
 import { useNote } from '~/composables/useNote';
 import { useHighlight } from '~/composables/useHighlight';
+import { useScheduleApi } from '~/composables/useScheduleApi';
 import { useBibleModals } from '~/composables/bible/useBibleModals';
 import { useBibleContent } from '~/composables/bible/useBibleContent';
 import { useBiblePageState } from '~/composables/bible/useBiblePageState';
@@ -235,6 +236,7 @@ const subscriptionStore = useSubscriptionStore();
 const toast = useToast();
 const modal = useModal();
 const api = useApi();
+const { fetchNextPosition, fetchMonthlySchedules } = useScheduleApi();
 const { handleApiError, handleUserActionError } = useErrorHandler();
 
 // Composables
@@ -364,13 +366,13 @@ const saveAlreadyCompleteAction = (action: SavedAlreadyCompleteAction): void => 
 
 // 통독 완료 후 다음 일정 이동 모달 관련
 const NEXT_SCHEDULE_ACTION_KEY = 'tongdokNextScheduleAction';
-type SavedNextScheduleAction = 'go-next-schedule' | 'go-next-chapter' | null;
+type SavedNextScheduleAction = 'go-next-schedule' | null;
 
 const getSavedNextScheduleAction = (): SavedNextScheduleAction => {
   if (typeof window === 'undefined') return null;
   try {
     const saved = localStorage.getItem(NEXT_SCHEDULE_ACTION_KEY);
-    if (saved === 'go-next-schedule' || saved === 'go-next-chapter') return saved;
+    if (saved === 'go-next-schedule') return saved;
     return null;
   } catch {
     return null;
@@ -906,39 +908,67 @@ const handleNextScheduleAction = async (payload: { action: NextScheduleAction; r
     saveNextScheduleAction(payload.action);
   }
 
-  showNextScheduleModal.value = false;
-
   switch (payload.action) {
     case 'go-next-schedule': {
       // 현재 일정 완료 처리
       if (!requireAuth('로그인해야 통독 기록을 저장할 수 있습니다')) return;
+      
+      const planId = tongdokPlanId.value;
+      if (!planId) {
+        toast.error('플랜 정보를 찾을 수 없습니다');
+        showNextScheduleModal.value = false;
+        return;
+      }
+
       const success = await completeReading();
-      if (success) {
-        toast.success('오늘 통독을 완료했습니다!');
-        // 플랜 페이지로 이동 (다음 일정 선택)
+      if (!success) {
+        toast.error('완료 처리에 실패했습니다');
+        showNextScheduleModal.value = false;
+        return;
+      }
+
+      toast.success('통독을 완료했습니다!');
+
+      // 다음 미완료 일정 조회
+      const nextPosition = await fetchNextPosition(planId);
+      
+      if (!nextPosition || nextPosition.status === 'all_completed') {
+        toast.info('모든 일정을 완료했습니다! 🎉');
+        showNextScheduleModal.value = false;
         router.push('/plan');
-      } else {
-        toast.error('완료 처리에 실패했습니다');
+        return;
       }
-      break;
-    }
-    case 'go-next-chapter': {
-      // 현재 일정 완료 처리 후 다음 장으로 계속 읽기
-      if (!requireAuth('로그인해야 통독 기록을 저장할 수 있습니다')) return;
-      const success = await completeReading();
-      if (success) {
-        toast.success('오늘 통독을 완료했습니다!');
-        // 통독모드 해제하고 다음 장으로 이동
-        goToNextChapterBase();
-        loadBibleContent(currentBook.value, currentChapter.value);
-        scrollToTop();
-      } else {
-        toast.error('완료 처리에 실패했습니다');
+
+      // 해당 월의 일정 조회해서 schedule 정보 찾기
+      const monthSchedules = await fetchMonthlySchedules(planId, nextPosition.month);
+      const nextSchedule = monthSchedules.find(s => s.id === nextPosition.schedule_id);
+      
+      if (!nextSchedule) {
+        toast.error('다음 일정 정보를 찾을 수 없습니다');
+        showNextScheduleModal.value = false;
+        router.push('/plan');
+        return;
       }
+
+      // 다음 일정으로 통독모드 전환
+      enableTongdokMode(nextPosition.schedule_id, planId);
+      
+      // 한국어 책 이름을 영문 코드로 변환
+      const bookCode = getBookCode(nextSchedule.book);
+      if (!bookCode) {
+        toast.error(`알 수 없는 성경 책: ${nextSchedule.book}`);
+        showNextScheduleModal.value = false;
+        return;
+      }
+
+      showNextScheduleModal.value = false;
+      await handleBookSelect(bookCode, nextSchedule.start_chapter);
+      scrollToTop();
       break;
     }
     case 'cancel':
     default:
+      showNextScheduleModal.value = false;
       break;
   }
 };

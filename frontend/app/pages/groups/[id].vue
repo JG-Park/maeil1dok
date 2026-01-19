@@ -201,7 +201,7 @@
 
 <script setup lang="ts">
 import { useGroupsStore } from '~/stores/groups'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import PageLayout from '~/components/common/PageLayout.vue'
 import Card from '~/components/common/Card.vue'
 import LoadingState from '~/components/LoadingState.vue'
@@ -211,11 +211,11 @@ import { useModal } from '~/composables/useModal'
 
 const route = useRoute()
 const groupsStore = useGroupsStore()
-const authStore = useAuthStore()
+const auth = useAuthService()
 const modal = useModal()
 
 const groupId = computed(() => parseInt(route.params.id as string))
-const isAuthenticated = computed(() => authStore.isAuthenticated)
+const isAuthenticated = computed(() => auth.isAuthenticated.value)
 const currentGroup = computed(() => groupsStore.currentGroup)
 const currentGroupMembers = computed(() => groupsStore.currentGroupMembers)
 

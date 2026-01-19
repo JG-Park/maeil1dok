@@ -15,7 +15,7 @@
 
     <!-- 빈 상태 액션 -->
     <template #empty-action>
-      <NuxtLink v-if="!authStore.isAuthenticated" to="/login" class="bible-login-btn">로그인</NuxtLink>
+      <NuxtLink v-if="!auth.isAuthenticated.value" to="/login" class="bible-login-btn">로그인</NuxtLink>
     </template>
 
     <!-- 필터 -->
@@ -82,7 +82,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useHighlight, DEFAULT_HIGHLIGHT_COLORS } from '~/composables/useHighlight';
 import { useBibleData, BIBLE_BOOKS } from '~/composables/useBibleData';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useToast } from '~/composables/useToast';
 import { useModal } from '~/composables/useModal';
 import { useErrorHandler } from '~/composables/useErrorHandler';
@@ -96,7 +96,7 @@ definePageMeta({
 });
 
 const router = useRouter();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const toast = useToast();
 const modal = useModal();
 const { handleApiError } = useErrorHandler();
@@ -109,9 +109,9 @@ const filterBook = ref('');
 const filterColor = ref('');
 
 // 빈 상태 계산
-const isEmpty = computed(() => !authStore.isAuthenticated || filteredHighlights.value.length === 0);
+const isEmpty = computed(() => !auth.isAuthenticated.value || filteredHighlights.value.length === 0);
 const emptyText = computed(() => {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     return '로그인 후 하이라이트를 확인할 수 있습니다';
   }
   return filterBook.value || filterColor.value
@@ -119,10 +119,10 @@ const emptyText = computed(() => {
     : '하이라이트가 없습니다';
 });
 const emptyHint = computed(() =>
-  authStore.isAuthenticated ? '중요한 구절에 색상을 입혀보세요' : ''
+  auth.isAuthenticated.value ? '중요한 구절에 색상을 입혀보세요' : ''
 );
 const emptyGuide = computed(() =>
-  authStore.isAuthenticated && !filterBook.value && !filterColor.value
+  auth.isAuthenticated.value && !filterBook.value && !filterColor.value
     ? [
         '성경 읽기 화면에서 텍스트를 드래그하세요',
         '나타나는 메뉴에서 "하이라이트"를 선택하세요',
@@ -132,7 +132,7 @@ const emptyGuide = computed(() =>
 );
 
 onMounted(async () => {
-  if (authStore.isAuthenticated) {
+  if (auth.isAuthenticated.value) {
     await fetchHighlights();
   }
 });

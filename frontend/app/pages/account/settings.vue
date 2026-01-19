@@ -342,7 +342,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useHead } from '#imports'
 import { useModal } from '~/composables/useModal'
 import { useNavigation } from '~/composables/useNavigation'
@@ -353,7 +353,7 @@ useHead({
   title: '계정 설정 - 매일일독',
 })
 
-const auth = useAuthStore()
+const auth = useAuthService()
 const modal = useModal()
 const api = useApi()
 const config = useRuntimeConfig()

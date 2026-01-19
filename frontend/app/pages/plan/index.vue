@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useScheduleApi } from '~/composables/useScheduleApi';
 import { useToast } from '~/composables/useToast';
 import BibleScheduleContent from '~/components/BibleScheduleContent.vue';
@@ -52,7 +52,7 @@ definePageMeta({
   layout: 'default',
 });
 
-const authStore = useAuthStore();
+const authStore = useAuthService();
 const router = useRouter();
 const route = useRoute();
 const scheduleApi = useScheduleApi();

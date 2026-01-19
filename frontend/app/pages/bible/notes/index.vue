@@ -24,7 +24,7 @@
 
     <!-- 로그인 필요 -->
     <EmptyState
-      v-else-if="!authStore.isAuthenticated"
+      v-else-if="!auth.isAuthenticated.value"
       text="로그인 후 묵상노트를 확인할 수 있습니다"
       fullscreen
     >
@@ -82,7 +82,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNote } from '~/composables/useNote';
 import { useBibleData, BIBLE_BOOKS } from '~/composables/useBibleData';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useTextUtils } from '~/composables/useTextUtils';
 import Toast from '~/components/Toast.vue';
 import type { Note } from '~/types/bible';
@@ -92,7 +92,7 @@ definePageMeta({
 });
 
 const router = useRouter();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const { notes, isNoteLoading: isLoading, fetchNotes } = useNote();
 const { getBookName } = useBibleData();
 const { truncate } = useTextUtils();
@@ -100,7 +100,7 @@ const { truncate } = useTextUtils();
 const filterBook = ref('');
 
 onMounted(async () => {
-  if (authStore.isAuthenticated) {
+  if (auth.isAuthenticated.value) {
     await fetchNotes();
   }
 });

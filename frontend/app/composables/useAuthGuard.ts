@@ -13,13 +13,13 @@
  * };
  */
 
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useNavigationStore } from '~/stores/navigation';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from '~/composables/useToast';
 
 export function useAuthGuard() {
-  const authStore = useAuthStore();
+  const auth = useAuthService();
   const navigationStore = useNavigationStore();
   const router = useRouter();
   const route = useRoute();
@@ -31,7 +31,7 @@ export function useAuthGuard() {
    * @returns true if authenticated, false if redirected to login
    */
   const requireAuth = (message: string = '로그인이 필요합니다'): boolean => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       toast.info(message);
       // 현재 페이지를 리다이렉트 URL로 저장 (로그인 후 복귀용)
       navigationStore.setRedirectUrl(route.fullPath);
@@ -43,6 +43,6 @@ export function useAuthGuard() {
 
   return {
     requireAuth,
-    isAuthenticated: authStore.isAuthenticated,
+    isAuthenticated: auth.isAuthenticated,
   };
 }

@@ -10,13 +10,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 
-const authStore = useAuthStore();
+const auth = useAuthService();
 
 const greetingMessage = computed(() => {
-  if (authStore.isAuthenticated && authStore.user) {
-    const name = authStore.user.nickname || authStore.user.username || '성도';
+  if (auth.isAuthenticated.value && auth.user.value) {
+    const name = auth.user.value.nickname || auth.user.value.username || '성도';
     return `${name}님, 안녕하세요`;
   }
   return '방문자님, 환영합니다';

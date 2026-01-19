@@ -149,7 +149,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useSelectedPlanStore } from '~/stores/selectedPlan';
 import { usePlanApi } from '~/composables/usePlanApi';
 import { useScheduleApi } from '~/composables/useScheduleApi';
@@ -192,7 +192,7 @@ const emit = defineEmits<{
 }>();
 
 // Stores & Composables
-const authStore = useAuthStore();
+const auth = useAuthService();
 const planStore = useSelectedPlanStore();
 const planApi = usePlanApi();
 const scheduleApi = useScheduleApi();
@@ -338,7 +338,7 @@ async function fetchSchedules() {
 // ============================================
 
 async function handleGroupCheckboxClick(scheduleGroup: Schedule[]) {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     showLoginModal.value = true;
     return;
   }
@@ -370,7 +370,7 @@ async function handleGroupCheckboxClick(scheduleGroup: Schedule[]) {
 }
 
 async function handleCheckboxClick(schedule: Schedule) {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     showLoginModal.value = true;
     return;
   }
@@ -687,10 +687,10 @@ function handleSubscriptionSelection(subscriptionData: SubscriptionSummary[]) {
 
   // 3. 기본 플랜 설정
   if (subscriptionData.length > 0 && !selectedPlanId.value) {
-    if (props.useDefaultPlan || !authStore.isAuthenticated) {
+    if (props.useDefaultPlan || !auth.isAuthenticated.value) {
       selectedPlanId.value = subscriptionData[0].plan_id;
 
-      if (!authStore.isAuthenticated) {
+      if (!auth.isAuthenticated.value) {
         defaultPlanName.value = subscriptionData[0].plan_name;
         showDefaultPlanMessage.value = false;
 

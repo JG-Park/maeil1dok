@@ -16,7 +16,7 @@
 
       <!-- 비로그인 사용자 기본 플랜 안내 메시지 -->
       <Transition name="slide-fade">
-        <div v-if="showDefaultPlanMessage && !authStore.isAuthenticated"
+        <div v-if="showDefaultPlanMessage && !auth.isAuthenticated.value"
           class="bulk-edit-indicator default-plan-indicator">
           <span class="bulk-edit-message">비로그인 사용자는 <strong>{{ defaultPlanName }}</strong>이 기본 선택되요.</span>
         </div>
@@ -134,7 +134,7 @@
 import { ref, computed, onMounted, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useApi } from "~/composables/useApi";
-import { useAuthStore } from "~/stores/auth";
+import { useAuthService } from "~/composables/useAuthService";
 import { useToast } from "~/composables/useToast";
 import { usePlanApi } from "~/composables/usePlanApi";
 import { useSelectedPlanStore } from "~/stores/selectedPlan";
@@ -151,7 +151,7 @@ const loading = ref(true);
 const error = ref(null);
 const router = useRouter();
 const api = useApi();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const planApi = usePlanApi();
 const selectedPlanStore = useSelectedPlanStore();
 const { success, error: showError } = useToast();
@@ -227,7 +227,7 @@ function handleSubscriptionSelection(subscriptionData) {
     selectedPlanId.value = defaultPlan ? defaultPlan.plan_id : subscriptionData[0].plan_id;
 
     // 비로그인 사용자에게 안내 메시지 표시
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       defaultPlanName.value = defaultPlan ? defaultPlan.plan_name : subscriptionData[0].plan_name;
       showDefaultPlanMessage.value = false;
 
@@ -246,7 +246,7 @@ const fetchIntroductions = async () => {
   error.value = null;
   try {
     // 로그인 상태에 따라 다른 API 엔드포인트 호출
-    let endpoint = authStore.isAuthenticated
+    let endpoint = auth.isAuthenticated.value
       ? "/api/v1/todos/user/video/intro/"
       : "/api/v1/todos/video/intro/";
 
@@ -341,7 +341,7 @@ const getStatusText = (intro) => {
 
 // 완료 상태 토글 함수
 const toggleCompletion = async (intro) => {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     // 로그인이 필요한 경우 로그인 페이지로 이동
     router.push(
       `/login?redirect=${encodeURIComponent(
@@ -407,7 +407,7 @@ const initializeData = async () => {
 
 // 인증 상태 변경 감지
 watch(
-  () => authStore.isAuthenticated,
+  () => auth.isAuthenticated.value,
   async () => {
     // 인증 상태가 변경되면 데이터 다시 가져오기
     await fetchSubscriptions();

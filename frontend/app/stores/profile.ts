@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 
 interface UserProfile {
   id: number
@@ -65,8 +65,8 @@ export const useProfileStore = defineStore('profile', {
   getters: {
     profileUser: (state) => state.currentProfile?.user,
     isOwnProfile: (state) => {
-      const authStore = useAuthStore()
-      return state.currentProfile?.user.id === authStore.user?.id
+      const auth = useAuthService()
+      return state.currentProfile?.user.id === auth.user.value?.id
     },
     completionRate: (state) => {
       if (!state.currentProfile) return 0

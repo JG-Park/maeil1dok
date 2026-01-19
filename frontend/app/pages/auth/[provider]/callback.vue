@@ -9,9 +9,10 @@
 <script setup lang="ts">
 import { useNavigation } from '~/composables/useNavigation'
 import { useApi } from '~/composables/useApi'
+import { useAuthService } from '~/composables/useAuthService'
 
 const route = useRoute()
-const auth = useAuthStore()
+const auth = useAuthService()
 const { consumeRedirectUrl } = useNavigation()
 
 const statusMessage = ref('처리 중입니다...')

@@ -83,7 +83,7 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useHasenaStore } from '~/stores/hasena'
 import { useRouter } from 'vue-router'
 import { useSanitize } from '~/composables/useSanitize'
@@ -92,7 +92,7 @@ import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue'
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue'
 
 const api = useApi()
-const auth = useAuthStore()
+const auth = useAuthService()
 const hasenaStore = useHasenaStore()
 const router = useRouter()
 const toast = ref(null)
@@ -176,7 +176,7 @@ const fetchHasenaContent = async () => {
     parsedContent.value = parseHasenaContent(html)
 
     // 로그인한 경우에만 완료 상태 조회
-    if (auth.isAuthenticated) {
+    if (auth.isAuthenticated.value) {
       await fetchHasenaStatus()
     }
   } catch (err) {
@@ -189,7 +189,7 @@ const fetchHasenaContent = async () => {
 // 하세나 완료 상태 조회
 const fetchHasenaStatus = async () => {
   // 로그인하지 않은 경우 조회하지 않음
-  if (!auth.isAuthenticated) return
+  if (!auth.isAuthenticated.value) return
   
   try {
     await hasenaStore.fetchStatus()
@@ -208,7 +208,7 @@ const buttonText = computed(() => isButtonCompleted.value ? '미완료로 변경
 // handleComplete 함수 강화
 const handleComplete = async () => {
   // 로그인하지 않은 경우 로그인 페이지로 이동
-  if (!auth.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     router.push(`/login?next=${router.currentRoute.value.fullPath}`)
     return
   }

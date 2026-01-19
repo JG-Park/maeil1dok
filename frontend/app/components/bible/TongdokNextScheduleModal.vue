@@ -25,10 +25,7 @@
               <span v-if="isLoading" class="loading-spinner"></span>
               <span v-else>다음 통독 일정으로</span>
             </button>
-            <button class="action-btn secondary" @click="handleGoNextChapter">
-              다음 장으로 계속 읽기
-            </button>
-            <button class="action-btn ghost" @click="close">
+            <button class="action-btn ghost" :disabled="isLoading" @click="close">
               현재 위치 유지
             </button>
           </div>
@@ -50,7 +47,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 
-export type NextScheduleAction = 'go-next-schedule' | 'go-next-chapter' | 'cancel';
+export type NextScheduleAction = 'go-next-schedule' | 'cancel';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -78,11 +75,6 @@ const close = () => {
 
 const handleGoNextSchedule = () => {
   emit('action', { action: 'go-next-schedule', remember: rememberChecked.value });
-};
-
-const handleGoNextChapter = () => {
-  emit('action', { action: 'go-next-chapter', remember: rememberChecked.value });
-  emit('update:modelValue', false);
 };
 </script>
 
@@ -167,16 +159,6 @@ const handleGoNextChapter = () => {
 .action-btn.primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.action-btn.secondary {
-  background: var(--color-bg-tertiary, #f3f4f6);
-  color: var(--text-primary, #1f2937);
-  border: 1px solid var(--color-border, #e5e7eb);
-}
-
-.action-btn.secondary:hover {
-  background: var(--color-bg-hover, #e5e7eb);
 }
 
 .action-btn.ghost {
@@ -266,16 +248,6 @@ const handleGoNextChapter = () => {
 :root.dark .modal-range,
 :root.dark .modal-description {
   color: var(--color-text-secondary);
-}
-
-:root.dark .action-btn.secondary {
-  background: var(--color-bg-tertiary);
-  border-color: var(--color-border-default);
-  color: var(--color-text-primary);
-}
-
-:root.dark .action-btn.secondary:hover {
-  background: var(--color-bg-hover);
 }
 
 :root.dark .action-btn.ghost {

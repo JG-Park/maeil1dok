@@ -1,5 +1,5 @@
 import { useRuntimeConfig } from '#app'
-import { useAuthStore } from '../stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 
 type AxiosConfig = {
   headers?: Record<string, string>
@@ -12,7 +12,7 @@ type AxiosRequestConfig = AxiosConfig;
 export const useApi = () => {
   const config = useRuntimeConfig()
 
-  const auth = useAuthStore()
+  const auth = useAuthService()
 
   const getBaseUrl = () => {
     if (process.server) {
@@ -33,8 +33,8 @@ export const useApi = () => {
       'Content-Type': 'application/json',
     }
     
-    if (auth.token) {
-      headers['Authorization'] = `Bearer ${auth.token}`
+    if (auth.user.value) {
+      headers['Authorization'] = `Bearer ${auth.user.value}`
     }
 
     if (includeCsrf) {
@@ -63,16 +63,16 @@ export const useApi = () => {
     options: RequestInit,
     requiresAuth: boolean = true
   ) => {
-    const authStore = useAuthStore()
+    const auth = useAuthService()
 
-    if (requiresAuth && !authStore.isAuthenticated) {
+    if (requiresAuth && !auth.isAuthenticated.value) {
       throw new ApiError('Authentication required', 401)
     }
 
     let response = await fetch(url, options)
 
     if (response.status === 401) {
-      if (auth.isAuthenticated) {
+      if (auth.isAuthenticated.value) {
         const refreshResult = await auth.refreshAccessToken()
 
         if (refreshResult === 'success') {
@@ -82,7 +82,7 @@ export const useApi = () => {
           options.headers = getHeaders(isMutatingMethod)
           response = await fetch(url, options)
         } else if (refreshResult === 'auth_error') {
-          if (authStore.isAuthenticated) {
+          if (auth.isAuthenticated.value) {
             auth.logout()
           }
           throw new ApiError('Authentication failed', 401)
@@ -128,9 +128,9 @@ export const useApi = () => {
                            url.includes('/api/v1/todos/plans/user/') ||  // 사용자 플랜 목록
                            (url.includes('/api/v1/todos/user/') && !isVideoIntroAPI);
 
-      const authStore = useAuthStore();
+      const auth = useAuthService();
       // 인증 확인 엔드포인트는 항상 서버로 요청 (쿠키 기반 인증 지원)
-      if (requiresAuth && !isAuthCheckEndpoint && !authStore.isAuthenticated) {
+      if (requiresAuth && !isAuthCheckEndpoint && !auth.isAuthenticated.value) {
         return { data: { success: false, message: 'Authentication required' } };
       }
 
@@ -244,8 +244,8 @@ export const useApi = () => {
     async upload(url: string, formData: FormData) {
       try {
         const headers: Record<string, string> = {}
-        if (auth.token) {
-          headers['Authorization'] = `Bearer ${auth.token}`
+        if (auth.user.value) {
+          headers['Authorization'] = `Bearer ${auth.user.value}`
         }
         const csrfToken = getCsrfToken()
         if (csrfToken) {

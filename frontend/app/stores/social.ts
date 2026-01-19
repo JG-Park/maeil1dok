@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
 
 interface User {
   id: number

@@ -1237,13 +1237,13 @@ defineExpose({
   background: var(--color-bg-hover-dark, #3d3d3d);
 }
 
-/* 다크모드 인명/지명 색상 */
+/* 다크모드 인명/지명 색상 - themes.css에서 정의된 CSS 변수 사용 */
 .theme-dark .bible-content :deep(.bible-name) {
-  color: var(--highlight-name-color-dark, #c9a67a);
+  color: var(--highlight-name-color, #c9a67a);
 }
 
 .theme-dark .bible-content :deep(.bible-area) {
-  color: var(--highlight-place-color-dark, #9cb094);
+  color: var(--highlight-place-color, #9cb094);
 }
 
 /* 다크모드 섹션 제목 색상 */

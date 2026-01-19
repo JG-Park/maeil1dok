@@ -116,7 +116,7 @@
 
 <script setup lang="ts">
 import { useScoreboardStore } from '~/stores/scoreboard'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import PageLayout from '~/components/common/PageLayout.vue'
 import FilterButtonGroup from '~/components/common/FilterButtonGroup.vue'
 import EmptyState from '~/components/common/EmptyState.vue'
@@ -124,7 +124,7 @@ import LoadingState from '~/components/LoadingState.vue'
 import LeaderboardItem from '~/components/leaderboard/LeaderboardItem.vue'
 
 const scoreboardStore = useScoreboardStore()
-const authStore = useAuthStore()
+const auth = useAuthService()
 
 const activeView = ref<'global' | 'friends' | 'following'>('global')
 const currentPeriod = computed(() => scoreboardStore.currentPeriod)
@@ -162,7 +162,7 @@ const viewModes = [
 // 초기 데이터 로드
 onMounted(() => {
   loadLeaderboard()
-  if (authStore.isAuthenticated) {
+  if (auth.isAuthenticated.value) {
     scoreboardStore.fetchMyRanking()
   }
 })
@@ -171,9 +171,9 @@ onMounted(() => {
 const loadLeaderboard = () => {
   if (activeView.value === 'global') {
     scoreboardStore.fetchGlobalLeaderboard(currentPeriod.value)
-  } else if (activeView.value === 'following' && authStore.isAuthenticated) {
+  } else if (activeView.value === 'following' && auth.isAuthenticated.value) {
     scoreboardStore.fetchFriendsLeaderboard(currentPeriod.value, undefined, 'following')
-  } else if (activeView.value === 'friends' && authStore.isAuthenticated) {
+  } else if (activeView.value === 'friends' && auth.isAuthenticated.value) {
     scoreboardStore.fetchFriendsLeaderboard(currentPeriod.value, undefined, 'mutual')
   }
 }
@@ -182,7 +182,7 @@ const loadLeaderboard = () => {
 const changePeriod = (period: 'all' | 'week' | 'month') => {
   scoreboardStore.setPeriod(period)
   loadLeaderboard()
-  if (authStore.isAuthenticated) {
+  if (auth.isAuthenticated.value) {
     scoreboardStore.fetchMyRanking(period)
   }
 }

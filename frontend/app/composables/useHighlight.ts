@@ -4,7 +4,7 @@
  * 구절 하이라이트 CRUD 기능 제공
  */
 import { ref, type Ref } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useApi } from './useApi';
 import type { Highlight } from '~/types/bible';
 
@@ -21,7 +21,7 @@ export const DEFAULT_HIGHLIGHT_COLORS = [
 ];
 
 export const useHighlight = () => {
-  const authStore = useAuthStore();
+  const auth = useAuthService();
   const api = useApi();
 
   // 상태
@@ -59,7 +59,7 @@ export const useHighlight = () => {
    * 전체 하이라이트 목록 불러오기
    */
   const fetchHighlights = async (): Promise<void> => {
-    if (!authStore.isAuthenticated) return;
+    if (!auth.isAuthenticated.value) return;
 
     try {
       isHighlightLoading.value = true;
@@ -77,7 +77,7 @@ export const useHighlight = () => {
    * 장별 하이라이트 불러오기
    */
   const fetchChapterHighlights = async (book: string, chapter: number): Promise<void> => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       chapterHighlights.value = [];
       return;
     }
@@ -113,7 +113,7 @@ export const useHighlight = () => {
     color: string;
     memo?: string;
   }): Promise<Highlight | null> => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       throw new Error('로그인이 필요합니다');
     }
 
@@ -142,7 +142,7 @@ export const useHighlight = () => {
     id: number,
     data: Partial<Highlight>
   ): Promise<Highlight | null> => {
-    if (!authStore.isAuthenticated) return null;
+    if (!auth.isAuthenticated.value) return null;
 
     try {
       isHighlightLoading.value = true;
@@ -169,7 +169,7 @@ export const useHighlight = () => {
    * 하이라이트 삭제
    */
   const deleteHighlight = async (id: number): Promise<boolean> => {
-    if (!authStore.isAuthenticated) return false;
+    if (!auth.isAuthenticated.value) return false;
 
     try {
       isHighlightLoading.value = true;

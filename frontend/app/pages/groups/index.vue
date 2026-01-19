@@ -84,7 +84,7 @@
 
 <script setup lang="ts">
 import { useGroupsStore } from '~/stores/groups'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { debounce } from 'lodash-es'
 import PageLayout from '~/components/common/PageLayout.vue'
 import EmptyState from '~/components/common/EmptyState.vue'
@@ -93,10 +93,10 @@ import GroupCard from '~/components/groups/GroupCard.vue'
 import { useModal } from '~/composables/useModal'
 
 const groupsStore = useGroupsStore()
-const authStore = useAuthStore()
+const auth = useAuthService()
 const modal = useModal()
 
-const isAuthenticated = computed(() => authStore.isAuthenticated)
+const isAuthenticated = computed(() => auth.isAuthenticated.value)
 const isLoading = computed(() => groupsStore.isLoading)
 
 const searchQuery = ref('')

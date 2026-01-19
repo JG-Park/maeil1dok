@@ -179,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useProfilePageData } from '~/composables/useProfilePageData'
 import PageLayout from '~/components/common/PageLayout.vue'
 import LoadingState from '~/components/LoadingState.vue'
@@ -192,7 +192,7 @@ import FollowingModal from '~/components/profile/FollowingModal.vue'
 import ProfileEditModal from '~/components/profile/ProfileEditModal.vue'
 
 const route = useRoute()
-const authStore = useAuthStore()
+const auth = useAuthService()
 
 const userId = computed(() => parseInt(route.params.id as string))
 
@@ -234,7 +234,7 @@ const handleAvatarError = () => {
 // 로딩/에러 상태
 const isLoading = computed(() => loadingStates.profile)
 const error = computed(() => errors.value.length > 0 ? errors.value[0] : null)
-const isAuthenticated = computed(() => authStore.isAuthenticated)
+const isAuthenticated = computed(() => auth.isAuthenticated.value)
 
 // 데이터 computed (하위 호환성)
 const achievementsData = computed(() => achievements.value || [])

@@ -93,7 +93,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useApi } from '~/composables/useApi'
 import { useRuntimeConfig } from 'nuxt/app'
 import { useHead } from '#imports'
@@ -121,7 +121,7 @@ useHead({
 
 const config = useRuntimeConfig()
 
-const auth = useAuthStore()
+const auth = useAuthService()
 const api = useApi()
 const modal = useModal()
 const loading = ref(false)

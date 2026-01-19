@@ -9,7 +9,7 @@ import {
   reactive,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useAuthStore } from "~/stores/auth";
+import { useAuthService } from "~/composables/useAuthService";
 import { useReadingSettingsStore } from "~/stores/readingSettings";
 import Toast from "~/components/Toast.vue";
 import BibleScheduleContent from "~/components/BibleScheduleContent.vue";
@@ -19,7 +19,7 @@ import { useSanitize } from "~/composables/useSanitize";
 // 라우터 및 스토어 설정
 const route = useRoute();
 const router = useRouter();
-const authStore = useAuthStore();
+const authStore = useAuthService();
 const readingSettingsStore = useReadingSettingsStore();
 const api = useApi();
 const { fetchKntContent, fetchStandardContent, getFallbackUrl } = useBibleFetch();

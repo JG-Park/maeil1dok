@@ -171,12 +171,12 @@
 import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useModal } from '~/composables/useModal'
 import Toast from '~/components/Toast.vue'
 import BaseModal from '~/components/ui/modal/BaseModal.vue'
 
-const authStore = useAuthStore()
+const authStore = useAuthService()
 const api = useApi()
 const modal = useModal()
 const toast = ref(null)

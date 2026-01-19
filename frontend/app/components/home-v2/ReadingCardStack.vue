@@ -131,7 +131,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useApi } from '~/composables/useApi';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useSelectedPlanStore } from '~/stores/selectedPlan';
 import { useSubscriptionStore } from '~/stores/subscription';
 import { useHasenaStore } from '~/stores/hasena';
@@ -141,7 +141,7 @@ import ArrowRightIcon from '~/components/icons/ArrowRightIcon.vue';
 
 const router = useRouter();
 const api = useApi();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const selectedPlanStore = useSelectedPlanStore();
 const subscriptionStore = useSubscriptionStore();
 const hasenaStore = useHasenaStore();
@@ -162,7 +162,7 @@ const introCompleted = ref(false);
 async function loadData() {
   loading.value = true;
   
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     cardType.value = 'login';
     loading.value = false;
     return;

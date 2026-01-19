@@ -169,8 +169,8 @@
 </template>
 
 <script setup>
-import { useAuthStore } from '@/stores/auth'
-import { useReadingSettingsStore } from '@/stores/readingSettings'
+import { useAuthService } from '~/composables/useAuthService'
+import { useReadingSettingsStore } from '~/stores/readingSettings'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -178,9 +178,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close'])
-const authStore = useAuthStore()
+const auth = useAuthService()
 const readingSettingsStore = useReadingSettingsStore()
-const user = computed(() => authStore.user)
+const user = computed(() => auth.user.value)
 
 // Theme
 const currentTheme = computed(() => readingSettingsStore.effectiveTheme)

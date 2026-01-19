@@ -252,7 +252,7 @@ import CheckCircleOutlineIcon from '~/components/icons/CheckCircleOutlineIcon.vu
 import XMarkIcon from '~/components/icons/XMarkIcon.vue';
 import BookmarkFilledIcon from '~/components/icons/BookmarkFilledIcon.vue';
 import BookmarkOutlineIcon from '~/components/icons/BookmarkOutlineIcon.vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 
 // Highlight 인터페이스
 interface Highlight {
@@ -315,10 +315,10 @@ const props = withDefaults(defineProps<Props>(), {
   highlights: () => [],
 });
 
-// Auth store for profile link
-const authStore = useAuthStore();
+// Auth service for profile link
+const auth = useAuthService();
 const profileLink = computed(() => {
-  return authStore.user ? `/profile/${authStore.user.id}` : '/login';
+  return auth.user.value ? `/profile/${auth.user.value.id}` : '/login';
 });
 
 const formatScheduleDate = (dateString: string | null): string => {

@@ -12,9 +12,9 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 
-const auth = useAuthStore()
+const auth = useAuthService()
 
 const currentDate = computed(() => {
   const date = new Date();

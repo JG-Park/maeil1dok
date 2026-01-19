@@ -26,14 +26,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import BookIcon from '~/components/icons/BookIcon.vue';
 
 const route = useRoute();
-const authStore = useAuthStore();
+const auth = useAuthService();
 
 const profileLink = computed(() => {
-  return authStore.user ? `/profile/${authStore.user.id}` : '/login';
+  return auth.user.value ? `/profile/${auth.user.value.id}` : '/login';
 });
 </script>
 

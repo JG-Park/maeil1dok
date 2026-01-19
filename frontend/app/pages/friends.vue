@@ -141,11 +141,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useSocialStore } from '~/stores/social'
 import UserCard from '~/components/UserCard.vue'
 
-const authStore = useAuthStore()
+const auth = useAuthService()
 const socialStore = useSocialStore()
 const activeTab = ref('friends')
 const searchQuery = ref('')

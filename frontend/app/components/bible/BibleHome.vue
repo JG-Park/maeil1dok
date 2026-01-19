@@ -222,7 +222,7 @@ import { useApi } from '~/composables/useApi';
 import { useReadingPosition } from '~/composables/useReadingPosition';
 import { useBibleData } from '~/composables/useBibleData';
 import { useErrorHandler } from '~/composables/useErrorHandler';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useSelectedPlanStore } from '~/stores/selectedPlan';
 import type { BiblePosition, RecentRecord, HomeStatsResponse, RecentRecordRaw } from '~/types/bible';
 
@@ -245,7 +245,7 @@ const api = useApi();
 const { loadReadingPosition } = useReadingPosition();
 const { getBookName, getChapterUnit } = useBibleData();
 const { handleSilentError } = useErrorHandler();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const selectedPlanStore = useSelectedPlanStore();
 
 const emit = defineEmits<{
@@ -277,7 +277,7 @@ const todaySchedule = ref<TodaySchedule | null>(null);
 const hasPlan = ref(false);
 const tipsDismissed = ref(false);
 
-const isAuthenticated = computed(() => authStore.isAuthenticated);
+const isAuthenticated = computed(() => auth.isAuthenticated.value);
 
 const hasBookmarks = computed(() => bookmarkCount.value > 0);
 const hasNotes = computed(() => noteCount.value > 0);

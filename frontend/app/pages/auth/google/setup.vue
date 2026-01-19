@@ -88,12 +88,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useApi } from '~/composables/useApi'
 import { useNavigation } from '~/composables/useNavigation'
 
 const route = useRoute()
-const auth = useAuthStore()
+const auth = useAuthService()
 const api = useApi()
 const { consumeRedirectUrl } = useNavigation()
 

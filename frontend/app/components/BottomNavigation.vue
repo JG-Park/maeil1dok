@@ -68,13 +68,13 @@
 </template>
 
 <script setup>
-import { useAuthStore } from '@/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { computed } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
-const user = computed(() => authStore.user)
+const auth = useAuthService()
+const user = computed(() => auth.user.value)
 
 const isActive = (path) => {
   if (path === '/') {

@@ -114,7 +114,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useHead } from '#imports'
 import { useModal } from '~/composables/useModal'
 import { useNavigation } from '~/composables/useNavigation'
@@ -129,7 +129,7 @@ useHead({
   ],
 })
 
-const auth = useAuthStore()
+const auth = useAuthService()
 const modal = useModal()
 const api = useApi()
 const { goBack, consumeRedirectUrl } = useNavigation()

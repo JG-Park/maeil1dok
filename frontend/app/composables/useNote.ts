@@ -4,7 +4,7 @@
  * 묵상노트 CRUD 기능 제공
  */
 import { ref, type Ref } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useApi } from './useApi';
 import type { Note } from '~/types/bible';
 
@@ -12,7 +12,7 @@ import type { Note } from '~/types/bible';
 export type { Note } from '~/types/bible';
 
 export const useNote = () => {
-  const authStore = useAuthStore();
+  const auth = useAuthService();
   const api = useApi();
 
   // 상태
@@ -28,7 +28,7 @@ export const useNote = () => {
    * 전체 묵상노트 목록 불러오기
    */
   const fetchNotes = async (): Promise<Note[]> => {
-    if (!authStore.isAuthenticated) return [];
+    if (!auth.isAuthenticated.value) return [];
 
     try {
       isNoteLoading.value = true;
@@ -48,7 +48,7 @@ export const useNote = () => {
    * 현재 장의 묵상노트 불러오기
    */
   const fetchChapterNotes = async (book: string, chapter: number): Promise<Note[]> => {
-    if (!authStore.isAuthenticated) return [];
+    if (!auth.isAuthenticated.value) return [];
 
     try {
       const response = await api.get('/api/v1/todos/bible/notes/by-chapter/', {
@@ -67,7 +67,7 @@ export const useNote = () => {
    * 노트 상세 조회
    */
   const fetchNote = async (id: number): Promise<Note | null> => {
-    if (!authStore.isAuthenticated) return null;
+    if (!auth.isAuthenticated.value) return null;
 
     try {
       isNoteLoading.value = true;
@@ -94,7 +94,7 @@ export const useNote = () => {
     content: string;
     is_private?: boolean;
   }): Promise<Note | null> => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       throw new Error('로그인이 필요합니다');
     }
 
@@ -119,7 +119,7 @@ export const useNote = () => {
    * 노트 수정
    */
   const updateNote = async (id: number, data: Partial<Note>): Promise<Note | null> => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       throw new Error('로그인이 필요합니다');
     }
 
@@ -154,7 +154,7 @@ export const useNote = () => {
    * 노트 삭제
    */
   const deleteNote = async (id: number, book?: string, chapter?: number): Promise<boolean> => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       throw new Error('로그인이 필요합니다');
     }
 
@@ -232,7 +232,7 @@ export const useNote = () => {
    */
   const saveQuickNote = async (book: string, chapter: number, content: string): Promise<boolean> => {
     if (!content.trim()) return false;
-    if (!authStore.isAuthenticated) return false;
+    if (!auth.isAuthenticated.value) return false;
 
     try {
       isNoteLoading.value = true;

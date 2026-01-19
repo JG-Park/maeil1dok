@@ -8,7 +8,7 @@
  * 중요: 페이지 초기화 중에는 저장하지 않음 (enableSaving 플래그로 제어)
  */
 import { ref, type Ref } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useApi } from './useApi';
 
 export interface ReadingPosition {
@@ -22,7 +22,7 @@ export interface ReadingPosition {
 const STORAGE_KEY = 'lastReadingPosition';
 
 export const useReadingPosition = () => {
-  const authStore = useAuthStore();
+  const auth = useAuthService();
   const api = useApi();
 
   // 상태
@@ -70,7 +70,7 @@ export const useReadingPosition = () => {
   const loadReadingPosition = async (): Promise<ReadingPosition | null> => {
     const localPosition = loadFromLocalStorage();
 
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       lastReadingPosition.value = localPosition;
       return lastReadingPosition.value;
     }
@@ -134,7 +134,7 @@ export const useReadingPosition = () => {
     lastSavedPosition.value = { book, chapter, version };
 
     // 비로그인 시 localStorage만 저장하고 종료
-    if (!authStore.isAuthenticated) return;
+    if (!auth.isAuthenticated.value) return;
 
     // debounce 처리
     if (savePositionTimeout) {

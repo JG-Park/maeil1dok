@@ -58,16 +58,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import CalendarIcon from '~/components/icons/CalendarIcon.vue';
 import MonitorIcon from '~/components/icons/MonitorIcon.vue';
 import PlayIcon from '~/components/icons/PlayIcon.vue';
 import HistoryIcon from '~/components/icons/HistoryIcon.vue';
 
-const authStore = useAuthStore();
+const auth = useAuthService();
 
 const profileLink = computed(() => {
-  return authStore.user ? `/profile/${authStore.user.id}` : '/login';
+  return auth.user.value ? `/profile/${auth.user.value.id}` : '/login';
 });
 </script>
 

@@ -60,7 +60,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 
 const props = defineProps({
   user: {
@@ -71,11 +71,11 @@ const props = defineProps({
 
 const emit = defineEmits(['follow', 'unfollow'])
 
-const authStore = useAuthStore()
+const auth = useAuthService()
 const isLoading = ref(false)
 
 const isOwnProfile = computed(() => {
-  return authStore.user?.id === props.user.id
+  return auth.user.value?.id === props.user.id
 })
 
 const toggleFollow = async () => {

@@ -28,11 +28,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useApi } from '~/composables/useApi'
 import { useToast } from '~/composables/useToast'
 
-const auth = useAuthStore()
+const auth = useAuthService()
 const api = useApi()
 const toast = useToast()
 
@@ -44,12 +44,12 @@ let cooldownTimer: NodeJS.Timeout | null = null
 // Show banner only for email-registered users who haven't verified
 const showBanner = computed(() => {
   if (dismissed.value) return false
-  if (!auth.user) return false
+  if (!auth.user.value) return false
   // Only show for email-based accounts (has password set)
-  if (!auth.user.email) return false
-  if (!auth.user.has_usable_password_flag) return false  // 소셜 로그인 사용자는 제외
+  if (!auth.user.value.email) return false
+  if (!auth.user.value.has_usable_password_flag) return false  // 소셜 로그인 사용자는 제외
   // Don't show for already verified users
-  if (auth.user.email_verified) return false
+  if (auth.user.value.email_verified) return false
   return true
 })
 

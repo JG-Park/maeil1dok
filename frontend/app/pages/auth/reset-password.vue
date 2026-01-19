@@ -84,7 +84,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useApi } from '~/composables/useApi'
 import { useHead } from '#imports'
 
@@ -97,7 +97,7 @@ useHead({
 
 const route = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
+const auth = useAuthService()
 const api = useApi()
 
 const loading = ref(true)

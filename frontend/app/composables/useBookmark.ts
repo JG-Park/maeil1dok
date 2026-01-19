@@ -4,7 +4,7 @@
  * 북마크 CRUD 기능 제공
  */
 import { ref, type Ref } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useApi } from './useApi';
 import type { Bookmark } from '~/types/bible';
 
@@ -12,7 +12,7 @@ import type { Bookmark } from '~/types/bible';
 export type { Bookmark } from '~/types/bible';
 
 export const useBookmark = () => {
-  const authStore = useAuthStore();
+  const auth = useAuthService();
   const api = useApi();
 
   // 상태
@@ -23,7 +23,7 @@ export const useBookmark = () => {
    * 현재 장의 북마크 목록 불러오기
    */
   const loadBookmarks = async (book: string, chapter: number): Promise<void> => {
-    if (!authStore.isAuthenticated) return;
+    if (!auth.isAuthenticated.value) return;
 
     try {
       isBookmarkLoading.value = true;
@@ -60,7 +60,7 @@ export const useBookmark = () => {
     bookmarkType: 'chapter' | 'verse' = 'chapter',
     verse?: number
   ): Promise<boolean> => {
-    if (!authStore.isAuthenticated) return false;
+    if (!auth.isAuthenticated.value) return false;
 
     try {
       isBookmarkLoading.value = true;
@@ -85,7 +85,7 @@ export const useBookmark = () => {
    * 북마크 삭제
    */
   const removeBookmark = async (bookmarkId: number, book: string, chapter: number): Promise<boolean> => {
-    if (!authStore.isAuthenticated) return false;
+    if (!auth.isAuthenticated.value) return false;
 
     try {
       isBookmarkLoading.value = true;
@@ -108,7 +108,7 @@ export const useBookmark = () => {
     chapter: number,
     bookName: string
   ): Promise<{ success: boolean; added: boolean }> => {
-    if (!authStore.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       return { success: false, added: false };
     }
 
@@ -132,7 +132,7 @@ export const useBookmark = () => {
    * 전체 북마크 목록 불러오기
    */
   const getAllBookmarks = async (): Promise<Bookmark[]> => {
-    if (!authStore.isAuthenticated) return [];
+    if (!auth.isAuthenticated.value) return [];
 
     try {
       const response = await api.get('/api/v1/todos/bible/bookmarks/');

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 
 // Type definitions
 export type ThemeMode = 'light' | 'dark' | 'system'
@@ -149,8 +149,8 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
       this.loadFromLocalStorage()
       this.migrateOldSettings()
 
-      const authStore = useAuthStore()
-      if (authStore.isAuthenticated) {
+      const auth = useAuthService()
+      if (auth.isAuthenticated.value) {
         await this.syncFromServer()
       }
 
@@ -228,8 +228,8 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
 
     // Sync from server (authenticated users)
     async syncFromServer() {
-      const authStore = useAuthStore()
-      if (!authStore.isAuthenticated) return
+      const auth = useAuthService()
+      if (!auth.isAuthenticated.value) return
 
       this.isLoading = true
       try {
@@ -272,8 +272,8 @@ export const useReadingSettingsStore = defineStore('readingSettings', {
 
     // Sync to server (debounced, called after setting changes)
     async syncToServer() {
-      const authStore = useAuthStore()
-      if (!authStore.isAuthenticated) return
+      const auth = useAuthService()
+      if (!auth.isAuthenticated.value) return
 
       this.isSyncing = true
       try {

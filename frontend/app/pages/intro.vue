@@ -93,7 +93,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useToast } from '~/composables/useToast'
 import IntroListContent from '~/components/IntroListContent.vue'
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue'
@@ -118,7 +118,7 @@ useHead({
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
-const authStore = useAuthStore()
+const authStore = useAuthService()
 const { success, error: showError } = useToast()
 
 const videoIntro = ref(null)

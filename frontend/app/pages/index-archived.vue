@@ -744,13 +744,13 @@ useHead({
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useApi } from "~/composables/useApi";
-import { useAuthStore } from "~/stores/auth";
+import { useAuthService } from "~/composables/useAuthService";
 import { useSubscriptionStore } from "~/stores/subscription";
 import { useSelectedPlanStore } from "~/stores/selectedPlan";
 import Header from "~/components/Header.vue";
 import DailyStatus from "~/components/DailyStatus.vue";
 
-const auth = useAuthStore();
+const auth = useAuthService();
 const api = useApi();
 const subscriptionStore = useSubscriptionStore();
 const selectedPlanStore = useSelectedPlanStore();
@@ -1298,7 +1298,7 @@ watch(
 const fetchHasenaStatus = async () => {
   try {
     // 로그인 상태 확인 후 API 호출
-    const authStore = useAuthStore();
+    const authStore = useAuthService();
     if (!authStore.isAuthenticated) {
       // 로그인하지 않은 경우 API 호출하지 않음
       return;

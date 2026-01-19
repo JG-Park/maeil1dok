@@ -275,7 +275,7 @@ import {
   type FontWeight, 
   type TextAlign 
 } from '~/stores/readingSettings';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useApi } from '~/composables/useApi';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 import { useModal } from '~/composables/useModal';
@@ -288,7 +288,7 @@ definePageMeta({
 
 const router = useRouter();
 const settingsStore = useReadingSettingsStore();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const api = useApi();
 const toast = useToast();
 const modal = useModal();
@@ -315,7 +315,7 @@ onMounted(() => {
 
 // 저장 버튼 클릭
 const saveSettings = async () => {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     toast.info('로그인하면 설정이 서버에 저장됩니다');
     return;
   }
@@ -392,7 +392,7 @@ const updateSetting = <K extends keyof typeof settings.value>(key: K, value: typ
 
 // 북마크 전체 삭제
 const deleteAllBookmarks = async () => {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     toast.error('로그인이 필요합니다');
     return;
   }
@@ -419,7 +419,7 @@ const deleteAllBookmarks = async () => {
 
 // 노트 전체 삭제
 const deleteAllNotes = async () => {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     toast.error('로그인이 필요합니다');
     return;
   }
@@ -446,7 +446,7 @@ const deleteAllNotes = async () => {
 
 // 하이라이트 전체 삭제
 const deleteAllHighlights = async () => {
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     toast.error('로그인이 필요합니다');
     return;
   }
@@ -1223,9 +1223,9 @@ const resetAllSettings = async () => {
 }
 
 [data-theme="dark"] .chip-btn.active {
-  background-color: var(--color-accent-primary);
+  background-color: var(--color-accent-primary-light);
   border-color: var(--color-accent-primary);
-  color: var(--color-text-inverse);
+  color: var(--color-accent-primary);
 }
 
 /* 테마 선택 */

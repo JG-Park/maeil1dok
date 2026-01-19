@@ -175,13 +175,13 @@
 </template>
 
 <script setup>
-import { useAuthStore } from '@/stores/auth'
-import { useReadingSettingsStore } from '@/stores/readingSettings'
+import { useAuthService } from '~/composables/useAuthService'
+import { useReadingSettingsStore } from '~/stores/readingSettings'
 import { useRouter, useRoute } from 'vue-router'
 import { computed, ref, inject, onMounted, onUnmounted } from 'vue'
 import Menu from '~/components/Menu.vue'
 
-const authStore = useAuthStore()
+const auth = useAuthService()
 const readingSettingsStore = useReadingSettingsStore()
 const router = useRouter()
 const route = useRoute()
@@ -202,8 +202,8 @@ onMounted(() => {
   readingSettingsStore.initialize()
 })
 
-const user = computed(() => authStore.user)
-const isAuthenticated = computed(() => authStore.isAuthenticated)
+const user = computed(() => auth.user.value)
+const isAuthenticated = computed(() => auth.isAuthenticated.value)
 
 const isAuthPage = computed(() => {
   return ['/login', '/register'].includes(route.path)
@@ -219,7 +219,7 @@ const closeProfileMenu = () => {
 
 const handleLogout = () => {
   closeProfileMenu()
-  authStore.logout()
+  auth.logout()
   toast.value?.show('로그아웃 되었어요.')
   router.push('/')
 }

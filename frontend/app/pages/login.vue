@@ -104,7 +104,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthService } from '~/composables/useAuthService'
 import { useRoute, useRouter } from 'vue-router'
 import { useRuntimeConfig } from 'nuxt/app'
 import { useHead } from '#imports'
@@ -128,7 +128,7 @@ useHead({
   ],
 })
 
-const auth = useAuthStore()
+const auth = useAuthService()
 const config = useRuntimeConfig()
 const modal = useModal()
 const { goBack, consumeRedirectUrl, setRedirectUrl } = useNavigation()

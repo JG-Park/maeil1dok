@@ -57,7 +57,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBookmark, type Bookmark } from '~/composables/useBookmark';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 import { useModal } from '~/composables/useModal';
 import { useApi } from '~/composables/useApi';
@@ -69,7 +69,7 @@ definePageMeta({
 });
 
 const router = useRouter();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const { handleApiError } = useErrorHandler();
 const modal = useModal();
 const api = useApi();

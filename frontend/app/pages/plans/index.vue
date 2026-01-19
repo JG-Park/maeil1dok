@@ -9,7 +9,7 @@
         <p class="loading-text">로딩 중...</p>
       </div>
 
-      <div v-else-if="!authStore.isAuthenticated" class="login-prompt fade-in">
+      <div v-else-if="!auth.isAuthenticated.value" class="login-prompt fade-in">
         <p class="prompt-text">플랜을 구독하려면 로그인이 필요합니다.</p>
         <button class="login-button" @click="$router.push('/login')">
           로그인하기
@@ -142,7 +142,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuthService } from '~/composables/useAuthService';
 import { usePlanApi } from '~/composables/usePlanApi';
 import { useToast } from '~/composables/useToast';
 import { formatKoreanDate } from '~/utils/dateFormat';
@@ -152,7 +152,7 @@ import Toast from '~/components/Toast.vue';
 import type { Plan, Subscription } from '~/types/plan';
 
 const router = useRouter();
-const authStore = useAuthStore();
+const auth = useAuthService();
 const planApi = usePlanApi();
 const toast = useToast();
 
@@ -170,7 +170,7 @@ function formatDate(dateString: string): string {
 
 // 사용자 플랜 정보 조회
 async function fetchUserPlans() {
-  if (!authStore.isAuthenticated) return;
+  if (!auth.isAuthenticated.value) return;
 
   const data = await planApi.fetchUserPlans();
   if (data) {
@@ -242,7 +242,7 @@ onMounted(async () => {
   isLoading.value = true;
 
   try {
-    if (authStore.isAuthenticated) {
+    if (auth.isAuthenticated.value) {
       await fetchUserPlans();
     }
   } finally {
