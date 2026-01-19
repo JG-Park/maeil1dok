@@ -14,6 +14,12 @@ export default defineNuxtConfig({
   image: {
     // Vercel에서 자동 이미지 최적화 사용
     provider: 'vercel',
+    domains: [
+      'k.kakaocdn.net',
+      't1.kakaocdn.net',
+      'img1.kakaocdn.net',
+      'lh3.googleusercontent.com',
+    ],
     // 지원 포맷
     format: ['webp', 'avif'],
     // 품질 설정
