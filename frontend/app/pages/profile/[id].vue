@@ -367,7 +367,7 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .profile-avatar {
-  border-color: var(--color-border);
+  border-color: var(--color-border-default);
 }
 
 .profile-avatar-placeholder {
@@ -385,7 +385,7 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .profile-avatar-placeholder {
-  border-color: var(--color-border);
+  border-color: var(--color-border-default);
   background: var(--color-bg-tertiary);
 }
 
@@ -473,7 +473,7 @@ onUnmounted(() => {
 
 [data-theme="dark"] .btn-secondary {
   background: var(--color-bg-tertiary);
-  border-color: var(--color-border);
+  border-color: var(--color-border-default);
   color: var(--text-primary);
 }
 
@@ -500,7 +500,7 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .follow-stats {
-  border-color: var(--color-border);
+  border-color: var(--color-border-default);
 }
 
 .follow-button {
@@ -618,7 +618,7 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .tab-nav {
-  border-color: var(--color-border);
+  border-color: var(--color-border-default);
   background: var(--color-bg-tertiary);
 }
 
@@ -703,7 +703,7 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .loading-spinner {
-  border-color: var(--color-border);
+  border-color: var(--color-border-default);
   border-top-color: var(--primary-color);
 }
 
