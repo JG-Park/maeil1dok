@@ -38,6 +38,10 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue';
+import LoadingSpinner from '~/components/common/LoadingSpinner.vue';
+import EmptyState from '~/components/common/EmptyState.vue';
+import InfoCircleIcon from '~/components/icons/InfoCircleIcon.vue';
 
 interface Props {
   title: string;
