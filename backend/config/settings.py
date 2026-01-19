@@ -143,16 +143,32 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '[]')
+_extra_cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '[]')
 try:
-    CORS_ALLOWED_ORIGINS = json.loads(CORS_ALLOWED_ORIGINS)
+    _extra_cors_origins = json.loads(_extra_cors_origins)
 except json.JSONDecodeError:
-    CORS_ALLOWED_ORIGINS = [
+    _extra_cors_origins = []
+
+CORS_ALLOWED_ORIGINS = [
+    'https://maeil1dok.app',
+    'https://www.maeil1dok.app',
+    'https://api.maeil1dok.app',
+]
+
+if _extra_cors_origins:
+    CORS_ALLOWED_ORIGINS += _extra_cors_origins
+
+if DEBUG:
+    CORS_ALLOWED_ORIGINS += [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
         'http://localhost:3019',
         'http://127.0.0.1:3019',
+        'http://192.168.0.41:3000',
     ]
 
-# 추가 CORS 설정
+CORS_ALLOWED_ORIGINS = list(set(CORS_ALLOWED_ORIGINS))
+
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
@@ -176,18 +192,6 @@ CORS_ALLOW_HEADERS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# 보안: CORS_ORIGIN_ALLOW_ALL과 CORS_ALLOW_CREDENTIALS를 함께 사용하지 않음
-# 개발 환경에서도 명시적인 오리진 목록 사용
-if DEBUG:
-    CORS_ALLOWED_ORIGINS += [
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:3019',
-        'http://127.0.0.1:3019',
-        'http://192.168.0.41:3000',
-    ]
-    CORS_ALLOWED_ORIGINS = list(set(CORS_ALLOWED_ORIGINS))
-
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_NAME = 'csrftoken'
@@ -203,12 +207,26 @@ if _cookie_domain:
     CSRF_COOKIE_DOMAIN = _cookie_domain
     COOKIE_DOMAIN = _cookie_domain
 
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '[]')
+# CSRF 신뢰 Origins 설정
+# 환경변수에서 추가 origins를 JSON 배열로 받음
+_extra_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '[]')
 try:
-    CSRF_TRUSTED_ORIGINS = json.loads(CSRF_TRUSTED_ORIGINS)
+    _extra_csrf_origins = json.loads(_extra_csrf_origins)
 except json.JSONDecodeError:
-    CSRF_TRUSTED_ORIGINS = []
+    _extra_csrf_origins = []
 
+# 기본 프로덕션 origins (항상 포함)
+CSRF_TRUSTED_ORIGINS = [
+    'https://maeil1dok.app',
+    'https://www.maeil1dok.app',
+    'https://api.maeil1dok.app',
+]
+
+# 환경변수에서 지정한 추가 origins 추가
+if _extra_csrf_origins:
+    CSRF_TRUSTED_ORIGINS += _extra_csrf_origins
+
+# 개발 환경에서는 localhost origins 추가
 if DEBUG:
     CSRF_TRUSTED_ORIGINS += [
         'http://localhost:3000',
@@ -217,13 +235,9 @@ if DEBUG:
         'http://127.0.0.1:3019',
         'http://192.168.0.41:3000',
     ]
-    CSRF_TRUSTED_ORIGINS = list(set(CSRF_TRUSTED_ORIGINS))
-elif not CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS = [
-        'https://maeil1dok.app',
-        'https://www.maeil1dok.app',
-        'https://api.maeil1dok.app',
-    ]
+
+# 중복 제거
+CSRF_TRUSTED_ORIGINS = list(set(CSRF_TRUSTED_ORIGINS))
 
 # JWT 설정 추가
 REST_FRAMEWORK = {
