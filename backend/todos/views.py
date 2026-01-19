@@ -823,8 +823,19 @@ def get_chapter_detail(request):
                 plan=plan,
                 is_active=True
             ).first()
+            
+            logger.info(f"[get_chapter_detail] user={user.id}, plan={plan.id}, subscription={subscription.id if subscription else None}")
 
             if subscription:
+                # 디버깅: 해당 subscription의 모든 progress 조회
+                all_progress = UserBibleProgress.objects.filter(
+                    subscription=subscription,
+                    schedule__in=schedules
+                )
+                logger.info(f"[get_chapter_detail] schedules={[s.id for s in schedules]}, all_progress count={all_progress.count()}")
+                for p in all_progress:
+                    logger.info(f"[get_chapter_detail] progress: schedule_id={p.schedule_id}, is_completed={p.is_completed}")
+                
                 progress_records = UserBibleProgress.objects.filter(
                     subscription=subscription,
                     schedule__in=schedules,
@@ -832,6 +843,7 @@ def get_chapter_detail(request):
                 ).values_list('schedule_id', flat=True)
                 
                 progress_dict = {str(schedule_id): True for schedule_id in progress_records}
+                logger.info(f"[get_chapter_detail] progress_dict={progress_dict}")
 
         # 추가 응답 데이터
         response_data.update({
