@@ -2215,7 +2215,9 @@ const goToNextChapter = (event) => {
   const currentDetail = currentPlanDetail.value;
 
   // 로그인한 사용자이고, 현재 장이 구간의 마지막 장인 경우에만 완료 확인 모달 표시
+  // 통독 모드에서는 완료 확인 모달 없이 바로 다음 장으로 이동 (자동 완료는 마지막 장 도달 시 별도 처리)
   if (
+    !tongdokMode.value && // 통독 모드가 아닐 때만 완료 확인 모달 표시
     authStore.isAuthenticated &&
     currentDetail &&
     !currentDetail.is_complete && // 읽지 않은 일정일 때만
