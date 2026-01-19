@@ -69,7 +69,7 @@ definePageMeta({
 });
 
 const router = useRouter();
-const auth = useAuthService();
+const authStore = useAuthService();
 const { handleApiError } = useErrorHandler();
 const modal = useModal();
 const api = useApi();
