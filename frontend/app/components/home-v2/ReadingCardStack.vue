@@ -133,6 +133,7 @@ import { useRouter } from 'vue-router';
 import { useApi } from '~/composables/useApi';
 import { useAuthStore } from '~/stores/auth';
 import { useSelectedPlanStore } from '~/stores/selectedPlan';
+import { useSubscriptionStore } from '~/stores/subscription';
 import { useHasenaStore } from '~/stores/hasena';
 import { useBibleData } from '~/composables/useBibleData';
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue';
@@ -142,6 +143,7 @@ const router = useRouter();
 const api = useApi();
 const authStore = useAuthStore();
 const selectedPlanStore = useSelectedPlanStore();
+const subscriptionStore = useSubscriptionStore();
 const hasenaStore = useHasenaStore();
 const { getBookName } = useBibleData();
 
@@ -167,6 +169,13 @@ async function loadData() {
   }
 
   try {
+    // 먼저 구독 정보 로드하여 defaultPlanId 설정
+    await subscriptionStore.fetchSubscriptions();
+    const defaultSub = subscriptionStore.defaultSubscription;
+    if (defaultSub && !selectedPlanStore.effectivePlanId) {
+      selectedPlanStore.setDefaultPlanId(defaultSub.plan_id);
+    }
+
     await Promise.all([
       loadTodaySchedule(),
       loadProgress(),
