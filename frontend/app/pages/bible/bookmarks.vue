@@ -63,6 +63,8 @@ import { useModal } from '~/composables/useModal';
 import { useApi } from '~/composables/useApi';
 import Toast from '~/components/Toast.vue';
 import BibleSubpageLayout from '~/components/bible/BibleSubpageLayout.vue';
+import BookmarkIcon from '~/components/icons/BookmarkIcon.vue';
+import TrashIcon from '~/components/icons/TrashIcon.vue';
 
 definePageMeta({
   layout: 'default'
@@ -80,17 +82,17 @@ const bookmarks = ref<Bookmark[]>([]);
 const isLoading = ref(true);
 
 // 빈 상태 계산
-const isEmpty = computed(() => !authStore.isAuthenticated || bookmarks.value.length === 0);
+const isEmpty = computed(() => !authStore.isAuthenticated.value || bookmarks.value.length === 0);
 const emptyText = computed(() =>
-  !authStore.isAuthenticated
+  !authStore.isAuthenticated.value
     ? '로그인 후 북마크를 확인할 수 있습니다'
     : '저장된 북마크가 없습니다'
 );
 const emptyHint = computed(() =>
-  authStore.isAuthenticated ? '자주 찾는 장을 저장해두세요' : ''
+  authStore.isAuthenticated.value ? '자주 찾는 장을 저장해두세요' : ''
 );
 const emptyGuide = computed(() =>
-  authStore.isAuthenticated
+  authStore.isAuthenticated.value
     ? [
         '성경 읽기 화면으로 이동하세요',
         '상단의 북마크 아이콘(🔖)을 탭하세요',
@@ -100,7 +102,7 @@ const emptyGuide = computed(() =>
 );
 
 onMounted(async () => {
-  if (authStore.isAuthenticated) {
+  if (authStore.isAuthenticated.value) {
     try {
       bookmarks.value = await getAllBookmarks();
     } catch (error) {

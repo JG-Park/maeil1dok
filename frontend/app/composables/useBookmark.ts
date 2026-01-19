@@ -136,7 +136,9 @@ export const useBookmark = () => {
 
     try {
       const response = await api.get('/api/v1/todos/bible/bookmarks/');
-      return response.data || [];
+      // DRF pagination 응답 처리: { results: [...] } 또는 직접 배열
+      const data = response.data;
+      return Array.isArray(data) ? data : (data?.results || []);
     } catch (error) {
       console.error('전체 북마크 불러오기 실패:', error);
       return [];
