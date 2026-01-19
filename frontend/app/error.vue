@@ -30,20 +30,20 @@ const errorInfo = errorMessages[statusCode] || {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="min-h-screen flex items-center justify-center bg-bg-primary px-4">
     <div class="max-w-md w-full text-center">
       <!-- 에러 코드 -->
       <div class="mb-6">
-        <span class="text-8xl font-bold text-blue-500">{{ statusCode }}</span>
+        <span class="text-8xl font-bold text-accent-primary">{{ statusCode }}</span>
       </div>
 
       <!-- 에러 제목 -->
-      <h1 class="text-2xl font-bold text-gray-900 mb-3">
+      <h1 class="text-2xl font-bold text-txt-primary mb-3">
         {{ errorInfo.title }}
       </h1>
 
       <!-- 에러 설명 -->
-      <p class="text-gray-600 mb-8">
+      <p class="text-txt-secondary mb-8">
         {{ errorInfo.description }}
       </p>
 
@@ -59,7 +59,7 @@ const errorInfo = errorMessages[statusCode] || {
 
         <button
           @click="$router.back()"
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          class="w-full px-4 py-3 border border-border rounded-lg bg-bg-secondary text-txt-primary hover:bg-bg-hover transition-colors"
           aria-label="이전 페이지로 돌아가기"
         >
           이전 페이지로 돌아가기
@@ -67,11 +67,11 @@ const errorInfo = errorMessages[statusCode] || {
       </div>
 
       <!-- 도움말 링크 -->
-      <p class="mt-8 text-sm text-gray-500">
+      <p class="mt-8 text-sm text-txt-tertiary">
         문제가 계속되면
         <a
           href="mailto:support@maeil1dok.app"
-          class="text-blue-500 hover:underline"
+          class="text-link hover:text-link-hover hover:underline"
         >
           고객지원
         </a>
