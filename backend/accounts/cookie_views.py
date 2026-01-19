@@ -123,6 +123,9 @@ class CookieTokenRefreshView(TokenRefreshView):
             response = Response(response_data, status=status.HTTP_200_OK)
             set_auth_cookies(response, access_token, new_refresh_token)
 
+            # CSRF 토큰 갱신 (쿠키 기반 인증에서 토큰 갱신 후 CSRF 유효성 유지를 위해)
+            response['X-CSRFToken'] = get_token(request)
+
             return response
 
         except TokenError as e:
