@@ -465,23 +465,17 @@ const goToPrevChapter = () => {
 };
 
 const goToNextChapter = async () => {
+  // 통독 모드에서 마지막 장일 때: 모달 없이 자동 완료 후 바로 다음 장으로 이동
   if (isTongdokMode.value && isAtLastTongdokChapter.value) {
-    if (isScheduleCompleted()) {
-      const savedAction = getSavedAlreadyCompleteAction();
-      if (savedAction) {
-        await handleAlreadyCompleteAction({ action: savedAction, remember: true });
-        return;
+    // 미완료 일정이면 자동 완료 처리 (모달 없이)
+    if (!isScheduleCompleted()) {
+      const success = await completeReading();
+      if (success) {
+        toast.success('통독을 완료했습니다!');
       }
-      showAlreadyCompleteModal.value = true;
-      return;
     }
-
-    if (tongdokAutoComplete.value) {
-      await handleTongdokComplete({ autoComplete: true });
-    } else {
-      showTongdokCompleteModal.value = true;
-    }
-    return;
+    // 통독 모드 해제 후 다음 장으로 이동 (성경통독표 페이지로 이동하지 않음)
+    disableTongdokMode();
   }
 
   goToNextChapterBase();

@@ -16,12 +16,13 @@
         <div class="plan-item-content">
           <div class="plan-info">
             <div class="check-icon-wrapper">
+              <!-- 선택된 플랜: 체크 아이콘 -->
               <svg
-                v-show="isSelected(subscription.plan_id)"
+                v-if="isSelected(subscription.plan_id)"
                 class="check-icon"
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -29,7 +30,24 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <polyline points="20 6 9 17 4 12"></polyline>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <!-- 선택되지 않은 플랜: 빈 원 아이콘 -->
+              <svg
+                v-else
+                class="empty-circle-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
               </svg>
             </div>
             <span class="plan-name">{{ subscription.plan_name }}</span>
@@ -159,6 +177,10 @@ function handleManage() {
 
 .check-icon {
   color: var(--primary-color);
+}
+
+.empty-circle-icon {
+  color: var(--color-slate-300);
 }
 
 .plan-name {
