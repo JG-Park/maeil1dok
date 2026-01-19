@@ -364,19 +364,21 @@ function startReading() {
   
   // 완료 상태면 내일 일정으로 이동하거나 목록으로
   if (todaySchedule.value.isCompleted) {
-    router.push('/plan'); // 또는 내일 일정 로직
+    router.push('/plan');
     return;
   }
   
-  const { book_code, start_chapter } = todaySchedule.value;
+  const { id, book_code, start_chapter } = todaySchedule.value;
   const planId = selectedPlanStore.effectivePlanId;
   
   router.push({
-    path: '/reading',
+    path: '/bible',
     query: {
       plan: planId?.toString(),
       book: book_code,
-      chapter: start_chapter
+      chapter: start_chapter,
+      tongdok: 'true',
+      schedule: id?.toString()
     }
   });
 }
@@ -391,7 +393,7 @@ function startNextReading() {
   const planId = selectedPlanStore.effectivePlanId;
   
   router.push({
-    path: '/reading',
+    path: '/bible',
     query: {
       plan: planId?.toString(),
       book: book_code,
