@@ -1,20 +1,17 @@
+import { useAuthService } from '~/composables/useAuthService'
 import { useReadingSettingsStore } from '~/stores/readingSettings'
 
 export default defineNuxtPlugin({
   name: 'auth-init',
   parallel: false,
   async setup(nuxtApp) {
-    const authStore = useAuthStore()
+    const auth = useAuthService()
     const readingSettingsStore = useReadingSettingsStore()
 
-    authStore.initializeListeners()
-
     try {
-      await authStore.initializeAuth()
+      await auth.initialize()
     } catch (error) {
       console.error('[auth-init] Failed to initialize auth:', error)
-      authStore.user = null
-      authStore.token = null
     }
 
     try {

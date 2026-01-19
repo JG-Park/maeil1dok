@@ -32,10 +32,6 @@ export const useApi = () => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
-    
-    if (auth.user.value) {
-      headers['Authorization'] = `Bearer ${auth.user.value}`
-    }
 
     if (includeCsrf) {
       const csrfToken = getCsrfToken()
@@ -73,21 +69,19 @@ export const useApi = () => {
 
     if (response.status === 401) {
       if (auth.isAuthenticated.value) {
-        const refreshResult = await auth.refreshAccessToken()
+        const refreshSuccess = await auth.refreshToken()
 
-        if (refreshResult === 'success') {
+        if (refreshSuccess) {
           const isMutatingMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(
             (options.method || 'GET').toUpperCase()
           )
           options.headers = getHeaders(isMutatingMethod)
           response = await fetch(url, options)
-        } else if (refreshResult === 'auth_error') {
+        } else {
           if (auth.isAuthenticated.value) {
             auth.logout()
           }
           throw new ApiError('Authentication failed', 401)
-        } else {
-          throw new ApiError('Network error during token refresh', 503)
         }
       } else {
         throw new ApiError('Not authenticated', 401)
@@ -244,9 +238,6 @@ export const useApi = () => {
     async upload(url: string, formData: FormData) {
       try {
         const headers: Record<string, string> = {}
-        if (auth.user.value) {
-          headers['Authorization'] = `Bearer ${auth.user.value}`
-        }
         const csrfToken = getCsrfToken()
         if (csrfToken) {
           headers['X-CSRFToken'] = csrfToken

@@ -51,7 +51,7 @@ onMounted(async () => {
     statusMessage.value = '인증 확인 중입니다...'
     await auth.initializeAuth()
     
-    if (!auth.isAuthenticated) {
+    if (!auth.isAuthenticated.value) {
       navigateTo({
         path: '/account/settings',
         query: { linked: 'error', message: '로그인이 필요합니다' }

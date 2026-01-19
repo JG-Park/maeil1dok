@@ -483,6 +483,86 @@ export function useAuthService() {
     }
   }
 
+  // ===== 호환성 메서드 (useAuthStore에서 마이그레이션) =====
+  
+  /**
+   * 토큰 설정 (호환성 유지용)
+   * HttpOnly 쿠키 기반이므로 실제 토큰 저장은 서버에서 처리
+   */
+  function setTokens(_access: string, _refresh?: string): void {
+    // HttpOnly 쿠키 기반이므로 클라이언트에서 토큰 저장 불필요
+    // 상태만 authenticated로 설정
+    _authState.value = 'authenticated'
+  }
+
+  /**
+   * 사용자 설정 (호환성 유지용)
+   */
+  function setUser(user: AuthUser): void {
+    _user.value = user
+    _authState.value = 'authenticated'
+    saveUserToStorage(user)
+    startRefreshTimer()
+  }
+
+  /**
+   * 사용자 정보 가져오기 (호환성 유지용 - refreshUser alias)
+   */
+  async function fetchUserCompat(): Promise<void> {
+    const user = await fetchUser()
+    if (user) {
+      _user.value = user
+      _authState.value = 'authenticated'
+      saveUserToStorage(user)
+      startRefreshTimer()
+    } else {
+      throw new Error('Failed to fetch user')
+    }
+  }
+
+  /**
+   * 소셜 로그인 (호환성 유지용 - 기존 useAuthStore.socialLogin 형태)
+   */
+  async function socialLogin(provider: string, code: string): Promise<any> {
+    const result = await loginWithSocial(provider as 'kakao' | 'google', { code })
+    
+    if (result.success) {
+      return {
+        access: 'cookie-based', // 실제 토큰은 쿠키에 저장됨
+        user: _user.value
+      }
+    }
+    
+    if (result.needsSignup && result.signupData) {
+      return {
+        needsSignup: true,
+        kakao_id: result.signupData.social_id,
+        google_id: result.signupData.social_id,
+        provider_id: result.signupData.social_id,
+        suggested_nickname: result.signupData.suggested_nickname,
+        profile_image: result.signupData.profile_image,
+        email: result.signupData.email
+      }
+    }
+    
+    throw new Error(result.error || 'Social login failed')
+  }
+
+  /**
+   * 초기화 (호환성 유지용 - initialize alias)
+   */
+  async function initializeAuth(): Promise<void> {
+    return initialize()
+  }
+
+  /**
+   * 리스너 초기화 (호환성 유지용 - 이미 initialize에 포함됨)
+   */
+  function initializeListeners(): void {
+    // initialize()에서 이미 리스너 등록됨
+    // 호환성을 위해 빈 함수 제공
+  }
+
   return {
     // 상태 (읽기 전용)
     user: computed(() => _user.value),
@@ -499,7 +579,16 @@ export function useAuthService() {
     logout,
     refreshUser,
     refreshToken,
-    revalidate
+    revalidate,
+
+    // 호환성 메서드 (useAuthStore에서 마이그레이션)
+    setTokens,
+    setUser,
+    fetchUser: fetchUserCompat,
+    socialLogin,
+    initializeAuth,
+    initializeListeners,
+    refreshAccessToken: refreshToken
   }
 }
 
