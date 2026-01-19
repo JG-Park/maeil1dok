@@ -565,7 +565,7 @@ body,
 }
 
 /* Buttons - default style */
-[data-theme="dark"] button:not(.primary-button):not(.auth-button) {
+[data-theme="dark"] button:not(.primary-button):not(.auth-button):not(.google-button):not(.kakao-button) {
   color: var(--color-text-primary);
 }
 
