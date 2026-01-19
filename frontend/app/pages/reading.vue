@@ -2823,13 +2823,20 @@ const confirmCompleteReading = async () => {
   try {
     isUpdatingStatus.value = true;
 
-    const plan_id = readingDetailResponse.value?.data?.plan_id;
+    const plan_id = readingDetailResponse.value?.data?.plan_id || route.query.plan;
     const currentDetail = currentPlanDetail.value;
+    
+    // 통독모드에서는 URL의 schedule 파라미터를 우선 사용
+    const scheduleId = tongdokMode.value && tongdokScheduleId.value 
+      ? tongdokScheduleId.value 
+      : currentDetail?.schedule_id;
 
-    if (!plan_id || !currentDetail?.schedule_id) {
+    if (!plan_id || !scheduleId) {
       console.warn('읽기 완료 처리 실패: plan_id 또는 schedule_id가 없습니다.', {
         plan_id,
-        schedule_id: currentDetail?.schedule_id,
+        schedule_id: scheduleId,
+        tongdokMode: tongdokMode.value,
+        tongdokScheduleId: tongdokScheduleId.value,
         hasReadingDetail: !!readingDetailResponse.value?.data,
         hasPlanDetail: !!readingDetailResponse.value?.data?.plan_detail,
       });
@@ -2844,8 +2851,8 @@ const confirmCompleteReading = async () => {
     
     // 업데이트할 detail 찾기
     const detailToUpdate = updatedDetails.find(d => 
-      d.schedule_id === currentDetail.schedule_id &&
-      d.book === currentDetail.book
+      d.schedule_id === scheduleId &&
+      (currentDetail ? d.book === currentDetail.book : true)
     );
     
     // 로컬 상태 미리 업데이트 (즉시 UI 반영)
@@ -2867,7 +2874,7 @@ const confirmCompleteReading = async () => {
     // API 호출
     const response = await api.post("/api/v1/todos/reading/update/", {
       plan_id,
-      schedule_ids: [currentDetail.schedule_id],
+      schedule_ids: [scheduleId],
       action: currentAction.value,
     });
 
