@@ -600,9 +600,16 @@ def get_linked_accounts(request):
     user = request.user
     social_accounts = SocialAccount.objects.filter(user=user)
     
+    email = user.email
+    if not email:
+        for sa in social_accounts:
+            if sa.email:
+                email = sa.email
+                break
+    
     return Response({
         'has_password': user.has_password_set(),
-        'email': user.email,
+        'email': email,
         'linked_accounts': [
             {
                 'provider': sa.provider,
