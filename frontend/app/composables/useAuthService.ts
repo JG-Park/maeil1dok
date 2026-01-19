@@ -59,10 +59,24 @@ function getBaseUrl(): string {
   return config.public.apiBase as string
 }
 
+const CSRF_TOKEN_KEY = 'csrfToken'
+
 function getCsrfToken(): string | null {
-  if (typeof document === 'undefined') return null
+  if (typeof window === 'undefined') return null
+  
+  // localStorage에서 먼저 확인 (cross-origin에서 쿠키 접근 불가 시 사용)
+  const storedToken = localStorage.getItem(CSRF_TOKEN_KEY)
+  if (storedToken) return storedToken
+  
+  // 쿠키에서 확인 (same-origin인 경우)
   const match = document.cookie.match(/csrftoken=([^;]+)/)
   return match?.[1] ?? null
+}
+
+function saveCsrfToken(token: string): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(CSRF_TOKEN_KEY, token)
+  }
 }
 
 async function apiRequest<T>(
@@ -87,11 +101,15 @@ async function apiRequest<T>(
       credentials: 'include'
     })
 
+    const csrfTokenFromHeader = response.headers.get('X-CSRFToken')
+    if (csrfTokenFromHeader) {
+      saveCsrfToken(csrfTokenFromHeader)
+    }
+
     let data: T | undefined
     try {
       data = await response.json()
     } catch {
-      // JSON 파싱 실패 시 무시
     }
 
     return { data, status: response.status, ok: response.ok }

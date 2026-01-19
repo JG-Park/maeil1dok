@@ -8,6 +8,13 @@ type AxiosConfig = {
 
 type AxiosRequestConfig = AxiosConfig;
 
+const CSRF_TOKEN_KEY = 'csrfToken'
+
+export const saveCsrfToken = (token: string): void => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(CSRF_TOKEN_KEY, token)
+  }
+}
 
 export const useApi = () => {
   const config = useRuntimeConfig()
@@ -22,10 +29,13 @@ export const useApi = () => {
   }
 
   const getCsrfToken = (): string | null => {
-    if (typeof document === 'undefined') return null
+    if (typeof window === 'undefined') return null
+    
+    const storedToken = localStorage.getItem(CSRF_TOKEN_KEY)
+    if (storedToken) return storedToken
+    
     const match = document.cookie.match(/csrftoken=([^;]+)/)
-    const token = match?.[1]
-    return token !== undefined ? token : null
+    return match?.[1] ?? null
   }
 
   const getHeaders = (includeCsrf: boolean = false): Record<string, string> => {
@@ -67,6 +77,11 @@ export const useApi = () => {
 
     let response = await fetch(url, options)
 
+    const csrfTokenFromHeader = response.headers.get('X-CSRFToken')
+    if (csrfTokenFromHeader) {
+      saveCsrfToken(csrfTokenFromHeader)
+    }
+
     if (response.status === 401) {
       if (auth.isAuthenticated.value) {
         const refreshSuccess = await auth.refreshToken()
@@ -77,6 +92,11 @@ export const useApi = () => {
           )
           options.headers = getHeaders(isMutatingMethod)
           response = await fetch(url, options)
+          
+          const retryTokenFromHeader = response.headers.get('X-CSRFToken')
+          if (retryTokenFromHeader) {
+            saveCsrfToken(retryTokenFromHeader)
+          }
         } else {
           if (auth.isAuthenticated.value) {
             auth.logout()
