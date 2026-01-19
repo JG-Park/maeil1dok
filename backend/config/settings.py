@@ -197,8 +197,8 @@ CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
-_cookie_domain = os.environ.get('COOKIE_DOMAIN', '.maeil1dok.app' if not DEBUG else None)
-_cookie_samesite = os.environ.get('COOKIE_SAMESITE', 'Lax')
+_cookie_domain = os.environ.get('COOKIE_DOMAIN') or ('.maeil1dok.app' if not DEBUG else None)
+_cookie_samesite = os.environ.get('COOKIE_SAMESITE') or 'Lax'
 
 COOKIE_SAMESITE = _cookie_samesite
 CSRF_COOKIE_SAMESITE = _cookie_samesite
