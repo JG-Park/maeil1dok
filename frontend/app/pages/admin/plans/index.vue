@@ -14,8 +14,14 @@
 
     <!-- 스크롤 영역 -->
     <div class="scroll-area">
+      <!-- 인증 초기화 중 -->
+      <div v-if="isAuthLoading" class="loading-indicator fade-in">
+        <div class="spinner"></div>
+        <p>인증 정보를 확인하는 중...</p>
+      </div>
+
       <!-- 인증 및 권한 관련 UI -->
-      <div v-if="!authStore.isAuthenticated" class="message-card fade-in" style="animation-delay: 0.2s">
+      <div v-else-if="!authStore.isAuthenticated" class="message-card fade-in" style="animation-delay: 0.2s">
         <div class="message-icon warning">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9"></path>
@@ -507,6 +513,9 @@ const planForm = ref({
   description: ''
 })
 
+// 초기화 완료 여부
+const isAuthLoading = computed(() => !authStore.isInitialized)
+
 // 관리자 권한 체크
 const isStaff = computed(() => {
   // authStore.user는 { id, username, nickname, profile_image, is_staff } 구조
@@ -516,8 +525,23 @@ const isStaff = computed(() => {
 
 // 마운트 시 디버깅 정보 출력
 onMounted(() => {
-    // 기존 데이터 로드 로직 유지
-  if (authStore.isAuthenticated) {
+  // 디버깅: 현재 인증 상태 로그
+  console.log('[Admin] Auth state:', {
+    isAuthenticated: authStore.isAuthenticated,
+    isInitialized: authStore.isInitialized,
+    user: authStore.user,
+    isStaff: isStaff.value
+  });
+  
+  // 기존 데이터 로드 로직 유지
+  if (authStore.isAuthenticated && isStaff.value) {
+    fetchPlans();
+  }
+})
+
+// 인증 상태 변화 감지하여 플랜 로드
+watch(() => isStaff.value, (newIsStaff) => {
+  if (newIsStaff) {
     fetchPlans();
   }
 })

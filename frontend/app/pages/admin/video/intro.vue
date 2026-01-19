@@ -11,7 +11,12 @@
 
     <!-- 스크롤 영역 -->
     <div class="scroll-area">
-      <div v-if="!authStore.isAuthenticated" class="unauthorized-prompt fade-in" style="animation-delay: 0.2s">
+      <!-- 인증 초기화 중 -->
+      <div v-if="isAuthLoading" class="loading-indicator fade-in">
+        <p>인증 정보를 확인하는 중...</p>
+      </div>
+
+      <div v-else-if="!authStore.isAuthenticated" class="unauthorized-prompt fade-in" style="animation-delay: 0.2s">
         <p class="text-lg text-gray-600 mb-4">
           로그인이 필요한 페이지입니다.
         </p>
@@ -214,6 +219,9 @@ const fileValidationError = ref('')
 const isUploadFormValid = computed(() => {
   return uploadForm.value.planId && uploadForm.value.file && !fileValidationError.value
 })
+
+// 초기화 완료 여부
+const isAuthLoading = computed(() => !authStore.isInitialized)
 
 // 관리자 권한 체크 - 수정
 const isStaff = computed(() => {
