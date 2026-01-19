@@ -94,4 +94,10 @@ watch(() => props.modelValue, () => {
   background: var(--primary-color);
   color: white;
 }
+
+:global([data-theme="dark"]) .month-button.active {
+  background: var(--color-schedule-completed-bg);
+  color: var(--color-schedule-completed-text);
+  border-color: var(--color-schedule-completed-text);
+}
 </style>
