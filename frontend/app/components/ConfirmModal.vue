@@ -73,7 +73,7 @@ const handleOverlayClick = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 50;
+  z-index: 1100;
 }
 
 .modal-container {
