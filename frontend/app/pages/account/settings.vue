@@ -1075,6 +1075,12 @@ onUnmounted(() => {
   color: var(--color-slate-100);
 }
 
+[data-theme="dark"] .profile-email,
+[data-theme="dark"] .setting-description,
+[data-theme="dark"] .section-note {
+  color: var(--color-slate-400);
+}
+
 [data-theme="dark"] .profile-card,
 [data-theme="dark"] .section-content,
 [data-theme="dark"] .logout-button,
