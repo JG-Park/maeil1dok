@@ -303,6 +303,16 @@ const handleBack = () => {
   transform: translateY(0);
 }
 
+[data-theme="dark"] .google-button {
+  background-color: #FFFFFF;
+  color: #1F2937;
+  border-color: #E5E7EB;
+}
+
+[data-theme="dark"] .google-button:hover {
+  background-color: #F9FAFB;
+}
+
 .divider {
   position: relative;
   text-align: center;
