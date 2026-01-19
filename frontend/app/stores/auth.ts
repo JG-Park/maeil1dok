@@ -146,10 +146,19 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async initializeAuth() {
-      await this.restoreUserFromCookie()
+      try {
+        await this.restoreUserFromCookie()
 
-      if (this.user && process.client) {
-        this.startTokenRefreshTimer()
+        if (this.user && process.client) {
+          this.startTokenRefreshTimer()
+        }
+      } catch (error) {
+        console.error('[auth] initializeAuth failed:', error)
+        this.user = null
+        this.token = null
+        if (process.client) {
+          this.saveToLocalStorage()
+        }
       }
     },
 

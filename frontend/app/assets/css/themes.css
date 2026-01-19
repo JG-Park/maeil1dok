@@ -272,34 +272,41 @@
   --button-active-text: var(--color-text-inverse);
 
   /* ===== Schedule Status Colors (Dark) ===== */
-  --color-schedule-completed-bg: #0d2818;
-  --color-schedule-completed-border: #1a4028;
-  --color-schedule-completed-text: #86efac;
-  --color-schedule-completed-hover: #14532d;
+  /* Completed (읽음) - Refined Green tones */
+  --color-schedule-completed-bg: #132e24;
+  --color-schedule-completed-border: #1f4e35;
+  --color-schedule-completed-text: #6ee7b7;
+  --color-schedule-completed-hover: #1a3b2e;
   
-  --color-schedule-missed-bg: #2a1515;
-  --color-schedule-missed-border: #4a2828;
+  /* Missed/Not completed (미완료) - Refined Red tones */
+  --color-schedule-missed-bg: #2e1a1a;
+  --color-schedule-missed-border: #4f2222;
   --color-schedule-missed-text: #fca5a5;
-  --color-schedule-missed-hover: #3b1c1c;
+  --color-schedule-missed-hover: #3b2020;
   
-  --color-schedule-current-bg: #1e2a3a;
-  --color-schedule-current-border: #2d4a6f;
+  /* Current (오늘) - Refined Blue tones */
+  --color-schedule-current-bg: #1a2639;
+  --color-schedule-current-border: #273e63;
   --color-schedule-current-text: #93c5fd;
-  --color-schedule-current-hover: #1e3a5f;
+  --color-schedule-current-hover: #20304a;
   
+  /* Upcoming - Subtle hover state */
   --color-schedule-upcoming-hover: #2d3748;
   
-  --color-schedule-location-bg: #2a2a1a;
-  --color-schedule-location-border: #4a4a28;
+  /* Current location (현재 위치) - Refined Yellow tones */
+  --color-schedule-location-bg: #2e2912;
+  --color-schedule-location-border: #4a4216;
   --color-schedule-location-border-dark: #6a6a38;
   --color-schedule-location-bg-light: #3a3a20;
   --color-schedule-location-text: #fde047;
-  --color-schedule-location-hover: #3a3a20;
+  --color-schedule-location-hover: #3a3316;
   
+  /* Today badge */
   --color-schedule-today-bg: #3b5998;
   
-  --color-schedule-info-bg: #1e3a5f;
-  --color-schedule-info-border: #2d4a6f;
+  /* Info indicator */
+  --color-schedule-info-bg: #1a2639;
+  --color-schedule-info-border: #273e63;
   --color-schedule-info-text: #93c5fd;
 
   /* ===== Bible Content Specific ===== */

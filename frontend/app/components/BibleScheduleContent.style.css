@@ -1193,18 +1193,21 @@
 }
 
 /* Dark Mode Overrides for Schedule Items */
-[data-theme="dark"] .schedule-item {
-  border-color: rgba(255, 255, 255, 0.05); /* 은은한 테두리 */
-}
-
+/* Only apply subtle border to upcoming items, preserving status colors for others */
 [data-theme="dark"] .schedule-item.upcoming {
   background: var(--color-slate-50);
   border-color: rgba(255, 255, 255, 0.05);
 }
 
-[data-theme="dark"] .schedule-item:hover {
+[data-theme="dark"] .schedule-item.upcoming:hover {
   transform: translateY(-1px);
   background: var(--color-bg-hover);
-  border-color: var(--color-slate-200); /* 호버 시 약간 더 선명하게 */
+  border-color: var(--color-slate-200);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Preserve hover effects for status items using their defined variables */
+[data-theme="dark"] .schedule-item:not(.upcoming):hover {
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
