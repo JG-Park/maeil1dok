@@ -525,11 +525,12 @@ const isStaff = computed(() => {
 
 // 마운트 시 디버깅 정보 출력
 onMounted(() => {
-  // 디버깅: 현재 인증 상태 로그
+  // 디버깅: 현재 인증 상태 로그 (실제 값 출력)
+  const user = authStore.user
   console.log('[Admin] Auth state:', {
     isAuthenticated: authStore.isAuthenticated,
-    isInitialized: authStore.isInitialized,
-    user: authStore.user,
+    isInitialized: authStore.isInitialized.value,
+    user: user ? { id: user.id, username: user.username, is_staff: user.is_staff } : null,
     isStaff: isStaff.value
   });
   
