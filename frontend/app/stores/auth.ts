@@ -93,6 +93,10 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    setTokens(access: string, _refresh?: string) {
+      this.setAccessToken(access)
+    },
+
     setUser(user: User) {
       this.user = user
       if (process.client && typeof window !== 'undefined') {
