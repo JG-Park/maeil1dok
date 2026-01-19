@@ -326,16 +326,15 @@ onUnmounted(() => {
 
 /* 프로필 카드 */
 .profile-card {
-  background: white;
-  border: 1px solid #E2E8F0;
+  background: var(--color-bg-card, white);
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
 }
 
 [data-theme="dark"] .profile-card {
   background: var(--color-bg-card);
-  border-color: var(--color-border);
+  box-shadow: none;
 }
 
 .profile-header {
@@ -608,7 +607,8 @@ onUnmounted(() => {
 
 [data-theme="dark"] .tab-section {
   background: var(--color-bg-card);
-  border-color: var(--color-border);
+  border: none;
+  box-shadow: none;
 }
 
 .tab-nav {

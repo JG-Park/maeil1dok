@@ -302,7 +302,7 @@ onMounted(async () => {
 <style scoped>
 .container {
   min-height: 100vh;
-  background: #F9FAFB;
+  background: var(--color-bg-base, #F9FAFB);
   display: flex;
   flex-direction: column;
   max-width: 768px;
@@ -348,8 +348,8 @@ onMounted(async () => {
 }
 
 .tabs {
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-card, white);
+  border: 1px solid var(--color-border-default, #E5E7EB);
   border-radius: 0.5rem;
   padding: 0.25rem;
   display: flex;
@@ -376,7 +376,7 @@ onMounted(async () => {
 }
 
 .tab-button:not(.active):hover {
-  background: #F3F4F6;
+  background: var(--color-bg-hover, #F3F4F6);
 }
 
 .search-bar {
@@ -386,10 +386,11 @@ onMounted(async () => {
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-default, #E5E7EB);
   border-radius: 0.5rem;
   font-size: 0.875rem;
-  background: white;
+  background: var(--color-bg-card, white);
+  color: var(--color-text-primary, inherit);
   transition: all 0.2s ease;
 }
 
@@ -435,7 +436,7 @@ onMounted(async () => {
   display: inline-block;
   width: 2rem;
   height: 2rem;
-  border: 3px solid #E5E7EB;
+  border: 3px solid var(--color-border-default, #E5E7EB);
   border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -511,6 +512,70 @@ onMounted(async () => {
     font-size: 0.9375rem;
     padding: 0.625rem 1.125rem;
   }
+}
+
+/* ===== 다크모드 ===== */
+[data-theme="dark"] .container {
+  background: var(--color-bg-primary);
+}
+
+[data-theme="dark"] .tabs {
+  background: var(--color-bg-card);
+  border: none;
+  box-shadow: none;
+}
+
+[data-theme="dark"] .tab-button {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .tab-button.active {
+  background: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+}
+
+[data-theme="dark"] .tab-button:not(.active):hover {
+  background: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .search-input {
+  background: var(--color-bg-card);
+  border: none;
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .search-input:focus {
+  box-shadow: 0 0 0 2px var(--color-accent-primary);
+}
+
+[data-theme="dark"] .empty-state {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .empty-subtitle {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .loading-state,
+[data-theme="dark"] .error-state {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .spinner {
+  border-color: var(--color-border-default);
+  border-top-color: var(--color-accent-primary);
+}
+
+[data-theme="dark"] .retry-button {
+  background: var(--color-accent-primary);
+}
+
+[data-theme="dark"] .retry-button:hover {
+  background: var(--color-accent-primary-hover, #3B7E63);
 }
 
 /* Tablet Large: iPad Pro and larger tablets */

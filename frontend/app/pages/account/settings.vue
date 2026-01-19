@@ -1079,12 +1079,13 @@ onUnmounted(() => {
 [data-theme="dark"] .section-content,
 [data-theme="dark"] .logout-button,
 [data-theme="dark"] .modal-content {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-slate-700);
+  background: var(--color-bg-card);
+  border: none;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .setting-item {
-  border-color: var(--color-slate-700);
+  border-color: var(--color-border-light, rgba(255, 255, 255, 0.1));
 }
 
 [data-theme="dark"] .action-button {
