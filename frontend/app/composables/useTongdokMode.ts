@@ -192,6 +192,26 @@ export const useTongdokMode = () => {
   };
 
   /**
+   * 현재 일정(스케줄) 전체가 완료되었는지 확인
+   * - readingDetailResponse.data.is_complete 또는
+   * - 모든 plan_detail의 is_complete가 true인 경우
+   */
+  const isScheduleCompleted = (): boolean => {
+    if (!readingDetailResponse.value?.data) return false;
+
+    // 1. 전체 일정 완료 플래그 확인
+    if (readingDetailResponse.value.data.is_complete === true) {
+      return true;
+    }
+
+    // 2. 모든 plan_detail이 완료되었는지 확인
+    const planDetails = readingDetailResponse.value.data.plan_detail;
+    if (!planDetails || planDetails.length === 0) return false;
+
+    return planDetails.every(detail => detail.is_complete === true);
+  };
+
+  /**
    * 통독모드 끄기
    */
   const disableTongdokMode = (): void => {
@@ -404,6 +424,7 @@ export const useTongdokMode = () => {
     getFullScheduleRange,
     isLastChapterInTongdok,
     isChapterCompleted,
+    isScheduleCompleted,
     disableTongdokMode,
     enableTongdokMode,
     setReadingDetailResponse,

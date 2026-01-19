@@ -89,6 +89,14 @@
         @confirm="handleTongdokComplete"
       />
 
+      <!-- 이미 완료된 통독 일정 모달 -->
+      <TongdokAlreadyCompleteModal
+        v-model="showAlreadyCompleteModal"
+        :schedule-range="fullTongdokRange"
+        :is-loading="isCompleting"
+        @action="handleAlreadyCompleteAction"
+      />
+
       <!-- 노트 빠른 메모 모달 -->
       <NoteQuickModal
         v-model="showNoteModal"
@@ -185,6 +193,8 @@ import BibleReaderView from '~/components/bible/BibleReaderView.vue';
 import BookSelector from '~/components/bible/BookSelector.vue';
 import VersionSelector from '~/components/bible/VersionSelector.vue';
 import TongdokCompleteModal from '~/components/bible/TongdokCompleteModal.vue';
+import TongdokAlreadyCompleteModal from '~/components/bible/TongdokAlreadyCompleteModal.vue';
+import type { AlreadyCompleteAction } from '~/components/bible/TongdokAlreadyCompleteModal.vue';
 import NoteQuickModal from '~/components/bible/NoteQuickModal.vue';
 import HighlightModal from '~/components/bible/HighlightModal.vue';
 import ReadingSettingsModal from '~/components/ReadingSettingsModal.vue';
@@ -235,6 +245,7 @@ const {
   getTongdokScheduleRange,
   getFullScheduleRange,
   isLastChapterInTongdok,
+  isScheduleCompleted,
   disableTongdokMode,
   enableTongdokMode,
   completeReading,
@@ -312,6 +323,33 @@ const {
   openHighlightModal,
   closeTongdokCompleteModal,
 } = useBibleModals();
+
+const showAlreadyCompleteModal = ref(false);
+
+const ALREADY_COMPLETE_ACTION_KEY = 'tongdokAlreadyCompleteAction';
+type SavedAlreadyCompleteAction = 're-complete' | 'go-next' | null;
+
+const getSavedAlreadyCompleteAction = (): SavedAlreadyCompleteAction => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(ALREADY_COMPLETE_ACTION_KEY);
+    if (saved === 're-complete' || saved === 'go-next') return saved;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const saveAlreadyCompleteAction = (action: SavedAlreadyCompleteAction): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (action) {
+      localStorage.setItem(ALREADY_COMPLETE_ACTION_KEY, action);
+    } else {
+      localStorage.removeItem(ALREADY_COMPLETE_ACTION_KEY);
+    }
+  } catch {}
+};
 
 // Refs
 const bibleReaderViewRef = ref<InstanceType<typeof BibleReaderView> | null>(null);
@@ -427,8 +465,17 @@ const goToPrevChapter = () => {
 };
 
 const goToNextChapter = async () => {
-  // 통독모드에서 마지막 장인 경우 (tongdok mode는 index.vue에서만 처리)
   if (isTongdokMode.value && isAtLastTongdokChapter.value) {
+    if (isScheduleCompleted()) {
+      const savedAction = getSavedAlreadyCompleteAction();
+      if (savedAction) {
+        await handleAlreadyCompleteAction({ action: savedAction, remember: true });
+        return;
+      }
+      showAlreadyCompleteModal.value = true;
+      return;
+    }
+
     if (tongdokAutoComplete.value) {
       await handleTongdokComplete({ autoComplete: true });
     } else {
@@ -759,28 +806,56 @@ const handleNoteGoDetail = (noteId?: number, _content?: string) => {
 
 // 통독모드: 완료 처리 핸들러
 const handleTongdokComplete = async (payload: { autoComplete: boolean }) => {
-  // 비로그인 사용자는 로그인 페이지로 안내
   if (!requireAuth('로그인해야 통독 기록을 저장할 수 있습니다')) {
     closeTongdokCompleteModal();
     return;
   }
 
-  // 자동 완료 설정 저장
   if (payload.autoComplete !== tongdokAutoComplete.value) {
     readingSettingsStore.updateSetting('tongdokAutoComplete', payload.autoComplete);
   }
 
-  // API 호출
   const success = await completeReading();
 
   closeTongdokCompleteModal();
 
   if (success) {
     toast.success('오늘 통독을 완료했습니다!');
-    // /plan 페이지로 이동
     router.push('/plan');
   } else {
     toast.error('완료 처리에 실패했습니다');
+  }
+};
+
+const handleAlreadyCompleteAction = async (payload: { action: AlreadyCompleteAction; remember: boolean }) => {
+  if (payload.remember && payload.action !== 'cancel') {
+    saveAlreadyCompleteAction(payload.action);
+  }
+
+  showAlreadyCompleteModal.value = false;
+
+  switch (payload.action) {
+    case 're-complete': {
+      if (!requireAuth('로그인해야 통독 기록을 저장할 수 있습니다')) return;
+      const success = await completeReading();
+      if (success) {
+        toast.success('통독을 다시 완료 처리했습니다!');
+        router.push('/plan');
+      } else {
+        toast.error('완료 처리에 실패했습니다');
+      }
+      break;
+    }
+    case 'go-next': {
+      disableTongdokMode();
+      goToNextChapterBase();
+      loadBibleContent(currentBook.value, currentChapter.value);
+      scrollToTop();
+      break;
+    }
+    case 'cancel':
+    default:
+      break;
   }
 };
 
