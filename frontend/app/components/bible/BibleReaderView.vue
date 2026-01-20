@@ -200,15 +200,17 @@
             <ChevronLeftIcon />
           </button>
 
-          <button class="chapter-info" :class="{ 'is-tongdok': isTongdokMode && shortScheduleDate }" @click="$emit('open-book-selector')">
+          <button 
+            class="chapter-info" 
+            :class="{ 'is-tongdok': isTongdokMode && shortScheduleDate }" 
+            @click="isTongdokMode && shortScheduleDate ? $emit('reading-plan-click') : $emit('open-book-selector')"
+          >
           <template v-if="isTongdokMode && shortScheduleDate">
               <span class="schedule-short-date">{{ shortScheduleDate }}</span>
               <div 
                 class="tongdok-completion-group"
-                @click.stop="$emit('tongdok-complete-click')"
-                title="통독 완료하기"
               >
-                <div class="tongdok-checkbox-wrapper">
+                <div class="tongdok-checkbox-wrapper" @click.stop="$emit('tongdok-complete-click')" title="통독 완료하기">
                   <div class="tongdok-custom-checkbox"></div>
                 </div>
                 <span class="schedule-range">{{ tongdokScheduleRange }}</span>
@@ -1735,6 +1737,24 @@ defineExpose({
     padding-left: 10px;
     padding-right: 10px;
   }
+}
+
+.tongdok-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-right: -4px; /* Adjust spacing since we added padding */
+}
+
+.tongdok-checkbox-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .tongdok-checkbox-wrapper:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 </style>
