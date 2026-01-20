@@ -6,7 +6,10 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build": "./scripts/build.sh",
+    "build:slow": "./scripts/build.sh --low-priority",
+    "clean": "./scripts/build.sh --clean"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
