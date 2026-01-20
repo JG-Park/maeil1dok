@@ -104,11 +104,14 @@ def social_login(request):
                 return response
             else:
                 suggested_nickname = user_info.get('properties', {}).get('nickname', '')
+                # 카카오 계정에서 이메일 가져오기 (동의한 경우에만 제공됨)
+                kakao_email = user_info.get('kakao_account', {}).get('email')
                 return Response({
                     'needsSignup': True,
                     'kakao_id': user_info['id'],
                     'suggested_nickname': suggested_nickname,
-                    'profile_image': user_info.get('properties', {}).get('profile_image')
+                    'profile_image': user_info.get('properties', {}).get('profile_image'),
+                    'email': kakao_email
                 }, status=200)
 
     except Exception as e:
@@ -241,6 +244,7 @@ def complete_kakao_signup(request):
         kakao_id = request.data.get('kakao_id')
         profile_image = request.data.get('profile_image')
         access_token = request.data.get('access_token')
+        email = request.data.get('email')  # 카카오에서 제공받은 이메일
         
         if not nickname or not kakao_id or not access_token:
             return Response({'error': '필수 정보가 누락되었습니다.'}, status=400)
@@ -254,9 +258,12 @@ def complete_kakao_signup(request):
             
         social_id = f"kakao_{kakao_id}"
         
+        # 소셜 로그인은 이메일 인증 완료 처리 (email_verified=True)
         user = User.objects.create(
             username=social_id,
             nickname=nickname,
+            email=email,
+            email_verified=True,  # 소셜 로그인은 이미 인증된 것으로 처리
             is_social=True,
             social_provider='kakao',
             social_id=social_id,
