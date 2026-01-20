@@ -98,3 +98,12 @@ mobile/google-service-account.json
 
 # Vercel
 .vercel/
+
+# Analysis & temporary files
+api_usages.txt
+app.json
+
+# OS generated files (redundant safety)
+Thumbs.db
+ehthumbs.db
+Desktop.ini
