@@ -1,15 +1,10 @@
 /**
- * AuthService - 단일 진입점 인증 서비스
+ * AuthService - 단일 진입점 인증 서비스 (SSR-safe)
  * 
- * 모든 인증 관련 작업은 이 서비스를 통해서만 수행합니다.
- * - 로그인/로그아웃
- * - 인증 상태 확인
- * - 토큰 갱신
- * - 초기화
+ * useState를 사용하여 SSR에서 요청 간 상태 격리 보장
  */
 
-import { ref, computed, readonly } from 'vue'
-import type { Ref, ComputedRef } from 'vue'
+import { computed, readonly } from 'vue'
 
 export interface AuthUser {
   id: number
@@ -42,17 +37,13 @@ export interface SocialLoginResult {
   }
 }
 
-// 싱글톤 상태 (모듈 레벨)
-const _user: Ref<AuthUser | null> = ref(null)
-const _authState: Ref<AuthState> = ref('loading')
-const _isInitialized: Ref<boolean> = ref(false)
-const _isRefreshing: Ref<boolean> = ref(false)
-const _refreshPromise: Ref<Promise<boolean> | null> = ref(null)
+// 클라이언트 전용 상태 (토큰 갱신 관련)
 let _refreshInterval: ReturnType<typeof setInterval> | null = null
+let _isRefreshing = false
+let _refreshPromise: Promise<boolean> | null = null
 
-// 내부 헬퍼 함수들
 function getBaseUrl(): string {
-  if (process.server) {
+  if (import.meta.server) {
     return process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8019'
   }
   const config = useRuntimeConfig()
@@ -64,11 +55,9 @@ const CSRF_TOKEN_KEY = 'csrfToken'
 function getCsrfToken(): string | null {
   if (typeof window === 'undefined') return null
   
-  // localStorage에서 먼저 확인 (cross-origin에서 쿠키 접근 불가 시 사용)
   const storedToken = localStorage.getItem(CSRF_TOKEN_KEY)
   if (storedToken) return storedToken
   
-  // 쿠키에서 확인 (same-origin인 경우)
   const match = document.cookie.match(/csrftoken=([^;]+)/)
   return match?.[1] ?? null
 }
@@ -146,83 +135,7 @@ function loadUserFromStorage(): AuthUser | null {
   }
 }
 
-function startRefreshTimer(): void {
-  stopRefreshTimer()
-  if (!process.client) return
-  
-  // 5분마다 토큰 갱신 체크
-  _refreshInterval = setInterval(() => {
-    if (_authState.value === 'authenticated') {
-      refreshToken()
-    }
-  }, 5 * 60 * 1000)
-}
-
-function stopRefreshTimer(): void {
-  if (_refreshInterval) {
-    clearInterval(_refreshInterval)
-    _refreshInterval = null
-  }
-}
-
-// 토큰 갱신 (중복 호출 방지)
-async function refreshToken(): Promise<boolean> {
-  if (_isRefreshing.value && _refreshPromise.value) {
-    return _refreshPromise.value
-  }
-
-  _isRefreshing.value = true
-  _refreshPromise.value = (async () => {
-    try {
-      const result = await apiRequest<{ access?: string }>('POST', '/api/v1/auth/token/refresh/')
-      
-      if (result.status === 401 || result.status === 403) {
-        // 인증 만료 - 로그아웃 처리
-        await _performLogout()
-        return false
-      }
-
-      if (!result.ok || !result.data?.access) {
-        return false
-      }
-
-      return true
-    } catch {
-      return false
-    } finally {
-      _isRefreshing.value = false
-      _refreshPromise.value = null
-    }
-  })()
-
-  return _refreshPromise.value
-}
-
-// 내부 로그아웃 처리
-async function _performLogout(): Promise<void> {
-  stopRefreshTimer()
-  
-  // 서버에 로그아웃 요청 (실패해도 진행)
-  try {
-    await apiRequest('POST', '/api/v1/auth/logout/')
-  } catch {
-    // 무시
-  }
-
-  _user.value = null
-  _authState.value = 'unauthenticated'
-  saveUserToStorage(null)
-
-  // 네이티브 앱 알림
-  if (process.client && typeof window !== 'undefined') {
-    if ((window as any).__nativeBridge?.isNativeApp?.()) {
-      (window as any).__nativeBridge.sendToNative({ type: 'auth:logout' })
-    }
-  }
-}
-
-// 사용자 정보 가져오기
-async function fetchUser(): Promise<AuthUser | null> {
+async function fetchUserFromApi(): Promise<AuthUser | null> {
   const result = await apiRequest<AuthUser>('GET', '/api/v1/auth/user/')
   
   if (!result.ok || !result.data?.id) {
@@ -232,13 +145,80 @@ async function fetchUser(): Promise<AuthUser | null> {
   return result.data
 }
 
-/**
- * 인증 서비스 composable
- */
 export function useAuthService() {
-  /**
-   * 인증 시스템 초기화 (앱 시작 시 1회 호출)
-   */
+  // SSR-safe 상태 (useState로 요청 간 격리)
+  const _user = useState<AuthUser | null>('auth:user', () => null)
+  const _authState = useState<AuthState>('auth:state', () => 'loading')
+  const _isInitialized = useState<boolean>('auth:initialized', () => false)
+
+  function stopRefreshTimer(): void {
+    if (_refreshInterval) {
+      clearInterval(_refreshInterval)
+      _refreshInterval = null
+    }
+  }
+
+  async function performLogout(): Promise<void> {
+    stopRefreshTimer()
+    
+    try {
+      await apiRequest('POST', '/api/v1/auth/logout/')
+    } catch {
+    }
+
+    _user.value = null
+    _authState.value = 'unauthenticated'
+    saveUserToStorage(null)
+
+    if (import.meta.client && typeof window !== 'undefined') {
+      if ((window as any).__nativeBridge?.isNativeApp?.()) {
+        (window as any).__nativeBridge.sendToNative({ type: 'auth:logout' })
+      }
+    }
+  }
+
+  async function refreshToken(): Promise<boolean> {
+    if (_isRefreshing && _refreshPromise) {
+      return _refreshPromise
+    }
+
+    _isRefreshing = true
+    _refreshPromise = (async () => {
+      try {
+        const result = await apiRequest<{ access?: string }>('POST', '/api/v1/auth/token/refresh/')
+        
+        if (result.status === 401 || result.status === 403) {
+          await performLogout()
+          return false
+        }
+
+        if (!result.ok || !result.data?.access) {
+          return false
+        }
+
+        return true
+      } catch {
+        return false
+      } finally {
+        _isRefreshing = false
+        _refreshPromise = null
+      }
+    })()
+
+    return _refreshPromise
+  }
+
+  function startRefreshTimer(): void {
+    stopRefreshTimer()
+    if (!import.meta.client) return
+    
+    _refreshInterval = setInterval(() => {
+      if (_authState.value === 'authenticated') {
+        refreshToken()
+      }
+    }, 5 * 60 * 1000)
+  }
+
   async function initialize(): Promise<void> {
     if (_isInitialized.value) {
       return
@@ -247,14 +227,12 @@ export function useAuthService() {
     _authState.value = 'loading'
 
     try {
-      // 1. localStorage에서 캐시된 사용자 정보 로드 (빠른 UI 표시용)
       const cachedUser = loadUserFromStorage()
       if (cachedUser) {
         _user.value = cachedUser
       }
 
-      // 2. 서버에서 실제 인증 상태 확인
-      const user = await fetchUser()
+      const user = await fetchUserFromApi()
       
       if (user) {
         _user.value = user
@@ -275,24 +253,20 @@ export function useAuthService() {
       _isInitialized.value = true
     }
 
-    // 가시성 변경 리스너 등록
-    if (process.client) {
+    if (import.meta.client) {
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && _authState.value === 'authenticated') {
           refreshToken()
         }
       })
 
-      // 다른 탭과 동기화
       window.addEventListener('storage', (event) => {
         if (event.key === 'auth') {
           const newData = event.newValue ? JSON.parse(event.newValue) : null
           if (!newData?.user && _user.value) {
-            // 다른 탭에서 로그아웃
             _user.value = null
             _authState.value = 'unauthenticated'
           } else if (newData?.user && newData.user.id !== _user.value?.id) {
-            // 다른 탭에서 다른 계정으로 로그인
             _user.value = newData.user
             _authState.value = 'authenticated'
           }
@@ -301,9 +275,6 @@ export function useAuthService() {
     }
   }
 
-  /**
-   * 일반 로그인 (아이디/비밀번호)
-   */
   async function login(username: string, password: string): Promise<LoginResult> {
     try {
       const result = await apiRequest<{ access?: string; user?: AuthUser }>(
@@ -321,8 +292,7 @@ export function useAuthService() {
         }
       }
 
-      // 사용자 정보 가져오기
-      const user = await fetchUser()
+      const user = await fetchUserFromApi()
       if (!user) {
         return { success: false, error: '사용자 정보를 가져올 수 없습니다.' }
       }
@@ -332,13 +302,11 @@ export function useAuthService() {
       saveUserToStorage(user)
       startRefreshTimer()
 
-      // ReadingSettings 초기화
       try {
         const { useReadingSettingsStore } = await import('~/stores/readingSettings')
         const readingSettingsStore = useReadingSettingsStore()
         await readingSettingsStore.onLogin()
       } catch {
-        // 실패해도 로그인은 성공
       }
 
       return { success: true }
@@ -348,9 +316,6 @@ export function useAuthService() {
     }
   }
 
-  /**
-   * 소셜 로그인 (카카오, 구글 등)
-   */
   async function loginWithSocial(
     provider: 'kakao' | 'google',
     payload: { code?: string; access_token?: string }
@@ -376,7 +341,6 @@ export function useAuthService() {
 
       const data = result.data!
 
-      // 회원가입 필요
       if (data.needsSignup) {
         return {
           success: false,
@@ -391,20 +355,17 @@ export function useAuthService() {
         }
       }
 
-      // 로그인 성공
       if (data.access && data.user) {
         _user.value = data.user
         _authState.value = 'authenticated'
         saveUserToStorage(data.user)
         startRefreshTimer()
 
-        // ReadingSettings 초기화
         try {
           const { useReadingSettingsStore } = await import('~/stores/readingSettings')
           const readingSettingsStore = useReadingSettingsStore()
           await readingSettingsStore.onLogin()
         } catch {
-          // 실패해도 로그인은 성공
         }
 
         return { success: true }
@@ -417,9 +378,6 @@ export function useAuthService() {
     }
   }
 
-  /**
-   * 소셜 회원가입 완료
-   */
   async function completeSocialSignup(data: {
     provider: string
     social_id: string
@@ -451,29 +409,21 @@ export function useAuthService() {
     }
   }
 
-  /**
-   * 로그아웃
-   */
   async function logout(): Promise<void> {
-    await _performLogout()
+    await performLogout()
 
-    // 네비게이션 스토어 클리어
-    if (process.client) {
+    if (import.meta.client) {
       try {
         const { useNavigationStore } = await import('~/stores/navigation')
         const navigationStore = useNavigationStore()
         navigationStore.clear()
       } catch {
-        // 무시
       }
     }
   }
 
-  /**
-   * 사용자 정보 새로고침
-   */
   async function refreshUser(): Promise<boolean> {
-    const user = await fetchUser()
+    const user = await fetchUserFromApi()
     if (user) {
       _user.value = user
       saveUserToStorage(user)
@@ -482,11 +432,8 @@ export function useAuthService() {
     return false
   }
 
-  /**
-   * 강제 재인증 (인증 상태 의심 시 호출)
-   */
   async function revalidate(): Promise<boolean> {
-    const user = await fetchUser()
+    const user = await fetchUserFromApi()
     
     if (user) {
       _user.value = user
@@ -501,21 +448,11 @@ export function useAuthService() {
     }
   }
 
-  // ===== 호환성 메서드 (useAuthStore에서 마이그레이션) =====
-  
-  /**
-   * 토큰 설정 (호환성 유지용)
-   * HttpOnly 쿠키 기반이므로 실제 토큰 저장은 서버에서 처리
-   */
+  // 호환성 메서드
   function setTokens(_access: string, _refresh?: string): void {
-    // HttpOnly 쿠키 기반이므로 클라이언트에서 토큰 저장 불필요
-    // 상태만 authenticated로 설정
     _authState.value = 'authenticated'
   }
 
-  /**
-   * 사용자 설정 (호환성 유지용)
-   */
   function setUser(user: AuthUser): void {
     _user.value = user
     _authState.value = 'authenticated'
@@ -523,11 +460,8 @@ export function useAuthService() {
     startRefreshTimer()
   }
 
-  /**
-   * 사용자 정보 가져오기 (호환성 유지용 - refreshUser alias)
-   */
   async function fetchUserCompat(): Promise<void> {
-    const user = await fetchUser()
+    const user = await fetchUserFromApi()
     if (user) {
       _user.value = user
       _authState.value = 'authenticated'
@@ -538,15 +472,12 @@ export function useAuthService() {
     }
   }
 
-  /**
-   * 소셜 로그인 (호환성 유지용 - 기존 useAuthStore.socialLogin 형태)
-   */
   async function socialLogin(provider: string, code: string): Promise<any> {
     const result = await loginWithSocial(provider as 'kakao' | 'google', { code })
     
     if (result.success) {
       return {
-        access: 'cookie-based', // 실제 토큰은 쿠키에 저장됨
+        access: 'cookie-based',
         user: _user.value
       }
     }
@@ -566,30 +497,17 @@ export function useAuthService() {
     throw new Error(result.error || 'Social login failed')
   }
 
-  /**
-   * 초기화 (호환성 유지용 - initialize alias)
-   */
   async function initializeAuth(): Promise<void> {
     return initialize()
   }
 
-  /**
-   * 리스너 초기화 (호환성 유지용 - 이미 initialize에 포함됨)
-   */
-  function initializeListeners(): void {
-    // initialize()에서 이미 리스너 등록됨
-    // 호환성을 위해 빈 함수 제공
-  }
-
   return {
-    // 상태 (읽기 전용)
     user: computed(() => _user.value),
     authState: computed(() => _authState.value),
     isAuthenticated: computed(() => _authState.value === 'authenticated'),
     isLoading: computed(() => _authState.value === 'loading'),
     isInitialized: readonly(_isInitialized),
 
-    // 액션
     initialize,
     login,
     loginWithSocial,
@@ -599,16 +517,12 @@ export function useAuthService() {
     refreshToken,
     revalidate,
 
-    // 호환성 메서드 (useAuthStore에서 마이그레이션)
     setTokens,
     setUser,
     fetchUser: fetchUserCompat,
     socialLogin,
-    initializeAuth,
-    initializeListeners,
-    refreshAccessToken: refreshToken
+    initializeAuth
   }
 }
 
-// 타입 export
 export type AuthService = ReturnType<typeof useAuthService>
