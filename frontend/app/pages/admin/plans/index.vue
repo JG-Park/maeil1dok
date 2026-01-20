@@ -21,7 +21,7 @@
       </div>
 
       <!-- 인증 및 권한 관련 UI -->
-      <div v-else-if="!authStore.isAuthenticated" class="message-card fade-in" style="animation-delay: 0.2s">
+      <div v-else-if="!authStore.isAuthenticated.value" class="message-card fade-in" style="animation-delay: 0.2s">
         <div class="message-icon warning">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9"></path>
@@ -481,7 +481,7 @@
     <Toast ref="toast" />
 
     <!-- 디버깅 버튼 추가 (개발 중에만 사용) -->
-    <div v-if="!isStaff && authStore.isAuthenticated" class="debug-section">
+    <div v-if="!isStaff && authStore.isAuthenticated.value" class="debug-section">
       <p>현재 권한 확인에 문제가 있습니다.</p>
       <button @click="debugAuth" class="debug-button">권한 정보 확인</button>
     </div>
@@ -518,24 +518,24 @@ const isAuthLoading = computed(() => !authStore.isInitialized)
 
 // 관리자 권한 체크
 const isStaff = computed(() => {
-  // authStore.user는 { id, username, nickname, profile_image, is_staff } 구조
+  // authStore.user.value는 { id, username, nickname, profile_image, is_staff } 구조
   // is_staff는 user 객체의 직접 속성임
-  return authStore.isAuthenticated && Boolean(authStore.user?.is_staff);
+  return authStore.isAuthenticated.value && Boolean(authStore.user.value?.is_staff);
 })
 
 // 마운트 시 디버깅 정보 출력
 onMounted(() => {
   // 디버깅: 현재 인증 상태 로그 (실제 값 출력)
-  const user = authStore.user
+  const user = authStore.user.value
   console.log('[Admin] Auth state:', {
-    isAuthenticated: authStore.isAuthenticated,
+    isAuthenticated: authStore.isAuthenticated.value,
     isInitialized: authStore.isInitialized.value,
     user: user ? { id: user.id, username: user.username, is_staff: user.is_staff } : null,
     isStaff: isStaff.value
   });
   
   // 기존 데이터 로드 로직 유지
-  if (authStore.isAuthenticated && isStaff.value) {
+  if (authStore.isAuthenticated.value && isStaff.value) {
     fetchPlans();
   }
 })
@@ -710,8 +710,8 @@ watch(() => authStore.isAuthenticated, async (newValue) => {
 })
 
 // 추가: 사용자 정보 변경 감지
-watch(() => authStore.user, async (newUser) => {
-  if (authStore.isAuthenticated && newUser) {
+watch(() => authStore.user.value, async (newUser) => {
+  if (authStore.isAuthenticated.value && newUser) {
     await nextTick();
     if (isStaff.value) {
     await fetchPlans();

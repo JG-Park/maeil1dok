@@ -16,7 +16,7 @@
         <p>인증 정보를 확인하는 중...</p>
       </div>
 
-      <div v-else-if="!authStore.isAuthenticated" class="unauthorized-prompt fade-in" style="animation-delay: 0.2s">
+      <div v-else-if="!authStore.isAuthenticated.value" class="unauthorized-prompt fade-in" style="animation-delay: 0.2s">
         <p class="text-lg text-gray-600 mb-4">
           로그인이 필요한 페이지입니다.
         </p>
@@ -225,9 +225,9 @@ const isAuthLoading = computed(() => !authStore.isInitialized)
 
 // 관리자 권한 체크 - 수정
 const isStaff = computed(() => {
-  // authStore.user는 { id, username, nickname, profile_image, is_staff } 구조
+  // authStore.user.value는 { id, username, nickname, profile_image, is_staff } 구조
   // is_staff는 user 객체의 직접 속성임
-  return authStore.isAuthenticated && Boolean(authStore.user?.is_staff);
+  return authStore.isAuthenticated.value && Boolean(authStore.user.value?.is_staff);
 })
 
 // 페이지 접근 권한 체크 - 수정
@@ -455,7 +455,7 @@ const formatDate = (dateString) => {
 // 초기 데이터 로드 - 수정
 onMounted(async () => {
   // 인증 상태가 이미 로드되었는지 확인
-  if (authStore.isAuthenticated && authStore.user) {
+  if (authStore.isAuthenticated.value && authStore.user.value) {
     await nextTick();
     if (await checkAccess()) {
       fetchPlans();
@@ -463,7 +463,7 @@ onMounted(async () => {
     }
   } else {
     // 인증 상태가 로드될 때까지 기다림
-    const unwatch = watch(() => authStore.user, async (newUser) => {
+    const unwatch = watch(() => authStore.user.value, async (newUser) => {
       if (newUser) {
         await nextTick();
         if (await checkAccess()) {
@@ -488,8 +488,8 @@ watch(() => authStore.isAuthenticated, async (newValue) => {
 })
 
 // 추가: 사용자 정보 변경 감지
-watch(() => authStore.user, async (newUser) => {
-  if (authStore.isAuthenticated && newUser?.is_staff) {
+watch(() => authStore.user.value, async (newUser) => {
+  if (authStore.isAuthenticated.value && newUser?.is_staff) {
     await fetchPlans();
     await fetchVideoIntros();
   }
