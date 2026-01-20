@@ -37,10 +37,8 @@ export interface SocialLoginResult {
   }
 }
 
-// 클라이언트 전용 상태 (토큰 갱신 관련)
+// 클라이언트 전용 상태 (토큰 갱신 타이머)
 let _refreshInterval: ReturnType<typeof setInterval> | null = null
-let _isRefreshing = false
-let _refreshPromise: Promise<boolean> | null = null
 
 function getBaseUrl(): string {
   if (import.meta.server) {
@@ -146,10 +144,14 @@ async function fetchUserFromApi(): Promise<AuthUser | null> {
 }
 
 export function useAuthService() {
-  // SSR-safe 상태 (useState로 요청 간 격리)
   const _user = useState<AuthUser | null>('auth:user', () => null)
   const _authState = useState<AuthState>('auth:state', () => 'loading')
   const _isInitialized = useState<boolean>('auth:initialized', () => false)
+  const _initPromise = useState<Promise<void> | null>('auth:initPromise', () => null)
+  const _refreshState = useState<{ isRefreshing: boolean; promise: Promise<boolean> | null }>(
+    'auth:refreshState',
+    () => ({ isRefreshing: false, promise: null })
+  )
 
   function stopRefreshTimer(): void {
     if (_refreshInterval) {
@@ -178,12 +180,12 @@ export function useAuthService() {
   }
 
   async function refreshToken(): Promise<boolean> {
-    if (_isRefreshing && _refreshPromise) {
-      return _refreshPromise
+    if (_refreshState.value.isRefreshing && _refreshState.value.promise) {
+      return _refreshState.value.promise
     }
 
-    _isRefreshing = true
-    _refreshPromise = (async () => {
+    _refreshState.value.isRefreshing = true
+    _refreshState.value.promise = (async () => {
       try {
         const result = await apiRequest<{ access?: string }>('POST', '/api/v1/auth/token/refresh/')
         
@@ -200,12 +202,12 @@ export function useAuthService() {
       } catch {
         return false
       } finally {
-        _isRefreshing = false
-        _refreshPromise = null
+        _refreshState.value.isRefreshing = false
+        _refreshState.value.promise = null
       }
     })()
 
-    return _refreshPromise
+    return _refreshState.value.promise
   }
 
   function startRefreshTimer(): void {
@@ -224,55 +226,64 @@ export function useAuthService() {
       return
     }
 
-    _authState.value = 'loading'
+    if (_initPromise.value) {
+      return _initPromise.value
+    }
 
-    try {
-      const cachedUser = loadUserFromStorage()
-      if (cachedUser) {
-        _user.value = cachedUser
-      }
+    _initPromise.value = (async () => {
+      _authState.value = 'loading'
 
-      const user = await fetchUserFromApi()
-      
-      if (user) {
-        _user.value = user
-        _authState.value = 'authenticated'
-        saveUserToStorage(user)
-        startRefreshTimer()
-      } else {
+      try {
+        const cachedUser = loadUserFromStorage()
+        if (cachedUser) {
+          _user.value = cachedUser
+        }
+
+        const user = await fetchUserFromApi()
+        
+        if (user) {
+          _user.value = user
+          _authState.value = 'authenticated'
+          saveUserToStorage(user)
+          startRefreshTimer()
+        } else {
+          _user.value = null
+          _authState.value = 'unauthenticated'
+          saveUserToStorage(null)
+        }
+      } catch (error) {
+        console.error('[AuthService] Initialization failed:', error)
         _user.value = null
         _authState.value = 'unauthenticated'
         saveUserToStorage(null)
+      } finally {
+        _isInitialized.value = true
+        _initPromise.value = null
       }
-    } catch (error) {
-      console.error('[AuthService] Initialization failed:', error)
-      _user.value = null
-      _authState.value = 'unauthenticated'
-      saveUserToStorage(null)
-    } finally {
-      _isInitialized.value = true
-    }
 
-    if (import.meta.client) {
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && _authState.value === 'authenticated') {
-          refreshToken()
-        }
-      })
-
-      window.addEventListener('storage', (event) => {
-        if (event.key === 'auth') {
-          const newData = event.newValue ? JSON.parse(event.newValue) : null
-          if (!newData?.user && _user.value) {
-            _user.value = null
-            _authState.value = 'unauthenticated'
-          } else if (newData?.user && newData.user.id !== _user.value?.id) {
-            _user.value = newData.user
-            _authState.value = 'authenticated'
+      if (import.meta.client) {
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && _authState.value === 'authenticated') {
+            refreshToken()
           }
-        }
-      })
-    }
+        })
+
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'auth') {
+            const newData = event.newValue ? JSON.parse(event.newValue) : null
+            if (!newData?.user && _user.value) {
+              _user.value = null
+              _authState.value = 'unauthenticated'
+            } else if (newData?.user && newData.user.id !== _user.value?.id) {
+              _user.value = newData.user
+              _authState.value = 'authenticated'
+            }
+          }
+        })
+      }
+    })()
+
+    return _initPromise.value
   }
 
   async function login(username: string, password: string): Promise<LoginResult> {

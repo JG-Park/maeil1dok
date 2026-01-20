@@ -1299,7 +1299,7 @@ const fetchHasenaStatus = async () => {
   try {
     // 로그인 상태 확인 후 API 호출
     const authStore = useAuthService();
-    if (!authStore.isAuthenticated) {
+    if (!authStore.isAuthenticated.value) {
       // 로그인하지 않은 경우 API 호출하지 않음
       return;
     }

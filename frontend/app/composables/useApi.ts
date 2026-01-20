@@ -53,13 +53,14 @@ export const useApi = () => {
     return headers
   }
 
-  // API 에러 클래스 - 상태 코드 포함
   class ApiError extends Error {
     status: number
-    constructor(message: string, status: number) {
+    data: any
+    constructor(message: string, status: number, data?: any) {
       super(message)
       this.name = 'ApiError'
       this.status = status
+      this.data = data
     }
   }
 
@@ -109,7 +110,13 @@ export const useApi = () => {
     }
 
     if (!response.ok) {
-      throw new ApiError(`API request failed: ${response.status}`, response.status)
+      let errorData
+      try {
+        errorData = await response.json()
+      } catch {
+        errorData = null
+      }
+      throw new ApiError(`API request failed: ${response.status}`, response.status, errorData)
     }
 
     return response

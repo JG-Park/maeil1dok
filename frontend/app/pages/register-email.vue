@@ -203,7 +203,7 @@ const checkNickname = async () => {
   nicknameCheckTimeout = setTimeout(async () => {
     try {
       const response = await api.post('/api/v1/auth/check-nickname/', { nickname: value })
-      if (response.available) {
+      if (response.data?.available) {
         isNicknameChecked.value = true
         nicknameError.value = ''
       } else {

@@ -33,7 +33,8 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      status.value = await api.get(`/api/v1/todos/subscriptions/${subscriptionId}/catchup-status/`)
+      const response = await api.get(`/api/v1/todos/subscriptions/${subscriptionId}/catchup-status/`)
+      status.value = response.data
       if (status.value?.active_catchup_session) {
         activeSession.value = status.value.active_catchup_session
       }
@@ -48,9 +49,12 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      activeSessions.value = await api.get('/api/v1/todos/catchup-sessions/active/')
-      if (activeSessions.value.length > 0) {
-        activeSession.value = activeSessions.value[0]
+      const response = await api.get('/api/v1/todos/catchup-sessions/active/')
+      const sessions = (response.data || []) as CatchupSession[]
+      activeSessions.value = sessions
+      const firstSession = sessions[0]
+      if (firstSession) {
+        activeSession.value = firstSession
       }
     } catch (e: any) {
       error.value = e.message || '세션 목록을 불러올 수 없습니다'
@@ -66,11 +70,12 @@ export const useCatchupStore = defineStore('catchup', () => {
     error.value = null
     try {
       const today = new Date().toISOString().split('T')[0]
-      const response: CatchupSchedulesResponse = await api.get(
+      const response = await api.get(
         `/api/v1/todos/catchup-sessions/${activeSession.value.id}/schedules/?date=${today}`
       )
-      if (response.schedules.length > 0) {
-        todaySchedules.value = response.schedules[0].items
+      const data = response.data as CatchupSchedulesResponse | undefined
+      if (data?.schedules?.length > 0) {
+        todaySchedules.value = data.schedules[0].items
       } else {
         todaySchedules.value = []
       }

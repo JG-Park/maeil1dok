@@ -120,7 +120,7 @@ export const useHighlight = () => {
     try {
       isHighlightLoading.value = true;
       const response = await api.post('/api/v1/todos/bible/highlights/', data);
-      const newHighlight = response.data || response;
+      const newHighlight = response.data;
       if (newHighlight?.id) {
         chapterHighlights.value.push(newHighlight);
         return newHighlight;
@@ -147,7 +147,7 @@ export const useHighlight = () => {
     try {
       isHighlightLoading.value = true;
       const response = await api.put(`/api/v1/todos/bible/highlights/${id}/`, data);
-      const updated = response.data || response;
+      const updated = response.data;
 
       if (updated?.id) {
         const index = chapterHighlights.value.findIndex(h => h.id === id);

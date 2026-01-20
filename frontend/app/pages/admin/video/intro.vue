@@ -256,13 +256,11 @@ const fetchPlans = async () => {
     loading.value = true
     const response = await api.get('/api/v1/todos/bible-plans/')
 
-    // 응답 구조 처리 - data 속성 확인
-    if (response.data && Array.isArray(response.data)) {
-      plans.value = response.data
-    } else if (Array.isArray(response)) {
-      plans.value = response
-    } else if (response.results && Array.isArray(response.results)) {
-      plans.value = response.results
+    const data = response.data
+    if (Array.isArray(data)) {
+      plans.value = data
+    } else if (data?.results && Array.isArray(data.results)) {
+      plans.value = data.results
     } else {
       showToastMessage('플랜 목록 형식이 올바르지 않습니다.', 'error')
     }
@@ -286,13 +284,11 @@ const fetchVideoIntros = async () => {
 
     const response = await api.get(url)
 
-    // 응답 구조 처리 - data 속성 확인
-    if (response.data && Array.isArray(response.data)) {
-      videoIntros.value = response.data
-    } else if (Array.isArray(response)) {
-      videoIntros.value = response
-    } else if (response.results && Array.isArray(response.results)) {
-      videoIntros.value = response.results
+    const data = response.data
+    if (Array.isArray(data)) {
+      videoIntros.value = data
+    } else if (data?.results && Array.isArray(data.results)) {
+      videoIntros.value = data.results
     } else {
       showToastMessage('영상 개론 목록 형식이 올바르지 않습니다.', 'error')
     }
