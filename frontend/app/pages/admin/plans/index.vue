@@ -557,30 +557,23 @@ const fetchPlans = async () => {
 
     // 정확한 API 경로 사용
     const response = await api.get('/api/v1/todos/bible-plans/')
+    
+    // useApi.get()은 { data: 실제응답 } 형태로 반환
+    const data = response?.data;
 
     // 응답 데이터 구조 확인 및 처리
-    if (response && response.data && Array.isArray(response.data)) {
-      // data 배열이 있는 경우 (API가 {data: [...]} 형태로 응답)
-      plans.value = response.data;
-    } else if (Array.isArray(response)) {
-      // 응답 자체가 배열인 경우
-      plans.value = response;
-    } else if (response && Array.isArray(response.results)) {
-      // 응답이 {results: [...]} 형태인 경우
-      plans.value = response.results;
-    } else if (response && typeof response === 'object') {
-      // 응답이 단일 객체인 경우
-      if (Object.keys(response).length > 0 && !response.data) {
-        plans.value = [response];
-      } else {
-        plans.value = [];
-      }
+    if (data && Array.isArray(data.results)) {
+      // DRF 페이지네이션 응답: { count, results: [...] }
+      plans.value = data.results;
+    } else if (Array.isArray(data)) {
+      // 응답이 배열인 경우
+      plans.value = data;
     } else {
       plans.value = [];
       error.value = '응답 데이터 형식이 올바르지 않습니다';
     }
 
-  } catch (error) {
+  } catch (err) {
     plans.value = [];
     error.value = '플랜 목록을 불러오는데 실패했습니다.';
     showToastMessage('플랜 목록을 불러오는데 실패했습니다.', 'error');
