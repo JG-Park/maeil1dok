@@ -691,7 +691,7 @@ const editPlan = (plan) => {
 }
 
 // 인증 상태 변경 감지 유지 - 수정
-watch(() => authStore.isAuthenticated, async (newValue) => {
+watch(() => authStore.isAuthenticated.value, async (newValue) => {
   if (newValue) {
     await nextTick();
     if (isStaff.value) {

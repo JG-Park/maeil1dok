@@ -361,7 +361,7 @@ const { goBack } = useNavigation()
 
 const loading = ref(true)
 const linkedAccounts = ref<any>(null)
-const user = computed(() => auth.user)
+const user = computed(() => auth.user.value)
 
 // Password modal
 const showPasswordModal = ref(false)
@@ -615,7 +615,7 @@ const formatDate = (dateString: string) => {
 }
 
 onMounted(async () => {
-  if (!auth.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     navigateTo('/login')
     return
   }

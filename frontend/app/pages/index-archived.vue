@@ -57,7 +57,7 @@
             <h2>오늘일독</h2>
             <div
               v-if="
-                auth.isAuthenticated &&
+                auth.isAuthenticated.value &&
                 subscriptionStore.activeSubscriptions.length > 1
               "
               class="plan-selector"
@@ -283,7 +283,7 @@
           <h2>참여 현황</h2>
           <div
             v-if="
-              auth.isAuthenticated && subscriptionStore.activeSubscriptions.length > 1
+              auth.isAuthenticated.value && subscriptionStore.activeSubscriptions.length > 1
             "
             class="plan-selector"
           >
@@ -416,7 +416,7 @@
           <h2>진행률</h2>
           <div
             v-if="
-              auth.isAuthenticated && subscriptionStore.activeSubscriptions.length > 1
+              auth.isAuthenticated.value && subscriptionStore.activeSubscriptions.length > 1
             "
             class="plan-selector"
           >
@@ -607,7 +607,7 @@
             </div>
           </NuxtLink>
 
-          <NuxtLink v-if="auth.isAuthenticated && auth.user?.id" :to="`/profile/${auth.user.id}`" class="social-card">
+          <NuxtLink v-if="auth.isAuthenticated.value && auth.user.value?.id" :to="`/profile/${auth.user.value.id}`" class="social-card">
             <div class="social-icon">
               <svg
                 width="24"
@@ -754,7 +754,7 @@ const auth = useAuthService();
 const api = useApi();
 const subscriptionStore = useSubscriptionStore();
 const selectedPlanStore = useSelectedPlanStore();
-const isAuthenticated = computed(() => auth.isAuthenticated);
+const isAuthenticated = computed(() => auth.isAuthenticated.value);
 
 const router = useRouter();
 const introTasks = ref([]);
@@ -774,7 +774,7 @@ const selectedPlanId = computed({
 });
 
 const selectedPlanName = computed(() => {
-  if (!auth.isAuthenticated) return "기본 플랜";
+  if (!auth.isAuthenticated.value) return "기본 플랜";
 
   const selectedPlan = subscriptionStore.activeSubscriptions.find(
     (sub) => sub.plan_id === selectedPlanId.value
@@ -820,7 +820,7 @@ const fetchStats = async () => {
 
 (async () => {
   try {
-    if (auth.isAuthenticated) {
+    if (auth.isAuthenticated.value) {
       await subscriptionStore.fetchSubscriptions();
 
       selectedPlanStore.initializeFromStorage();
@@ -1048,7 +1048,7 @@ watch(
 
 // auth 상태 변경 감시 수정
 watch(
-  () => auth.isAuthenticated,
+  () => auth.isAuthenticated.value,
   async (newValue) => {
     if (newValue) {
       await subscriptionStore.fetchSubscriptions();
@@ -1279,7 +1279,7 @@ const fetchVideoIntros = async () => {
 
 // auth 상태 변화 감지 시 영상 개론 목록 갱신
 watch(
-  () => auth.isAuthenticated,
+  () => auth.isAuthenticated.value,
   (newValue) => {
     // 로그인 상태에 관계없이 항상 fetchVideoIntros 호출
     fetchVideoIntros();

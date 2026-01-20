@@ -172,7 +172,7 @@ const fetchVideoIntro = async () => {
     videoIntro.value = response.data
 
     // 현재 사용자의 이 영상에 대한 완료 상태 확인
-    if (authStore.isAuthenticated) {
+    if (authStore.isAuthenticated.value) {
       await checkCompletionStatus()
     }
   } catch (err) {
@@ -184,7 +184,7 @@ const fetchVideoIntro = async () => {
 
 // 사용자의 완료 상태 확인
 const checkCompletionStatus = async () => {
-  if (!authStore.isAuthenticated || !videoIntroId.value) {
+  if (!authStore.isAuthenticated.value || !videoIntroId.value) {
     return;
   }
   
@@ -232,7 +232,7 @@ const checkCompletionStatus = async () => {
 
 // 영상 시청 완료 표시
 const toggleCompletion = async () => {
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated.value) {
     // 로그인이 필요한 경우 로그인 페이지로 이동
     router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`)
     return

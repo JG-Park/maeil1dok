@@ -738,7 +738,7 @@ const loadBibleContent = async (book, chapter) => {
 
 // 마지막 읽기 위치 불러오기
 const loadReadingPosition = async () => {
-  if (!authStore.isAuthenticated) return null;
+  if (!authStore.isAuthenticated.value) return null;
 
   try {
     const response = await api.get('/api/v1/bible/reading-position/');
@@ -753,7 +753,7 @@ const loadReadingPosition = async () => {
 // 마지막 읽기 위치 저장 (debounced)
 let savePositionTimeout = null;
 const saveReadingPosition = async (immediate = false) => {
-  if (!authStore.isAuthenticated || isSavingPosition.value) return;
+  if (!authStore.isAuthenticated.value || isSavingPosition.value) return;
 
   // 현재 스크롤 위치 계산
   const scrollPosition = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight) || 0;
@@ -840,7 +840,7 @@ const startFresh = () => {
 
 // 현재 장의 북마크 목록 불러오기
 const loadBookmarks = async () => {
-  if (!authStore.isAuthenticated) return;
+  if (!authStore.isAuthenticated.value) return;
 
   try {
     isBookmarkLoading.value = true;
@@ -870,7 +870,7 @@ const isCurrentChapterBookmarked = computed(() => {
 
 // 북마크 토글 (장 단위)
 const toggleBookmark = async () => {
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated.value) {
     showLoginModal.value = true;
     return;
   }
@@ -922,7 +922,7 @@ const toggleBookmark = async () => {
 
 // 현재 장의 묵상노트 불러오기
 const loadNotes = async () => {
-  if (!authStore.isAuthenticated) return;
+  if (!authStore.isAuthenticated.value) return;
 
   try {
     isNoteLoading.value = true;
@@ -950,7 +950,7 @@ const hasNotesForCurrentChapter = computed(() => {
 
 // 묵상노트 모달 열기
 const openNoteModal = () => {
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated.value) {
     showLoginModal.value = true;
     return;
   }
@@ -1051,7 +1051,7 @@ const deleteNote = async () => {
 
 // 개인 읽기 기록 저장 (장 이동 시 자동 호출)
 const savePersonalReadingRecord = async () => {
-  if (!authStore.isAuthenticated) return;
+  if (!authStore.isAuthenticated.value) return;
 
   try {
     await api.post('/api/v1/bible/personal-records/', {
@@ -1121,7 +1121,7 @@ const isLastChapterInTongdok = computed(() => {
 // 통독모드 자동 완료 처리
 const handleTongdokAutoComplete = async () => {
   if (!tongdokMode.value || !isLastChapterInTongdok.value) return;
-  if (!authStore.isAuthenticated) return;
+  if (!authStore.isAuthenticated.value) return;
   if (!route.query.plan) return;
 
   try {
@@ -2216,7 +2216,7 @@ const goToNextChapter = (event) => {
 
   // 로그인한 사용자이고, 현재 장이 구간의 마지막 장인 경우에만 완료 확인 모달 표시
   if (
-    authStore.isAuthenticated &&
+    authStore.isAuthenticated.value &&
     currentDetail &&
     !currentDetail.is_complete && // 읽지 않은 일정일 때만
     currentBook.value === currentDetail.book &&
@@ -2444,7 +2444,7 @@ watch(
 watch(
   [currentBook, currentChapter],
   () => {
-    if (currentBook.value && currentChapter.value && authStore.isAuthenticated) {
+    if (currentBook.value && currentChapter.value && authStore.isAuthenticated.value) {
       loadBookmarks();
       loadNotes();
       savePersonalReadingRecord();
@@ -2513,7 +2513,7 @@ onMounted(async () => {
   window.addEventListener("scroll", handleScroll, { passive: true });
 
   // 읽기 위치 저장을 위한 스크롤 이벤트 추가
-  if (authStore.isAuthenticated) {
+  if (authStore.isAuthenticated.value) {
     window.addEventListener("scroll", handleScrollForPosition, { passive: true });
   }
 
@@ -2755,7 +2755,7 @@ const handleScheduleClick = (schedule) => {
 // 읽기 완료 처리 함수 수정
 const handleCompleteReading = () => {
   // 로그인 체크 추가
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated.value) {
     showLoginModal.value = true;
     return;
   }
@@ -2771,7 +2771,7 @@ const handleCompleteReading = () => {
 // 읽기 완료 취소 처리 함수 수정
 const handleCancelReading = () => {
   // 로그인 체크 추가
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated.value) {
     showLoginModal.value = true;
     return;
   }
@@ -3139,7 +3139,7 @@ onUnmounted(() => {
     clearSelection();
 
     // 페이지 이탈 시 마지막 읽기 위치 저장
-    if (authStore.isAuthenticated) {
+    if (authStore.isAuthenticated.value) {
       saveReadingPosition(true);
     }
   }
@@ -3634,7 +3634,7 @@ onUnmounted(() => {
             completed: readingStatus === 'completed',
             'not-completed': readingStatus === 'not-completed',
             current: isToday,
-            upcoming: !authStore.isAuthenticated && isFutureDate,
+            upcoming: !authStore.isAuthenticated.value && isFutureDate,
           }">
             <div class="status-icon" v-if="readingStatus === 'completed'">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

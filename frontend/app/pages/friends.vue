@@ -179,10 +179,10 @@ const fetchFriends = async () => {
 
 // 팔로워 목록 가져오기
 const fetchFollowers = async () => {
-  if (!authStore.user) return
+  if (!auth.user.value) return
 
   try {
-    const response = await useApi().get(`/api/v1/accounts/followers/${authStore.user.id}/`)
+    const response = await useApi().get(`/api/v1/accounts/followers/${auth.user.value.id}/`)
     if (response.data?.success) {
       // 하위 호환: response.data.data?.followers 또는 response.data.followers
       followersList.value = response.data.data?.followers ?? response.data.followers ?? []
@@ -194,10 +194,10 @@ const fetchFollowers = async () => {
 
 // 팔로잉 목록 가져오기
 const fetchFollowing = async () => {
-  if (!authStore.user) return
+  if (!auth.user.value) return
 
   try {
-    const response = await useApi().get(`/api/v1/accounts/following/${authStore.user.id}/`)
+    const response = await useApi().get(`/api/v1/accounts/following/${auth.user.value.id}/`)
     if (response.data?.success) {
       // 하위 호환: response.data.data?.following 또는 response.data.following
       followingList.value = response.data.data?.following ?? response.data.following ?? []
@@ -281,7 +281,7 @@ const handleUnfollow = async (userId) => {
 
 onMounted(async () => {
   // 비로그인 사용자는 로그인 페이지로 리다이렉트
-  if (!authStore.isAuthenticated) {
+  if (!auth.isAuthenticated.value) {
     navigateTo('/login')
     return
   }

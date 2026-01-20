@@ -477,7 +477,7 @@ onMounted(async () => {
 })
 
 // 인증 상태 변경 감지 유지
-watch(() => authStore.isAuthenticated, async (newValue) => {
+watch(() => authStore.isAuthenticated.value, async (newValue) => {
   if (newValue && isStaff.value) {
     await fetchPlans();
     await fetchVideoIntros();
