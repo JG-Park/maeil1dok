@@ -128,7 +128,7 @@ const handleKakaoCallback = async (code: string, isFromApp = false, appScheme?: 
           needsSignup: 'true',
           provider: 'kakao',
           provider_id: response.kakao_id || '',
-          email: '',
+          email: response.email || '',
           suggested_nickname: response.suggested_nickname || '',
           profile_image: response.profile_image || ''
         })
@@ -138,7 +138,8 @@ const handleKakaoCallback = async (code: string, isFromApp = false, appScheme?: 
           query: {
             kakao_id: response.kakao_id,
             suggested_nickname: response.suggested_nickname,
-            profile_image: response.profile_image
+            profile_image: response.profile_image,
+            email: response.email || ''
           }
         })
       }

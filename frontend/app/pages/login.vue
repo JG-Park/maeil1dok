@@ -177,7 +177,8 @@ const handleSubmit = async () => {
 
 const handleKakaoLogin = () => {
   const redirectUri = encodeURIComponent(config.public.KAKAO_REDIRECT_URI)
-  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
+  // scope: profile_nickname, profile_image, account_email 권한 요청
+  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${config.public.KAKAO_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=profile_nickname,profile_image,account_email`
   window.location.href = kakaoAuthUrl
 }
 

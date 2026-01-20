@@ -101,6 +101,7 @@ const nickname = ref('')
 const profileImage = ref<string | null>(null)
 const loading = ref(false)
 const kakaoId = ref<string | null>(null)
+const email = ref<string | null>(null)
 const nicknameError = ref('')
 const isNicknameChecked = ref(false)
 let nicknameCheckTimeout: ReturnType<typeof setTimeout> | null = null
@@ -148,6 +149,7 @@ onMounted(() => {
   kakaoId.value = route.query.kakao_id as string || null
   nickname.value = route.query.suggested_nickname as string || ''
   profileImage.value = route.query.profile_image as string || null
+  email.value = route.query.email as string || null
 
   if (!kakaoId.value) {
     navigateTo('/login')
@@ -162,7 +164,8 @@ const handleSubmit = async () => {
     const response = await api.post('/api/v1/auth/complete-kakao-signup/', {
       kakao_id: kakaoId.value,
       nickname: nickname.value,
-      profile_image: profileImage.value
+      profile_image: profileImage.value,
+      email: email.value
     })
 
     const data = response.data

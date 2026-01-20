@@ -337,6 +337,7 @@ export function useAuthService() {
         user?: AuthUser
         needsSignup?: boolean
         social_id?: string
+        kakao_id?: string | number  // 레거시 카카오 응답 호환
         suggested_nickname?: string
         profile_image?: string
         email?: string
@@ -353,12 +354,14 @@ export function useAuthService() {
       const data = result.data!
 
       if (data.needsSignup) {
+        // 레거시 카카오 응답(kakao_id)과 통합 응답(social_id) 모두 처리
+        const socialId = data.social_id || (data.kakao_id ? String(data.kakao_id) : '')
         return {
           success: false,
           needsSignup: true,
           signupData: {
             provider,
-            social_id: data.social_id || '',
+            social_id: socialId,
             suggested_nickname: data.suggested_nickname,
             profile_image: data.profile_image,
             email: data.email
