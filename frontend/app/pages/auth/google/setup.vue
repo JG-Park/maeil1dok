@@ -129,7 +129,7 @@ const checkNickname = async () => {
   nicknameCheckTimeout = setTimeout(async () => {
     try {
       const response = await api.post('/api/v1/auth/check-nickname/', { nickname: value })
-      if (response.data?.available) {
+      if (response.available) {
         isNicknameChecked.value = true
         nicknameError.value = ''
       } else {
@@ -165,18 +165,17 @@ const handleSubmit = async () => {
       profile_image: profileImage.value
     })
 
-    const data = response.data
-    if (data?.access) {
-      auth.setTokens(data.access, data.refresh)
-      auth.setUser(data.user)
+    if (response.access) {
+      auth.setTokens(response.access, response.refresh)
+      auth.setUser(response.user)
       
       if (window.__nativeBridge?.isNativeApp()) {
         window.__nativeBridge.sendToNative({
           type: 'auth:login',
           data: {
-            token: data.access,
-            refreshToken: data.refresh,
-            user: data.user
+            token: response.access,
+            refreshToken: response.refresh,
+            user: response.user
           }
         })
       }

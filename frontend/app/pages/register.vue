@@ -144,7 +144,7 @@ const checkUsername = async () => {
       username: formData.value.username
     })
 
-    if (response.data?.available) {
+    if (response.available) {
       isUsernameChecked.value = true
       usernameError.value = ''
     } else {
@@ -165,7 +165,7 @@ const checkNickname = async () => {
       nickname: formData.value.nickname
     })
 
-    if (response.data?.available) {
+    if (response.available) {
       isNicknameChecked.value = true
       nicknameError.value = ''
     } else {

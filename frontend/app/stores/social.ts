@@ -117,7 +117,7 @@ export const useSocialStore = defineStore('social', {
           user_id: userId
         })
 
-        if (response.data?.success) {
+        if (response?.success || response?.data?.success) {
           // 낙관적 업데이트: 팔로잉 목록에 추가
           if (userInfo && !this.following.some(u => u.id === userId)) {
             this.following.push({
@@ -133,7 +133,7 @@ export const useSocialStore = defineStore('social', {
           this.updateUserFollowStatus(userId, true)
           return { success: true }
         } else {
-          return { success: false, error: response.data?.error || '팔로우에 실패했습니다.' }
+          return { success: false, error: response?.error || response?.data?.error || '팔로우에 실패했습니다.' }
         }
       } catch (error: any) {
         return { success: false, error: error.message || '팔로우에 실패했습니다.' }
@@ -144,7 +144,7 @@ export const useSocialStore = defineStore('social', {
       try {
         const response = await useApi().delete(`/api/v1/accounts/unfollow/${userId}/`)
 
-        if (response.data?.success) {
+        if (response?.success || response?.data?.success) {
           // 팔로잉 목록에서 제거
           this.following = this.following.filter(user => user.id !== userId)
           // 친구 목록에서도 제거 (상호 팔로우가 깨짐)
@@ -153,7 +153,7 @@ export const useSocialStore = defineStore('social', {
           this.updateUserFollowStatus(userId, false)
           return { success: true }
         } else {
-          return { success: false, error: response.data?.error || '언팔로우에 실패했습니다.' }
+          return { success: false, error: response?.error || response?.data?.error || '언팔로우에 실패했습니다.' }
         }
       } catch (error: any) {
         return { success: false, error: error.message || '언팔로우에 실패했습니다.' }

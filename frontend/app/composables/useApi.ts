@@ -53,14 +53,13 @@ export const useApi = () => {
     return headers
   }
 
+  // API 에러 클래스 - 상태 코드 포함
   class ApiError extends Error {
     status: number
-    data: any
-    constructor(message: string, status: number, data?: any) {
+    constructor(message: string, status: number) {
       super(message)
       this.name = 'ApiError'
       this.status = status
-      this.data = data
     }
   }
 
@@ -110,13 +109,7 @@ export const useApi = () => {
     }
 
     if (!response.ok) {
-      let errorData
-      try {
-        errorData = await response.json()
-      } catch {
-        errorData = null
-      }
-      throw new ApiError(`API request failed: ${response.status}`, response.status, errorData)
+      throw new ApiError(`API request failed: ${response.status}`, response.status)
     }
 
     return response
@@ -205,8 +198,7 @@ export const useApi = () => {
         credentials: 'include'
       }, requiresAuth)
 
-      const responseData = await response.json()
-      return { data: responseData }
+      return response.json()
     } catch (error) {
       throw error
     }
@@ -223,8 +215,7 @@ export const useApi = () => {
         credentials: 'include'
       })
 
-      const responseData = await response.json();
-      return { data: responseData };
+      return await response.json();
     } catch (error) {
       throw error;
     }
@@ -241,8 +232,7 @@ export const useApi = () => {
         credentials: 'include'
       })
 
-      const responseData = await response.json();
-      return { data: responseData };
+      return await response.json();
     } catch (error) {
       throw error;
     }
@@ -260,8 +250,7 @@ export const useApi = () => {
           headers: getHeaders(true),
           credentials: 'include'
         })
-        const responseData = await response.json()
-        return { data: responseData }
+        return response.json()
       } catch (error) {
         throw error
       }
@@ -280,8 +269,7 @@ export const useApi = () => {
           body: formData,
           credentials: 'include'
         })
-        const responseData = await response.json()
-        return { data: responseData }
+        return response.json()
       } catch (error) {
         throw error
       }

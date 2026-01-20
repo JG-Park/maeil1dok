@@ -33,8 +33,7 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.get(`/api/v1/todos/subscriptions/${subscriptionId}/catchup-status/`)
-      status.value = response.data
+      status.value = await api.get(`/api/v1/todos/subscriptions/${subscriptionId}/catchup-status/`)
       if (status.value?.active_catchup_session) {
         activeSession.value = status.value.active_catchup_session
       }
@@ -49,12 +48,9 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.get('/api/v1/todos/catchup-sessions/active/')
-      const sessions = (response.data || []) as CatchupSession[]
-      activeSessions.value = sessions
-      const firstSession = sessions[0]
-      if (firstSession) {
-        activeSession.value = firstSession
+      activeSessions.value = await api.get('/api/v1/todos/catchup-sessions/active/')
+      if (activeSessions.value.length > 0) {
+        activeSession.value = activeSessions.value[0]
       }
     } catch (e: any) {
       error.value = e.message || '세션 목록을 불러올 수 없습니다'
@@ -70,12 +66,11 @@ export const useCatchupStore = defineStore('catchup', () => {
     error.value = null
     try {
       const today = new Date().toISOString().split('T')[0]
-      const response = await api.get(
+      const response: CatchupSchedulesResponse = await api.get(
         `/api/v1/todos/catchup-sessions/${activeSession.value.id}/schedules/?date=${today}`
       )
-      const data = response.data as CatchupSchedulesResponse | undefined
-      if (data?.schedules?.length > 0) {
-        todaySchedules.value = data.schedules[0].items
+      if (response.schedules.length > 0) {
+        todaySchedules.value = response.schedules[0].items
       } else {
         todaySchedules.value = []
       }
@@ -90,8 +85,7 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.post(`/api/v1/todos/catchup-schedules/${scheduleId}/toggle/`)
-      const result = response.data
+      const result = await api.post(`/api/v1/todos/catchup-schedules/${scheduleId}/toggle/`)
 
       // Update local state
       const schedule = todaySchedules.value.find(s => s.id === scheduleId)
@@ -120,9 +114,9 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.post(`/api/v1/todos/subscriptions/${subscriptionId}/catchup/`, settings)
-      activeSession.value = response.data as CatchupSession
-      return response.data as CatchupSession
+      const session = await api.post(`/api/v1/todos/subscriptions/${subscriptionId}/catchup/`, settings)
+      activeSession.value = session as CatchupSession
+      return session as CatchupSession
     } catch (e: any) {
       error.value = e.message || '따라잡기 생성에 실패했습니다'
       return null
@@ -137,10 +131,10 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.post(`/api/v1/todos/catchup-sessions/${activeSession.value.id}/complete/`)
+      const result = await api.post(`/api/v1/todos/catchup-sessions/${activeSession.value.id}/complete/`)
       activeSession.value = null
       todaySchedules.value = []
-      return response.data
+      return result
     } catch (e: any) {
       error.value = e.message || '완료 처리에 실패했습니다'
       return null
@@ -155,10 +149,10 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.post(`/api/v1/todos/catchup-sessions/${activeSession.value.id}/abandon/`)
+      const result = await api.post(`/api/v1/todos/catchup-sessions/${activeSession.value.id}/abandon/`)
       activeSession.value = null
       todaySchedules.value = []
-      return response.data
+      return result
     } catch (e: any) {
       error.value = e.message || '포기 처리에 실패했습니다'
       return null
@@ -173,12 +167,12 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.patch(
+      const session = await api.patch(
         `/api/v1/todos/catchup-sessions/${activeSession.value.id}/update/`,
         updates
       )
-      activeSession.value = response.data as CatchupSession
-      return response.data as CatchupSession
+      activeSession.value = session as CatchupSession
+      return session as CatchupSession
     } catch (e: any) {
       error.value = e.message || '수정에 실패했습니다'
       return null
@@ -191,11 +185,11 @@ export const useCatchupStore = defineStore('catchup', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.post(
+      const result = await api.post(
         `/api/v1/todos/subscriptions/${subscriptionId}/catchup/preview/`,
         settings
       )
-      return response.data as CatchupPreviewResult
+      return result as CatchupPreviewResult
     } catch (e: any) {
       error.value = e.message || '미리보기를 불러올 수 없습니다'
       return null

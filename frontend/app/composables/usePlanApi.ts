@@ -34,10 +34,11 @@ export function usePlanApi() {
 
     try {
       const response = await api.get('/api/v1/todos/plans/user/');
+      const data = response.data || response;
 
       return {
-        subscriptions: response.data.subscriptions || [],
-        available_plans: response.data.available_plans || [],
+        subscriptions: data.subscriptions || [],
+        available_plans: data.available_plans || [],
       };
     } catch (error) {
       handleApiError(error, '플랜 정보 조회');

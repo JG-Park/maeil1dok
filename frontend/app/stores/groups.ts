@@ -161,11 +161,11 @@ export const useGroupsStore = defineStore('groups', {
       try {
         const response = await useApi().post('/api/v1/todos/groups/create/', groupData)
 
-        if (response.data?.success) {
-          this.myGroups.push(response.data.group)
-          return { success: true, data: response.data.group }
+        if (response?.success) {
+          this.myGroups.push(response.group)
+          return { success: true, data: response.group }
         } else {
-          return { success: false, error: response.data?.error }
+          return { success: false, error: response?.error }
         }
       } catch (error: any) {
         return { success: false, error: error.message }
@@ -176,7 +176,7 @@ export const useGroupsStore = defineStore('groups', {
       try {
         const response = await useApi().post(`/api/v1/todos/groups/${groupId}/join/`)
 
-        if (response.data?.success) {
+        if (response?.success) {
           // 그룹 정보 업데이트
           if (this.currentGroup?.id === groupId) {
             this.currentGroup.is_member = true
@@ -184,7 +184,7 @@ export const useGroupsStore = defineStore('groups', {
           }
           return { success: true }
         } else {
-          return { success: false, error: response.data?.error }
+          return { success: false, error: response?.error }
         }
       } catch (error: any) {
         return { success: false, error: error.message }
@@ -195,7 +195,7 @@ export const useGroupsStore = defineStore('groups', {
       try {
         const response = await useApi().post(`/api/v1/todos/groups/${groupId}/leave/`)
 
-        if (response.data?.success) {
+        if (response?.success) {
           // 그룹 정보 업데이트
           if (this.currentGroup?.id === groupId) {
             this.currentGroup.is_member = false
@@ -205,7 +205,7 @@ export const useGroupsStore = defineStore('groups', {
           this.myGroups = this.myGroups.filter(g => g.id !== groupId)
           return { success: true }
         } else {
-          return { success: false, error: response.data?.error }
+          return { success: false, error: response?.error }
         }
       } catch (error: any) {
         return { success: false, error: error.message }
@@ -219,10 +219,10 @@ export const useGroupsStore = defineStore('groups', {
           message
         })
 
-        if (response.data?.success) {
+        if (response?.success) {
           return { success: true }
         } else {
-          return { success: false, error: response.data?.error }
+          return { success: false, error: response?.error }
         }
       } catch (error: any) {
         return { success: false, error: error.message }
@@ -247,18 +247,18 @@ export const useGroupsStore = defineStore('groups', {
           action
         })
 
-        if (response.data?.success) {
+        if (response?.success) {
           // 초대 목록에서 제거
           this.invitations = this.invitations.filter(inv => inv.id !== invitationId)
 
-          if (action === 'accept' && response.data.group) {
+          if (action === 'accept' && response.group) {
             // 내 그룹 목록에 추가
-            this.myGroups.push(response.data.group)
+            this.myGroups.push(response.group)
           }
 
           return { success: true }
         } else {
-          return { success: false, error: response.data?.error }
+          return { success: false, error: response?.error }
         }
       } catch (error: any) {
         return { success: false, error: error.message }
@@ -312,15 +312,15 @@ export const useGroupsStore = defineStore('groups', {
           show_in_profile: showInProfile
         })
 
-        if (response.data?.success) {
+        if (response?.success) {
           // myGroups에서 해당 그룹 업데이트
           const group = this.myGroups.find(g => g.id === groupId)
           if (group) {
-            group.show_in_profile = response.data.show_in_profile
+            group.show_in_profile = response.show_in_profile
           }
           return { success: true }
         } else {
-          return { success: false, error: response.data?.error }
+          return { success: false, error: response?.error }
         }
       } catch (error: any) {
         return { success: false, error: error.message }

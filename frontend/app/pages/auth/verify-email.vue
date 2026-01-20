@@ -46,7 +46,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthService } from '~/composables/useAuthService'
@@ -94,8 +94,8 @@ onMounted(async () => {
         await auth.fetchUser()
       }
     }
-  } catch (error: any) {
-    const errorData = error.data || {}
+  } catch (error) {
+    const errorData = error.response?.data || {}
     errorMessage.value = errorData.error || '인증 처리 중 오류가 발생했습니다.'
   } finally {
     loading.value = false
@@ -112,8 +112,8 @@ const resendEmail = async () => {
   try {
     await api.post('/api/v1/auth/send-verification/', { email: userEmail.value })
     errorMessage.value = '인증 메일이 재발송되었습니다. 이메일을 확인해주세요.'
-  } catch (error: any) {
-    const errorData = error.data || {}
+  } catch (error) {
+    const errorData = error.response?.data || {}
     errorMessage.value = errorData.error || '메일 발송에 실패했습니다.'
   } finally {
     resending.value = false

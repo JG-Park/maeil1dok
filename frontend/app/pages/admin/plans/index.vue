@@ -488,7 +488,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
@@ -691,7 +691,7 @@ const editPlan = (plan) => {
 }
 
 // 인증 상태 변경 감지 유지 - 수정
-watch(() => authStore.isAuthenticated.value, async (newValue) => {
+watch(() => authStore.isAuthenticated, async (newValue) => {
   if (newValue) {
     await nextTick();
     if (isStaff.value) {
@@ -836,12 +836,18 @@ const fetchSchedules = async (planId) => {
     
     const response = await api.get(url)
     
-    const data = response.data
-    if (Array.isArray(data)) {
-      schedules.value = data
-    } else if (data?.results && Array.isArray(data.results)) {
-      schedules.value = data.results
+    // 응답 형식 검사 및 변환 수정
+    if (response && response.data && Array.isArray(response.data)) {
+      // 데이터가 response.data에 있는 경우
+      schedules.value = response.data
+    } else if (Array.isArray(response)) {
+      // 데이터가 response 자체인 경우
+      schedules.value = response
+    } else if (response && typeof response === 'object') {
+      // 다른 형태의 객체인 경우 (results 필드에 배열이 있을 수 있음)
+      schedules.value = response.results || []
     } else {
+      // 기타 경우
       schedules.value = []
     }
   } catch (err) {
@@ -909,11 +915,12 @@ const uploadScheduleExcel = async () => {
     if (this.$refs.scheduleFileInput) {
       this.$refs.scheduleFileInput.value = null
     }
-  } catch (error: any) {
+  } catch (error) {
+    // 상세 오류 메시지 표시
     let errorMessage = '파일 업로드 중 오류가 발생했습니다.'
-    if (error.data?.detail) {
-      errorMessage = error.data.detail
-    } else if (error.data?.errors) {
+    if (error.response?.data?.detail) {
+      errorMessage = error.response.data.detail
+    } else if (error.response?.data?.errors) {
       errorMessage = '데이터 형식 오류가 발생했습니다.'
     }
     

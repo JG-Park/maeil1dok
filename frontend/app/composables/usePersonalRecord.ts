@@ -83,7 +83,7 @@ export const usePersonalRecord = () => {
       return true;
     } catch (err: any) {
       // 중복 저장은 성공으로 처리 (이미 읽음 표시된 경우)
-      if (err.status === 400) {
+      if (err.response?.status === 400) {
         // 로컬 캐시도 업데이트
         if (!readChapters.value.has(book)) {
           readChapters.value.set(book, new Set());

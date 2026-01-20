@@ -97,11 +97,10 @@ export const useProfileStore = defineStore('profile', {
 
     async updateProfile(bio: string, isPublic: boolean) {
       try {
-        const response = await useApi().put('/api/v1/accounts/profile/', {
+        const data = await useApi().put('/api/v1/accounts/profile/', {
           bio,
           is_public: isPublic
         })
-        const data = response.data
         
         if (data?.success) {
           this.currentProfile = data.profile

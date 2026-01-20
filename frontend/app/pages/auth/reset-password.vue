@@ -81,7 +81,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthService } from '~/composables/useAuthService'
@@ -137,9 +137,9 @@ onMounted(async () => {
       invalidToken.value = true
       errorMessage.value = data.error || '유효하지 않은 링크입니다.'
     }
-  } catch (error: any) {
+  } catch (error) {
     invalidToken.value = true
-    const errorData = error.data || {}
+    const errorData = error.response?.data || {}
     errorMessage.value = errorData.error || '링크 확인 중 오류가 발생했습니다.'
   } finally {
     loading.value = false
@@ -156,9 +156,9 @@ const handleSubmit = async () => {
       token: token.value,
       new_password: password.value
     })
-    const data = response.data
+    const data = response.data || response
     
-    if (data?.success) {
+    if (data.success) {
       success.value = true
       
       if (data.access) {
@@ -166,8 +166,8 @@ const handleSubmit = async () => {
         await auth.fetchUser()
       }
     }
-  } catch (error: any) {
-    const errorData = error.data || {}
+  } catch (error) {
+    const errorData = error.response?.data || {}
     if (errorData.error?.includes('만료')) {
       invalidToken.value = true
       errorMessage.value = errorData.error
