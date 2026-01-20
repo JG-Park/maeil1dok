@@ -1,7 +1,10 @@
 #!/bin/sh
 
-echo "Waiting for database..."
-while ! nc -z db 3306; do
+DB_HOST=${DB_HOST:-db}
+DB_PORT=${DB_PORT:-3306}
+
+echo "Waiting for database at ${DB_HOST}:${DB_PORT}..."
+while ! nc -z ${DB_HOST} ${DB_PORT}; do
   sleep 1
 done
 echo "Database is ready!"
