@@ -198,7 +198,8 @@ export const useApi = () => {
         credentials: 'include'
       }, requiresAuth)
 
-      return response.json()
+      const responseData = await response.json()
+      return { data: responseData }
     } catch (error) {
       throw error
     }
@@ -215,7 +216,8 @@ export const useApi = () => {
         credentials: 'include'
       })
 
-      return await response.json();
+      const responseData = await response.json();
+      return { data: responseData };
     } catch (error) {
       throw error;
     }
@@ -232,7 +234,8 @@ export const useApi = () => {
         credentials: 'include'
       })
 
-      return await response.json();
+      const responseData = await response.json();
+      return { data: responseData };
     } catch (error) {
       throw error;
     }
@@ -250,7 +253,8 @@ export const useApi = () => {
           headers: getHeaders(true),
           credentials: 'include'
         })
-        return response.json()
+        const responseData = await response.json()
+        return { data: responseData }
       } catch (error) {
         throw error
       }
@@ -269,7 +273,8 @@ export const useApi = () => {
           body: formData,
           credentials: 'include'
         })
-        return response.json()
+        const responseData = await response.json()
+        return { data: responseData }
       } catch (error) {
         throw error
       }

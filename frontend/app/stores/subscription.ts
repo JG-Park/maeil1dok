@@ -53,14 +53,16 @@ export const useSubscriptionStore = defineStore('subscription', {
       
       try {
         const response = await api.post(`/api/v1/todos/plan/${subscriptionId}/toggle_active/`)
+        const data = response.data
         
         // 상태 업데이트
         const index = this.subscriptions.findIndex(sub => sub.id === subscriptionId)
-        if (index !== -1) {
-          this.subscriptions[index].is_active = response.data.is_active
+        const subscription = this.subscriptions[index]
+        if (index !== -1 && data && subscription) {
+          subscription.is_active = data.is_active
         }
 
-        return response.data
+        return data
       } catch (error) {
         throw error
       }
