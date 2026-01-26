@@ -290,6 +290,10 @@ GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')
 # https://scripture.api.bible/ 에서 무료 API 키 발급
 API_BIBLE_KEY = os.environ.get('API_BIBLE_KEY')
 
+# Google Gemini API 설정 (하세나 영상 AI 요약)
+# https://aistudio.google.com/ 에서 무료 API 키 발급
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
 COOKIE_DOMAIN = os.environ.get('COOKIE_DOMAIN', None)
 
 # 필수 환경변수 검증

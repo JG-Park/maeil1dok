@@ -46,6 +46,7 @@ urlpatterns = [
     path('hasena/<int:pk>/', views.hasena_record_detail, name='hasena-record-detail'),
     path('hasena/update/', views.hasena_record_update, name='hasena-record-update'),
     path('hasena/status/', views.get_user_hasena_status, name='hasena-user-status'),
+    path('hasena/summary/', views.get_hasena_summary, name='hasena-summary'),
         
     # 통계 관련 URL
     path('stats/users/', views.get_total_users, name='total-users'),

@@ -2369,6 +2369,32 @@ def get_user_hasena_status(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def get_hasena_summary(request):
+    video_id = request.query_params.get('video_id')
+    if not video_id:
+        return Response({
+            'success': False,
+            'error': 'video_id 파라미터가 필요합니다.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        from .services.hasena_summary_service import get_hasena_summary as fetch_summary
+        result = fetch_summary(video_id)
+        
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        logger.error(f"Error in get_hasena_summary: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': 'AI 요약 생성 중 오류가 발생했습니다.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # ============================================
 # 성경읽기 기능 API (읽기 위치, 북마크, 묵상노트, 개인 읽기 기록)
