@@ -79,7 +79,13 @@ def summarize_with_gemini(transcript: str) -> dict | None:
         }
         
     except Exception as e:
-        logger.error(f"Error calling Gemini API: {str(e)}")
+        error_str = str(e)
+        logger.error(f"Error calling Gemini API: {error_str}")
+        
+        # 할당량 초과 에러인 경우 특별 처리
+        if '429' in error_str or 'RESOURCE_EXHAUSTED' in error_str:
+            return {'error': 'quota_exceeded', 'message': 'API 할당량이 초과되었습니다. 잠시 후 다시 시도해주세요.'}
+        
         return None
 
 
@@ -115,6 +121,15 @@ def get_hasena_summary(video_id: str, video_date: date = None) -> dict:
             'success': False,
             'error': 'AI 요약을 생성할 수 없습니다.',
             'video_id': video_id
+        }
+    
+    # 할당량 초과 에러 처리
+    if summary_result.get('error') == 'quota_exceeded':
+        return {
+            'success': False,
+            'error': summary_result.get('message', 'API 할당량 초과'),
+            'video_id': video_id,
+            'retry_after': 60
         }
     
     try:
