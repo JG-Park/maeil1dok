@@ -17,8 +17,8 @@
       "backgroundColor": "#EFECE8"
     },
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.jgplabs.maeil1dok",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maeil1dok.app",
       "infoPlist": {
         "NSCameraUsageDescription": "프로필 사진 촬영에 사용됩니다",
         "NSPhotoLibraryUsageDescription": "프로필 사진 선택에 사용됩니다",
