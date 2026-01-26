@@ -46,7 +46,7 @@
               </svg>
             </button>
             <span class="nav-title">{{ calendarTitle }}</span>
-            <button class="nav-btn" @click="nextMonth" aria-label="다음 달">
+            <button class="nav-btn" :disabled="isCurrentMonth" @click="nextMonth" aria-label="다음 달">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 18l6-6-6-6" />
               </svg>
@@ -134,6 +134,9 @@ const weekdays = ['일', '월', '화', '수', '목', '금', '토']
 
 const stats = computed(() => hasenaStore.stats)
 const calendarTitle = computed(() => `${calendarYear.value}년 ${calendarMonth.value}월`)
+const isCurrentMonth = computed(() => 
+  calendarYear.value === today.getFullYear() && calendarMonth.value === today.getMonth() + 1
+)
 
 const formatApiDate = (date: Date): string => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -233,6 +236,8 @@ const prevMonth = async () => {
 }
 
 const nextMonth = async () => {
+  if (isCurrentMonth.value) return
+  
   if (calendarMonth.value === 12) {
     calendarMonth.value = 1
     calendarYear.value++
@@ -401,9 +406,14 @@ watch(() => props.isOpen, async (isOpen) => {
   justify-content: center;
 }
 
-.nav-btn:hover {
+.nav-btn:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .nav-title {
