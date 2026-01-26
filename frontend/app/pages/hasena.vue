@@ -118,33 +118,19 @@
             </div>
           </div>
 
-          <!-- 미니 달력 -->
-          <div class="mini-calendar">
-            <div class="calendar-header">
-              <button class="nav-btn" @click="prevMonth">&lt;</button>
-              <span class="calendar-title">{{ calendarTitle }}</span>
-              <button class="nav-btn" @click="nextMonth">&gt;</button>
-            </div>
-            <div class="calendar-weekdays">
-              <span v-for="day in ['일', '월', '화', '수', '목', '금', '토']" :key="day">{{ day }}</span>
-            </div>
-            <div class="calendar-grid">
-              <div 
-                v-for="(date, index) in calendarDates" 
-                :key="index"
-                class="calendar-day"
-                :class="{
-                  'other-month': date.otherMonth,
-                  'today': date.isToday,
-                  'completed': date.completed,
-                  'sunday': date.isSunday
-                }"
-              >
-                <span class="day-number">{{ date.day }}</span>
-                <span v-if="date.completed && !date.otherMonth" class="check-mark">✓</span>
-              </div>
-            </div>
-          </div>
+          <!-- 달력 버튼 -->
+          <button class="calendar-btn" @click="isCalendarOpen = true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span>전체 기록 보기</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
         </div>
       </main>
 
@@ -168,6 +154,13 @@
 
       <!-- Toast 컴포넌트 -->
       <Toast ref="toast" />
+
+      <!-- 달력 모달 -->
+      <HasenaCalendarModal 
+        :is-open="isCalendarOpen" 
+        @close="isCalendarOpen = false"
+        @updated="onCalendarUpdated"
+      />
     </div>
   </div>
 </template>
@@ -182,6 +175,7 @@ import { useSanitize } from '~/composables/useSanitize'
 import Toast from '~/components/Toast.vue'
 import ChevronLeftIcon from '~/components/icons/ChevronLeftIcon.vue'
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue'
+import HasenaCalendarModal from '~/components/hasena/HasenaCalendarModal.vue'
 
 const api = useApi()
 const auth = useAuthService()
@@ -189,6 +183,14 @@ const hasenaStore = useHasenaStore()
 const router = useRouter()
 const toast = ref(null)
 const { sanitize } = useSanitize()
+
+// 달력 모달 상태
+const isCalendarOpen = ref(false)
+
+const onCalendarUpdated = async () => {
+  // 달력에서 업데이트 시 오늘 상태 갱신
+  await hasenaStore.fetchStatus()
+}
 
 // 비디오 관련 상수
 const PLAYLIST_ID = 'PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL'
@@ -405,94 +407,6 @@ const fetchHasenaStatus = async () => {
 const isButtonCompleted = computed(() => hasenaStore.isCompleted)
 const buttonText = computed(() => isButtonCompleted.value ? '미완료로 변경' : '완료하기')
 
-// 달력 관련 상태
-const calendarYear = ref(today.getFullYear())
-const calendarMonth = ref(today.getMonth() + 1)
-
-const calendarTitle = computed(() => `${calendarYear.value}년 ${calendarMonth.value}월`)
-
-const calendarDates = computed(() => {
-  const year = calendarYear.value
-  const month = calendarMonth.value - 1
-  
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  
-  const startOffset = firstDay.getDay()
-  const daysInMonth = lastDay.getDate()
-  
-  const completedDates = new Set(
-    hasenaStore.calendarRecords
-      .filter(r => r.is_completed)
-      .map(r => r.date)
-  )
-  
-  const dates = []
-  
-  for (let i = startOffset - 1; i >= 0; i--) {
-    const prevDate = new Date(year, month, -i)
-    dates.push({
-      day: prevDate.getDate(),
-      otherMonth: true,
-      isToday: false,
-      completed: false,
-      isSunday: prevDate.getDay() === 0
-    })
-  }
-  
-  for (let day = 1; day <= daysInMonth; day++) {
-    const currentDate = new Date(year, month, day)
-    const dateStr = formatApiDate(currentDate)
-    dates.push({
-      day,
-      otherMonth: false,
-      isToday: dateStr === formatApiDate(today),
-      completed: completedDates.has(dateStr),
-      isSunday: currentDate.getDay() === 0
-    })
-  }
-  
-  const remaining = 42 - dates.length
-  for (let i = 1; i <= remaining; i++) {
-    const nextDate = new Date(year, month + 1, i)
-    dates.push({
-      day: i,
-      otherMonth: true,
-      isToday: false,
-      completed: false,
-      isSunday: nextDate.getDay() === 0
-    })
-  }
-  
-  return dates
-})
-
-const prevMonth = () => {
-  if (calendarMonth.value === 1) {
-    calendarMonth.value = 12
-    calendarYear.value--
-  } else {
-    calendarMonth.value--
-  }
-  loadCalendarData()
-}
-
-const nextMonth = () => {
-  if (calendarMonth.value === 12) {
-    calendarMonth.value = 1
-    calendarYear.value++
-  } else {
-    calendarMonth.value++
-  }
-  loadCalendarData()
-}
-
-const loadCalendarData = async () => {
-  if (auth.isAuthenticated.value) {
-    await hasenaStore.fetchCalendarRecords(calendarYear.value, calendarMonth.value)
-  }
-}
-
 // handleComplete 함수 강화
 const handleComplete = async () => {
   // 로그인하지 않은 경우 로그인 페이지로 이동
@@ -555,10 +469,7 @@ onMounted(async () => {
   setupYouTubeListener()
   
   if (auth.isAuthenticated.value) {
-    await Promise.all([
-      hasenaStore.fetchStats(),
-      hasenaStore.fetchCalendarRecords(calendarYear.value, calendarMonth.value)
-    ])
+    await hasenaStore.fetchStats()
   }
 })
 </script>
@@ -876,9 +787,7 @@ onMounted(async () => {
 .streak-stats {
   display: flex;
   justify-content: space-around;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--color-border-light);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .streak-item {
@@ -919,105 +828,47 @@ onMounted(async () => {
   color: var(--color-text-tertiary);
 }
 
-/* Mini Calendar */
-.mini-calendar {
-  font-size: 0.85rem;
-}
-
-.mini-calendar .calendar-header {
+/* Calendar Button */
+.calendar-btn {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.mini-calendar .calendar-title {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.mini-calendar .nav-btn {
-  background: none;
-  border: none;
-  padding: 0.25rem 0.5rem;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--color-bg-secondary, var(--color-bg-hover));
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
   cursor: pointer;
-  color: var(--color-text-secondary);
-  font-size: 1rem;
-  border-radius: 4px;
+  transition: all 0.2s;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.mini-calendar .nav-btn:hover {
+.calendar-btn:hover {
   background: var(--color-bg-hover);
+  border-color: var(--color-border-default);
 }
 
-.calendar-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  color: var(--color-text-tertiary);
-  font-size: 0.75rem;
-  margin-bottom: 0.5rem;
+.calendar-btn:active {
+  transform: scale(0.98);
 }
 
-.calendar-weekdays span:first-child {
-  color: #ef4444;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-
-.calendar-day {
-  position: relative;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-size: 0.8rem;
-}
-
-.calendar-day.other-month {
-  color: var(--color-text-tertiary);
-  opacity: 0.4;
-}
-
-.calendar-day.sunday .day-number {
-  color: #ef4444;
-}
-
-.calendar-day.today {
-  background: var(--color-accent-primary-light);
-}
-
-.calendar-day.today .day-number {
-  font-weight: 700;
+.calendar-btn svg:first-child {
   color: var(--color-accent-primary);
+  flex-shrink: 0;
 }
 
-.calendar-day.completed:not(.other-month) {
-  background: #10b981;
+.calendar-btn span {
+  flex: 1;
+  text-align: left;
 }
 
-.calendar-day.completed:not(.other-month) .day-number {
-  color: white;
-}
-
-.calendar-day .check-mark {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  font-size: 0.6rem;
-  color: white;
-  background: #10b981;
-  border-radius: 50%;
-  width: 12px;
-  height: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.calendar-btn svg:last-child {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }
 
 /* Content Section */
