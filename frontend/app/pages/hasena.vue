@@ -263,12 +263,13 @@ const loadAISummary = async () => {
   
   try {
     const { data } = await api.get(`/api/v1/todos/hasena/summary/?video_id=${latestVideoId.value}`)
+    console.log('[Hasena] Load summary response:', data)
     
     if (data.success) {
       summaryContent.value = data.summary
     }
   } catch (err) {
-    // 조회 실패는 조용히 처리 (아직 준비 안됨)
+    console.log('[Hasena] Load summary error:', err)
   } finally {
     summaryLoading.value = false
   }
@@ -276,6 +277,8 @@ const loadAISummary = async () => {
 
 // AI 요약 생성/재생성 (관리자 전용)
 const generateAISummary = async () => {
+  console.log('[Hasena] generateAISummary called, videoId:', latestVideoId.value)
+  
   if (!latestVideoId.value) {
     summaryError.value = '영상 ID를 가져올 수 없습니다.'
     return
@@ -285,7 +288,11 @@ const generateAISummary = async () => {
   summaryError.value = null
   
   try {
-    const { data } = await api.get(`/api/v1/todos/hasena/summary/?video_id=${latestVideoId.value}&generate=true`)
+    const url = `/api/v1/todos/hasena/summary/?video_id=${latestVideoId.value}&generate=true`
+    console.log('[Hasena] Calling API:', url)
+    
+    const { data } = await api.get(url)
+    console.log('[Hasena] Generate summary response (RAW):', data)
     
     if (data.success) {
       summaryContent.value = data.summary
@@ -293,6 +300,7 @@ const generateAISummary = async () => {
       summaryError.value = data.error || '요약을 생성할 수 없습니다.'
     }
   } catch (err) {
+    console.error('[Hasena] Generate summary error:', err)
     summaryError.value = err.response?.data?.error || '요약 생성 중 오류가 발생했습니다.'
   } finally {
     summaryLoading.value = false
