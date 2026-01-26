@@ -22,10 +22,14 @@
               ></iframe>
             </div>
 
-            <a v-if="isMobile" :href="youtubeAppUrl" target="_blank" class="youtube-deep-link">
+            <button 
+              v-if="isMobile && latestVideoId" 
+              class="youtube-deep-link"
+              @click="openYouTubeApp"
+            >
               <span class="youtube-icon">▶</span>
               YouTube 앱으로 시청하기
-            </a>
+            </button>
           </div>
         </div>
 
@@ -99,12 +103,38 @@ const toast = ref(null)
 const { sanitize } = useSanitize()
 
 // 비디오 관련 상수
-const videoUrl = ref('https://www.youtube.com/embed/videoseries?list=PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL')
+const PLAYLIST_ID = 'PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL'
+const videoUrl = ref(`https://www.youtube.com/embed/videoseries?list=${PLAYLIST_ID}`)
 const latestVideoId = ref('') // 빈 값으로 초기화
-const youtubeAppUrl = computed(() => {
-  return latestVideoId.value ? `vnd.youtube://${latestVideoId.value}` : null
-})
 const isMobile = ref(false)
+const isIOS = ref(false)
+const isAndroid = ref(false)
+
+// YouTube 앱으로 열기 (iOS/Android 분기 + 폴백)
+const openYouTubeApp = () => {
+  if (!latestVideoId.value) return
+  
+  const videoId = latestVideoId.value
+  const webUrl = `https://www.youtube.com/watch?v=${videoId}`
+  
+  if (isIOS.value) {
+    // iOS: youtube:// 스킴 사용 (Universal Links도 자동 동작)
+    const appUrl = `youtube://watch?v=${videoId}`
+    window.location.href = appUrl
+    
+    // 2초 후 웹으로 폴백 (앱이 없는 경우)
+    setTimeout(() => {
+      window.open(webUrl, '_blank')
+    }, 2000)
+  } else if (isAndroid.value) {
+    // Android: Intent URL 사용 (앱 미설치 시 자동으로 웹 폴백)
+    const intentUrl = `intent://watch?v=${videoId}#Intent;package=com.google.android.youtube;scheme=https;S.browser_fallback_url=${encodeURIComponent(webUrl)};end`
+    window.location.href = intentUrl
+  } else {
+    // 기타 모바일: 웹으로 열기
+    window.open(webUrl, '_blank')
+  }
+}
 
 // 상태 변수들
 const isLoading = ref(true)
@@ -256,8 +286,11 @@ const setupYouTubeListener = () => {
 }
 
 onMounted(() => {
-  // 모바일 기기 확인
-  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  // 모바일 기기 및 플랫폼 확인
+  const ua = navigator.userAgent
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+  isIOS.value = /iPhone|iPad|iPod/i.test(ua)
+  isAndroid.value = /Android/i.test(ua)
 
   // 하세나 본문 가져오기
   fetchHasenaContent()
@@ -427,18 +460,27 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  width: 100%;
   padding: 0.75rem;
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-  text-decoration: none;
+  background: #ff0000;
+  color: white;
+  border: none;
   font-size: 0.9rem;
   font-weight: 500;
-  border-top: 1px solid var(--color-border-light);
+  cursor: pointer;
   transition: background 0.2s;
 }
 
 .youtube-deep-link:hover {
-  background: var(--color-bg-hover);
+  background: #cc0000;
+}
+
+.youtube-deep-link:active {
+  background: #aa0000;
+}
+
+.youtube-icon {
+  font-size: 1.1rem;
 }
 
 /* Content Section */
