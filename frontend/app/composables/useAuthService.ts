@@ -533,6 +533,7 @@ export function useAuthService() {
     authState: computed(() => _authState.value),
     isAuthenticated: computed(() => _authState.value === 'authenticated'),
     isLoading: computed(() => _authState.value === 'loading'),
+    isStaff: computed(() => _user.value?.is_staff === true),
     isInitialized: readonly(_isInitialized),
 
     initialize,
