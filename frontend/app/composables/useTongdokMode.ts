@@ -84,18 +84,18 @@ const clearTongdokState = (): void => {
   }
 };
 
+// 상태 (singleton - 모듈 레벨에서 공유)
+const tongdokMode = ref(false);
+const tongdokScheduleId: Ref<number | null> = ref(null);
+const tongdokPlanId: Ref<number | null> = ref(null);
+const readingDetailResponse: Ref<ReadingDetailResponse | null> = ref(null);
+const isCompleting = ref(false);
+
 export const useTongdokMode = () => {
   const route = useRoute();
   const router = useRouter();
   const api = useApi();
   const { bookNames } = useBibleData();
-
-  // 상태
-  const tongdokMode = ref(false);
-  const tongdokScheduleId: Ref<number | null> = ref(null);
-  const tongdokPlanId: Ref<number | null> = ref(null);
-  const readingDetailResponse: Ref<ReadingDetailResponse | null> = ref(null);
-  const isCompleting = ref(false);
 
   /**
    * 통독모드 초기화
