@@ -70,6 +70,8 @@ export default defineNuxtConfig({
       KAKAO_REDIRECT_URI: process.env.KAKAO_REDIRECT_URI,
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
       GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+      APPLE_CLIENT_ID: process.env.APPLE_CLIENT_ID,
+      APPLE_REDIRECT_URI: process.env.APPLE_REDIRECT_URI || 'https://maeil1dok.app/auth/apple/callback',
     }
   },
   app: {

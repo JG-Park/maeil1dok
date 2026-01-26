@@ -178,41 +178,27 @@ APPLE_REDIRECT_URI=https://maeil1dok.app/auth/apple/callback
 
 ---
 
-## 5. 도메인 검증
+## 5. Website URLs 설정
 
-Apple은 웹에서 Sign in with Apple을 사용하기 전에 도메인 소유권을 검증합니다.
+Services ID의 Configure를 클릭하면 **Web Authentication Configuration** 창이 나타납니다.
 
-### 5.1 검증 파일 다운로드
+### 5.1 Website URLs 추가
 
-1. Services ID 설정 페이지로 이동
-2. **Sign in with Apple** → **Configure**
-3. **Download** 버튼으로 `apple-developer-domain-association.txt` 파일 다운로드
+1. Services ID 설정 페이지에서 **Sign in with Apple** 체크박스 활성화
+2. **Configure** 버튼 클릭
+3. **Web Authentication Configuration** 창에서:
+   - **Primary App ID**: 앱 ID 선택 (예: `jgp3620maeil1dok...`)
+   - **Website URLs** 섹션의 **+** 버튼 클릭
+4. 다음 URL들을 추가:
+   - `https://maeil1dok.app` (도메인)
+   - `https://maeil1dok.app/auth/apple/callback` (Return URL)
 
-### 5.2 검증 파일 배포
+### 5.2 설정 완료
 
-파일을 다음 경로에 배포:
-```
-https://maeil1dok.app/.well-known/apple-developer-domain-association.txt
-```
+1. **Done** 버튼 클릭
+2. **Continue** → **Save** 클릭
 
-**Nuxt 3 설정** (`nuxt.config.ts`):
-```typescript
-export default defineNuxtConfig({
-  nitro: {
-    publicAssets: [{
-      dir: 'public/.well-known',
-      baseURL: '/.well-known'
-    }]
-  }
-})
-```
-
-파일 위치: `frontend/public/.well-known/apple-developer-domain-association.txt`
-
-### 5.3 도메인 검증 완료
-
-1. Apple Developer Console에서 **Verify** 버튼 클릭
-2. 검증 성공 확인
+> **참고**: 이전에는 도메인 검증 파일(`.well-known/apple-developer-domain-association.txt`)이 필요했지만, 현재 Apple Developer Console UI에서는 Website URLs를 직접 등록하는 방식으로 변경되었습니다.
 
 ---
 
@@ -238,12 +224,13 @@ export default defineNuxtConfig({
 ## 트러블슈팅
 
 ### "Invalid redirect_uri" 오류
-- Services ID의 Return URLs에 정확한 콜백 URL이 등록되어 있는지 확인
+- Services ID의 Website URLs에 정확한 콜백 URL이 등록되어 있는지 확인
 - URL에 trailing slash 포함 여부 확인 (Apple은 정확히 일치해야 함)
+- 예: `https://maeil1dok.app/auth/apple/callback` (끝에 `/` 없음)
 
-### "Domain not verified" 오류
-- `.well-known/apple-developer-domain-association.txt` 파일이 올바른 경로에 있는지 확인
-- 파일 내용이 Apple에서 다운로드한 것과 정확히 일치하는지 확인
+### "Invalid client_id" 오류
+- `APPLE_CLIENT_ID` 환경변수가 Services ID와 일치하는지 확인
+- Services ID 예: `app.maeil1dok.web` 또는 실제 등록한 Identifier
 
 ### iOS 앱에서 Apple 로그인 버튼이 안 보임
 - `app.json`에 `"usesAppleSignIn": true` 설정 확인
