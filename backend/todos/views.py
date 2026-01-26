@@ -1239,6 +1239,7 @@ def get_next_reading_position(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
 def video_intro_list(request):
     """영상 개론 목록 조회 및 생성
     GET: 비로그인 사용자도 접근 가능
@@ -1291,6 +1292,7 @@ def video_intro_list(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'DELETE'])
+@permission_classes([AllowAny])
 def video_intro_detail(request, pk):
     """영상 개론 상세 조회 및 삭제
     GET: 비로그인 사용자도 접근 가능
