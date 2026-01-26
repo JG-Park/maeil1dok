@@ -294,6 +294,19 @@ API_BIBLE_KEY = os.environ.get('API_BIBLE_KEY')
 # https://aistudio.google.com/ 에서 무료 API 키 발급
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
+# YouTube Data API 설정 (플레이리스트 최신 영상 확인)
+# Google Cloud Console에서 YouTube Data API v3 활성화 필요
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', os.environ.get('GEMINI_API_KEY'))
+
+# Celery 설정 (비동기 태스크 처리)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://redis:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Seoul'
+CELERY_ENABLE_UTC = False
+
 COOKIE_DOMAIN = os.environ.get('COOKIE_DOMAIN', None)
 
 # 필수 환경변수 검증

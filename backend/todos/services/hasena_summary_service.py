@@ -1,8 +1,60 @@
 import logging
+import requests
 from datetime import date
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+# 하세나하시조 플레이리스트 ID
+HASENA_PLAYLIST_ID = 'PLMT1AJszhYtXkV936HNuExxjAmtFhp2tL'
+
+
+def get_latest_hasena_video() -> dict | None:
+    """
+    하세나 플레이리스트에서 최신 영상 정보를 가져옴
+    Returns: {'video_id': str, 'title': str, 'published_at': str} or None
+    """
+    api_key = getattr(settings, 'YOUTUBE_API_KEY', None)
+    if not api_key:
+        # YOUTUBE_API_KEY가 없으면 GEMINI_API_KEY 시도 (같은 Google Cloud 프로젝트인 경우)
+        api_key = getattr(settings, 'GEMINI_API_KEY', None)
+    
+    if not api_key:
+        logger.error("No YouTube API key configured")
+        return None
+    
+    try:
+        url = 'https://www.googleapis.com/youtube/v3/playlistItems'
+        params = {
+            'part': 'snippet',
+            'playlistId': HASENA_PLAYLIST_ID,
+            'maxResults': 1,
+            'key': api_key
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data.get('items'):
+            logger.warning("No videos found in playlist")
+            return None
+        
+        item = data['items'][0]
+        snippet = item.get('snippet', {})
+        
+        return {
+            'video_id': snippet.get('resourceId', {}).get('videoId'),
+            'title': snippet.get('title'),
+            'published_at': snippet.get('publishedAt'),
+        }
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching playlist: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error fetching playlist: {str(e)}")
+        return None
 
 
 def get_youtube_transcript(video_id: str, languages: list = None) -> str | None:

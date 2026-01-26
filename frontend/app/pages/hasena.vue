@@ -37,12 +37,13 @@
         <div class="card summary-card fade-in" style="animation-delay: 0.15s">
           <div class="summary-header">
             <span class="ai-badge">✨ AI 요약</span>
+            <!-- 관리자만 요약 생성 버튼 표시 -->
             <button 
-              v-if="latestVideoId && !summaryLoading && !summaryContent"
+              v-if="auth.isStaff?.value && latestVideoId && !summaryLoading && !summaryContent"
               class="summary-btn"
               @click="fetchAISummary"
             >
-              요약 보기
+              요약 생성
             </button>
           </div>
           
@@ -53,13 +54,14 @@
           
           <div v-else-if="summaryError" class="summary-error">
             <p>{{ summaryError }}</p>
-            <button class="retry-btn" @click="fetchAISummary">다시 시도</button>
+            <!-- 관리자만 다시 시도 버튼 표시 -->
+            <button v-if="auth.isStaff?.value" class="retry-btn" @click="fetchAISummary">다시 시도</button>
           </div>
           
           <div v-else-if="summaryContent" class="summary-content" v-html="formattedSummary"></div>
           
           <div v-else class="summary-placeholder">
-            <p>영상 시청 후 AI 요약을 확인해보세요</p>
+            <p>오늘의 요약이 곧 준비됩니다</p>
           </div>
         </div>
 
