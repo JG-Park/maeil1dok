@@ -456,8 +456,12 @@ watch(() => props.isOpen, async (isOpen) => {
   font-family: inherit;
 }
 
-.date-cell:not(.disabled):not(.other-month):hover {
+.date-cell:not(.disabled):not(.other-month):not(.completed):hover {
   background: var(--color-bg-hover);
+}
+
+.date-cell.completed:not(.disabled):hover {
+  background: #0d9668;
 }
 
 .date-cell:not(.disabled):not(.other-month):active {
