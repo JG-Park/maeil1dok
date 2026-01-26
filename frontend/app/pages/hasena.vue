@@ -346,25 +346,22 @@ const formattedSummary = computed(() => {
     return str.replace(
       /^\s*[-*]\s*(\[\s*\])?\s*(.+)$/gm,
       `<div class="checklist-item">
-         <div class="checkbox-ui">
-           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+         <span class="check-icon">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
              <polyline points="20 6 9 17 4 12"></polyline>
            </svg>
-         </div>
+         </span>
          <span class="checklist-text">$2</span>
        </div>`
     ).replace(/\n/g, '') // 체크리스트 사이 줄바꿈 제거 (flex gap으로 처리)
   }
 
-  // 5. HTML 조립
+  // 5. HTML 조립 (미니멀 디자인)
   let html = ''
   
   if (bibleContent) {
     html += `<div class="summary-section bible-section">
-       <div class="section-header">
-         <span class="section-icon">📖</span>
-         <h4 class="section-title">오늘의 본문</h4>
-       </div>
+       <h4 class="section-title">오늘의 본문</h4>
        <div class="section-body">
          <p class="section-text">${processText(bibleContent)}</p>
        </div>
@@ -373,10 +370,7 @@ const formattedSummary = computed(() => {
   
   if (commentaryContent) {
     html += `<div class="summary-section commentary-section">
-       <div class="section-header">
-         <span class="section-icon">💬</span>
-         <h4 class="section-title">교역자 해설</h4>
-       </div>
+       <h4 class="section-title">교역자 해설</h4>
        <div class="section-body">
          <p class="section-text">${processText(commentaryContent)}</p>
        </div>
@@ -386,10 +380,7 @@ const formattedSummary = computed(() => {
   if (actionContent) {
     html += `<div class="summary-divider"></div>
      <div class="summary-section action-section">
-       <div class="section-header">
-         <span class="section-icon">⚡️</span>
-         <h4 class="section-title">오늘의 실천 (하시조)</h4>
-       </div>
+       <h4 class="section-title">오늘의 하시조</h4>
        <div class="checklist-container">
          ${processChecklist(actionContent)}
        </div>
@@ -946,81 +937,40 @@ onMounted(async () => {
   padding: 1rem 0;
 }
 
-/* 요약 콘텐츠 스타일링 */
+/* 요약 콘텐츠 스타일링 (미니멀 디자인) */
 .summary-content {
   font-size: 0.95rem;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
 }
 
 /* 섹션 공통 스타일 */
 .summary-content :deep(.summary-section) {
-  background: var(--color-bg-secondary);
-  border-radius: 16px;
-  padding: 1.25rem;
-  position: relative;
-  border: 1px solid var(--color-border-light);
-}
-
-/* 본문 섹션 */
-.summary-content :deep(.bible-section) {
-  background: linear-gradient(to bottom right, #f8faff, #fff);
-  border-color: #e0e7ff;
-}
-
-/* 해설 섹션 */
-.summary-content :deep(.commentary-section) {
-  background: linear-gradient(to bottom right, #f0fdf4, #fff);
-  border-color: #dcfce7;
-}
-
-/* 하시조 섹션 */
-.summary-content :deep(.action-section) {
-  background: linear-gradient(to bottom right, #fffbeb, #fff);
-  border-color: #fef3c7;
-  margin-top: 0.5rem;
-}
-
-/* 헤더 레이아웃 */
-.summary-content :deep(.section-header) {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.summary-content :deep(.section-icon) {
-  font-size: 1.25rem;
-  background: #fff;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  border: 1px solid rgba(0,0,0,0.05);
+  /* 배경, 테두리 제거 - 완전한 미니멀리즘 */
+  background: transparent;
+  padding: 0;
+  border: none;
 }
 
 .summary-content :deep(.section-title) {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.summary-content :deep(.section-body) {
-  padding-left: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .summary-content :deep(.section-text) {
-  font-size: 0.95rem;
-  color: var(--color-text-secondary);
+  font-size: 0.975rem;
+  color: var(--color-text-primary);
   margin: 0;
-  line-height: 1.7;
+  line-height: 1.75;
+  font-weight: 400;
 }
 
 /* 구분선 */
@@ -1028,7 +978,7 @@ onMounted(async () => {
   height: 1px;
   background: var(--color-border-light);
   margin: 0.5rem 0;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 /* 체크리스트 스타일 */
@@ -1042,84 +992,60 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s;
+  padding: 0.25rem 0;
 }
 
-.summary-content :deep(.checklist-item:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-.summary-content :deep(.checkbox-ui) {
+.summary-content :deep(.check-icon) {
   flex-shrink: 0;
   width: 20px;
-  height: 20px;
-  border: 2px solid #d1d5db;
-  border-radius: 6px;
-  background: #fff;
-  margin-top: 2px;
+  height: 24px; /* 텍스트 라인하이트와 맞춤 */
   display: flex;
   align-items: center;
   justify-content: center;
-  color: transparent;
-  transition: all 0.2s;
-}
-
-.summary-content :deep(.checklist-item:hover .checkbox-ui) {
-  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  margin-top: 2px;
 }
 
 .summary-content :deep(.checklist-text) {
   flex: 1;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.975rem;
+  line-height: 1.75;
   color: var(--color-text-primary);
 }
 
 /* 하이라이트 (깔끔한 볼드) */
 .summary-content :deep(.highlight-text) {
   font-weight: 700;
-  color: var(--color-accent-primary-dark, #4338ca);
-  background: transparent;
-  padding: 0;
+  color: var(--color-text-primary);
 }
 
 /* 다크모드 대응 */
-[data-theme="dark"] .summary-content :deep(.summary-section) {
-  background: var(--color-bg-card);
-  border-color: var(--color-border-light);
+[data-theme="dark"] .summary-content :deep(.section-title) {
+  color: var(--color-text-tertiary);
 }
 
-[data-theme="dark"] .summary-content :deep(.section-icon) {
+[data-theme="dark"] .summary-content :deep(.check-icon) {
+  color: var(--color-accent-primary-light);
+}
+
+/* 아코디언 헤더 스타일 개선 (미니멀) */
+.accordion-header {
+  padding: 1.25rem;
+}
+
+.ai-badge {
   background: var(--color-bg-secondary);
-  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  /* 그라디언트 제거 */
 }
 
-[data-theme="dark"] .summary-content :deep(.bible-section),
-[data-theme="dark"] .summary-content :deep(.commentary-section),
-[data-theme="dark"] .summary-content :deep(.action-section) {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border-light);
-}
-
-[data-theme="dark"] .summary-content :deep(.checklist-item) {
-  background: var(--color-bg-card);
-  border-color: var(--color-border-light);
-}
-
-[data-theme="dark"] .summary-content :deep(.checkbox-ui) {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-text-tertiary);
-}
-
-[data-theme="dark"] .summary-content :deep(.highlight-text) {
-  color: var(--color-accent-primary-light, #a5b4fc);
+.beta-tag {
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-light);
 }
 
 /* Streak & Calendar Section */
