@@ -65,7 +65,7 @@ def summarize_with_gemini(transcript: str) -> dict | None:
 """
         
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.5-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,
@@ -75,7 +75,7 @@ def summarize_with_gemini(transcript: str) -> dict | None:
         
         return {
             'summary': response.text,
-            'model': 'gemini-1.5-flash'
+            'model': 'gemini-2.5-flash'
         }
         
     except Exception as e:
