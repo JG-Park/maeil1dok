@@ -2373,6 +2373,8 @@ def get_user_hasena_status(request):
 @permission_classes([permissions.AllowAny])
 def get_hasena_summary(request):
     video_id = request.query_params.get('video_id')
+    video_date = request.query_params.get('date')
+    
     if not video_id:
         return Response({
             'success': False,
@@ -2381,7 +2383,15 @@ def get_hasena_summary(request):
     
     try:
         from .services.hasena_summary_service import get_hasena_summary as fetch_summary
-        result = fetch_summary(video_id)
+        
+        parsed_date = None
+        if video_date:
+            try:
+                parsed_date = datetime.strptime(video_date, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        result = fetch_summary(video_id, video_date=parsed_date)
         
         if result['success']:
             return Response(result)
@@ -2393,6 +2403,175 @@ def get_hasena_summary(request):
         return Response({
             'success': False,
             'error': 'AI 요약 생성 중 오류가 발생했습니다.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_hasena_summaries(request):
+    if not request.user.is_staff:
+        return Response({
+            'success': False,
+            'error': '관리자 권한이 필요합니다.'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        from .services.hasena_summary_service import list_summaries
+        
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
+        
+        result = list_summaries(page=page, page_size=page_size)
+        return Response(result)
+        
+    except Exception as e:
+        logger.error(f"Error in list_hasena_summaries: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': '요약 목록 조회 중 오류가 발생했습니다.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def regenerate_hasena_summary(request):
+    if not request.user.is_staff:
+        return Response({
+            'success': False,
+            'error': '관리자 권한이 필요합니다.'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    video_id = request.data.get('video_id')
+    if not video_id:
+        return Response({
+            'success': False,
+            'error': 'video_id가 필요합니다.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        from .services.hasena_summary_service import regenerate_summary_for_video
+        
+        result = regenerate_summary_for_video(video_id)
+        
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        logger.error(f"Error in regenerate_hasena_summary: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': '요약 재생성 중 오류가 발생했습니다.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_hasena_summary(request, video_id):
+    if not request.user.is_staff:
+        return Response({
+            'success': False,
+            'error': '관리자 권한이 필요합니다.'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    summary = request.data.get('summary')
+    title = request.data.get('title')
+    
+    if not summary:
+        return Response({
+            'success': False,
+            'error': 'summary가 필요합니다.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        from .services.hasena_summary_service import update_summary
+        
+        result = update_summary(video_id, summary=summary, title=title)
+        
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        logger.error(f"Error in update_hasena_summary: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': '요약 수정 중 오류가 발생했습니다.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_hasena_stats(request):
+    from datetime import timedelta
+    
+    try:
+        today = timezone.now().date()
+        records = HasenaRecord.objects.filter(
+            user=request.user,
+            is_completed=True
+        ).order_by('-date').values_list('date', flat=True)
+        
+        records_set = set(records)
+        total_completed = len(records_set)
+        
+        current_streak = 0
+        check_date = today
+        
+        while True:
+            if check_date.weekday() == 6:
+                check_date -= timedelta(days=1)
+                continue
+            
+            if check_date in records_set:
+                current_streak += 1
+                check_date -= timedelta(days=1)
+            elif check_date == today:
+                check_date -= timedelta(days=1)
+            else:
+                break
+        
+        longest_streak = current_streak
+        temp_streak = 0
+        sorted_dates = sorted(records_set, reverse=True)
+        
+        for i, date in enumerate(sorted_dates):
+            if i == 0:
+                temp_streak = 1
+            else:
+                prev_date = sorted_dates[i - 1]
+                diff = (prev_date - date).days
+                
+                weekdays_between = 0
+                check = date + timedelta(days=1)
+                while check <= prev_date:
+                    if check.weekday() != 6:
+                        weekdays_between += 1
+                    check += timedelta(days=1)
+                
+                if weekdays_between <= 1:
+                    temp_streak += 1
+                else:
+                    temp_streak = 1
+            
+            longest_streak = max(longest_streak, temp_streak)
+        
+        return Response({
+            'success': True,
+            'data': {
+                'total_completed': total_completed,
+                'current_streak': current_streak,
+                'longest_streak': longest_streak
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_hasena_stats: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': '통계를 불러오는 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

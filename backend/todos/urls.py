@@ -47,6 +47,10 @@ urlpatterns = [
     path('hasena/update/', views.hasena_record_update, name='hasena-record-update'),
     path('hasena/status/', views.get_user_hasena_status, name='hasena-user-status'),
     path('hasena/summary/', views.get_hasena_summary, name='hasena-summary'),
+    path('hasena/stats/', views.get_hasena_stats, name='hasena-stats'),
+    path('hasena/summaries/', views.list_hasena_summaries, name='hasena-summaries-list'),
+    path('hasena/summaries/regenerate/', views.regenerate_hasena_summary, name='hasena-summary-regenerate'),
+    path('hasena/summaries/<str:video_id>/', views.update_hasena_summary, name='hasena-summary-update'),
         
     # 통계 관련 URL
     path('stats/users/', views.get_total_users, name='total-users'),

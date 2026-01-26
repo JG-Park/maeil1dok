@@ -33,6 +33,36 @@
           </div>
         </div>
 
+        <!-- AI 요약 섹션 -->
+        <div class="card summary-card fade-in" style="animation-delay: 0.15s">
+          <div class="summary-header">
+            <span class="ai-badge">✨ AI 요약</span>
+            <button 
+              v-if="latestVideoId && !summaryLoading && !summaryContent"
+              class="summary-btn"
+              @click="fetchAISummary"
+            >
+              요약 보기
+            </button>
+          </div>
+          
+          <div v-if="summaryLoading" class="summary-loading">
+            <div class="loading-spinner small"></div>
+            <span>AI가 영상을 분석하고 있습니다...</span>
+          </div>
+          
+          <div v-else-if="summaryError" class="summary-error">
+            <p>{{ summaryError }}</p>
+            <button class="retry-btn" @click="fetchAISummary">다시 시도</button>
+          </div>
+          
+          <div v-else-if="summaryContent" class="summary-content" v-html="formattedSummary"></div>
+          
+          <div v-else class="summary-placeholder">
+            <p>영상 시청 후 AI 요약을 확인해보세요</p>
+          </div>
+        </div>
+
         <!-- 본문 섹션 -->
         <div class="card content-card fade-in" style="animation-delay: 0.2s">
           <!-- 로딩 상태 -->
@@ -56,6 +86,62 @@
             </div>
 
             <div class="verse-container" v-html="sanitizedContent"></div>
+          </div>
+        </div>
+
+        <!-- 스트릭 & 달력 섹션 (로그인 시에만) -->
+        <div v-if="auth.isAuthenticated.value" class="card streak-card fade-in" style="animation-delay: 0.25s">
+          <!-- 스트릭 통계 -->
+          <div class="streak-stats">
+            <div class="streak-item current">
+              <span class="streak-icon">🔥</span>
+              <div class="streak-info">
+                <span class="streak-value">{{ hasenaStore.stats.current_streak }}</span>
+                <span class="streak-label">현재 연속</span>
+              </div>
+            </div>
+            <div class="streak-item longest">
+              <span class="streak-icon">🏆</span>
+              <div class="streak-info">
+                <span class="streak-value">{{ hasenaStore.stats.longest_streak }}</span>
+                <span class="streak-label">최장 연속</span>
+              </div>
+            </div>
+            <div class="streak-item total">
+              <span class="streak-icon">📅</span>
+              <div class="streak-info">
+                <span class="streak-value">{{ hasenaStore.stats.total_completed }}</span>
+                <span class="streak-label">총 완료</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 미니 달력 -->
+          <div class="mini-calendar">
+            <div class="calendar-header">
+              <button class="nav-btn" @click="prevMonth">&lt;</button>
+              <span class="calendar-title">{{ calendarTitle }}</span>
+              <button class="nav-btn" @click="nextMonth">&gt;</button>
+            </div>
+            <div class="calendar-weekdays">
+              <span v-for="day in ['일', '월', '화', '수', '목', '금', '토']" :key="day">{{ day }}</span>
+            </div>
+            <div class="calendar-grid">
+              <div 
+                v-for="(date, index) in calendarDates" 
+                :key="index"
+                class="calendar-day"
+                :class="{
+                  'other-month': date.otherMonth,
+                  'today': date.isToday,
+                  'completed': date.completed,
+                  'sunday': date.isSunday
+                }"
+              >
+                <span class="day-number">{{ date.day }}</span>
+                <span v-if="date.completed && !date.otherMonth" class="check-mark">✓</span>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -142,6 +228,54 @@ const error = ref(null)
 const bibleTitle = ref('')
 const parsedContent = ref('')
 const sanitizedContent = computed(() => sanitize(parsedContent.value))
+
+// AI 요약 관련 상태
+const summaryLoading = ref(false)
+const summaryError = ref(null)
+const summaryContent = ref('')
+
+// Markdown을 HTML로 변환 (간단한 버전)
+const formattedSummary = computed(() => {
+  if (!summaryContent.value) return ''
+  
+  return summaryContent.value
+    .replace(/## (.+)/g, '<h3 class="summary-heading">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n- /g, '</p><li>')
+    .replace(/^- /gm, '<li>')
+    .replace(/<li>(.+?)(?=<li>|<\/p>|<h3|$)/g, '<li>$1</li>')
+    .replace(/(<li>.+<\/li>)+/g, '<ul>$&</ul>')
+    .replace(/^(.+)$/gm, (match) => {
+      if (match.startsWith('<')) return match
+      return `<p>${match}</p>`
+    })
+})
+
+// AI 요약 가져오기
+const fetchAISummary = async () => {
+  if (!latestVideoId.value) {
+    summaryError.value = '영상 ID를 가져올 수 없습니다.'
+    return
+  }
+  
+  summaryLoading.value = true
+  summaryError.value = null
+  
+  try {
+    const { data } = await api.get(`/api/v1/todos/hasena/summary/?video_id=${latestVideoId.value}`)
+    
+    if (data.success) {
+      summaryContent.value = data.summary
+    } else {
+      summaryError.value = data.error || '요약을 가져올 수 없습니다.'
+    }
+  } catch (err) {
+    summaryError.value = err.response?.data?.error || '요약을 가져오는 중 오류가 발생했습니다.'
+  } finally {
+    summaryLoading.value = false
+  }
+}
 
 // 날짜 관련
 const today = new Date()
@@ -235,6 +369,94 @@ const fetchHasenaStatus = async () => {
 const isButtonCompleted = computed(() => hasenaStore.isCompleted)
 const buttonText = computed(() => isButtonCompleted.value ? '미완료로 변경' : '완료하기')
 
+// 달력 관련 상태
+const calendarYear = ref(today.getFullYear())
+const calendarMonth = ref(today.getMonth() + 1)
+
+const calendarTitle = computed(() => `${calendarYear.value}년 ${calendarMonth.value}월`)
+
+const calendarDates = computed(() => {
+  const year = calendarYear.value
+  const month = calendarMonth.value - 1
+  
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  
+  const startOffset = firstDay.getDay()
+  const daysInMonth = lastDay.getDate()
+  
+  const completedDates = new Set(
+    hasenaStore.calendarRecords
+      .filter(r => r.is_completed)
+      .map(r => r.date)
+  )
+  
+  const dates = []
+  
+  for (let i = startOffset - 1; i >= 0; i--) {
+    const prevDate = new Date(year, month, -i)
+    dates.push({
+      day: prevDate.getDate(),
+      otherMonth: true,
+      isToday: false,
+      completed: false,
+      isSunday: prevDate.getDay() === 0
+    })
+  }
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const currentDate = new Date(year, month, day)
+    const dateStr = formatApiDate(currentDate)
+    dates.push({
+      day,
+      otherMonth: false,
+      isToday: dateStr === formatApiDate(today),
+      completed: completedDates.has(dateStr),
+      isSunday: currentDate.getDay() === 0
+    })
+  }
+  
+  const remaining = 42 - dates.length
+  for (let i = 1; i <= remaining; i++) {
+    const nextDate = new Date(year, month + 1, i)
+    dates.push({
+      day: i,
+      otherMonth: true,
+      isToday: false,
+      completed: false,
+      isSunday: nextDate.getDay() === 0
+    })
+  }
+  
+  return dates
+})
+
+const prevMonth = () => {
+  if (calendarMonth.value === 1) {
+    calendarMonth.value = 12
+    calendarYear.value--
+  } else {
+    calendarMonth.value--
+  }
+  loadCalendarData()
+}
+
+const nextMonth = () => {
+  if (calendarMonth.value === 12) {
+    calendarMonth.value = 1
+    calendarYear.value++
+  } else {
+    calendarMonth.value++
+  }
+  loadCalendarData()
+}
+
+const loadCalendarData = async () => {
+  if (auth.isAuthenticated.value) {
+    await hasenaStore.fetchCalendarRecords(calendarYear.value, calendarMonth.value)
+  }
+}
+
 // handleComplete 함수 강화
 const handleComplete = async () => {
   // 로그인하지 않은 경우 로그인 페이지로 이동
@@ -285,18 +507,21 @@ const setupYouTubeListener = () => {
   }
 }
 
-onMounted(() => {
-  // 모바일 기기 및 플랫폼 확인
+onMounted(async () => {
   const ua = navigator.userAgent
   isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
   isIOS.value = /iPhone|iPad|iPod/i.test(ua)
   isAndroid.value = /Android/i.test(ua)
 
-  // 하세나 본문 가져오기
   fetchHasenaContent()
-  
-  // YouTube 현재 재생 비디오 ID 가져오기
   setupYouTubeListener()
+  
+  if (auth.isAuthenticated.value) {
+    await Promise.all([
+      hasenaStore.fetchStats(),
+      hasenaStore.fetchCalendarRecords(calendarYear.value, calendarMonth.value)
+    ])
+  }
 })
 </script>
 
@@ -481,6 +706,280 @@ onMounted(() => {
 
 .youtube-icon {
   font-size: 1.1rem;
+}
+
+/* AI Summary Section */
+.summary-card {
+  padding: 1.25rem;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.summary-btn {
+  background: var(--color-accent-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.summary-btn:hover {
+  background: var(--color-accent-primary-dark, #4f46e5);
+  transform: translateY(-1px);
+}
+
+.summary-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
+
+.summary-error {
+  background: #fef2f2;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.summary-error .retry-btn {
+  margin-top: 0.75rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.summary-placeholder {
+  color: var(--color-text-tertiary);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.summary-content {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+}
+
+.summary-content :deep(h3.summary-heading) {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-accent-primary);
+  margin: 1.25rem 0 0.5rem 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.summary-content :deep(h3.summary-heading:first-child) {
+  margin-top: 0;
+}
+
+.summary-content :deep(p) {
+  margin: 0.5rem 0;
+}
+
+.summary-content :deep(ul) {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.summary-content :deep(li) {
+  margin: 0.25rem 0;
+}
+
+.summary-content :deep(strong) {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .summary-error {
+  background: #451a1a;
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .summary-error .retry-btn {
+  background: #ef4444;
+}
+
+/* Streak & Calendar Section */
+.streak-card {
+  padding: 1.25rem;
+}
+
+.streak-stats {
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 1.25rem;
+}
+
+.streak-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.streak-icon {
+  font-size: 1.5rem;
+}
+
+.streak-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.streak-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.streak-item.current .streak-value {
+  color: #f97316;
+}
+
+.streak-item.longest .streak-value {
+  color: #eab308;
+}
+
+.streak-item.total .streak-value {
+  color: var(--color-accent-primary);
+}
+
+.streak-label {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+/* Mini Calendar */
+.mini-calendar {
+  font-size: 0.85rem;
+}
+
+.mini-calendar .calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.mini-calendar .calendar-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.mini-calendar .nav-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  border-radius: 4px;
+}
+
+.mini-calendar .nav-btn:hover {
+  background: var(--color-bg-hover);
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-weekdays span:first-child {
+  color: #ef4444;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.8rem;
+}
+
+.calendar-day.other-month {
+  color: var(--color-text-tertiary);
+  opacity: 0.4;
+}
+
+.calendar-day.sunday .day-number {
+  color: #ef4444;
+}
+
+.calendar-day.today {
+  background: var(--color-accent-primary-light);
+}
+
+.calendar-day.today .day-number {
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+
+.calendar-day.completed:not(.other-month) {
+  background: #10b981;
+}
+
+.calendar-day.completed:not(.other-month) .day-number {
+  color: white;
+}
+
+.calendar-day .check-mark {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 0.6rem;
+  color: white;
+  background: #10b981;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Content Section */

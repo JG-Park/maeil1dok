@@ -15,16 +15,34 @@ interface HasenaData {
   updated_at: string
 }
 
-// 직접 데이터를 반환하는 경우도 처리
+interface HasenaRecord {
+  id: number
+  date: string
+  is_completed: boolean
+  created_at: string
+}
+
+interface HasenaStats {
+  total_completed: number
+  current_streak: number
+  longest_streak: number
+}
+
 type HasenaResponse = HasenaResponseWrapped | HasenaData
 
 export const useHasenaStore = defineStore('hasena', () => {
   const api = useApi()
   
-  // 상태
   const isCompleted = ref<boolean>(false)
   const isLoading = ref<boolean>(false)
   const error = ref<string | null>(null)
+  
+  const calendarRecords = ref<HasenaRecord[]>([])
+  const stats = ref<HasenaStats>({
+    total_completed: 0,
+    current_streak: 0,
+    longest_streak: 0
+  })
   
   // 날짜 포맷 함수
   const formatApiDate = (date: Date): string => {
@@ -94,19 +112,61 @@ export const useHasenaStore = defineStore('hasena', () => {
     }
   }
   
-  // 상태 초기화
+  const fetchCalendarRecords = async (year: number, month: number): Promise<HasenaRecord[]> => {
+    const { useAuthService } = await import('~/composables/useAuthService')
+    const auth = useAuthService()
+    if (!auth.isAuthenticated.value) {
+      return []
+    }
+
+    try {
+      const { data } = await api.get<HasenaRecord[]>(`/api/v1/todos/hasena/?year=${year}&month=${month}`)
+      calendarRecords.value = data
+      return data
+    } catch (err: any) {
+      console.error('Failed to fetch hasena calendar records:', err)
+      return []
+    }
+  }
+  
+  const fetchStats = async (): Promise<HasenaStats | null> => {
+    const { useAuthService } = await import('~/composables/useAuthService')
+    const auth = useAuthService()
+    if (!auth.isAuthenticated.value) {
+      return null
+    }
+
+    try {
+      const { data } = await api.get<{ success: boolean; data: HasenaStats }>('/api/v1/todos/hasena/stats/')
+      if (data.success) {
+        stats.value = data.data
+        return data.data
+      }
+      return null
+    } catch (err: any) {
+      console.error('Failed to fetch hasena stats:', err)
+      return null
+    }
+  }
+  
   const reset = (): void => {
     isCompleted.value = false
     isLoading.value = false
     error.value = null
+    calendarRecords.value = []
+    stats.value = { total_completed: 0, current_streak: 0, longest_streak: 0 }
   }
   
   return {
     isCompleted,
     isLoading,
     error,
+    calendarRecords,
+    stats,
     fetchStatus,
     updateStatus,
+    fetchCalendarRecords,
+    fetchStats,
     reset
   }
 }) 

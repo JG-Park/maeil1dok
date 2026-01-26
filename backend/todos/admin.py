@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CatchupSession, CatchupSchedule
+from .models import CatchupSession, CatchupSchedule, HasenaSummary
 
 
 class CatchupScheduleInline(admin.TabularInline):
@@ -46,3 +46,43 @@ class CatchupScheduleAdmin(admin.ModelAdmin):
     list_filter = ['is_completed', 'scheduled_date', 'session__status']
     search_fields = ['session__name', 'original_schedule__book']
     readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(HasenaSummary)
+class HasenaSummaryAdmin(admin.ModelAdmin):
+    list_display = ['video_id', 'video_date', 'title', 'is_edited', 'model_used', 'updated_at']
+    list_filter = ['is_edited', 'model_used', 'video_date']
+    search_fields = ['video_id', 'title', 'summary']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-video_date', '-created_at']
+    
+    fieldsets = (
+        ('영상 정보', {
+            'fields': ('video_id', 'video_date', 'title')
+        }),
+        ('AI 요약', {
+            'fields': ('summary', 'model_used', 'is_edited')
+        }),
+        ('원본 자막', {
+            'fields': ('transcript',),
+            'classes': ('collapse',)
+        }),
+        ('타임스탬프', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['regenerate_summary']
+    
+    @admin.action(description='선택한 요약 재생성')
+    def regenerate_summary(self, request, queryset):
+        from .services.hasena_summary_service import regenerate_summary_for_video
+        
+        success_count = 0
+        for summary in queryset:
+            result = regenerate_summary_for_video(summary.video_id)
+            if result.get('success'):
+                success_count += 1
+        
+        self.message_user(request, f'{success_count}개의 요약이 재생성되었습니다.')

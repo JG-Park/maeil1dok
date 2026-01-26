@@ -194,7 +194,6 @@ class UserVideoIntroProgress(models.Model):
 
 
 class HasenaRecord(models.Model):
-    """하세나하시조(hasena) 기록"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     date = models.DateField(help_text="기록 날짜")
     is_completed = models.BooleanField(default=True)
@@ -207,6 +206,27 @@ class HasenaRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username}의 하세나 기록 - {self.date}"
+
+
+class HasenaSummary(models.Model):
+    video_id = models.CharField(max_length=20, unique=True, db_index=True)
+    video_date = models.DateField(null=True, blank=True, help_text="영상 날짜")
+    title = models.CharField(max_length=200, blank=True, help_text="영상 제목")
+    summary = models.TextField(help_text="AI 생성 요약")
+    transcript = models.TextField(blank=True, help_text="원본 자막")
+    model_used = models.CharField(max_length=50, default='gemini-2.0-flash')
+    is_edited = models.BooleanField(default=False, help_text="관리자가 수정했는지 여부")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-video_date', '-created_at']
+        verbose_name = '하세나 AI 요약'
+        verbose_name_plural = '하세나 AI 요약'
+
+    def __str__(self):
+        date_str = self.video_date.strftime('%Y-%m-%d') if self.video_date else 'N/A'
+        return f"[{date_str}] {self.video_id}"
 
 class VisitorCount(models.Model):
     """일일 방문자 수 카운터"""
