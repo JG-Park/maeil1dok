@@ -179,6 +179,36 @@
                 연결
               </button>
             </div>
+
+            <!-- 애플 -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="provider-badge apple">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                  </svg>
+                  <span>애플</span>
+                </div>
+                <p class="setting-description">
+                  {{ getLinkedAccount('apple')?.email || (isAppleLinked ? '연결됨' : '연결되지 않음') }}
+                </p>
+              </div>
+              <button 
+                v-if="isAppleLinked"
+                @click="handleUnlink('apple')" 
+                class="action-button danger"
+                :disabled="!canUnlink('apple')"
+              >
+                연결 해제
+              </button>
+              <button 
+                v-else
+                @click="handleLinkApple" 
+                class="action-button primary"
+              >
+                연결
+              </button>
+            </div>
           </div>
           <p class="section-note">
             * 최소 하나의 로그인 방법(비밀번호 또는 소셜 계정)이 있어야 합니다
@@ -190,6 +220,16 @@
           <button @click="handleLogout" class="logout-button">
             로그아웃
           </button>
+        </section>
+
+        <!-- 계정 삭제 -->
+        <section class="settings-section">
+          <button @click="handleDeleteAccount" class="delete-account-button">
+            계정 삭제
+          </button>
+          <p class="section-note danger-note">
+            * 계정 삭제 요청 후 30일간 유예 기간이 있으며, 이후 완전히 삭제됩니다
+          </p>
         </section>
       </template>
     </div>
@@ -399,6 +439,9 @@ const isKakaoLinked = computed(() =>
 const isGoogleLinked = computed(() => 
   linkedAccounts.value?.linked_accounts?.some((a: any) => a.provider === 'google')
 )
+const isAppleLinked = computed(() => 
+  linkedAccounts.value?.linked_accounts?.some((a: any) => a.provider === 'apple')
+)
 
 const getLinkedAccount = (provider: string) => 
   linkedAccounts.value?.linked_accounts?.find((a: any) => a.provider === provider)
@@ -432,6 +475,14 @@ const handleLinkGoogle = () => {
   const state = encodeURIComponent(JSON.stringify({ action: 'link' }))
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${config.public.GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile&access_type=offline&prompt=consent&state=${state}`
   window.location.href = googleAuthUrl
+}
+
+const handleLinkApple = () => {
+  const clientId = config.public.APPLE_CLIENT_ID
+  const redirectUri = encodeURIComponent(config.public.APPLE_REDIRECT_URI || `${window.location.origin}/auth/apple/callback`)
+  const state = encodeURIComponent(JSON.stringify({ action: 'link' }))
+  const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code%20id_token&scope=name%20email&response_mode=form_post&state=${state}`
+  window.location.href = appleAuthUrl
 }
 
 const handleUnlink = async (provider: string) => {
@@ -555,6 +606,35 @@ const handleLogout = async () => {
   }
 }
 
+const handleDeleteAccount = async () => {
+  const confirmed = await modal.confirm({
+    title: '계정 삭제',
+    description: '정말 계정을 삭제하시겠습니까?\n\n삭제 요청 후 30일간 유예 기간이 있으며, 이 기간 동안 로그인하면 삭제가 취소됩니다. 30일 후에는 모든 데이터가 완전히 삭제되며 복구할 수 없습니다.',
+    confirmText: '계정 삭제',
+    confirmVariant: 'danger',
+    icon: 'warning'
+  })
+
+  if (!confirmed) return
+
+  try {
+    await api.post('/api/v1/auth/delete-account/')
+    await modal.alert({
+      title: '계정 삭제 요청 완료',
+      description: '계정 삭제가 요청되었습니다. 30일 후 완전히 삭제됩니다.',
+      icon: 'success'
+    })
+    await auth.logout()
+    navigateTo('/')
+  } catch (error: any) {
+    await modal.alert({
+      title: '계정 삭제 실패',
+      description: error?.data?.error || '계정 삭제에 실패했습니다.',
+      icon: 'error'
+    })
+  }
+}
+
 const handleBack = () => {
   goBack('/')
 }
@@ -606,7 +686,12 @@ const closeMergeModal = () => {
 }
 
 const getProviderDisplayName = (provider: string) => {
-  return provider === 'kakao' ? '카카오' : provider === 'google' ? '구글' : provider
+  const names: Record<string, string> = {
+    kakao: '카카오',
+    google: '구글',
+    apple: '애플'
+  }
+  return names[provider] || provider
 }
 
 const formatDate = (dateString: string) => {
@@ -950,6 +1035,28 @@ onUnmounted(() => {
 .logout-button:hover {
   background: #fef2f2;
   border-color: #fecaca;
+}
+
+.delete-account-button {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #dc2626;
+  background: var(--color-bg-card);
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-account-button:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.danger-note {
+  color: #dc2626;
 }
 
 /* Modal */
