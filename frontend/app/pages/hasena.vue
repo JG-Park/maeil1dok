@@ -33,35 +33,59 @@
           </div>
         </div>
 
-        <!-- AI 요약 섹션 -->
+        <!-- AI 요약 섹션 (아코디언) -->
         <div class="card summary-card fade-in" style="animation-delay: 0.15s">
-          <div class="summary-header">
-            <span class="ai-badge">✨ AI 요약</span>
-            <!-- 관리자만 요약 생성/재생성 버튼 표시 -->
-            <button 
-              v-if="auth.isStaff?.value && latestVideoId && !summaryLoading"
-              class="summary-btn"
-              @click="generateAISummary"
+          <!-- 아코디언 헤더 -->
+          <button 
+            class="accordion-header"
+            @click="isSummaryExpanded = !isSummaryExpanded"
+            :aria-expanded="isSummaryExpanded"
+          >
+            <div class="accordion-title">
+              <span class="ai-badge">✨ AI 요약</span>
+              <span class="beta-tag">베타</span>
+            </div>
+            <svg 
+              class="accordion-chevron" 
+              :class="{ 'expanded': isSummaryExpanded }"
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              stroke-width="2"
             >
-              {{ summaryContent ? '재생성' : '요약 생성' }}
-            </button>
-          </div>
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
           
-          <div v-if="summaryLoading" class="summary-loading">
-            <div class="loading-spinner small"></div>
-            <span>AI가 영상을 분석하고 있습니다...</span>
-          </div>
-          
-          <div v-else-if="summaryError && !summaryContent" class="summary-error">
-            <p>{{ summaryError }}</p>
-            <!-- 관리자만 다시 시도 버튼 표시 -->
-            <button v-if="auth.isStaff?.value" class="retry-btn" @click="generateAISummary">다시 시도</button>
-          </div>
-          
-          <div v-else-if="summaryContent" class="summary-content" v-html="formattedSummary"></div>
-          
-          <div v-else class="summary-placeholder">
-            <p>오늘의 요약이 곧 준비됩니다</p>
+          <!-- 아코디언 콘텐츠 -->
+          <div class="accordion-content" :class="{ 'expanded': isSummaryExpanded }">
+            <!-- 베타 안내 -->
+            <p class="beta-notice">실험 중인 기능입니다. 내용이 정확하지 않을 수 있습니다.</p>
+            
+            <!-- 관리자 버튼 -->
+            <div v-if="auth.isStaff?.value && latestVideoId && !summaryLoading" class="admin-actions">
+              <button class="summary-btn" @click.stop="generateAISummary">
+                {{ summaryContent ? '재생성' : '요약 생성' }}
+              </button>
+            </div>
+            
+            <div v-if="summaryLoading" class="summary-loading">
+              <div class="loading-spinner small"></div>
+              <span>AI가 영상을 분석하고 있습니다...</span>
+            </div>
+            
+            <div v-else-if="summaryError && !summaryContent" class="summary-error">
+              <p>{{ summaryError }}</p>
+              <button v-if="auth.isStaff?.value" class="retry-btn" @click.stop="generateAISummary">다시 시도</button>
+            </div>
+            
+            <div v-else-if="summaryContent" class="summary-content" v-html="formattedSummary"></div>
+            
+            <div v-else class="summary-placeholder">
+              <p>오늘의 요약이 곧 준비됩니다</p>
+            </div>
           </div>
         </div>
 
@@ -83,11 +107,20 @@
           <!-- 본문 내용 -->
           <div v-else class="bible-content-wrapper">
             <div class="bible-header">
-              <span class="date-badge">{{ formattedDate }}</span>
+              <div class="bible-header-top">
+                <span class="date-badge">{{ formattedDate }}</span>
+                <!-- 읽기 설정 바로가기 -->
+                <button class="settings-btn" @click="goToReadingSettings" title="읽기 설정">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 6h16M4 12h16M4 18h7" />
+                    <circle cx="17" cy="18" r="3" />
+                  </svg>
+                </button>
+              </div>
               <h2>{{ bibleTitle }}</h2>
             </div>
 
-            <div class="verse-container" v-html="sanitizedContent"></div>
+            <div class="verse-container" :style="verseContainerStyle" v-html="sanitizedContent"></div>
           </div>
         </div>
 
@@ -170,6 +203,7 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { useAuthService } from '~/composables/useAuthService'
 import { useHasenaStore } from '~/stores/hasena'
+import { useReadingSettingsStore, FONT_FAMILIES, FONT_WEIGHTS } from '~/stores/readingSettings'
 import { useRouter } from 'vue-router'
 import { useSanitize } from '~/composables/useSanitize'
 import Toast from '~/components/Toast.vue'
@@ -180,12 +214,29 @@ import HasenaCalendarModal from '~/components/hasena/HasenaCalendarModal.vue'
 const api = useApi()
 const auth = useAuthService()
 const hasenaStore = useHasenaStore()
+const readingSettings = useReadingSettingsStore()
 const router = useRouter()
 const toast = ref(null)
 const { sanitize } = useSanitize()
 
 // 달력 모달 상태
 const isCalendarOpen = ref(false)
+
+// AI 요약 아코디언 상태 (기본 닫힘)
+const isSummaryExpanded = ref(false)
+
+// 읽기 설정 바로가기
+const goToReadingSettings = () => {
+  router.push('/bible/settings')
+}
+
+// 본문 스타일 (읽기 설정 적용)
+const verseContainerStyle = computed(() => ({
+  fontFamily: FONT_FAMILIES[readingSettings.settings.fontFamily].css,
+  fontSize: `${readingSettings.settings.fontSize}px`,
+  fontWeight: FONT_WEIGHTS[readingSettings.settings.fontWeight],
+  lineHeight: readingSettings.settings.lineHeight,
+}))
 
 const onCalendarUpdated = async () => {
   // 달력에서 업데이트 시 오늘 상태 갱신
@@ -238,22 +289,39 @@ const summaryLoading = ref(false)
 const summaryError = ref(null)
 const summaryContent = ref('')
 
-// Markdown을 HTML로 변환 (간단한 버전)
+// Markdown을 HTML로 변환 (체크리스트 지원)
 const formattedSummary = computed(() => {
   if (!summaryContent.value) return ''
   
-  return summaryContent.value
-    .replace(/## (.+)/g, '<h3 class="summary-heading">$1</h3>')
+  let html = summaryContent.value
+    // 체크리스트 처리 (- [ ] 형식)
+    .replace(/^- \[ \] (.+)$/gm, '<div class="checklist-item"><span class="checkbox"></span><span class="checklist-text">$1</span></div>')
+    // 볼드 섹션 제목 (** 로 시작하는 줄)
+    .replace(/^\*\*(.+?)\*\*$/gm, '<h4 class="summary-section-title">$1</h4>')
+    // 인라인 볼드
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // 일반 리스트 항목
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    // 줄바꿈 처리
     .replace(/\n\n/g, '</p><p>')
-    .replace(/\n- /g, '</p><li>')
-    .replace(/^- /gm, '<li>')
-    .replace(/<li>(.+?)(?=<li>|<\/p>|<h3|$)/g, '<li>$1</li>')
-    .replace(/(<li>.+<\/li>)+/g, '<ul>$&</ul>')
-    .replace(/^(.+)$/gm, (match) => {
-      if (match.startsWith('<')) return match
-      return `<p>${match}</p>`
-    })
+    .replace(/\n/g, '<br>')
+  
+  // 연속된 li를 ul로 감싸기
+  html = html.replace(/(<li>.+?<\/li>(<br>)?)+/g, (match) => {
+    const items = match.replace(/<br>/g, '')
+    return `<ul class="summary-list">${items}</ul>`
+  })
+  
+  // 연속된 체크리스트를 감싸기
+  html = html.replace(/(<div class="checklist-item">.*?<\/div>(<br>)?)+/g, (match) => {
+    const items = match.replace(/<br>/g, '')
+    return `<div class="checklist-group">${items}</div>`
+  })
+  
+  // 빈 p 태그 제거
+  html = html.replace(/<p><\/p>/g, '')
+  
+  return html
 })
 
 // AI 요약 조회 (생성 없이)
@@ -465,6 +533,9 @@ onMounted(async () => {
   isIOS.value = /iPhone|iPad|iPod/i.test(ua)
   isAndroid.value = /Android/i.test(ua)
 
+  // 읽기 설정 초기화
+  await readingSettings.initialize()
+
   fetchHasenaContent()
   setupYouTubeListener()
   
@@ -657,16 +728,33 @@ onMounted(async () => {
   font-size: 1.1rem;
 }
 
-/* AI Summary Section */
+/* AI Summary Section - Accordion */
 .summary-card {
-  padding: 1.25rem;
+  padding: 0;
+  overflow: hidden;
 }
 
-.summary-header {
+/* 아코디언 헤더 */
+.accordion-header {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.accordion-header:hover {
+  background: var(--color-bg-hover);
+}
+
+.accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .ai-badge {
@@ -679,6 +767,56 @@ onMounted(async () => {
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.beta-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.accordion-chevron {
+  color: var(--color-text-tertiary);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.accordion-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+/* 아코디언 콘텐츠 */
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 1.25rem;
+}
+
+.accordion-content.expanded {
+  max-height: 2000px;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.beta-notice {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
 }
 
 .summary-btn {
@@ -730,44 +868,113 @@ onMounted(async () => {
   color: var(--color-text-tertiary);
   font-size: 0.9rem;
   text-align: center;
-  padding: 0.5rem 0;
+  padding: 1rem 0;
 }
 
+/* 요약 콘텐츠 스타일링 */
 .summary-content {
   font-size: 0.95rem;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--color-text-primary);
 }
 
-.summary-content :deep(h3.summary-heading) {
-  font-size: 1rem;
-  font-weight: 600;
+.summary-content :deep(h4.summary-section-title) {
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--color-accent-primary);
-  margin: 1.25rem 0 0.5rem 0;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid var(--color-border-light);
+  margin: 1.5rem 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-accent-primary-light);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.summary-content :deep(h3.summary-heading:first-child) {
+.summary-content :deep(h4.summary-section-title::before) {
+  content: '';
+  width: 4px;
+  height: 1em;
+  background: var(--color-accent-primary);
+  border-radius: 2px;
+}
+
+.summary-content :deep(h4.summary-section-title:first-child) {
   margin-top: 0;
 }
 
 .summary-content :deep(p) {
-  margin: 0.5rem 0;
-}
-
-.summary-content :deep(ul) {
-  margin: 0.5rem 0;
-  padding-left: 1.25rem;
-}
-
-.summary-content :deep(li) {
-  margin: 0.25rem 0;
+  margin: 0.75rem 0;
 }
 
 .summary-content :deep(strong) {
   color: var(--color-text-primary);
   font-weight: 600;
+  background: linear-gradient(180deg, transparent 60%, var(--color-accent-primary-light) 60%);
+  padding: 0 2px;
+}
+
+/* 일반 리스트 */
+.summary-content :deep(ul.summary-list) {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.summary-content :deep(ul.summary-list li) {
+  position: relative;
+  margin: 0.5rem 0;
+  padding-left: 0.25rem;
+}
+
+.summary-content :deep(ul.summary-list li::before) {
+  content: '•';
+  position: absolute;
+  left: -1rem;
+  color: var(--color-accent-primary);
+  font-weight: bold;
+}
+
+/* 체크리스트 스타일 */
+.summary-content :deep(.checklist-group) {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--color-border-light);
+}
+
+.summary-content :deep(.checklist-item) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.summary-content :deep(.checklist-item:last-child) {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.summary-content :deep(.checklist-item:first-child) {
+  padding-top: 0;
+}
+
+.summary-content :deep(.checkbox) {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-accent-primary);
+  border-radius: 6px;
+  background: var(--color-bg-card);
+  margin-top: 2px;
+}
+
+.summary-content :deep(.checklist-text) {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
 }
 
 [data-theme="dark"] .summary-error {
@@ -916,6 +1123,15 @@ onMounted(async () => {
   border-bottom: 1px dashed var(--color-border-default);
 }
 
+.bible-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
 .date-badge {
   display: inline-block;
   background: var(--color-accent-primary-light);
@@ -924,7 +1140,32 @@ onMounted(async () => {
   border-radius: 999px;
   font-size: 0.875rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+}
+
+.settings-btn {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--color-text-secondary);
+}
+
+.settings-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary-light);
+}
+
+.settings-btn:active {
+  transform: scale(0.95);
 }
 
 .bible-header h2 {
@@ -939,6 +1180,7 @@ onMounted(async () => {
   font-family: var(--font-serif);
   font-size: 1.05rem;
   color: var(--color-text-primary);
+  transition: all 0.2s ease;
 }
 
 /* Floating Footer */
