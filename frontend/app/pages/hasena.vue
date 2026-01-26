@@ -42,8 +42,22 @@
             :aria-expanded="isSummaryExpanded"
           >
             <div class="accordion-title">
-              <span class="ai-badge">✨ AI 요약</span>
-              <span class="beta-tag">베타</span>
+              <span class="ai-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 4V10M15 10V16M15 10H9M15 10H21M6 16V20M6 20V24M6 20H2M6 20H10" stroke="url(#paint0_linear)" stroke-width="2" stroke-linecap="round"/>
+                  <defs>
+                    <linearGradient id="paint0_linear" x1="2" y1="4" x2="21" y2="24" gradientUnits="userSpaceOnUse">
+                      <stop stop-color="#6366f1"/>
+                      <stop offset="1" stop-color="#a855f7"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                AI 요약
+              </span>
+              <div class="beta-tooltip-container" @click.stop>
+                <span class="beta-tag">BETA</span>
+                <div class="tooltip">실험 중인 기능입니다.<br>내용이 정확하지 않을 수 있습니다.</div>
+              </div>
             </div>
             <svg 
               class="accordion-chevron" 
@@ -61,8 +75,6 @@
           
           <!-- 아코디언 콘텐츠 -->
           <div class="accordion-content" :class="{ 'expanded': isSummaryExpanded }">
-            <!-- 베타 안내 -->
-            <p class="beta-notice">실험 중인 기능입니다. 내용이 정확하지 않을 수 있습니다.</p>
             
             <!-- 관리자 버튼 -->
             <div v-if="auth.isStaff?.value && latestVideoId && !summaryLoading" class="admin-actions">
@@ -1033,19 +1045,72 @@ onMounted(async () => {
   padding: 1.25rem;
 }
 
-.ai-badge {
-  background: var(--color-bg-secondary);
+.ai-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1rem;
   color: var(--color-text-primary);
-  font-weight: 600;
-  padding: 0.35rem 0.75rem;
-  border-radius: 8px;
-  /* 그라디언트 제거 */
+}
+
+.beta-tooltip-container {
+  position: relative;
+  display: inline-flex;
+  margin-left: 0.5rem;
+  cursor: help;
 }
 
 .beta-tag {
-  background: transparent;
-  color: var(--color-text-tertiary);
-  border: 1px solid var(--color-border-light);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* 툴팁 스타일 */
+.tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--color-text-primary) transparent transparent transparent;
+}
+
+.beta-tooltip-container:hover .tooltip,
+.beta-tooltip-container:active .tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(-5px);
 }
 
 /* Streak & Calendar Section */
