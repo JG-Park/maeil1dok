@@ -252,12 +252,12 @@ const toggleDate = async (date: CalendarDate) => {
   loadingDate.value = date.dateStr
 
   try {
-    await hasenaStore.updateStatus(date.dateObj)
+    await hasenaStore.updateStatusForDate(date.dateObj, date.completed)
     await loadCalendarData()
     await hasenaStore.fetchStats()
     emit('updated')
-  } catch (error) {
-    console.error('Failed to toggle date:', error)
+  } catch (err) {
+    console.error('Failed to toggle date:', err)
   } finally {
     loadingDate.value = null
   }

@@ -75,7 +75,7 @@ export const useHasenaStore = defineStore('hasena', () => {
     }
   }
   
-  // 하세나 완료 상태 업데이트
+  // 하세나 완료 상태 업데이트 (오늘 날짜용)
   const updateStatus = async (date: Date): Promise<any> => {
     isLoading.value = true
     error.value = null
@@ -90,9 +90,6 @@ export const useHasenaStore = defineStore('hasena', () => {
       
       // 응답 구조 분석 및 안전한 처리
       if (response.data) {
-        // 이전 값 저장
-        const oldValue = isCompleted.value
-        
         // 응답 구조에 따라 처리
         if (response.data.success && response.data.data) {
           // success 필드가 있는 경우
@@ -109,6 +106,35 @@ export const useHasenaStore = defineStore('hasena', () => {
       throw err
     } finally {
       isLoading.value = false
+    }
+  }
+  
+  // 특정 날짜의 완료 상태 업데이트 (달력용)
+  const updateStatusForDate = async (date: Date, currentCompleted: boolean): Promise<any> => {
+    error.value = null
+    
+    try {
+      const formattedDate = formatApiDate(date)
+      
+      const response = await api.post('/api/v1/todos/hasena/update/', {
+        date: formattedDate,
+        is_completed: !currentCompleted
+      })
+      
+      // 오늘 날짜인 경우 isCompleted도 업데이트
+      const todayStr = formatApiDate(new Date())
+      if (formattedDate === todayStr) {
+        if (response.data?.success && response.data?.data) {
+          isCompleted.value = response.data.data.is_completed
+        } else if (response.data?.is_completed !== undefined) {
+          isCompleted.value = response.data.is_completed
+        }
+      }
+      
+      return response.data
+    } catch (err: any) {
+      error.value = err.message || '완료 처리에 실패했습니다'
+      throw err
     }
   }
   
@@ -165,6 +191,7 @@ export const useHasenaStore = defineStore('hasena', () => {
     stats,
     fetchStatus,
     updateStatus,
+    updateStatusForDate,
     fetchCalendarRecords,
     fetchStats,
     reset
