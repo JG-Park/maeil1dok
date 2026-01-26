@@ -293,98 +293,110 @@ const summaryContent = ref('')
 const formattedSummary = computed(() => {
   if (!summaryContent.value) return ''
   
-  let content = summaryContent.value
+  let text = summaryContent.value
   
-  // 1. 불필요한 상단 제목 제거
-  content = content.replace(/^##\s+.*$/gm, '')
+  // 1. 텍스트 전처리 (줄바꿈 정규화)
+  text = text.replace(/\r\n/g, '\n')
   
-  // 2. 텍스트 스타일링 (먼저 처리)
-  // 인라인 볼드 -> 강조 텍스트 (색상 변경)
-  content = content.replace(/\*\*(.+?)\*\*/g, '<span class="highlight-text">$1</span>')
+  // 2. 섹션별 내용 추출 (비탐욕적 매칭 사용)
+  // 본문: **오늘의 본문** 부터 **교역자 해설** 전까지
+  const bibleMatch = text.match(/\*\*오늘의 본문\*\*([\s\S]*?)(?=\*\*교역자 해설\*\*)/)
+  let bibleContent = bibleMatch ? bibleMatch[1].trim() : ''
   
-  // 3. 섹션별 파싱 (더 유연한 정규식)
+  // 해설: **교역자 해설** 부터 **오늘의 하시조** (또는 하시조) 전까지
+  const commentaryMatch = text.match(/\*\*교역자 해설\*\*([\s\S]*?)(?=\*\*.*하시조.*\*\*)/)
+  let commentaryContent = commentaryMatch ? commentaryMatch[1].trim() : ''
   
-  // 오늘의 본문 (숫자 시작, 본문 포함)
-  content = content.replace(
-    /^1\.\s*\*\*오늘의 본문\*\*[:\s]*(.+)$/gm, 
-    `<div class="summary-section bible-section">
+  // 하시조: **오늘의 하시조** (또는 하시조) 부터 끝까지
+  const actionMatch = text.match(/\*\*.*하시조.*\*\*([\s\S]*)$/)
+  let actionContent = actionMatch ? actionMatch[1].trim() : ''
+  
+  // 만약 파싱에 실패했다면 (구형 포맷 등), 전체를 그냥 텍스트로 보여주기보다
+  // 최소한의 포맷팅이라도 적용
+  if (!bibleContent && !commentaryContent && !actionContent) {
+     // 기존 1. **오늘의 본문** 포맷일 수 있음
+     const oldFormatBible = text.match(/1\.\s*\*\*오늘의 본문\*\*[:\s]*([\s\S]*?)(?=2\.\s*\*\*교역자 해설\*\*)/)
+     if (oldFormatBible) {
+       bibleContent = oldFormatBible[1].trim()
+       
+       const oldFormatComm = text.match(/2\.\s*\*\*교역자 해설\*\*[:\s]*([\s\S]*?)(?=3\.\s*\*\*.*하시조.*\*\*)/)
+       commentaryContent = oldFormatComm ? oldFormatComm[1].trim() : ''
+       
+       const oldFormatAction = text.match(/3\.\s*\*\*.*하시조.*\*\*[:\s]*([\s\S]*)$/)
+       actionContent = oldFormatAction ? oldFormatAction[1].trim() : ''
+     }
+  }
+  
+  // 3. 내용이 없으면 원본 텍스트 반환 (fallback)
+  if (!bibleContent && !commentaryContent && !actionContent) {
+    return text.replace(/\n/g, '<br>')
+  }
+  
+  // 4. 각 섹션 내부 스타일링 함수
+  const processText = (str) => {
+    if (!str) return ''
+    return str
+      .replace(/\*\*(.+?)\*\*/g, '<span class="highlight-text">$1</span>') // 볼드 강조
+      .replace(/\n/g, '<br>') // 줄바꿈
+  }
+  
+  const processChecklist = (str) => {
+    if (!str) return ''
+    // 체크리스트 항목 파싱 (- [ ] 또는 - 또는 *)
+    return str.replace(
+      /^\s*[-*]\s*(\[\s*\])?\s*(.+)$/gm,
+      `<div class="checklist-item">
+         <div class="checkbox-ui">
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="20 6 9 17 4 12"></polyline>
+           </svg>
+         </div>
+         <span class="checklist-text">$2</span>
+       </div>`
+    ).replace(/\n/g, '') // 체크리스트 사이 줄바꿈 제거 (flex gap으로 처리)
+  }
+
+  // 5. HTML 조립
+  let html = ''
+  
+  if (bibleContent) {
+    html += `<div class="summary-section bible-section">
        <div class="section-header">
          <span class="section-icon">📖</span>
          <h4 class="section-title">오늘의 본문</h4>
        </div>
        <div class="section-body">
-         <p class="section-text">$1</p>
+         <p class="section-text">${processText(bibleContent)}</p>
        </div>
      </div>`
-  )
+  }
   
-  // 교역자 해설
-  content = content.replace(
-    /^2\.\s*\*\*교역자 해설\*\*[:\s]*(.+)$/gm, 
-    `<div class="summary-section commentary-section">
+  if (commentaryContent) {
+    html += `<div class="summary-section commentary-section">
        <div class="section-header">
          <span class="section-icon">💬</span>
          <h4 class="section-title">교역자 해설</h4>
        </div>
        <div class="section-body">
-         <p class="section-text">$1</p>
+         <p class="section-text">${processText(commentaryContent)}</p>
        </div>
      </div>`
-  )
+  }
   
-  // 하시조 타이틀
-  content = content.replace(
-    /^3\.\s*\*\*.*하시조.*\*\*[:\s]*$/gm, 
-    `<div class="summary-divider"></div>
+  if (actionContent) {
+    html += `<div class="summary-divider"></div>
      <div class="summary-section action-section">
        <div class="section-header">
          <span class="section-icon">⚡️</span>
          <h4 class="section-title">오늘의 실천 (하시조)</h4>
        </div>
-       <div class="checklist-container">`
-  )
-  
-  // 체크리스트 항목 (- [ ] 형식)
-  content = content.replace(
-    /^\s*-\s*\[\s*\]\s*(.+)$/gm,
-    `<div class="checklist-item">
-       <div class="checkbox-ui">
-         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-           <polyline points="20 6 9 17 4 12"></polyline>
-         </svg>
+       <div class="checklist-container">
+         ${processChecklist(actionContent)}
        </div>
-       <span class="checklist-text">$1</span>
      </div>`
-  )
-  
-  // 기존 리스트 항목 (* 또는 - 형식)
-  content = content.replace(
-    /^\s*[\*\-]\s+(.+)$/gm,
-    `<div class="checklist-item">
-       <div class="checkbox-ui">
-         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-           <polyline points="20 6 9 17 4 12"></polyline>
-         </svg>
-       </div>
-       <span class="checklist-text">$1</span>
-     </div>`
-  )
-  
-  // 하시조 섹션 닫기
-  if (content.includes('checklist-container')) {
-    content += '</div></div>'
   }
   
-  // 줄바꿈 정리 (p 태그 처리 제거하고 br로 대체)
-  content = content.replace(/\n/g, '<br>')
-  
-  // 연속된 br 제거
-  content = content.replace(/(<br>\s*){2,}/g, '<br>')
-  
-  // div 끝난 후 br 제거
-  content = content.replace(/<\/div><br>/g, '</div>')
-  
-  return content
+  return html
 })
 
 // AI 요약 조회 (생성 없이)
