@@ -298,15 +298,21 @@ const formattedSummary = computed(() => {
   // 1. 불필요한 상단 제목 제거
   content = content.replace(/^##\s+.*$/gm, '')
   
-  // 2. 섹션별 파싱 (정규식 기반 구조화)
+  // 2. 텍스트 스타일링 (먼저 처리)
+  // 인라인 볼드 -> 강조 텍스트 (색상 변경)
+  content = content.replace(/\*\*(.+?)\*\*/g, '<span class="highlight-text">$1</span>')
   
-  // 오늘의 본문
+  // 3. 섹션별 파싱 (더 유연한 정규식)
+  
+  // 오늘의 본문 (숫자 시작, 본문 포함)
   content = content.replace(
-    /^1\.\s*\*\*오늘의 본문\*\*:\s*(.+)$/gm, 
+    /^1\.\s*\*\*오늘의 본문\*\*[:\s]*(.+)$/gm, 
     `<div class="summary-section bible-section">
-       <div class="section-icon-wrapper"><span class="section-icon">📖</span></div>
-       <div class="section-body">
+       <div class="section-header">
+         <span class="section-icon">📖</span>
          <h4 class="section-title">오늘의 본문</h4>
+       </div>
+       <div class="section-body">
          <p class="section-text">$1</p>
        </div>
      </div>`
@@ -314,11 +320,13 @@ const formattedSummary = computed(() => {
   
   // 교역자 해설
   content = content.replace(
-    /^2\.\s*\*\*교역자 해설\*\*:\s*(.+)$/gm, 
+    /^2\.\s*\*\*교역자 해설\*\*[:\s]*(.+)$/gm, 
     `<div class="summary-section commentary-section">
-       <div class="section-icon-wrapper"><span class="section-icon">💬</span></div>
-       <div class="section-body">
+       <div class="section-header">
+         <span class="section-icon">💬</span>
          <h4 class="section-title">교역자 해설</h4>
+       </div>
+       <div class="section-body">
          <p class="section-text">$1</p>
        </div>
      </div>`
@@ -326,10 +334,10 @@ const formattedSummary = computed(() => {
   
   // 하시조 타이틀
   content = content.replace(
-    /^3\.\s*\*\*오늘의 하시조.*\*\*$/gm, 
+    /^3\.\s*\*\*.*하시조.*\*\*[:\s]*$/gm, 
     `<div class="summary-divider"></div>
      <div class="summary-section action-section">
-       <div class="section-header-row">
+       <div class="section-header">
          <span class="section-icon">⚡️</span>
          <h4 class="section-title">오늘의 실천 (하시조)</h4>
        </div>
@@ -340,7 +348,11 @@ const formattedSummary = computed(() => {
   content = content.replace(
     /^\s*-\s*\[\s*\]\s*(.+)$/gm,
     `<div class="checklist-item">
-       <div class="checkbox-ui"></div>
+       <div class="checkbox-ui">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+           <polyline points="20 6 9 17 4 12"></polyline>
+         </svg>
+       </div>
        <span class="checklist-text">$1</span>
      </div>`
   )
@@ -349,7 +361,11 @@ const formattedSummary = computed(() => {
   content = content.replace(
     /^\s*[\*\-]\s+(.+)$/gm,
     `<div class="checklist-item">
-       <div class="checkbox-ui"></div>
+       <div class="checkbox-ui">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+           <polyline points="20 6 9 17 4 12"></polyline>
+         </svg>
+       </div>
        <span class="checklist-text">$1</span>
      </div>`
   )
@@ -359,12 +375,14 @@ const formattedSummary = computed(() => {
     content += '</div></div>'
   }
   
-  // 3. 텍스트 스타일링
-  // 인라인 볼드 -> 형광펜 효과
-  content = content.replace(/\*\*(.+?)\*\*/g, '<span class="highlight-text">$1</span>')
+  // 줄바꿈 정리 (p 태그 처리 제거하고 br로 대체)
+  content = content.replace(/\n/g, '<br>')
   
-  // 불필요한 줄바꿈 제거
-  content = content.replace(/\n\n/g, '')
+  // 연속된 br 제거
+  content = content.replace(/(<br>\s*){2,}/g, '<br>')
+  
+  // div 끝난 후 br 제거
+  content = content.replace(/<\/div><br>/g, '</div>')
   
   return content
 })
@@ -933,187 +951,163 @@ onMounted(async () => {
   padding: 1.25rem;
   position: relative;
   border: 1px solid var(--color-border-light);
-  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.summary-content :deep(.summary-section:hover) {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-}
-
-/* 본문 섹션 특화 */
+/* 본문 섹션 */
 .summary-content :deep(.bible-section) {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.01) 100%);
-  border-color: rgba(99, 102, 241, 0.15);
+  background: linear-gradient(to bottom right, #f8faff, #fff);
+  border-color: #e0e7ff;
 }
 
-.summary-content :deep(.bible-section .section-icon) {
-  background: #e0e7ff;
-  color: #4f46e5;
-}
-
-/* 해설 섹션 특화 */
+/* 해설 섹션 */
 .summary-content :deep(.commentary-section) {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.01) 100%);
-  border-color: rgba(16, 185, 129, 0.15);
+  background: linear-gradient(to bottom right, #f0fdf4, #fff);
+  border-color: #dcfce7;
 }
 
-.summary-content :deep(.commentary-section .section-icon) {
-  background: #d1fae5;
-  color: #059669;
-}
-
-/* 하시조 섹션 특화 */
+/* 하시조 섹션 */
 .summary-content :deep(.action-section) {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.01) 100%);
-  border-color: rgba(245, 158, 11, 0.15);
+  background: linear-gradient(to bottom right, #fffbeb, #fff);
+  border-color: #fef3c7;
   margin-top: 0.5rem;
 }
 
-.summary-content :deep(.action-section .section-icon) {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-/* 아이콘 및 헤더 */
-.summary-content :deep(.section-icon-wrapper) {
-  position: absolute;
-  top: 1.25rem;
-  left: 1.25rem;
+/* 헤더 레이아웃 */
+.summary-content :deep(.section-header) {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .summary-content :deep(.section-icon) {
+  font-size: 1.25rem;
+  background: #fff;
   width: 32px;
   height: 32px;
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.summary-content :deep(.section-body) {
-  padding-left: 3.25rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.05);
 }
 
 .summary-content :deep(.section-title) {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--color-text-primary);
-  margin: 0.25rem 0 0.5rem 0;
+  margin: 0;
+}
+
+.summary-content :deep(.section-body) {
+  padding-left: 0.25rem;
 }
 
 .summary-content :deep(.section-text) {
-  font-size: 0.925rem;
+  font-size: 0.95rem;
   color: var(--color-text-secondary);
   margin: 0;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 /* 구분선 */
 .summary-content :deep(.summary-divider) {
   height: 1px;
   background: var(--color-border-light);
-  margin: 0.5rem 1rem;
-  opacity: 0.6;
-}
-
-/* 하시조 헤더 */
-.summary-content :deep(.section-header-row) {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin: 0.5rem 0;
+  opacity: 0.5;
 }
 
 /* 체크리스트 스타일 */
 .summary-content :deep(.checklist-container) {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .summary-content :deep(.checklist-item) {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.2s;
 }
 
 .summary-content :deep(.checklist-item:hover) {
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateX(2px);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 .summary-content :deep(.checkbox-ui) {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-border-default);
+  border: 2px solid #d1d5db;
   border-radius: 6px;
-  background: var(--color-bg-card);
+  background: #fff;
   margin-top: 2px;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: all 0.2s;
+}
+
+.summary-content :deep(.checklist-item:hover .checkbox-ui) {
+  border-color: var(--color-accent-primary);
 }
 
 .summary-content :deep(.checklist-text) {
   flex: 1;
-  font-size: 0.925rem;
+  font-size: 0.95rem;
   line-height: 1.6;
   color: var(--color-text-primary);
-  font-weight: 500;
 }
 
-/* 형광펜 효과 (하이라이트) */
+/* 하이라이트 (깔끔한 볼드) */
 .summary-content :deep(.highlight-text) {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  background: linear-gradient(120deg, transparent 0%, rgba(255, 225, 0, 0.25) 0%);
-  padding: 0 2px;
-  border-radius: 2px;
+  font-weight: 700;
+  color: var(--color-accent-primary-dark, #4338ca);
+  background: transparent;
+  padding: 0;
 }
 
 /* 다크모드 대응 */
-[data-theme="dark"] .summary-content :deep(.checklist-item) {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
+[data-theme="dark"] .summary-content :deep(.summary-section) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-light);
 }
 
-[data-theme="dark"] .summary-content :deep(.checklist-item:hover) {
-  background: rgba(255, 255, 255, 0.06);
+[data-theme="dark"] .summary-content :deep(.section-icon) {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .summary-content :deep(.bible-section),
+[data-theme="dark"] .summary-content :deep(.commentary-section),
+[data-theme="dark"] .summary-content :deep(.action-section) {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .summary-content :deep(.checklist-item) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .summary-content :deep(.checkbox-ui) {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-text-tertiary);
 }
 
 [data-theme="dark"] .summary-content :deep(.highlight-text) {
-  background: linear-gradient(120deg, transparent 0%, rgba(255, 225, 0, 0.15) 0%);
-  color: #fff;
-}
-
-[data-theme="dark"] .summary-content :deep(.bible-section) {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.2);
-}
-
-[data-theme="dark"] .summary-content :deep(.commentary-section) {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-[data-theme="dark"] .summary-content :deep(.action-section) {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-[data-theme="dark"] .summary-error {
-  background: #451a1a;
-  color: #fca5a5;
-}
-
-[data-theme="dark"] .summary-error .retry-btn {
-  background: #ef4444;
+  color: var(--color-accent-primary-light, #a5b4fc);
 }
 
 /* Streak & Calendar Section */
