@@ -69,6 +69,11 @@ urlpatterns = [
     path('merge-accounts/', views.merge_accounts, name='merge_accounts'),
     
     # ========================================
+    # 계정 삭제
+    # ========================================
+    path('delete-account/', views.delete_account, name='delete_account'),
+    
+    # ========================================
     # 이메일 인증
     # ========================================
     path('send-verification/', views.send_verification_email_view, name='send_verification_email'),

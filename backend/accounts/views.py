@@ -1277,3 +1277,62 @@ def reset_password(request):
     
     logger.info(f"비밀번호 재설정 완료: user_id={user.id}")
     return response
+
+
+# ========================================
+# 계정 삭제
+# ========================================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    """
+    계정 삭제 API (30일 유예 기간)
+    
+    - 비밀번호가 설정된 경우: 비밀번호 확인 필요
+    - 소셜 로그인만 사용 중인 경우: 이미 인증된 상태로 확인
+    - 삭제 요청 시 30일 후 완전 삭제 예정으로 표시
+    """
+    user = request.user
+    password = request.data.get('password')
+    
+    # 이미 삭제 예정인 계정인지 확인
+    if user.scheduled_deletion_at:
+        return Response({
+            'error': '이미 삭제 예정인 계정입니다.',
+            'scheduled_deletion_at': user.scheduled_deletion_at.isoformat()
+        }, status=400)
+    
+    # 재인증: 비밀번호가 설정되어 있으면 비밀번호 확인 필요
+    if user.has_password_set():
+        if not password:
+            return Response({'error': '비밀번호를 입력해주세요.'}, status=400)
+        if not user.check_password(password):
+            return Response({'error': '비밀번호가 올바르지 않습니다.'}, status=400)
+    # 소셜 로그인만 사용 중인 경우: 이미 인증된 상태이므로 추가 확인 불필요
+    
+    try:
+        with transaction.atomic():
+            # 30일 후 삭제 예정으로 표시
+            user.is_active = False
+            user.scheduled_deletion_at = timezone.now() + timedelta(days=30)
+            user.nickname = f"삭제예정_{user.id}"
+            user.token_version += 1  # 모든 기기에서 로그아웃
+            user.save(update_fields=[
+                'is_active', 
+                'scheduled_deletion_at', 
+                'nickname', 
+                'token_version'
+            ])
+            
+            logger.info(f"계정 삭제 요청: user_id={user.id}, scheduled_deletion_at={user.scheduled_deletion_at}")
+        
+        return Response({
+            'success': True,
+            'message': '계정 삭제가 요청되었습니다. 30일 후 완전히 삭제됩니다.',
+            'scheduled_deletion_at': user.scheduled_deletion_at.isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"계정 삭제 요청 오류: user_id={user.id}, error={str(e)}", exc_info=True)
+        return Response({'error': '계정 삭제 요청 중 오류가 발생했습니다.'}, status=500)
