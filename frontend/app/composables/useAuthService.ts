@@ -69,7 +69,8 @@ function saveCsrfToken(token: string): void {
 async function apiRequest<T>(
   method: 'GET' | 'POST',
   url: string,
-  body?: any
+  body?: any,
+  options?: { timeout?: number }
 ): Promise<{ data?: T; status: number; ok: boolean }> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
@@ -80,13 +81,21 @@ async function apiRequest<T>(
     if (csrf) headers['X-CSRFToken'] = csrf
   }
 
+  // 타임아웃 설정 (기본 10초, 로그아웃 등 중요 작업은 짧게)
+  const timeout = options?.timeout ?? 10000
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
   try {
     const response = await fetch(`${getBaseUrl()}${url}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
-      credentials: 'include'
+      credentials: 'include',
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
 
     const csrfTokenFromHeader = response.headers.get('X-CSRFToken')
     if (csrfTokenFromHeader) {
@@ -101,7 +110,13 @@ async function apiRequest<T>(
 
     return { data, status: response.status, ok: response.ok }
   } catch (error) {
-    console.error(`[AuthService] API request failed: ${url}`, error)
+    clearTimeout(timeoutId)
+    // AbortError는 타임아웃으로 인한 것
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn(`[AuthService] API request timed out: ${url}`)
+    } else {
+      console.error(`[AuthService] API request failed: ${url}`, error)
+    }
     return { status: 0, ok: false }
   }
 }
@@ -163,10 +178,8 @@ export function useAuthService() {
   async function performLogout(): Promise<void> {
     stopRefreshTimer()
     
-    try {
-      await apiRequest('POST', '/api/v1/auth/logout/')
-    } catch {
-    }
+    // 로그아웃 API 호출 (3초 타임아웃 - 실패해도 클라이언트 상태는 반드시 정리)
+    await apiRequest('POST', '/api/v1/auth/logout/', undefined, { timeout: 3000 })
 
     _user.value = null
     _authState.value = 'unauthenticated'

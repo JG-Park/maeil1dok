@@ -137,8 +137,15 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def cookie_logout(request):
+    """
+    로그아웃 처리 - 토큰 만료 상태에서도 호출 가능해야 함
+    
+    AllowAny를 사용하는 이유:
+    - access_token이 만료된 상태에서도 사용자가 로그아웃할 수 있어야 함
+    - 쿠키 삭제는 인증 상태와 관계없이 수행되어야 함
+    """
     blacklist_success = False
     blacklist_error = None
 

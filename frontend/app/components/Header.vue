@@ -217,9 +217,9 @@ const closeProfileMenu = () => {
   isProfileMenuOpen.value = false
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
   closeProfileMenu()
-  auth.logout()
+  await auth.logout()
   toast.value?.show('로그아웃 되었어요.')
   router.push('/')
 }
