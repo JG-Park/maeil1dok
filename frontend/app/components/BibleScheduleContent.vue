@@ -606,6 +606,8 @@ function confirmGoToSchedule() {
   if (selectedPlanId.value) {
     queryParams.set('plan', String(selectedPlanId.value));
   }
+  queryParams.set('tongdok', 'true');
+  queryParams.set('schedule', String(selectedSchedule.value.id));
   queryParams.set('from', 'plan');
 
   if (selectedSchedule.value.book) {
