@@ -37,13 +37,13 @@
         <div class="card summary-card fade-in" style="animation-delay: 0.15s">
           <div class="summary-header">
             <span class="ai-badge">✨ AI 요약</span>
-            <!-- 관리자만 요약 생성 버튼 표시 -->
+            <!-- 관리자만 요약 생성/재생성 버튼 표시 -->
             <button 
-              v-if="auth.isStaff?.value && latestVideoId && !summaryLoading && !summaryContent"
+              v-if="auth.isStaff?.value && latestVideoId && !summaryLoading"
               class="summary-btn"
-              @click="fetchAISummary"
+              @click="generateAISummary"
             >
-              요약 생성
+              {{ summaryContent ? '재생성' : '요약 생성' }}
             </button>
           </div>
           
@@ -52,10 +52,10 @@
             <span>AI가 영상을 분석하고 있습니다...</span>
           </div>
           
-          <div v-else-if="summaryError" class="summary-error">
+          <div v-else-if="summaryError && !summaryContent" class="summary-error">
             <p>{{ summaryError }}</p>
             <!-- 관리자만 다시 시도 버튼 표시 -->
-            <button v-if="auth.isStaff?.value" class="retry-btn" @click="fetchAISummary">다시 시도</button>
+            <button v-if="auth.isStaff?.value" class="retry-btn" @click="generateAISummary">다시 시도</button>
           </div>
           
           <div v-else-if="summaryContent" class="summary-content" v-html="formattedSummary"></div>
@@ -254,12 +254,9 @@ const formattedSummary = computed(() => {
     })
 })
 
-// AI 요약 가져오기
-const fetchAISummary = async () => {
-  if (!latestVideoId.value) {
-    summaryError.value = '영상 ID를 가져올 수 없습니다.'
-    return
-  }
+// AI 요약 조회 (생성 없이)
+const loadAISummary = async () => {
+  if (!latestVideoId.value) return
   
   summaryLoading.value = true
   summaryError.value = null
@@ -269,11 +266,34 @@ const fetchAISummary = async () => {
     
     if (data.success) {
       summaryContent.value = data.summary
-    } else {
-      summaryError.value = data.error || '요약을 가져올 수 없습니다.'
     }
   } catch (err) {
-    summaryError.value = err.response?.data?.error || '요약을 가져오는 중 오류가 발생했습니다.'
+    // 조회 실패는 조용히 처리 (아직 준비 안됨)
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
+// AI 요약 생성/재생성 (관리자 전용)
+const generateAISummary = async () => {
+  if (!latestVideoId.value) {
+    summaryError.value = '영상 ID를 가져올 수 없습니다.'
+    return
+  }
+  
+  summaryLoading.value = true
+  summaryError.value = null
+  
+  try {
+    const { data } = await api.get(`/api/v1/todos/hasena/summary/?video_id=${latestVideoId.value}&generate=true`)
+    
+    if (data.success) {
+      summaryContent.value = data.summary
+    } else {
+      summaryError.value = data.error || '요약을 생성할 수 없습니다.'
+    }
+  } catch (err) {
+    summaryError.value = err.response?.data?.error || '요약 생성 중 오류가 발생했습니다.'
   } finally {
     summaryLoading.value = false
   }
@@ -496,11 +516,13 @@ const setupYouTubeListener = () => {
         iframe.src = currentSrc + '&enablejsapi=1'
         
         // YouTube Player 인스턴스 생성
-        new window.YT.Player('hasena-youtube-player', {
+                new window.YT.Player('hasena-youtube-player', {
           events: {
             'onReady': (event) => {
               // 플레이어가 준비되면 현재 비디오 ID 가져오기
               latestVideoId.value = event.target.getVideoData().video_id
+              // 비디오 ID 확보 후 요약 조회
+              loadAISummary()
             }
           }
         })

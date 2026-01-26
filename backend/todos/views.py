@@ -2374,6 +2374,7 @@ def get_user_hasena_status(request):
 def get_hasena_summary(request):
     video_id = request.query_params.get('video_id')
     video_date = request.query_params.get('date')
+    generate = request.query_params.get('generate', 'false').lower() == 'true'
     
     if not video_id:
         return Response({
@@ -2381,8 +2382,14 @@ def get_hasena_summary(request):
             'error': 'video_id 파라미터가 필요합니다.'
         }, status=status.HTTP_400_BAD_REQUEST)
     
+    if generate and not (request.user.is_authenticated and request.user.is_staff):
+        return Response({
+            'success': False,
+            'error': '요약 생성은 관리자만 가능합니다.'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
     try:
-        from .services.hasena_summary_service import get_hasena_summary as fetch_summary
+        from .services.hasena_summary_service import get_hasena_summary as fetch_summary, get_existing_summary
         
         parsed_date = None
         if video_date:
@@ -2391,7 +2398,10 @@ def get_hasena_summary(request):
             except ValueError:
                 pass
         
-        result = fetch_summary(video_id, video_date=parsed_date)
+        if generate:
+            result = fetch_summary(video_id, video_date=parsed_date)
+        else:
+            result = get_existing_summary(video_id)
         
         if result['success']:
             return Response(result)
@@ -2402,7 +2412,7 @@ def get_hasena_summary(request):
         logger.error(f"Error in get_hasena_summary: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'error': 'AI 요약 생성 중 오류가 발생했습니다.'
+            'error': 'AI 요약 조회 중 오류가 발생했습니다.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

@@ -141,6 +141,35 @@ def summarize_with_gemini(transcript: str) -> dict | None:
         return None
 
 
+def get_existing_summary(video_id: str) -> dict:
+    from ..models import HasenaSummary
+    
+    try:
+        existing = HasenaSummary.objects.filter(video_id=video_id).first()
+        if existing:
+            return {
+                'success': True,
+                'video_id': video_id,
+                'summary': existing.summary,
+                'model': existing.model_used,
+                'is_edited': existing.is_edited,
+                'video_date': existing.video_date.isoformat() if existing.video_date else None,
+                'title': existing.title,
+            }
+        return {
+            'success': False,
+            'error': '요약이 아직 준비되지 않았습니다.',
+            'video_id': video_id
+        }
+    except Exception as e:
+        logger.error(f"Error fetching existing summary: {str(e)}")
+        return {
+            'success': False,
+            'error': '요약 조회 중 오류가 발생했습니다.',
+            'video_id': video_id
+        }
+
+
 def get_hasena_summary(video_id: str, video_date: date = None) -> dict:
     from ..models import HasenaSummary
     
