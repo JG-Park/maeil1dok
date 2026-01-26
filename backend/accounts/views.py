@@ -221,6 +221,89 @@ def get_google_user_info(code, redirect_uri=None):
     
     return user_info
 
+
+def get_apple_user_info(id_token):
+    """
+    Apple ID Token (JWT)을 검증하고 사용자 정보 반환
+    
+    Apple Sign In은 다른 OAuth와 달리 id_token (JWT)을 직접 검증해야 함
+    - Apple public keys로 서명 검증
+    - iss, aud, exp 클레임 확인
+    - sub (subject)를 provider_id로 사용
+    
+    Returns:
+        dict: {
+            'sub': 사용자 고유 ID (provider_id로 사용),
+            'email': 이메일 (privaterelay.appleid.com 도메인일 수 있음),
+            'email_verified': 이메일 인증 여부,
+            'is_private_email': Apple relay email 여부
+        }
+    """
+    import jwt
+    from jwt import PyJWKClient
+    
+    APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys"
+    APPLE_ISSUER = "https://appleid.apple.com"
+    
+    # 환경변수에서 Apple Client ID 가져오기
+    apple_client_id = getattr(settings, 'APPLE_CLIENT_ID', None)
+    if not apple_client_id:
+        raise Exception("APPLE_CLIENT_ID 환경변수가 설정되지 않았습니다.")
+    
+    try:
+        # Apple public keys 가져오기 및 JWT 서명 검증
+        jwks_client = PyJWKClient(APPLE_JWKS_URL)
+        signing_key = jwks_client.get_signing_key_from_jwt(id_token)
+        
+        # JWT 디코딩 및 검증
+        decoded = jwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=apple_client_id,
+            issuer=APPLE_ISSUER,
+        )
+        
+        # 필수 클레임 확인
+        sub = decoded.get('sub')
+        if not sub:
+            raise Exception("Apple ID Token에 sub 클레임이 없습니다.")
+        
+        email = decoded.get('email')
+        email_verified = decoded.get('email_verified', False)
+        
+        # Apple relay email 감지 (privaterelay.appleid.com 도메인)
+        is_private_email = False
+        if email and 'privaterelay.appleid.com' in email:
+            is_private_email = True
+        
+        return {
+            'sub': sub,
+            'email': email,
+            'email_verified': email_verified,
+            'is_private_email': is_private_email,
+        }
+        
+    except jwt.ExpiredSignatureError:
+        logger.error("Apple ID Token이 만료되었습니다.")
+        raise Exception("Apple ID Token이 만료되었습니다.")
+    except jwt.InvalidAudienceError:
+        logger.error("Apple ID Token의 audience가 일치하지 않습니다.")
+        raise Exception("Apple ID Token 검증 실패: audience 불일치")
+    except jwt.InvalidIssuerError:
+        logger.error("Apple ID Token의 issuer가 일치하지 않습니다.")
+        raise Exception("Apple ID Token 검증 실패: issuer 불일치")
+    except jwt.PyJWKClientError as e:
+        logger.error(f"Apple public key 가져오기 실패: {str(e)}")
+        raise Exception(f"Apple 인증 서버 연결 실패: {str(e)}")
+    except jwt.DecodeError as e:
+        logger.error(f"Apple ID Token 디코딩 실패: {str(e)}")
+        raise Exception(f"Apple ID Token 형식이 올바르지 않습니다.")
+    except Exception as e:
+        logger.error(f"Apple ID Token 검증 오류: {str(e)}")
+        raise
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def check_username(request):
@@ -402,9 +485,13 @@ def email_login(request):
 def social_login_v2(request):
     """
     통합 소셜 로그인 (v2)
-    - 카카오/구글 지원
+    - 카카오/구글/애플 지원
     - SocialAccount 모델 사용
     - 계정 연동 지원
+    
+    Apple 로그인 시:
+    - id_token (JWT) 필수
+    - user_name (선택): 첫 로그인 시 Apple에서 제공하는 사용자 이름
     """
     serializer = SocialLoginSerializer(data=request.data)
     if not serializer.is_valid():
@@ -443,6 +530,25 @@ def social_login_v2(request):
             email = social_info.get('email')
             profile_image = social_info.get('picture')
             nickname_suggestion = social_info.get('name', '')
+            
+        elif provider == 'apple':
+            # Apple Sign In: id_token (JWT) 직접 검증
+            id_token = request.data.get('id_token')
+            if not id_token:
+                return Response({'error': 'Apple 로그인에는 id_token이 필요합니다.'}, status=400)
+            
+            social_info = get_apple_user_info(id_token)
+            
+            provider_id = social_info.get('sub')
+            email = social_info.get('email')
+            # Apple은 프로필 이미지를 제공하지 않음
+            profile_image = None
+            # Apple은 첫 로그인 시에만 이름을 제공하므로 빈 문자열로 설정
+            nickname_suggestion = request.data.get('user_name', '')
+            
+            # Apple relay email인 경우 로그에 기록
+            if social_info.get('is_private_email'):
+                logger.info(f"Apple 로그인: relay email 사용 - {email}")
         else:
             return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
         

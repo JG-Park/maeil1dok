@@ -75,6 +75,7 @@ class SocialAccount(models.Model):
     PROVIDER_CHOICES = [
         ('kakao', '카카오'),
         ('google', '구글'),
+        ('apple', '애플'),
     ]
     
     user = models.ForeignKey(
