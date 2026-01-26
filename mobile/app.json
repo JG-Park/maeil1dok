@@ -19,6 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.maeil1dok.app",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "프로필 사진 촬영에 사용됩니다",
         "NSPhotoLibraryUsageDescription": "프로필 사진 선택에 사용됩니다",
@@ -68,7 +69,8 @@
       ],
       "expo-splash-screen",
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "expo-apple-authentication"
     ],
     "extra": {
       "webAppUrl": "https://maeil1dok.app",

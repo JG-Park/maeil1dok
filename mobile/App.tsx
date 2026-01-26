@@ -23,6 +23,7 @@ import Constants from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
 import * as WebBrowser from 'expo-web-browser';
 import * as Font from 'expo-font';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -48,6 +49,7 @@ const OAUTH_DOMAINS = [
   'accounts.kakao.com',
   'accounts.google.com',
   'oauth.google.com',
+  'appleid.apple.com',
 ];
 
 function AppContent() {
@@ -173,6 +175,61 @@ function AppContent() {
       }
     } catch (error) {
       console.error('Google login error:', error);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      
+      if (credential.identityToken) {
+        await handleAppleLoginWithToken(credential.identityToken, credential.fullName);
+      }
+    } catch (error: any) {
+      if (error.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert('오류', 'Apple 로그인 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
+  const handleAppleLoginWithToken = async (
+    identityToken: string, 
+    fullName: AppleAuthentication.AppleAuthenticationFullName | null
+  ) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/social-login/v2/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          provider: 'apple', 
+          id_token: identityToken,
+          full_name: fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() || undefined : undefined
+        }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (data.access) {
+        setShowLogin(false);
+        setWebViewKey((prev) => prev + 1);
+      } else if (data.needsSignup) {
+        const signupUrl = `${WEB_APP_URL}/auth/apple/setup?provider=apple&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+        setPendingUrl(signupUrl);
+        setShowLogin(false);
+      } else {
+        Alert.alert('로그인 실패', data.error || '로그인에 실패했습니다.');
+      }
+    } catch (error) {
+      Alert.alert('오류', '로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -395,6 +452,16 @@ function AppContent() {
               </View>
 
               <View style={styles.socialButtons}>
+                {Platform.OS === 'ios' && (
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={6}
+                    style={styles.appleButton}
+                    onPress={handleAppleLogin}
+                  />
+                )}
+
                 <TouchableOpacity 
                   style={styles.kakaoButton} 
                   onPress={handleKakaoLogin}
@@ -619,6 +686,10 @@ const styles = StyleSheet.create({
   },
   socialButtons: {
     gap: 12,
+  },
+  appleButton: {
+    width: '100%',
+    height: 44,
   },
   kakaoIcon: {
     width: 18,
