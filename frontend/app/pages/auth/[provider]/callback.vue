@@ -70,6 +70,11 @@ onMounted(async () => {
     await handleKakaoCallback(code as string, isFromApp, stateData?.scheme)
   } else if (provider === 'google') {
     await handleGoogleCallback(code as string, isFromApp, stateData?.scheme)
+  } else if (provider === 'apple') {
+    // Apple uses id_token instead of code for direct verification
+    const idToken = route.query.id_token as string
+    const userInfo = route.query.user as string
+    await handleAppleCallback(code as string, idToken, userInfo, isFromApp, stateData?.scheme)
   } else {
     navigateTo('/login')
   }
@@ -79,10 +84,17 @@ onMounted(async () => {
 const handleLinkSocialAccount = async (provider: string, code: string) => {
   try {
     const api = useApi()
-    const response = await api.post('/api/v1/auth/link-social/', {
-      provider,
-      code
-    })
+    
+    // Apple uses id_token for verification
+    const payload: Record<string, string> = { provider, code }
+    if (provider === 'apple') {
+      const idToken = route.query.id_token as string
+      if (idToken) {
+        payload.id_token = idToken
+      }
+    }
+    
+    const response = await api.post('/api/v1/auth/link-social/', payload)
 
     // 연결 성공
     navigateTo({
@@ -221,6 +233,80 @@ const handleGoogleCallback = async (code: string, isFromApp = false, appScheme?:
     console.error('[Google Callback] Error during login:', error)
     if (isFromApp && appScheme) {
       redirectToApp(appScheme, 'google', { error: 'login_failed' })
+    } else {
+      navigateTo('/login')
+    }
+  }
+}
+
+const handleAppleCallback = async (code: string, idToken: string, userInfo: string | undefined, isFromApp = false, appScheme?: string) => {
+  try {
+    const api = useApi()
+    
+    // Parse user info if provided (Apple only sends this on first login)
+    let fullName: string | undefined
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        if (user.name) {
+          fullName = `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || undefined
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    
+    const response = await api.post('/api/v1/auth/social-login/v2/', {
+      provider: 'apple',
+      code,
+      id_token: idToken,
+      full_name: fullName
+    })
+
+    const data = response.data || response
+
+    if (data.needsSignup) {
+      if (isFromApp && appScheme) {
+        redirectToApp(appScheme, 'apple', {
+          needsSignup: 'true',
+          provider: 'apple',
+          provider_id: data.provider_id,
+          email: data.email || '',
+          suggested_nickname: data.suggested_nickname || '',
+          profile_image: data.profile_image || ''
+        })
+      } else {
+        navigateTo({
+          path: '/auth/apple/setup',
+          query: {
+            provider: 'apple',
+            provider_id: data.provider_id,
+            email: data.email || '',
+            suggested_nickname: data.suggested_nickname,
+            profile_image: data.profile_image || ''
+          }
+        })
+      }
+    } else {
+      if (isFromApp && appScheme) {
+        redirectToApp(appScheme, 'apple', {
+          access: data.access,
+          refresh: data.refresh,
+          user: encodeURIComponent(JSON.stringify(data.user))
+        })
+      } else {
+        if (data.access) {
+          auth.setTokens(data.access, data.refresh)
+          auth.setUser(data.user)
+        }
+        const redirectUrl = consumeRedirectUrl() || '/'
+        navigateTo(redirectUrl)
+      }
+    }
+  } catch (error) {
+    console.error('[Apple Callback] Error during login:', error)
+    if (isFromApp && appScheme) {
+      redirectToApp(appScheme, 'apple', { error: 'login_failed' })
     } else {
       navigateTo('/login')
     }
