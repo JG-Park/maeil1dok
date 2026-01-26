@@ -1,5 +1,5 @@
-# Re-export catchup services from parent module for backwards compatibility
-from todos.services import (
+# Re-export catchup services
+from .catchup import (
     get_overdue_schedules,
     get_overdue_schedules_in_range,
     calculate_catchup_schedule,

@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 from django.utils import timezone
 from django.db.models import QuerySet
 
-from .models import (
+from ..models import (
     PlanSubscription, DailyBibleSchedule, UserBibleProgress,
     CatchupSession, CatchupSchedule
 )
