@@ -289,39 +289,84 @@ const summaryLoading = ref(false)
 const summaryError = ref(null)
 const summaryContent = ref('')
 
-// Markdown을 HTML로 변환 (체크리스트 지원)
+// Markdown을 HTML로 변환 (고급 파싱 및 스타일링)
 const formattedSummary = computed(() => {
   if (!summaryContent.value) return ''
   
-  let html = summaryContent.value
-    // 체크리스트 처리 (- [ ] 형식)
-    .replace(/^- \[ \] (.+)$/gm, '<div class="checklist-item"><span class="checkbox"></span><span class="checklist-text">$1</span></div>')
-    // 볼드 섹션 제목 (** 로 시작하는 줄)
-    .replace(/^\*\*(.+?)\*\*$/gm, '<h4 class="summary-section-title">$1</h4>')
-    // 인라인 볼드
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // 일반 리스트 항목
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    // 줄바꿈 처리
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
+  let content = summaryContent.value
   
-  // 연속된 li를 ul로 감싸기
-  html = html.replace(/(<li>.+?<\/li>(<br>)?)+/g, (match) => {
-    const items = match.replace(/<br>/g, '')
-    return `<ul class="summary-list">${items}</ul>`
-  })
+  // 1. 불필요한 상단 제목 제거
+  content = content.replace(/^##\s+.*$/gm, '')
   
-  // 연속된 체크리스트를 감싸기
-  html = html.replace(/(<div class="checklist-item">.*?<\/div>(<br>)?)+/g, (match) => {
-    const items = match.replace(/<br>/g, '')
-    return `<div class="checklist-group">${items}</div>`
-  })
+  // 2. 섹션별 파싱 (정규식 기반 구조화)
   
-  // 빈 p 태그 제거
-  html = html.replace(/<p><\/p>/g, '')
+  // 오늘의 본문
+  content = content.replace(
+    /^1\.\s*\*\*오늘의 본문\*\*:\s*(.+)$/gm, 
+    `<div class="summary-section bible-section">
+       <div class="section-icon-wrapper"><span class="section-icon">📖</span></div>
+       <div class="section-body">
+         <h4 class="section-title">오늘의 본문</h4>
+         <p class="section-text">$1</p>
+       </div>
+     </div>`
+  )
   
-  return html
+  // 교역자 해설
+  content = content.replace(
+    /^2\.\s*\*\*교역자 해설\*\*:\s*(.+)$/gm, 
+    `<div class="summary-section commentary-section">
+       <div class="section-icon-wrapper"><span class="section-icon">💬</span></div>
+       <div class="section-body">
+         <h4 class="section-title">교역자 해설</h4>
+         <p class="section-text">$1</p>
+       </div>
+     </div>`
+  )
+  
+  // 하시조 타이틀
+  content = content.replace(
+    /^3\.\s*\*\*오늘의 하시조.*\*\*$/gm, 
+    `<div class="summary-divider"></div>
+     <div class="summary-section action-section">
+       <div class="section-header-row">
+         <span class="section-icon">⚡️</span>
+         <h4 class="section-title">오늘의 실천 (하시조)</h4>
+       </div>
+       <div class="checklist-container">`
+  )
+  
+  // 체크리스트 항목 (- [ ] 형식)
+  content = content.replace(
+    /^\s*-\s*\[\s*\]\s*(.+)$/gm,
+    `<div class="checklist-item">
+       <div class="checkbox-ui"></div>
+       <span class="checklist-text">$1</span>
+     </div>`
+  )
+  
+  // 기존 리스트 항목 (* 또는 - 형식)
+  content = content.replace(
+    /^\s*[\*\-]\s+(.+)$/gm,
+    `<div class="checklist-item">
+       <div class="checkbox-ui"></div>
+       <span class="checklist-text">$1</span>
+     </div>`
+  )
+  
+  // 하시조 섹션 닫기
+  if (content.includes('checklist-container')) {
+    content += '</div></div>'
+  }
+  
+  // 3. 텍스트 스타일링
+  // 인라인 볼드 -> 형광펜 효과
+  content = content.replace(/\*\*(.+?)\*\*/g, '<span class="highlight-text">$1</span>')
+  
+  // 불필요한 줄바꿈 제거
+  content = content.replace(/\n\n/g, '')
+  
+  return content
 })
 
 // AI 요약 조회 (생성 없이)
@@ -874,107 +919,192 @@ onMounted(async () => {
 /* 요약 콘텐츠 스타일링 */
 .summary-content {
   font-size: 0.95rem;
-  line-height: 1.75;
+  line-height: 1.7;
   color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.summary-content :deep(h4.summary-section-title) {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-accent-primary);
-  margin: 1.5rem 0 0.75rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--color-accent-primary-light);
+/* 섹션 공통 스타일 */
+.summary-content :deep(.summary-section) {
+  background: var(--color-bg-secondary);
+  border-radius: 16px;
+  padding: 1.25rem;
+  position: relative;
+  border: 1px solid var(--color-border-light);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.summary-content :deep(.summary-section:hover) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* 본문 섹션 특화 */
+.summary-content :deep(.bible-section) {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.01) 100%);
+  border-color: rgba(99, 102, 241, 0.15);
+}
+
+.summary-content :deep(.bible-section .section-icon) {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+/* 해설 섹션 특화 */
+.summary-content :deep(.commentary-section) {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.01) 100%);
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+.summary-content :deep(.commentary-section .section-icon) {
+  background: #d1fae5;
+  color: #059669;
+}
+
+/* 하시조 섹션 특화 */
+.summary-content :deep(.action-section) {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.01) 100%);
+  border-color: rgba(245, 158, 11, 0.15);
+  margin-top: 0.5rem;
+}
+
+.summary-content :deep(.action-section .section-icon) {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* 아이콘 및 헤더 */
+.summary-content :deep(.section-icon-wrapper) {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+}
+
+.summary-content :deep(.section-icon) {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.summary-content :deep(h4.summary-section-title::before) {
-  content: '';
-  width: 4px;
-  height: 1em;
-  background: var(--color-accent-primary);
-  border-radius: 2px;
+.summary-content :deep(.section-body) {
+  padding-left: 3.25rem;
 }
 
-.summary-content :deep(h4.summary-section-title:first-child) {
-  margin-top: 0;
-}
-
-.summary-content :deep(p) {
-  margin: 0.75rem 0;
-}
-
-.summary-content :deep(strong) {
+.summary-content :deep(.section-title) {
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--color-text-primary);
-  font-weight: 600;
-  background: linear-gradient(180deg, transparent 60%, var(--color-accent-primary-light) 60%);
-  padding: 0 2px;
+  margin: 0.25rem 0 0.5rem 0;
 }
 
-/* 일반 리스트 */
-.summary-content :deep(ul.summary-list) {
-  margin: 0.75rem 0;
-  padding-left: 1.5rem;
-  list-style: none;
+.summary-content :deep(.section-text) {
+  font-size: 0.925rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.65;
 }
 
-.summary-content :deep(ul.summary-list li) {
-  position: relative;
-  margin: 0.5rem 0;
-  padding-left: 0.25rem;
+/* 구분선 */
+.summary-content :deep(.summary-divider) {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 0.5rem 1rem;
+  opacity: 0.6;
 }
 
-.summary-content :deep(ul.summary-list li::before) {
-  content: '•';
-  position: absolute;
-  left: -1rem;
-  color: var(--color-accent-primary);
-  font-weight: bold;
+/* 하시조 헤더 */
+.summary-content :deep(.section-header-row) {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 /* 체크리스트 스타일 */
-.summary-content :deep(.checklist-group) {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: var(--color-bg-secondary);
-  border-radius: 12px;
-  border: 1px solid var(--color-border-light);
+.summary-content :deep(.checklist-container) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .summary-content :deep(.checklist-item) {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.625rem 0;
-  border-bottom: 1px solid var(--color-border-light);
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.2s;
 }
 
-.summary-content :deep(.checklist-item:last-child) {
-  border-bottom: none;
-  padding-bottom: 0;
+.summary-content :deep(.checklist-item:hover) {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateX(2px);
 }
 
-.summary-content :deep(.checklist-item:first-child) {
-  padding-top: 0;
-}
-
-.summary-content :deep(.checkbox) {
+.summary-content :deep(.checkbox-ui) {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-accent-primary);
+  border: 2px solid var(--color-border-default);
   border-radius: 6px;
   background: var(--color-bg-card);
   margin-top: 2px;
+  position: relative;
 }
 
 .summary-content :deep(.checklist-text) {
   flex: 1;
-  font-size: 0.9rem;
+  font-size: 0.925rem;
   line-height: 1.6;
   color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* 형광펜 효과 (하이라이트) */
+.summary-content :deep(.highlight-text) {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 225, 0, 0.25) 0%);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* 다크모드 대응 */
+[data-theme="dark"] .summary-content :deep(.checklist-item) {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .summary-content :deep(.checklist-item:hover) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .summary-content :deep(.highlight-text) {
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 225, 0, 0.15) 0%);
+  color: #fff;
+}
+
+[data-theme="dark"] .summary-content :deep(.bible-section) {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="dark"] .summary-content :deep(.commentary-section) {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .summary-content :deep(.action-section) {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.2);
 }
 
 [data-theme="dark"] .summary-error {
