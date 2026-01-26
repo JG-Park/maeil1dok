@@ -29,6 +29,7 @@
       <BibleScheduleContent
         :is-bulk-edit-mode="isBulkEditMode"
         :use-default-plan="false"
+        initial-scroll-target="today"
         @range-select="handleRangeSelect"
       />
     </div>
