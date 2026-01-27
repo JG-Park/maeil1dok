@@ -601,6 +601,12 @@ const handleLogout = async () => {
   })
 
   if (confirmed) {
+    // 네이티브 앱: 네이티브에게 로그아웃 처리 위임
+    if ((window as any).ReactNativeWebView) {
+      (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: 'requestLogout' }))
+      return
+    }
+    // 웹: 기존 로그아웃 로직
     await auth.logout()
     navigateTo('/')
   }

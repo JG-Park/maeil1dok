@@ -388,6 +388,20 @@ function AppContent() {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       switch (message.type) {
+        case 'requestLogout':
+          (async () => {
+            try {
+              await fetch(`${API_URL}/api/v1/auth/logout/`, {
+                method: 'POST',
+                credentials: 'include',
+              });
+            } catch (error) {
+              console.error('Logout API error:', error);
+            }
+            setWebViewKey(prev => prev + 1);
+            showNativeLogin();
+          })();
+          break;
         case 'auth:logout':
         case 'auth:expired':
         case 'logout':
