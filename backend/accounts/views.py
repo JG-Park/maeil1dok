@@ -247,8 +247,12 @@ def get_apple_user_info(id_token):
     
     # 환경변수에서 Apple Client ID 가져오기
     apple_client_id = getattr(settings, 'APPLE_CLIENT_ID', None)
+    apple_ios_bundle_id = getattr(settings, 'APPLE_IOS_BUNDLE_ID', 'com.maeil1dok.app')
     if not apple_client_id:
         raise Exception("APPLE_CLIENT_ID 환경변수가 설정되지 않았습니다.")
+    
+    # 웹(Services ID)과 iOS(Bundle ID) 둘 다 허용
+    allowed_audiences = [apple_client_id, apple_ios_bundle_id]
     
     try:
         # Apple public keys 가져오기 및 JWT 서명 검증
@@ -260,7 +264,7 @@ def get_apple_user_info(id_token):
             id_token,
             signing_key.key,
             algorithms=["RS256"],
-            audience=apple_client_id,
+            audience=allowed_audiences,
             issuer=APPLE_ISSUER,
         )
         
