@@ -789,6 +789,20 @@ defineExpose({
   .tongdok-badge-inline {
     font-size: 0.8125rem;
   }
+  
+  /* 듣기/가이드 텍스트 숨김 - 아이콘만 표시 */
+  .tongdok-action-btn span {
+    display: none;
+  }
+  
+  .tongdok-action-btn {
+    padding: 0.375rem;
+  }
+  
+  .tongdok-action-btn svg {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 @media (max-width: 360px) {
@@ -1090,9 +1104,9 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  min-height: 50px;
-  gap: 1rem;
+  padding: 0.5rem 0.5rem;
+  min-height: 46px;
+  gap: 0.5rem;
 }
 
 /* 중앙 네비게이션 그룹 (이전/장정보/다음) */
@@ -1111,13 +1125,18 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   color: var(--color-slate-500, #64748b);
-  border-radius: 10px;
+  border-radius: 8px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   flex-shrink: 0;
+}
+
+.side-nav-item svg {
+  width: 16px;
+  height: 16px;
 }
 
 .side-nav-item:hover {
@@ -1133,10 +1152,10 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   color: var(--color-slate-600, #475569);
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: transparent;
   border: none;
@@ -1166,18 +1185,18 @@ defineExpose({
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  font-size: clamp(0.75rem, 3vw, 0.875rem);
+  gap: 0.375rem;
+  font-size: clamp(0.6875rem, 2.5vw, 0.8125rem);
   color: var(--text-primary, #1f2937);
-  padding: 0.5rem 0.75rem;
-  border-radius: 12px;
+  padding: 0.375rem 0.5rem;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid var(--color-border, #e5e7eb);
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   flex: 1;
-  max-width: min(240px, 60vw);
+  max-width: min(200px, 55vw);
   min-width: 0;
   overflow: hidden;
 }
@@ -1198,15 +1217,15 @@ defineExpose({
 }
 
 .chapter-info .schedule-short-date {
-  font-size: clamp(0.625rem, 2.5vw, 0.75rem);
+  font-size: clamp(0.5625rem, 2vw, 0.6875rem);
   color: var(--text-secondary, #6b7280);
   font-weight: 500;
-  margin-right: 0.25rem;
+  margin-right: 0.125rem;
   flex-shrink: 0;
 }
 
 .chapter-info .schedule-range {
-  font-size: clamp(0.75rem, 3vw, 0.9375rem);
+  font-size: clamp(0.6875rem, 2.5vw, 0.8125rem);
   color: var(--text-primary, #1f2937);
   font-weight: 600;
   white-space: nowrap;
