@@ -150,9 +150,12 @@ def clear_auth_cookies(response):
 
 def get_tokens_for_user(user):
     """
-    사용자에 대한 JWT 토큰 쌍 생성
+    사용자에 대한 JWT 토큰 쌍 생성 (token_version 포함)
     """
     refresh = RefreshToken.for_user(user)
+    refresh['token_version'] = user.token_version
+    refresh['nickname'] = user.nickname
+    refresh['is_social'] = user.is_social
     return {
         'refresh': str(refresh),
         'access': str(refresh.access_token),

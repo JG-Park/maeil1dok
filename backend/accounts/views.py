@@ -580,6 +580,7 @@ def social_login_v2(request):
                     return Response({'error': '비활성화된 계정입니다.'}, status=400)
             
             refresh = RefreshToken.for_user(user)
+            refresh['token_version'] = user.token_version
             
             response = Response({
                 'refresh': str(refresh),
@@ -613,6 +614,7 @@ def social_login_v2(request):
                 legacy_user.save(update_fields=['email', 'email_verified'])
             
             refresh = RefreshToken.for_user(legacy_user)
+            refresh['token_version'] = legacy_user.token_version
             response = Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
@@ -668,10 +670,10 @@ def social_login_v2(request):
                 extra_data=social_info if 'social_info' in dir() else {}
             )
             
-            # 기본 구독 생성
             _create_default_subscription(user)
             
             refresh = RefreshToken.for_user(user)
+            refresh['token_version'] = user.token_version
             response = Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
@@ -1477,6 +1479,7 @@ def session_bridge_consume(request):
             return HttpResponseRedirect(f"{frontend_url}/auth/error?reason=user_not_found")
         
         refresh = RefreshToken.for_user(user)
+        refresh['token_version'] = user.token_version
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
         
