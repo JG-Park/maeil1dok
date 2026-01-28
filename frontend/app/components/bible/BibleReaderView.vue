@@ -6,7 +6,8 @@
       <div v-if="isTongdokMode" class="book-selector-group tongdok-mode">
         <button class="book-selector-trigger tongdok-trigger" @click="$emit('open-book-selector')">
           <span class="tongdok-status-dot"></span>
-          <span class="book-chapter-text tongdok-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+          <span class="book-chapter-text tongdok-text book-name-full">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+          <span class="book-chapter-text tongdok-text book-name-short">{{ shortBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
         </button>
         <button 
           class="tongdok-exit-btn" 
@@ -23,7 +24,8 @@
       <!-- 일반 모드: [창세기 1장] [북마크] -->
       <div v-else class="book-selector-group">
         <button class="book-selector-trigger" @click="$emit('open-book-selector')">
-          <span class="book-chapter-text">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+          <span class="book-chapter-text book-name-full">{{ currentBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
+          <span class="book-chapter-text book-name-short">{{ shortBookName }} {{ currentChapter }}{{ chapterSuffix }}</span>
           <span
             class="bookmark-toggle-icon"
             :class="{ 'is-bookmarked': isBookmarked }"
@@ -348,6 +350,33 @@ const shortScheduleDate = computed(() => {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const dayOfWeek = days[date.getDay()];
   return `${month}/${day}(${dayOfWeek})`;
+});
+
+// 책 이름 축약 (좁은 화면용)
+const shortBookName = computed(() => {
+  const name = props.currentBookName;
+  if (!name) return '';
+  
+  // 축약어 매핑
+  const abbreviations: Record<string, string> = {
+    '창세기': '창', '출애굽기': '출', '레위기': '레', '민수기': '민', '신명기': '신',
+    '여호수아': '수', '사사기': '삿', '룻기': '룻', '사무엘상': '삼상', '사무엘하': '삼하',
+    '열왕기상': '왕상', '열왕기하': '왕하', '역대상': '대상', '역대하': '대하',
+    '에스라': '스', '느헤미야': '느', '에스더': '에', '욥기': '욥', '시편': '시',
+    '잠언': '잠', '전도서': '전', '아가': '아', '이사야': '사', '예레미야': '렘',
+    '예레미야애가': '애', '에스겔': '겔', '다니엘': '단', '호세아': '호', '요엘': '욜',
+    '아모스': '암', '오바댜': '옵', '요나': '욘', '미가': '미', '나훔': '나',
+    '하박국': '합', '스바냐': '습', '학개': '학', '스가랴': '슥', '말라기': '말',
+    '마태복음': '마', '마가복음': '막', '누가복음': '눅', '요한복음': '요',
+    '사도행전': '행', '로마서': '롬', '고린도전서': '고전', '고린도후서': '고후',
+    '갈라디아서': '갈', '에베소서': '엡', '빌립보서': '빌', '골로새서': '골',
+    '데살로니가전서': '살전', '데살로니가후서': '살후', '디모데전서': '딤전', '디모데후서': '딤후',
+    '디도서': '딛', '빌레몬서': '몬', '히브리서': '히', '야고보서': '약',
+    '베드로전서': '벧전', '베드로후서': '벧후', '요한일서': '요일', '요한이서': '요이',
+    '요한삼서': '요삼', '유다서': '유', '요한계시록': '계',
+  };
+  
+  return abbreviations[name] || name.charAt(0);
 });
 
 // Emits
@@ -787,17 +816,20 @@ defineExpose({
   color: white;
 }
 
+/* 책 이름 표시 토글 */
+.book-name-short {
+  display: none;
+}
+
 /* 반응형 - 좁은 화면 */
 @media (max-width: 480px) {
-  /* 듣기/가이드 영역 완전히 숨김 - 더보기 메뉴에서 접근 */
-  .tongdok-actions-inline {
+  /* 듣기/가이드 텍스트 숨김, 아이콘만 표시 */
+  .tongdok-action-btn span {
     display: none;
   }
   
-  /* 헤더 책 이름 영역 확장 */
-  .book-selector-group {
-    flex: 1;
-    max-width: none;
+  .tongdok-action-btn {
+    padding: 0.25rem;
   }
   
   .tongdok-badge-inline {
@@ -805,7 +837,16 @@ defineExpose({
   }
 }
 
-@media (max-width: 360px) {
+/* 매우 좁은 화면 - 책 이름 축약 */
+@media (max-width: 380px) {
+  .book-name-full {
+    display: none;
+  }
+  
+  .book-name-short {
+    display: inline;
+  }
+  
   .tongdok-badge-inline {
     font-size: 0.75rem;
   }
