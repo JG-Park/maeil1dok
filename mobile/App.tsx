@@ -26,6 +26,7 @@ import * as Font from 'expo-font';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
+import CookieManager from '@react-native-cookies/cookies';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -471,6 +472,7 @@ function AppContent() {
         case 'requestLogout':
           (async () => {
             try {
+              // 1. 백엔드 로그아웃 API 호출
               await fetch(`${API_URL}/api/v1/auth/logout/`, {
                 method: 'POST',
                 credentials: 'include',
@@ -478,6 +480,20 @@ function AppContent() {
             } catch (error) {
               console.error('Logout API error:', error);
             }
+            
+            try {
+              // 2. WebView 쿠키 삭제
+              await CookieManager.clearAll();
+              console.log('[Logout] Cookies cleared');
+              
+              // 3. SecureStore 토큰 삭제
+              await SecureStore.deleteItemAsync('maeil1dok_access_token');
+              await SecureStore.deleteItemAsync('maeil1dok_refresh_token');
+              console.log('[Logout] SecureStore tokens cleared');
+            } catch (error) {
+              console.error('[Logout] Clear storage error:', error);
+            }
+            
             setWebViewKey(prev => prev + 1);
             showNativeLogin();
           })();
