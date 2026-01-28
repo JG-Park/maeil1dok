@@ -1483,7 +1483,16 @@ def session_bridge_consume(request):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
         
-        response = HttpResponseRedirect(next_url)
+        from django.http import HttpResponse
+        html_content = f'''<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Redirecting...</title></head>
+<body>
+<script>window.location.replace("{next_url}");</script>
+<noscript><meta http-equiv="refresh" content="0;url={next_url}"></noscript>
+</body>
+</html>'''
+        response = HttpResponse(html_content, content_type='text/html')
         set_auth_cookies(response, access_token, refresh_token)
         
         logger.info(f"세션 브리지 코드 소비: user_id={user.id}, next={next_url}")
