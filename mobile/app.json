@@ -77,7 +77,7 @@
       [
         "@react-native-seoul/kakao-login",
         {
-          "nativeAppKey": "91b7f3dfb146481fd15ff80aafb12349"
+          "kakaoAppKey": "91b7f3dfb146481fd15ff80aafb12349"
         }
       ],
       "expo-secure-store"
