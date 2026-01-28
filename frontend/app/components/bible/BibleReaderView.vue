@@ -510,7 +510,7 @@ defineExpose({
 }
 
 .book-chapter-text {
-  font-size: 1.375rem;
+  font-size: clamp(1.125rem, 5vw, 1.375rem);
   font-weight: 700;
   color: var(--text-primary, #1f2937);
   white-space: nowrap;
@@ -784,22 +784,14 @@ defineExpose({
   color: white;
 }
 
-/* 반응형 - 좁은 화면 */
+/* 반응형 - 좁은 화면 (clamp()로 자동 처리되므로 폰트 크기 오버라이드 제거) */
 @media (max-width: 420px) {
-  .book-chapter-text {
-    font-size: 1.25rem;
-  }
-  
   .tongdok-badge-inline {
     font-size: 0.8125rem;
   }
 }
 
 @media (max-width: 360px) {
-  .book-chapter-text {
-    font-size: 1.125rem;
-  }
-  
   .tongdok-badge-inline {
     font-size: 0.75rem;
   }
@@ -944,7 +936,7 @@ defineExpose({
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 32px);
-  max-width: 400px;
+  max-width: min(400px, calc(100vw - 32px));
   z-index: 20;
 
   /* 글래스모피즘 */
@@ -1110,6 +1102,8 @@ defineExpose({
   justify-content: center;
   gap: 0.25rem;
   flex: 1;
+  min-width: 0; /* flex item 축소 허용 */
+  overflow: hidden;
 }
 
 /* 사이드 네비게이션 아이템 (홈/프로필) */
@@ -1173,9 +1167,9 @@ defineExpose({
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: clamp(0.75rem, 3vw, 0.875rem);
   color: var(--text-primary, #1f2937);
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid var(--color-border, #e5e7eb);
@@ -1183,7 +1177,9 @@ defineExpose({
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   flex: 1;
-  max-width: 240px;
+  max-width: min(240px, 60vw);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .chapter-info:hover {
@@ -1202,29 +1198,34 @@ defineExpose({
 }
 
 .chapter-info .schedule-short-date {
-  font-size: 0.75rem;
+  font-size: clamp(0.625rem, 2.5vw, 0.75rem);
   color: var(--text-secondary, #6b7280);
   font-weight: 500;
-  margin-right: 0.5rem;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
 }
 
 .chapter-info .schedule-range {
-  font-size: 0.9375rem;
+  font-size: clamp(0.75rem, 3vw, 0.9375rem);
   color: var(--text-primary, #1f2937);
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 통독 모드일 때 챕터 정보 버튼 스타일 */
 .chapter-info.is-tongdok {
-  padding: 0.25rem 0;
-  gap: 0;
+  padding: 0.25rem 0.5rem;
+  gap: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: nowrap; /* 줄바꿈 방지 */
-  min-width: fit-content; /* 내용물에 맞춰 너비 확보 */
+  min-width: 0; /* 축소 허용 */
   max-width: 100%; /* 너비 제한 완화 */
   width: auto; /* 자동 너비 */
+  flex-shrink: 1; /* 필요시 축소 */
 }
 
 .tongdok-status-badge {
