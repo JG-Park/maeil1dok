@@ -566,8 +566,18 @@ def social_login_v2(request):
         ).select_related('user').first()
         
         if social_account:
-            # 기존 연동 계정으로 로그인
             user = social_account.user
+            
+            if not user.is_active:
+                if user.scheduled_deletion_at:
+                    user.is_active = True
+                    user.scheduled_deletion_at = None
+                    user.nickname = nickname_suggestion or f"user_{user.id}"
+                    user.save(update_fields=['is_active', 'scheduled_deletion_at', 'nickname'])
+                    logger.info(f"계정 복구: provider={provider}, user_id={user.id}")
+                else:
+                    return Response({'error': '비활성화된 계정입니다.'}, status=400)
+            
             refresh = RefreshToken.for_user(user)
             
             response = Response({
@@ -616,9 +626,9 @@ def social_login_v2(request):
         auto_signup = request.data.get('auto_signup', False)
         
         if auto_signup:
-            # 자동 가입: 닉네임 생성
             import random
             import string
+            
             base_nickname = nickname_suggestion or '사용자'
             nickname = base_nickname
             suffix = 1
@@ -629,8 +639,16 @@ def social_login_v2(request):
                     nickname = f"user_{''.join(random.choices(string.ascii_lowercase + string.digits, k=6))}"
                     break
             
-            # 사용자 생성
-            username = f"{provider}_{provider_id}"
+            base_username = f"{provider}_{provider_id}"
+            username = base_username
+            suffix = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{suffix}"
+                suffix += 1
+                if suffix > 100:
+                    username = f"{provider}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=8))}"
+                    break
+            
             user = User.objects.create(
                 username=username,
                 nickname=nickname,
@@ -1430,33 +1448,44 @@ def session_bridge_consume(request):
     from django.core.cache import cache
     from django.http import HttpResponseRedirect
     
+    frontend_url = 'https://maeil1dok.app'
     code = request.GET.get('code')
-    next_url = request.GET.get('next', '/')
+    next_url = request.GET.get('next', frontend_url)
     
-    if not code:
-        return Response({'error': 'code_required'}, status=400)
-    
-    cache_key = f'session_bridge:{code}'
-    user_id = cache.get(cache_key)
-    
-    if user_id is None:
-        return Response({'error': 'invalid_or_expired_code'}, status=400)
-    
-    cache.delete(cache_key)
+    if not next_url.startswith('http'):
+        next_url = frontend_url + next_url
     
     try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        logger.warning(f"세션 브리지: 사용자 없음 user_id={user_id}")
-        return Response({'error': 'user_not_found'}, status=400)
-    
-    refresh = RefreshToken.for_user(user)
-    access_token = str(refresh.access_token)
-    refresh_token = str(refresh)
-    
-    response = HttpResponseRedirect(next_url)
-    set_auth_cookies(response, access_token, refresh_token)
-    
-    logger.info(f"세션 브리지 코드 소비: user_id={user.id}, next={next_url}")
-    
-    return response
+        if not code:
+            logger.warning("세션 브리지: 코드 없음")
+            return HttpResponseRedirect(f"{frontend_url}/auth/error?reason=code_required")
+        
+        cache_key = f'session_bridge:{code}'
+        user_id = cache.get(cache_key)
+        
+        if user_id is None:
+            logger.warning(f"세션 브리지: 유효하지 않거나 만료된 코드 code={code[:8]}...")
+            return HttpResponseRedirect(f"{frontend_url}/auth/error?reason=invalid_code")
+        
+        cache.delete(cache_key)
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            logger.warning(f"세션 브리지: 사용자 없음 user_id={user_id}")
+            return HttpResponseRedirect(f"{frontend_url}/auth/error?reason=user_not_found")
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        
+        response = HttpResponseRedirect(next_url)
+        set_auth_cookies(response, access_token, refresh_token)
+        
+        logger.info(f"세션 브리지 코드 소비: user_id={user.id}, next={next_url}")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"세션 브리지 오류: {str(e)}", exc_info=True)
+        return HttpResponseRedirect(f"{frontend_url}/auth/error?reason=server_error")
