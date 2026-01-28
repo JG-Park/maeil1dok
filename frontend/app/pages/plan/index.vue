@@ -101,6 +101,8 @@ async function handleRangeSelect({ action, scheduleIds, planId }: RangeSelectPay
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* iOS 안전영역 대응 */
