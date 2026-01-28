@@ -573,7 +573,8 @@ def social_login_v2(request):
                     user.is_active = True
                     user.scheduled_deletion_at = None
                     user.nickname = nickname_suggestion or f"user_{user.id}"
-                    user.save(update_fields=['is_active', 'scheduled_deletion_at', 'nickname'])
+                    user.token_version = 0
+                    user.save(update_fields=['is_active', 'scheduled_deletion_at', 'nickname', 'token_version'])
                     logger.info(f"계정 복구: provider={provider}, user_id={user.id}")
                 else:
                     return Response({'error': '비활성화된 계정입니다.'}, status=400)
