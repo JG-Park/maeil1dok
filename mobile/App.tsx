@@ -24,6 +24,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as WebBrowser from 'expo-web-browser';
 import * as Font from 'expo-font';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as SecureStore from 'expo-secure-store';
+import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,7 +43,6 @@ const WEB_APP_URL = Constants.expoConfig?.extra?.webAppUrl || 'https://maeil1dok
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://api.maeil1dok.app';
 const APP_SCHEME = 'maeil1dok';
 
-const KAKAO_CLIENT_ID = Constants.expoConfig?.extra?.kakaoClientId || '';
 const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId || '';
 
 const OAUTH_DOMAINS = [
@@ -102,6 +103,41 @@ function AppContent() {
     }
   };
 
+  const initiateSessionBridge = async (accessToken: string, refreshToken: string): Promise<boolean> => {
+    try {
+      await SecureStore.setItemAsync('maeil1dok_access_token', accessToken);
+      await SecureStore.setItemAsync('maeil1dok_refresh_token', refreshToken);
+      console.log('SecureStore: 토큰 저장 성공');
+
+      const issueResponse = await fetch(`${API_URL}/api/v1/auth/session/issue/`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+      });
+
+      if (!issueResponse.ok) {
+        console.log('session/issue 실패:', issueResponse.status);
+        return false;
+      }
+
+      const issueData = await issueResponse.json();
+      const code = issueData.code;
+
+      if (code) {
+        const consumeUrl = `${API_URL}/api/v1/auth/session/consume/?code=${code}&next=/`;
+        setPendingUrl(consumeUrl);
+        console.log('세션 브리지: consume URL 설정됨');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('세션 브리지 오류:', error);
+      return false;
+    }
+  };
+
   const handleEmailLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('알림', '이메일과 비밀번호를 입력해주세요.');
@@ -120,8 +156,11 @@ function AppContent() {
       const data = await response.json();
 
       if (data.access) {
+        const bridgeSuccess = await initiateSessionBridge(data.access, data.refresh);
         setShowLogin(false);
-        setWebViewKey((prev) => prev + 1);
+        if (!bridgeSuccess) {
+          setWebViewKey((prev) => prev + 1);
+        }
       } else {
         Alert.alert('로그인 실패', data.error || '이메일 또는 비밀번호를 확인해주세요.');
       }
@@ -134,24 +173,43 @@ function AppContent() {
 
   const handleKakaoLogin = async () => {
     try {
-      const webRedirectUri = `${WEB_APP_URL}/auth/kakao/callback`;
-      const state = encodeURIComponent(JSON.stringify({ from: 'app', scheme: APP_SCHEME }));
-      const appRedirectUri = `${APP_SCHEME}://auth/kakao/callback`;
+      const kakaoToken = await kakaoLogin();
       
-      const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(webRedirectUri)}&response_type=code&state=${state}`;
-      
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, appRedirectUri);
-      
-      if (result.type === 'success' && result.url) {
-        const url = new URL(result.url);
-        const code = url.searchParams.get('code');
-        
-        if (code) {
-          await handleSocialLoginCode('kakao', code, webRedirectUri);
+      if (kakaoToken.accessToken) {
+        setIsSubmitting(true);
+        const response = await fetch(`${API_URL}/api/v1/auth/social-login/v2/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            provider: 'kakao', 
+            access_token: kakaoToken.accessToken 
+          }),
+          credentials: 'include',
+        });
+
+        const data = await response.json();
+
+        if (data.access) {
+          const bridgeSuccess = await initiateSessionBridge(data.access, data.refresh);
+          setShowLogin(false);
+          if (!bridgeSuccess) {
+            setWebViewKey((prev) => prev + 1);
+          }
+        } else if (data.needsSignup) {
+          const signupUrl = `${WEB_APP_URL}/auth/kakao/setup?provider=kakao&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+          setPendingUrl(signupUrl);
+          setShowLogin(false);
+        } else {
+          Alert.alert('로그인 실패', data.error || '로그인에 실패했습니다.');
         }
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      console.error('Kakao login error:', error);
+    } catch (error: any) {
+      setIsSubmitting(false);
+      if (error.code !== 'E_CANCELLED_OPERATION') {
+        console.error('Kakao login error:', error);
+        Alert.alert('오류', '카카오 로그인 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -217,8 +275,11 @@ function AppContent() {
       const data = await response.json();
 
       if (data.access) {
+        const bridgeSuccess = await initiateSessionBridge(data.access, data.refresh);
         setShowLogin(false);
-        setWebViewKey((prev) => prev + 1);
+        if (!bridgeSuccess) {
+          setWebViewKey((prev) => prev + 1);
+        }
       } else if (data.needsSignup) {
         const signupUrl = `${WEB_APP_URL}/auth/apple/setup?provider=apple&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
         setPendingUrl(signupUrl);
@@ -352,7 +413,7 @@ function AppContent() {
     }
     const isOAuthDomain = OAUTH_DOMAINS.some((domain) => url.includes(domain));
     if (isOAuthDomain) return true;
-    if (!url.startsWith(WEB_APP_URL) && !url.startsWith('about:')) return false;
+    if (!url.startsWith(WEB_APP_URL) && !url.startsWith(API_URL) && !url.startsWith('about:')) return false;
     return true;
   };
 

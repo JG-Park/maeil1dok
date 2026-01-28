@@ -70,7 +70,14 @@
       "expo-splash-screen",
       "expo-web-browser",
       "expo-font",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "@react-native-seoul/kakao-login",
+        {
+          "nativeAppKey": "91b7f3dfb146481fd15ff80aafb12349"
+        }
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "webAppUrl": "https://maeil1dok.app",
