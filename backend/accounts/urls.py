@@ -86,4 +86,10 @@ urlpatterns = [
     path('request-password-reset/', views.request_password_reset, name='request_password_reset'),
     path('verify-reset-token/', views.verify_reset_token, name='verify_reset_token'),
     path('reset-password/', views.reset_password, name='reset_password'),
+    
+    # ========================================
+    # 세션 브리지 (Native ↔ WebView 인증 동기화)
+    # ========================================
+    path('session/issue/', views.session_bridge_issue, name='session_bridge_issue'),
+    path('session/consume/', views.session_bridge_consume, name='session_bridge_consume'),
 ]

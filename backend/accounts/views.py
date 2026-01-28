@@ -1340,3 +1340,72 @@ def delete_account(request):
     except Exception as e:
         logger.error(f"계정 삭제 요청 오류: user_id={user.id}, error={str(e)}", exc_info=True)
         return Response({'error': '계정 삭제 요청 중 오류가 발생했습니다.'}, status=500)
+
+
+# ========================================
+# 세션 브리지 (Native ↔ WebView 인증 동기화)
+# ========================================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def session_bridge_issue(request):
+    """
+    세션 브리지 코드 발급
+    - 인증된 사용자만 접근 가능
+    - 1회용 코드 생성 (TTL 60초)
+    - Native 앱에서 호출하여 WebView 쿠키 동기화에 사용
+    """
+    from django.core.cache import cache
+    
+    user = request.user
+    code = str(uuid.uuid4())
+    cache_key = f'session_bridge:{code}'
+    
+    cache.set(cache_key, user.id, timeout=60)
+    
+    logger.info(f"세션 브리지 코드 발급: user_id={user.id}, code={code[:8]}...")
+    
+    return Response({'code': code})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def session_bridge_consume(request):
+    """
+    세션 브리지 코드 소비
+    - 1회용 코드를 검증하고 쿠키 설정 후 리다이렉트
+    - WebView에서 호출하여 인증 쿠키 획득
+    """
+    from django.core.cache import cache
+    from django.http import HttpResponseRedirect
+    
+    code = request.GET.get('code')
+    next_url = request.GET.get('next', '/')
+    
+    if not code:
+        return Response({'error': 'code_required'}, status=400)
+    
+    cache_key = f'session_bridge:{code}'
+    user_id = cache.get(cache_key)
+    
+    if user_id is None:
+        return Response({'error': 'invalid_or_expired_code'}, status=400)
+    
+    cache.delete(cache_key)
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        logger.warning(f"세션 브리지: 사용자 없음 user_id={user_id}")
+        return Response({'error': 'user_not_found'}, status=400)
+    
+    refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
+    refresh_token = str(refresh)
+    
+    response = HttpResponseRedirect(next_url)
+    set_auth_cookies(response, access_token, refresh_token)
+    
+    logger.info(f"세션 브리지 코드 소비: user_id={user.id}, next={next_url}")
+    
+    return response
