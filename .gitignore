@@ -80,6 +80,9 @@ logo/
 # Claude Code
 .claude/
 
+# Sisyphus (OpenCode planning)
+.sisyphus/
+
 # Audit temp files
 **/audit_tmp/
 
