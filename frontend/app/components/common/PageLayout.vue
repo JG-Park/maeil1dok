@@ -14,13 +14,18 @@
     </div>
 
     <!-- 스크롤 영역 -->
-    <div class="scroll-area" :class="scrollAreaClass">
+    <div class="scroll-area" :class="[scrollAreaClass, { 'with-floating-nav': showFloatingNav }]">
       <slot></slot>
     </div>
+
+    <!-- 플로팅 네비게이션 -->
+    <FloatingNav v-if="showFloatingNav" />
   </div>
 </template>
 
 <script setup>
+import FloatingNav from '~/components/home-v2/FloatingNav.vue'
+
 defineProps({
   title: {
     type: String,
@@ -37,6 +42,10 @@ defineProps({
   scrollAreaClass: {
     type: String,
     default: ''
+  },
+  showFloatingNav: {
+    type: Boolean,
+    default: true
   }
 })
 </script>
@@ -72,5 +81,10 @@ defineProps({
   .scroll-area {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* 플로팅 네비게이션이 있을 때 하단 여백 */
+.scroll-area.with-floating-nav {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 </style>
