@@ -210,6 +210,7 @@ const showPlanModal = ref(false);
 const showScrollTop = ref(false);
 const showDefaultPlanMessage = ref(false);
 const isMobile = ref(false);
+const initialScrollDone = ref(false);
 
 // Data State
 const selectedMonth = ref(new Date().getMonth() + 1);
@@ -583,6 +584,23 @@ function scrollToTop() {
   scrollToElement(firstItem as HTMLElement, { behavior: 'smooth' });
 }
 
+// 초기 스크롤 수행 함수
+async function performInitialScroll() {
+  if (initialScrollDone.value) return;
+  if (!isInitialized.value || !scheduleBodyRef.value) return;
+
+  initialScrollDone.value = true;
+  await nextTick();
+
+  if (props.initialScrollTarget) {
+    await handleScrollTo(props.initialScrollTarget);
+  } else if (props.isModal && props.currentBook && props.currentChapter) {
+    await scrollToCurrentLocation();
+  } else {
+    await scrollToLastIncomplete();
+  }
+}
+
 // ============================================
 // Navigation Functions
 // ============================================
@@ -750,23 +768,9 @@ onMounted(() => {
   updateIsMobile();
   window.addEventListener('resize', updateIsMobile);
 
-  if (scheduleBodyRef.value) {
-    setScrollContainer(scheduleBodyRef.value);
-    scheduleBodyRef.value.addEventListener('scroll', handleScroll);
-  }
-
   document.addEventListener('keydown', handleKeydown);
 
-  initializeComponent().then(() => {
-    // initialScrollTarget prop이 있으면 해당 위치로 스크롤
-    if (props.initialScrollTarget) {
-      setTimeout(() => handleScrollTo(props.initialScrollTarget!), ANIMATION_DELAYS.SCROLL_TO_CURRENT);
-    } else if (props.isModal && props.currentBook && props.currentChapter) {
-      setTimeout(scrollToCurrentLocation, ANIMATION_DELAYS.SCROLL_TO_CURRENT);
-    } else {
-      scrollToLastIncomplete();
-    }
-  });
+  initializeComponent();
 });
 
 onBeforeUnmount(() => {
@@ -781,25 +785,32 @@ onBeforeUnmount(() => {
 // Watchers
 // ============================================
 
+// scheduleBodyRef가 설정되면 스크롤 컨테이너 설정
+watch(scheduleBodyRef, (newRef, oldRef) => {
+  if (oldRef) {
+    oldRef.removeEventListener('scroll', handleScroll);
+  }
+  if (newRef) {
+    setScrollContainer(newRef);
+    newRef.addEventListener('scroll', handleScroll);
+  }
+}, { immediate: true });
+
+// isInitialized와 scheduleBodyRef 모두 준비되면 초기 스크롤 수행
+watch([() => isInitialized.value, scheduleBodyRef], ([initialized, ref]) => {
+  if (initialized && ref && !initialScrollDone.value) {
+    setTimeout(performInitialScroll, ANIMATION_DELAYS.SCROLL_TO_CURRENT);
+  }
+});
+
 watch(() => props.isModal, async (newVal) => {
   if (newVal) {
     isInitialized.value = false;
     isLoading.value = true;
+    initialScrollDone.value = false; // 모달 열릴 때 스크롤 상태 리셋
 
     await initializeComponent();
-
-    // initialScrollTarget prop이 있으면 해당 위치로 스크롤
-    if (props.initialScrollTarget) {
-      setTimeout(async () => {
-        await nextTick();
-        await handleScrollTo(props.initialScrollTarget!);
-      }, ANIMATION_DELAYS.SCROLL_TO_CURRENT);
-    } else if (props.currentBook && props.currentChapter) {
-      setTimeout(async () => {
-        await nextTick();
-        await scrollToCurrentLocation();
-      }, ANIMATION_DELAYS.SCROLL_TO_CURRENT);
-    }
+    // 초기 스크롤은 watch([isInitialized, scheduleBodyRef])에서 처리됨
   }
 }, { immediate: true });
 
