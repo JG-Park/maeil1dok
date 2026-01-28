@@ -89,8 +89,8 @@ async function handleRangeSelect({ action, scheduleIds, planId }: RangeSelectPay
   background: var(--background-color);
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .fixed-area {
