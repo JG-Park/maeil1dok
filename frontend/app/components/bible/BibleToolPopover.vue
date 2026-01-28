@@ -14,6 +14,28 @@
     <!-- 팝오버 -->
     <Transition name="popover-fade">
       <div v-if="isOpen" class="popover-content" @click.stop>
+        <!-- 듣기 (통독모드, 좁은 화면에서만 표시) -->
+        <button v-if="audioLink" class="popover-item mobile-only" @click="handleAudioLink">
+          <div class="item-icon">
+            <AudioIcon />
+          </div>
+          <div class="item-content">
+            <span class="item-label">듣기</span>
+          </div>
+        </button>
+
+        <!-- 가이드 (통독모드, 좁은 화면에서만 표시) -->
+        <a v-if="guideLink" :href="guideLink" target="_blank" class="popover-item mobile-only" @click="closePopover">
+          <div class="item-icon">
+            <GuideIcon />
+          </div>
+          <div class="item-content">
+            <span class="item-label">가이드</span>
+          </div>
+        </a>
+
+        <div v-if="audioLink || guideLink" class="popover-divider mobile-only"></div>
+
         <!-- 성경통독표 -->
         <button class="popover-item" @click="handleReadingPlan">
           <div class="item-icon">
@@ -137,16 +159,38 @@ const ListCheckIcon = defineComponent({
   }
 });
 
+const AudioIcon = defineComponent({
+  render() {
+    return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('path', { d: 'M3 18v-6a9 9 0 0 1 18 0v6' }),
+      h('path', { d: 'M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z' }),
+    ]);
+  }
+});
+
+const GuideIcon = defineComponent({
+  render() {
+    return h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('path', { d: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' }),
+    ]);
+  }
+});
+
 const props = defineProps<{
   noteCount: number;
   showBookmarkToggle?: boolean;
   isBookmarked?: boolean;
+  // 통독모드 액션 (좁은 화면에서 헤더에서 숨겨지므로 여기서 표시)
+  audioLink?: string | null;
+  guideLink?: string | null;
 }>();
 
 const emit = defineEmits<{
   'note-click': [];
   'reading-plan-click': [];
   'bookmark-toggle': [];
+  'audio-link-click': [url: string];
+  'open-settings': [];
 }>();
 
 const popoverRef = ref<HTMLElement | null>(null);
@@ -185,6 +229,13 @@ const handleSettings = () => {
 
 const handleReadingPlan = () => {
   emit('reading-plan-click');
+  closePopover();
+};
+
+const handleAudioLink = () => {
+  if (props.audioLink) {
+    emit('audio-link-click', props.audioLink);
+  }
   closePopover();
 };
 
@@ -332,6 +383,17 @@ onUnmounted(() => {
 .popover-fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+/* 모바일 전용 항목 (좁은 화면에서만 표시) */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .mobile-only {
+    display: flex;
+  }
 }
 
 /* 다크모드 */

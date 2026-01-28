@@ -78,10 +78,13 @@
           :note-count="noteCount"
           :show-bookmark-toggle="isTongdokMode"
           :is-bookmarked="isBookmarked"
+          :audio-link="isTongdokMode ? tongdokAudioLink : null"
+          :guide-link="isTongdokMode ? tongdokGuideLink : null"
           @note-click="$emit('note-click')"
           @open-settings="$emit('open-settings')"
           @reading-plan-click="$emit('reading-plan-click')"
           @bookmark-toggle="$emit('bookmark-toggle')"
+          @audio-link-click="$emit('audio-link-click', $event)"
         />
         <!-- 통독모드 버튼 (로그인 사용자, 비통독 모드일 때) -->
         <button
@@ -784,24 +787,21 @@ defineExpose({
   color: white;
 }
 
-/* 반응형 - 좁은 화면 (clamp()로 자동 처리되므로 폰트 크기 오버라이드 제거) */
-@media (max-width: 420px) {
-  .tongdok-badge-inline {
-    font-size: 0.8125rem;
-  }
-  
-  /* 듣기/가이드 텍스트 숨김 - 아이콘만 표시 */
-  .tongdok-action-btn span {
+/* 반응형 - 좁은 화면 */
+@media (max-width: 480px) {
+  /* 듣기/가이드 영역 완전히 숨김 - 더보기 메뉴에서 접근 */
+  .tongdok-actions-inline {
     display: none;
   }
   
-  .tongdok-action-btn {
-    padding: 0.375rem;
+  /* 헤더 책 이름 영역 확장 */
+  .book-selector-group {
+    flex: 1;
+    max-width: none;
   }
   
-  .tongdok-action-btn svg {
-    width: 18px;
-    height: 18px;
+  .tongdok-badge-inline {
+    font-size: 0.8125rem;
   }
 }
 
