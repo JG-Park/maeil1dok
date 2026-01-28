@@ -23,7 +23,10 @@
       "infoPlist": {
         "NSCameraUsageDescription": "프로필 사진 촬영에 사용됩니다",
         "NSPhotoLibraryUsageDescription": "프로필 사진 선택에 사용됩니다",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "KAKAO_APP_KEY": "91b7f3dfb146481fd15ff80aafb12349",
+        "KAKAO_APP_SCHEME": "kakao91b7f3dfb146481fd15ff80aafb12349",
+        "LSApplicationQueriesSchemes": ["kakaokompassauth", "kakaolink", "kakaoplus", "kakaotalk"]
       }
     },
     "android": {

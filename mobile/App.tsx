@@ -104,11 +104,16 @@ function AppContent() {
   };
 
   const initiateSessionBridge = async (accessToken: string, refreshToken: string): Promise<boolean> => {
+    console.log('[SessionBridge] Starting with accessToken:', accessToken?.substring(0, 20) + '...');
+    console.log('[SessionBridge] refreshToken:', refreshToken?.substring(0, 20) + '...');
+    
     try {
+      console.log('[SessionBridge] Saving to SecureStore...');
       await SecureStore.setItemAsync('maeil1dok_access_token', accessToken);
       await SecureStore.setItemAsync('maeil1dok_refresh_token', refreshToken);
-      console.log('SecureStore: 토큰 저장 성공');
+      console.log('[SessionBridge] SecureStore save success');
 
+      console.log('[SessionBridge] Calling session/issue...');
       const issueResponse = await fetch(`${API_URL}/api/v1/auth/session/issue/`, {
         method: 'POST',
         headers: { 
@@ -117,23 +122,28 @@ function AppContent() {
         },
       });
 
+      console.log('[SessionBridge] session/issue response status:', issueResponse.status);
+      
       if (!issueResponse.ok) {
-        console.log('session/issue 실패:', issueResponse.status);
+        const errorText = await issueResponse.text();
+        console.log('[SessionBridge] session/issue error:', errorText);
         return false;
       }
 
       const issueData = await issueResponse.json();
+      console.log('[SessionBridge] session/issue data:', JSON.stringify(issueData));
       const code = issueData.code;
 
       if (code) {
         const consumeUrl = `${API_URL}/api/v1/auth/session/consume/?code=${code}&next=/`;
+        console.log('[SessionBridge] Setting pendingUrl:', consumeUrl);
         setPendingUrl(consumeUrl);
-        console.log('세션 브리지: consume URL 설정됨');
         return true;
       }
+      console.log('[SessionBridge] No code in response');
       return false;
     } catch (error) {
-      console.error('세션 브리지 오류:', error);
+      console.error('[SessionBridge] Error:', error);
       return false;
     }
   };
@@ -182,7 +192,8 @@ function AppContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             provider: 'kakao', 
-            access_token: kakaoToken.accessToken 
+            access_token: kakaoToken.accessToken,
+            auto_signup: true
           }),
           credentials: 'include',
         });
@@ -267,27 +278,35 @@ function AppContent() {
         body: JSON.stringify({ 
           provider: 'apple', 
           id_token: identityToken,
-          full_name: fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() || undefined : undefined
+          full_name: fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() || undefined : undefined,
+          auto_signup: true
         }),
         credentials: 'include',
       });
 
       const data = await response.json();
+      console.log('[Apple Login] Response:', JSON.stringify(data).substring(0, 200));
 
       if (data.access) {
+        console.log('[Apple Login] Has access token, calling initiateSessionBridge');
         const bridgeSuccess = await initiateSessionBridge(data.access, data.refresh);
+        console.log('[Apple Login] bridgeSuccess:', bridgeSuccess);
         setShowLogin(false);
         if (!bridgeSuccess) {
+          console.log('[Apple Login] Bridge failed, reloading WebView');
           setWebViewKey((prev) => prev + 1);
         }
       } else if (data.needsSignup) {
+        console.log('[Apple Login] Needs signup');
         const signupUrl = `${WEB_APP_URL}/auth/apple/setup?provider=apple&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
         setPendingUrl(signupUrl);
         setShowLogin(false);
       } else {
+        console.log('[Apple Login] Login failed:', data.error);
         Alert.alert('로그인 실패', data.error || '로그인에 실패했습니다.');
       }
     } catch (error) {
+      console.error('[Apple Login] Error:', error);
       Alert.alert('오류', '로그인 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);

@@ -612,7 +612,58 @@ def social_login_v2(request):
             logger.info(f"레거시 계정 마이그레이션: provider={provider}, user_id={legacy_user.id}")
             return response
         
-        # 신규 사용자 - 가입 필요
+        # 신규 사용자 - 자동 가입 처리 (앱에서 auto_signup=true인 경우)
+        auto_signup = request.data.get('auto_signup', False)
+        
+        if auto_signup:
+            # 자동 가입: 닉네임 생성
+            import random
+            import string
+            base_nickname = nickname_suggestion or '사용자'
+            nickname = base_nickname
+            suffix = 1
+            while User.objects.filter(nickname=nickname).exists():
+                nickname = f"{base_nickname}{suffix}"
+                suffix += 1
+                if suffix > 100:
+                    nickname = f"user_{''.join(random.choices(string.ascii_lowercase + string.digits, k=6))}"
+                    break
+            
+            # 사용자 생성
+            username = f"{provider}_{provider_id}"
+            user = User.objects.create(
+                username=username,
+                nickname=nickname,
+                email=email or '',
+                email_verified=bool(email),
+                profile_image=profile_image or ''
+            )
+            
+            # SocialAccount 생성
+            SocialAccount.objects.create(
+                user=user,
+                provider=provider,
+                provider_id=provider_id,
+                email=email,
+                profile_image=profile_image,
+                extra_data=social_info if 'social_info' in dir() else {}
+            )
+            
+            # 기본 구독 생성
+            _create_default_subscription(user)
+            
+            refresh = RefreshToken.for_user(user)
+            response = Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            })
+            set_auth_cookies(response, str(refresh.access_token), str(refresh))
+            
+            logger.info(f"소셜 자동 가입 완료: provider={provider}, user_id={user.id}, nickname={nickname}")
+            return response
+        
+        # 기존 동작: 회원가입 필요 응답
         return Response({
             'needsSignup': True,
             'provider': provider,
