@@ -419,6 +419,7 @@ function AppContent() {
   }, [canGoBack, showLogin]);
 
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
+    console.log('[WebView] NavigationState:', navState.url, 'loading:', navState.loading);
     setCanGoBack(navState.canGoBack);
     if (navState.url.includes('/login') && navState.url.startsWith(WEB_APP_URL)) {
       showNativeLogin();
@@ -427,13 +428,22 @@ function AppContent() {
 
   const handleShouldStartLoadWithRequest = (request: { url: string }) => {
     const { url } = request;
+    console.log('[WebView] ShouldStartLoad:', url);
     if (url.includes('/login') && url.startsWith(WEB_APP_URL)) {
+      console.log('[WebView] Blocked: login page, showing native login');
       showNativeLogin();
       return false;
     }
     const isOAuthDomain = OAUTH_DOMAINS.some((domain) => url.includes(domain));
-    if (isOAuthDomain) return true;
-    if (!url.startsWith(WEB_APP_URL) && !url.startsWith(API_URL) && !url.startsWith('about:')) return false;
+    if (isOAuthDomain) {
+      console.log('[WebView] Allowed: OAuth domain');
+      return true;
+    }
+    if (!url.startsWith(WEB_APP_URL) && !url.startsWith(API_URL) && !url.startsWith('about:')) {
+      console.log('[WebView] Blocked: external URL');
+      return false;
+    }
+    console.log('[WebView] Allowed');
     return true;
   };
 
@@ -448,21 +458,31 @@ function AppContent() {
     }
   };
 
-  const handleLoadEnd = () => {
+  const handleLoadEnd = (syntheticEvent: any) => {
+    const { nativeEvent } = syntheticEvent;
+    console.log('[WebView] LoadEnd:', nativeEvent?.url || 'unknown');
     setIsLoading(false);
     setIsError(false);
     SplashScreen.hideAsync();
     injectPushToken();
     if (pendingUrl) {
+      console.log('[WebView] Navigating to pendingUrl:', pendingUrl);
       webViewRef.current?.injectJavaScript(`window.location.href = '${pendingUrl}';`);
       setPendingUrl(null);
     }
   };
 
-  const handleError = () => {
+  const handleError = (syntheticEvent: any) => {
+    const { nativeEvent } = syntheticEvent;
+    console.log('[WebView] Error:', nativeEvent?.description || 'unknown', 'url:', nativeEvent?.url);
     setIsLoading(false);
     setIsError(true);
     SplashScreen.hideAsync();
+  };
+
+  const handleHttpError = (syntheticEvent: any) => {
+    const { nativeEvent } = syntheticEvent;
+    console.log('[WebView] HttpError:', nativeEvent?.statusCode, nativeEvent?.description, 'url:', nativeEvent?.url);
   };
 
   const handleMessage = (event: { nativeEvent: { data: string } }) => {
@@ -684,7 +704,7 @@ function AppContent() {
         style={styles.webView}
         onLoadEnd={handleLoadEnd}
         onError={handleError}
-        onHttpError={handleError}
+        onHttpError={handleHttpError}
         onNavigationStateChange={handleNavigationStateChange}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
         onMessage={handleMessage}
