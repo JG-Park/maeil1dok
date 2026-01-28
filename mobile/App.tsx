@@ -135,7 +135,7 @@ function AppContent() {
       const code = issueData.code;
 
       if (code) {
-        const consumeUrl = `${API_URL}/api/v1/auth/session/consume/?code=${code}&next=/`;
+        const consumeUrl = `${API_URL}/api/v1/auth/session/consume/?code=${code}&next=${encodeURIComponent(WEB_APP_URL + '/')}`;
         console.log('[SessionBridge] Setting pendingUrl:', consumeUrl);
         setPendingUrl(consumeUrl);
         return true;

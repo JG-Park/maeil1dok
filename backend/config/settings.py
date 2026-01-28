@@ -319,8 +319,6 @@ CACHES = {
     }
 }
 
-COOKIE_DOMAIN = os.environ.get('COOKIE_DOMAIN', None)
-
 # 필수 환경변수 검증
 required_env_vars = [
     'KAKAO_CLIENT_ID',
