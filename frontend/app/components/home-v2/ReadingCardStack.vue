@@ -486,13 +486,15 @@ function startRandomReading() {
 }
 
 .manage-link {
-  font-size: 0.75rem;
+  font-size: clamp(0.625rem, 2.5vw, 0.75rem);
   color: var(--text-sub);
   text-decoration: none;
   padding: 4px 8px;
   border-radius: 999px;
   background: var(--accent-light);
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .manage-link:hover {
@@ -503,15 +505,16 @@ function startRandomReading() {
 
 .bible-verse {
   font-family: var(--font-serif);
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 6vw, 2rem);
   font-weight: 500;
   margin-bottom: 0.5rem;
   color: var(--text-main);
   line-height: 1.2;
+  word-break: keep-all;
 }
 
 .chapter-range {
-  font-size: 1.125rem;
+  font-size: clamp(0.9375rem, 3.5vw, 1.125rem);
   color: var(--text-sub);
   margin-bottom: 2rem;
 }

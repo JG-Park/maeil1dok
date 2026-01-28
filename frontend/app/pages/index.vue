@@ -98,7 +98,7 @@ onMounted(() => {
 .container {
   max-width: 768px;
   margin: 0 auto;
-  padding: 0 1.5rem calc(6rem + env(safe-area-inset-bottom));
+  padding: 0 1.5rem calc(max(6rem, 12vh) + env(safe-area-inset-bottom));
   min-height: 100vh;
   position: relative;
 }

@@ -119,14 +119,16 @@ const profileLink = computed(() => {
 }
 
 .manage-btn {
-  font-size: 0.75rem;
-  padding: 0.35rem 0.75rem;
+  font-size: clamp(0.625rem, 2.5vw, 0.75rem);
+  padding: 0.35rem 0.5rem;
   border-radius: 99px;
   background: var(--bg-color);
   color: var(--text-sub);
   font-weight: 600;
   transition: all 0.2s;
   border: 1px solid rgba(0,0,0,0.05);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .manage-btn:hover {

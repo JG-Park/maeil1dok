@@ -46,7 +46,7 @@ const profileLink = computed(() => {
   transform: translateX(-50%);
   z-index: 100;
   width: calc(100% - 32px);
-  max-width: 320px;
+  max-width: min(320px, calc(100vw - 32px));
 
   /* 글래스모피즘 */
   background: rgba(255, 255, 255, 0.75);
@@ -67,20 +67,22 @@ const profileLink = computed(() => {
 }
 
 .nav-item {
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.5rem;
   color: var(--color-slate-600, #475569);
   text-decoration: none;
-  font-size: 0.8125rem;
+  font-size: clamp(0.6875rem, 3vw, 0.8125rem);
   font-weight: 500;
   border-radius: 12px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
+  gap: 0.25rem;
   background: transparent;
   flex: 1;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .nav-item:hover:not(.active) {
