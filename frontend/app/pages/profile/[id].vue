@@ -315,78 +315,82 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ========================================
+   프로필 페이지 - 홈 디자인 시스템 통일
+   ======================================== */
+
 .content-wrapper {
   padding: 1rem;
   max-width: 768px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-/* 프로필 카드 */
+/* ========================================
+   프로필 카드
+   ======================================== */
 .profile-card {
-  background: var(--color-bg-card, white);
-  border-radius: 12px;
+  background: var(--color-bg-card, #fff);
+  border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  box-shadow: 0 4px 20px rgba(44, 51, 51, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.02);
 }
 
 [data-theme="dark"] .profile-card {
   background: var(--color-bg-card);
+  border-color: rgba(255, 255, 255, 0.06);
   box-shadow: none;
 }
 
+/* 프로필 헤더 - 모바일 퍼스트 */
 .profile-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .profile-user {
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex: 1;
-  min-width: 0;
 }
 
 .avatar-wrapper {
-  position: relative;
+  flex-shrink: 0;
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid #E2E8F0;
-  flex-shrink: 0;
+  border: 3px solid var(--color-bg-card, #fff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] .profile-avatar {
-  border-color: var(--color-border-default);
+  border-color: var(--color-bg-tertiary);
 }
 
 .profile-avatar-placeholder {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  border: 1px solid #E2E8F0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-light, #E8F4FD);
-  color: var(--primary-color, #3B82F6);
-  font-size: 2rem;
-  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-accent-primary, #4A5D53) 0%, #6B8F71 100%);
+  color: white;
+  font-size: 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] .profile-avatar-placeholder {
-  border-color: var(--color-border-default);
-  background: var(--color-bg-tertiary);
+  background: linear-gradient(135deg, var(--color-accent-primary, #6bc99f) 0%, #4A9D6E 100%);
 }
 
 .profile-info {
@@ -397,106 +401,101 @@ onUnmounted(() => {
 .profile-name {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--color-text-primary, #2C3333);
   margin: 0 0 0.25rem 0;
   font-family: 'Pretendard', sans-serif;
   letter-spacing: -0.02em;
 }
 
 [data-theme="dark"] .profile-name {
-  color: var(--text-primary);
+  color: var(--color-text-primary, #f3f4f6);
 }
 
 .profile-meta {
-  color: #64748B;
-  font-size: 0.875rem;
-  margin: 0 0 0.5rem 0;
+  color: var(--color-text-secondary, #6B7280);
+  font-size: 0.8125rem;
+  margin: 0;
 }
 
 [data-theme="dark"] .profile-meta {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .profile-bio {
-  color: #475569;
-  margin: 0;
+  color: var(--color-text-secondary, #6B7280);
+  margin: 0.5rem 0 0 0;
   line-height: 1.5;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
 }
 
 [data-theme="dark"] .profile-bio {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .profile-actions {
   display: flex;
   gap: 0.5rem;
-  flex-shrink: 0;
 }
 
 .btn-action {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border-radius: 12px;
   font-size: 0.875rem;
   font-weight: 600;
   transition: all 0.2s ease;
   border: none;
   cursor: pointer;
-  white-space: nowrap;
   font-family: 'Pretendard', sans-serif;
 }
 
 .btn-primary {
-  background: #1E293B;
+  background: var(--color-accent-primary, #4A5D53);
   color: white;
 }
 
 [data-theme="dark"] .btn-primary {
-  background: var(--primary-color);
-  color: white;
+  background: var(--color-accent-primary, #6bc99f);
+  color: #1f2937;
 }
 
 .btn-primary:hover {
-  background: #334155;
+  opacity: 0.9;
   transform: translateY(-1px);
 }
 
-[data-theme="dark"] .btn-primary:hover {
-  background: var(--primary-hover, #3B7E63);
-}
-
 .btn-secondary {
-  background: white;
-  border: 1px solid #E2E8F0;
-  color: #475569;
+  background: var(--color-bg-tertiary, #F3F4F6);
+  border: 1px solid var(--color-border-default, #E5E7EB);
+  color: var(--color-text-primary, #2C3333);
 }
 
 [data-theme="dark"] .btn-secondary {
   background: var(--color-bg-tertiary);
   border-color: var(--color-border-default);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .btn-secondary:hover {
-  background: #F8FAFC;
-  border-color: #CBD5E1;
-  color: #1E293B;
+  background: var(--color-bg-hover, #E5E7EB);
 }
 
 [data-theme="dark"] .btn-secondary:hover {
   background: var(--color-bg-hover);
-  color: var(--text-primary);
 }
 
-/* 팔로우 통계 */
+/* ========================================
+   팔로우 통계
+   ======================================== */
 .follow-stats {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: center;
   padding: 1rem 0;
-  border-top: 1px solid #F1F5F9;
-  border-bottom: 1px solid #F1F5F9;
-  margin-bottom: 1.5rem;
+  border-top: 1px solid var(--color-border-light, #F1F5F9);
+  border-bottom: 1px solid var(--color-border-light, #F1F5F9);
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
 }
 
 [data-theme="dark"] .follow-stats {
@@ -506,59 +505,61 @@ onUnmounted(() => {
 .follow-button {
   background: none;
   border: none;
-  color: #64748B;
+  color: var(--color-text-secondary, #6B7280);
   cursor: pointer;
   transition: color 0.2s ease;
-  padding: 0;
-  font-size: 0.9375rem;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
   font-family: 'Pretendard', sans-serif;
 }
 
 [data-theme="dark"] .follow-button {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .follow-button:hover {
-  color: #1E293B;
+  color: var(--color-text-primary, #2C3333);
 }
 
 [data-theme="dark"] .follow-button:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .follow-count {
   font-weight: 700;
-  color: #1E293B;
-  margin-right: 0.125rem;
+  color: var(--color-text-primary, #2C3333);
+  margin-right: 0.25rem;
 }
 
 [data-theme="dark"] .follow-count {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .mutual-follow {
   color: #059669;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.25rem;
   margin-left: auto;
   background: #ECFDF5;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.375rem 0.625rem;
+  border-radius: 999px;
 }
 
 [data-theme="dark"] .mutual-follow {
-  background: rgba(5, 150, 105, 0.2);
+  background: rgba(16, 185, 129, 0.15);
   color: #34d399;
 }
 
-/* 통계 그리드 */
+/* ========================================
+   통계 그리드
+   ======================================== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .stat-item {
@@ -566,6 +567,18 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
+  padding: 0.75rem 0.5rem;
+  background: var(--color-bg-tertiary, #F9FAFB);
+  border-radius: 12px;
+  transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .stat-item {
+  background: var(--color-bg-tertiary);
 }
 
 .stat-value {
@@ -574,100 +587,116 @@ onUnmounted(() => {
   font-family: 'Pretendard', sans-serif;
 }
 
-.stat-value.primary { color: #1E293B; }
-[data-theme="dark"] .stat-value.primary { color: var(--text-primary); }
+.stat-value.primary { 
+  color: var(--color-text-primary, #2C3333); 
+}
+[data-theme="dark"] .stat-value.primary { 
+  color: var(--color-text-primary); 
+}
 
-.stat-value.success { color: #059669; }
-[data-theme="dark"] .stat-value.success { color: #34d399; }
+.stat-value.success { 
+  color: #059669; 
+}
+[data-theme="dark"] .stat-value.success { 
+  color: #34d399; 
+}
 
-.stat-value.purple { color: #7C3AED; }
-[data-theme="dark"] .stat-value.purple { color: #a78bfa; }
+.stat-value.purple { 
+  color: #7C3AED; 
+}
+[data-theme="dark"] .stat-value.purple { 
+  color: #a78bfa; 
+}
 
-.stat-value.orange { color: #EA580C; }
-[data-theme="dark"] .stat-value.orange { color: #fb923c; }
+.stat-value.orange { 
+  color: #EA580C; 
+}
+[data-theme="dark"] .stat-value.orange { 
+  color: #fb923c; 
+}
 
 .stat-label {
-  font-size: 0.75rem;
-  color: #94A3B8;
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary, #6B7280);
   font-weight: 500;
+  text-align: center;
 }
 
 [data-theme="dark"] .stat-label {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
-/* 탭 섹션 */
+/* ========================================
+   탭 섹션
+   ======================================== */
 .tab-section {
-  background: white;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
+  background: var(--color-bg-card, #fff);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(44, 51, 51, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.02);
 }
 
 [data-theme="dark"] .tab-section {
   background: var(--color-bg-card);
-  border: none;
+  border-color: rgba(255, 255, 255, 0.06);
   box-shadow: none;
 }
 
 .tab-nav {
   display: flex;
-  border-bottom: 1px solid #E2E8F0;
-  background: #F8FAFC;
+  padding: 0.5rem;
+  gap: 0.25rem;
+  background: var(--color-bg-tertiary, #F9FAFB);
 }
 
 [data-theme="dark"] .tab-nav {
-  border-color: var(--color-border-default);
   background: var(--color-bg-tertiary);
 }
 
 .tab-button {
   flex: 1;
-  padding: 0.875rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  color: #64748B;
-  background: none;
+  color: var(--color-text-secondary, #6B7280);
+  background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Pretendard', sans-serif;
 }
 
 [data-theme="dark"] .tab-button {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
-.tab-button:hover {
-  color: #1E293B;
-  background: #F1F5F9;
+.tab-button:hover:not(.active) {
+  color: var(--color-text-primary, #2C3333);
+  background: rgba(0, 0, 0, 0.03);
 }
 
-[data-theme="dark"] .tab-button:hover {
+[data-theme="dark"] .tab-button:hover:not(.active) {
   color: var(--color-text-primary);
-  background: var(--color-bg-hover);
-}
-
-[data-theme="dark"] .tab-button.active {
-  color: var(--color-accent-primary);
-  background: transparent;
-  border-bottom-color: var(--color-accent-primary);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .tab-button.active {
-  color: #1E293B;
-  background: white;
-  border-bottom-color: #1E293B;
+  color: var(--color-text-primary, #2C3333);
+  background: var(--color-bg-card, #fff);
   font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-
+[data-theme="dark"] .tab-button.active {
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
 
 .tab-content {
-  min-height: 300px;
+  min-height: 280px;
   padding: 0;
 }
 
@@ -681,77 +710,131 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
-  border-radius: 8px;
 }
 
 [data-theme="dark"] .calendar-loading-overlay {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #E2E8F0;
-  border-top-color: #1E293B;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--color-border-default, #E5E7EB);
+  border-top-color: var(--color-accent-primary, #4A5D53);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
 [data-theme="dark"] .loading-spinner {
   border-color: var(--color-border-default);
-  border-top-color: var(--primary-color);
+  border-top-color: var(--color-accent-primary);
 }
-
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* 애니메이션 */
+/* ========================================
+   애니메이션
+   ======================================== */
 .fade-in {
-  animation: fadeIn 0.3s ease-in;
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
 }
 
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
+.delay-100 { animation-delay: 0.05s; }
+.delay-200 { animation-delay: 0.1s; }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(8px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
-/* 반응형 */
-@media (max-width: 640px) {
+/* ========================================
+   반응형 - 태블릿/데스크탑
+   ======================================== */
+@media (min-width: 480px) {
   .profile-header {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .profile-user {
+    flex: 1;
   }
 
   .profile-actions {
-    width: 100%;
+    flex-shrink: 0;
+    flex: none;
   }
 
   .btn-action {
-    flex: 1;
+    flex: none;
+    padding: 0.625rem 1.25rem;
+  }
+
+  .profile-avatar,
+  .profile-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+
+  .profile-avatar-placeholder {
+    font-size: 2rem;
+  }
+}
+
+/* 좁은 화면 최적화 */
+@media (max-width: 359px) {
+  .content-wrapper {
+    padding: 0.75rem;
+  }
+
+  .profile-card,
+  .tab-section {
+    padding: 1rem;
+    border-radius: 16px;
   }
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    gap: 0.5rem;
   }
 
   .stat-item {
-    background: #F8FAFC;
-    padding: 0.75rem;
-    border-radius: 8px;
+    padding: 0.625rem 0.375rem;
   }
 
-  [data-theme="dark"] .stat-item {
-    background: var(--color-bg-tertiary);
+  .stat-value {
+    font-size: 1rem;
+  }
+
+  .stat-label {
+    font-size: 0.625rem;
+  }
+
+  .follow-stats {
+    gap: 0.75rem;
+  }
+
+  .mutual-follow {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+    margin-top: 0.5rem;
   }
 }
 </style>
