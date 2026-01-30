@@ -66,6 +66,7 @@ function AppContent() {
   const [showLogin, setShowLogin] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const pendingUrlRef = useRef<string | null>(null);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -100,6 +101,7 @@ function AppContent() {
         } else {
           window.location.href = '/';
         }
+        true;
       `);
     }
   };
@@ -138,6 +140,7 @@ function AppContent() {
       if (code) {
         const consumeUrl = `${API_URL}/api/v1/auth/session/consume/?code=${code}&next=${encodeURIComponent(WEB_APP_URL + '/')}`;
         console.log('[SessionBridge] Setting pendingUrl:', consumeUrl);
+        pendingUrlRef.current = consumeUrl;
         setPendingUrl(consumeUrl);
         return true;
       }
@@ -209,6 +212,7 @@ function AppContent() {
           }
         } else if (data.needsSignup) {
           const signupUrl = `${WEB_APP_URL}/auth/kakao/setup?provider=kakao&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+          pendingUrlRef.current = signupUrl;
           setPendingUrl(signupUrl);
           setShowLogin(false);
         } else {
@@ -300,6 +304,7 @@ function AppContent() {
       } else if (data.needsSignup) {
         console.log('[Apple Login] Needs signup');
         const signupUrl = `${WEB_APP_URL}/auth/apple/setup?provider=apple&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+        pendingUrlRef.current = signupUrl;
         setPendingUrl(signupUrl);
         setShowLogin(false);
       } else {
@@ -331,6 +336,7 @@ function AppContent() {
         setWebViewKey((prev) => prev + 1);
       } else if (data.needsSignup) {
         const signupUrl = `${WEB_APP_URL}/auth/${provider}/setup?provider=${provider}&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+        pendingUrlRef.current = signupUrl;
         setPendingUrl(signupUrl);
         setShowLogin(false);
       } else {
@@ -344,12 +350,16 @@ function AppContent() {
   };
 
   const handleRegister = () => {
-    setPendingUrl(`${WEB_APP_URL}/register-email`);
+    const url = `${WEB_APP_URL}/register-email`;
+    pendingUrlRef.current = url;
+    setPendingUrl(url);
     setShowLogin(false);
   };
 
   const handleForgotPassword = () => {
-    setPendingUrl(`${WEB_APP_URL}/auth/forgot-password`);
+    const url = `${WEB_APP_URL}/auth/forgot-password`;
+    pendingUrlRef.current = url;
+    setPendingUrl(url);
     setShowLogin(false);
   };
 
@@ -359,7 +369,7 @@ function AppContent() {
       const path = url.replace(`${APP_SCHEME}://`, '');
       if (path.startsWith('auth/')) return;
       const webUrl = `${WEB_APP_URL}/${path}`;
-      webViewRef.current?.injectJavaScript(`window.location.href = '${webUrl}';`);
+      webViewRef.current?.injectJavaScript(`window.location.href = '${webUrl}'; true;`);
     }
   }, []);
 
@@ -434,11 +444,32 @@ function AppContent() {
       showNativeLogin();
       return false;
     }
+
+    // YouTube 앱 딥링크 (youtube:// 스킴) → 네이티브로 열기
+    if (url.startsWith('youtube://') || url.startsWith('intent://')) {
+      console.log('[WebView] Opening YouTube app:', url);
+      Linking.openURL(url).catch(() => {
+        // 앱이 없으면 웹으로 폴백
+        const videoIdMatch = url.match(/[?&]v=([^&#]+)/);
+        if (videoIdMatch) {
+          Linking.openURL(`https://www.youtube.com/watch?v=${videoIdMatch[1]}`);
+        }
+      });
+      return false;
+    }
+
     const isOAuthDomain = OAUTH_DOMAINS.some((domain) => url.includes(domain));
     if (isOAuthDomain) {
       console.log('[WebView] Allowed: OAuth domain');
       return true;
     }
+
+    // YouTube 도메인 허용 (iframe embed, IFrame API 등)
+    if (url.includes('youtube.com') || url.includes('ytimg.com') || url.includes('googlevideo.com')) {
+      console.log('[WebView] Allowed: YouTube domain');
+      return true;
+    }
+
     if (!url.startsWith(WEB_APP_URL) && !url.startsWith(API_URL) && !url.startsWith('about:')) {
       console.log('[WebView] Blocked: external URL');
       return false;
@@ -454,6 +485,7 @@ function AppContent() {
           window.nativePushToken = '${pushToken}';
           window.dispatchEvent(new CustomEvent('nativePushToken', { detail: '${pushToken}' }));
         })();
+        true;
       `);
     }
   };
@@ -465,10 +497,12 @@ function AppContent() {
     setIsError(false);
     SplashScreen.hideAsync();
     injectPushToken();
-    if (pendingUrl) {
-      console.log('[WebView] Navigating to pendingUrl:', pendingUrl);
-      webViewRef.current?.injectJavaScript(`window.location.href = '${pendingUrl}';`);
+    const urlToNavigate = pendingUrlRef.current;
+    if (urlToNavigate) {
+      pendingUrlRef.current = null;
       setPendingUrl(null);
+      console.log('[WebView] Navigating to pendingUrl:', urlToNavigate);
+      webViewRef.current?.injectJavaScript(`window.location.href = '${urlToNavigate}'; true;`);
     }
   };
 
