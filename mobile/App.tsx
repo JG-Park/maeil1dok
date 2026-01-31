@@ -559,9 +559,14 @@ function AppContent() {
           break;
         case 'navigate':
           if (message.url) {
-            WebBrowser.openBrowserAsync(message.url, {
-              presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-            });
+            const isYouTube = /(?:youtube\.com|youtu\.be)/.test(message.url);
+            if (isYouTube) {
+              Linking.openURL(message.url);
+            } else {
+              WebBrowser.openBrowserAsync(message.url, {
+                presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+              });
+            }
           }
           break;
         case 'requestPushToken':
