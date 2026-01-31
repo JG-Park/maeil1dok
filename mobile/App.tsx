@@ -446,7 +446,7 @@ function AppContent() {
     }
 
     // YouTube 앱 딥링크 (youtube:// 스킴) → 네이티브로 열기
-    if (url.startsWith('youtube://') || url.startsWith('intent://')) {
+    if (url.startsWith('youtube://') || url.startsWith('vnd.youtube://') || url.startsWith('intent://')) {
       console.log('[WebView] Opening YouTube app:', url);
       Linking.openURL(url).catch(() => {
         // 앱이 없으면 웹으로 폴백

@@ -700,23 +700,30 @@ const handleAudioLink = (audioLink: string) => {
   )?.[1];
 
   if (!videoId) {
-    window.open(audioLink, '_blank');
+    if (window.__nativeBridge?.isNativeApp()) {
+      window.__nativeBridge.sendToNative({ type: 'navigate', url: audioLink });
+    } else {
+      window.open(audioLink, '_blank');
+    }
     return;
   }
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const webUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-  if (isMobile) {
-    const youtubeAppUrl = `vnd.youtube://${videoId}`;
-    const webUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
-    window.location.href = youtubeAppUrl;
-
-    setTimeout(() => {
-      window.location.href = webUrl;
-    }, 1000);
+  if (window.__nativeBridge?.isNativeApp()) {
+    window.__nativeBridge.sendToNative({ type: 'navigate', url: webUrl });
   } else {
-    window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      const youtubeAppUrl = `vnd.youtube://${videoId}`;
+      window.location.href = youtubeAppUrl;
+      setTimeout(() => {
+        window.location.href = webUrl;
+      }, 1000);
+    } else {
+      window.open(webUrl, '_blank');
+    }
   }
 };
 

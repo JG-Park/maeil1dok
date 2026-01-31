@@ -263,28 +263,28 @@ const isMobile = ref(false)
 const isIOS = ref(false)
 const isAndroid = ref(false)
 
-// YouTube 앱으로 열기 (iOS/Android 분기 + 폴백)
+// YouTube 앱으로 열기 (네이티브앱 / 모바일웹 분기)
 const openYouTubeApp = () => {
   if (!latestVideoId.value) return
   
   const videoId = latestVideoId.value
   const webUrl = `https://www.youtube.com/watch?v=${videoId}`
   
+  if (window.__nativeBridge?.isNativeApp()) {
+    window.__nativeBridge.sendToNative({ type: 'navigate', url: webUrl })
+    return
+  }
+
   if (isIOS.value) {
-    // iOS: youtube:// 스킴 사용 (Universal Links도 자동 동작)
     const appUrl = `youtube://watch?v=${videoId}`
     window.location.href = appUrl
-    
-    // 2초 후 웹으로 폴백 (앱이 없는 경우)
     setTimeout(() => {
       window.open(webUrl, '_blank')
     }, 2000)
   } else if (isAndroid.value) {
-    // Android: Intent URL 사용 (앱 미설치 시 자동으로 웹 폴백)
     const intentUrl = `intent://watch?v=${videoId}#Intent;package=com.google.android.youtube;scheme=https;S.browser_fallback_url=${encodeURIComponent(webUrl)};end`
     window.location.href = intentUrl
   } else {
-    // 기타 모바일: 웹으로 열기
     window.open(webUrl, '_blank')
   }
 }
