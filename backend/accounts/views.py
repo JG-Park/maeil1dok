@@ -19,6 +19,7 @@ from django.db import transaction
 from django.db.models import Q
 import requests
 from django.conf import settings
+from django.core import signing
 from django.utils import timezone
 from datetime import timedelta
 from todos.models import BibleReadingPlan, PlanSubscription
@@ -27,6 +28,23 @@ import uuid
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+SIGNUP_TOKEN_SALT = 'social-signup-token'
+SIGNUP_TOKEN_MAX_AGE = 600  # 10분
+
+def generate_signup_token(provider, provider_id):
+    """소셜 로그인 검증 완료 후 회원가입용 서명 토큰 생성"""
+    return signing.dumps(
+        {'provider': provider, 'provider_id': str(provider_id)},
+        salt=SIGNUP_TOKEN_SALT
+    )
+
+def verify_signup_token(token):
+    """서명 토큰 검증 후 {provider, provider_id} 반환. 실패 시 None."""
+    try:
+        return signing.loads(token, salt=SIGNUP_TOKEN_SALT, max_age=SIGNUP_TOKEN_MAX_AGE)
+    except (signing.BadSignature, signing.SignatureExpired):
+        return None
 
 # Create your views here.
 
@@ -106,12 +124,14 @@ def social_login(request):
                 suggested_nickname = user_info.get('properties', {}).get('nickname', '')
                 # 카카오 계정에서 이메일 가져오기 (동의한 경우에만 제공됨)
                 kakao_email = user_info.get('kakao_account', {}).get('email')
+                signup_token = generate_signup_token('kakao', user_info['id'])
                 return Response({
                     'needsSignup': True,
                     'kakao_id': user_info['id'],
                     'suggested_nickname': suggested_nickname,
                     'profile_image': user_info.get('properties', {}).get('profile_image'),
-                    'email': kakao_email
+                    'email': kakao_email,
+                    'signup_token': signup_token
                 }, status=200)
 
     except Exception as e:
@@ -685,13 +705,15 @@ def social_login_v2(request):
             return response
         
         # 기존 동작: 회원가입 필요 응답
+        signup_token = generate_signup_token(provider, provider_id)
         return Response({
             'needsSignup': True,
             'provider': provider,
             'provider_id': provider_id,
             'email': email,
             'suggested_nickname': nickname_suggestion,
-            'profile_image': profile_image
+            'profile_image': profile_image,
+            'signup_token': signup_token
         }, status=200)
         
     except Exception as e:
@@ -705,29 +727,41 @@ def social_login_v2(request):
 def complete_social_signup(request):
     """소셜 회원가입 완료 (통합)"""
     try:
-        provider = request.data.get('provider')
-        provider_id = request.data.get('provider_id')
         nickname = request.data.get('nickname')
         email = request.data.get('email')
         profile_image = request.data.get('profile_image')
+        signup_token = request.data.get('signup_token')
         access_token = request.data.get('access_token')
+        provider = request.data.get('provider')
+        provider_id = request.data.get('provider_id')
         
-        if not provider or not provider_id or not nickname or not access_token:
+        # signup_token 방식 (권장): 서명 토큰으로 소셜 인증 검증
+        if signup_token:
+            token_data = verify_signup_token(signup_token)
+            if not token_data:
+                return Response({'error': '유효하지 않거나 만료된 인증 토큰입니다.'}, status=400)
+            provider = token_data['provider']
+            provider_id = token_data['provider_id']
+        elif access_token and provider and provider_id:
+            # 레거시 방식: access_token으로 소셜 API 재검증
+            if provider == 'kakao':
+                social_info = get_kakao_user_info_by_token(access_token)
+                verified_provider_id = social_info.get('id')
+            elif provider == 'google':
+                social_info = get_google_user_info_by_token(access_token)
+                verified_provider_id = social_info.get('sub')
+            else:
+                return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
+            
+            if not verified_provider_id:
+                return Response({'error': '소셜 계정 인증에 실패했습니다.'}, status=400)
+            if str(verified_provider_id) != str(provider_id):
+                return Response({'error': '소셜 계정 정보가 일치하지 않습니다.'}, status=400)
+        else:
             return Response({'error': '필수 정보가 누락되었습니다.'}, status=400)
         
-        if provider == 'kakao':
-            social_info = get_kakao_user_info_by_token(access_token)
-            verified_provider_id = social_info.get('id')
-        elif provider == 'google':
-            social_info = get_google_user_info_by_token(access_token)
-            verified_provider_id = social_info.get('sub')
-        else:
-            return Response({'error': '지원하지 않는 소셜 제공자입니다.'}, status=400)
-        
-        if not verified_provider_id:
-            return Response({'error': '소셜 계정 인증에 실패했습니다.'}, status=400)
-        if str(verified_provider_id) != str(provider_id):
-            return Response({'error': '소셜 계정 정보가 일치하지 않습니다.'}, status=400)
+        if not nickname:
+            return Response({'error': '닉네임은 필수입니다.'}, status=400)
         
         # 닉네임 중복 확인
         if User.objects.filter(nickname=nickname).exists():
