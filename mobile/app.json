@@ -2,7 +2,7 @@
   "expo": {
     "name": "매일일독",
     "slug": "maeil1dok",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,6 +11,13 @@
       "kakao91b7f3dfb146481fd15ff80aafb12349"
     ],
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d5d66055-f76e-4c18-b741-78143327e3ca",
+      "fallbackToCacheTimeout": 0
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -19,6 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.maeil1dok.app",
+      "icon": "./assets/icon-ios.png",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "프로필 사진 촬영에 사용됩니다",
@@ -32,7 +40,7 @@
     "android": {
       "package": "app.maeil1dok.mobile",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon-android-foreground.png",
         "backgroundColor": "#EFECE8"
       },
       "edgeToEdgeEnabled": true,
@@ -80,7 +88,8 @@
           "kakaoAppKey": "91b7f3dfb146481fd15ff80aafb12349"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-updates"
     ],
     "extra": {
       "webAppUrl": "https://maeil1dok.app",
