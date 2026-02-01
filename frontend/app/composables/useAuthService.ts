@@ -34,6 +34,7 @@ export interface SocialLoginResult {
     suggested_nickname?: string
     profile_image?: string
     email?: string
+    signup_token?: string
   }
 }
 
@@ -354,6 +355,7 @@ export function useAuthService() {
         suggested_nickname?: string
         profile_image?: string
         email?: string
+        signup_token?: string
       }>(
         'POST',
         '/api/v1/auth/social-login/',
@@ -377,7 +379,8 @@ export function useAuthService() {
             social_id: socialId,
             suggested_nickname: data.suggested_nickname,
             profile_image: data.profile_image,
-            email: data.email
+            email: data.email,
+            signup_token: data.signup_token
           }
         }
       }
@@ -517,7 +520,8 @@ export function useAuthService() {
         provider_id: result.signupData.social_id,
         suggested_nickname: result.signupData.suggested_nickname,
         profile_image: result.signupData.profile_image,
-        email: result.signupData.email
+        email: result.signupData.email,
+        signup_token: result.signupData.signup_token
       }
     }
     

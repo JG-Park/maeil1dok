@@ -142,17 +142,21 @@ const handleKakaoCallback = async (code: string, isFromApp = false, appScheme?: 
           provider_id: response.kakao_id || '',
           email: response.email || '',
           suggested_nickname: response.suggested_nickname || '',
-          profile_image: response.profile_image || ''
+          profile_image: response.profile_image || '',
+          signup_token: response.signup_token || ''
         })
       } else {
+        // sessionStorage에 signup 데이터 저장 (보안: URL에 토큰 노출 방지)
+        sessionStorage.setItem('social_signup_data', JSON.stringify({
+          provider: 'kakao',
+          provider_id: response.kakao_id || '',
+          email: response.email || '',
+          suggested_nickname: response.suggested_nickname || '',
+          profile_image: response.profile_image || '',
+          signup_token: response.signup_token || ''
+        }))
         navigateTo({
-          path: '/auth/kakao/setup',
-          query: {
-            kakao_id: response.kakao_id,
-            suggested_nickname: response.suggested_nickname,
-            profile_image: response.profile_image,
-            email: response.email || ''
-          }
+          path: '/auth/kakao/setup'
         })
       }
     } else {
@@ -199,18 +203,21 @@ const handleGoogleCallback = async (code: string, isFromApp = false, appScheme?:
           provider_id: data.provider_id,
           email: data.email || '',
           suggested_nickname: data.suggested_nickname || '',
-          profile_image: data.profile_image || ''
+          profile_image: data.profile_image || '',
+          signup_token: data.signup_token || ''
         })
       } else {
+        // sessionStorage에 signup 데이터 저장 (보안: URL에 토큰 노출 방지)
+        sessionStorage.setItem('social_signup_data', JSON.stringify({
+          provider: 'google',
+          provider_id: data.provider_id,
+          email: data.email || '',
+          suggested_nickname: data.suggested_nickname || '',
+          profile_image: data.profile_image || '',
+          signup_token: data.signup_token || ''
+        }))
         navigateTo({
-          path: '/auth/google/setup',
-          query: {
-            provider: 'google',
-            provider_id: data.provider_id,
-            email: data.email || '',
-            suggested_nickname: data.suggested_nickname,
-            profile_image: data.profile_image || ''
-          }
+          path: '/auth/google/setup'
         })
       }
     } else {
@@ -273,18 +280,21 @@ const handleAppleCallback = async (code: string, idToken: string, userInfo: stri
           provider_id: data.provider_id,
           email: data.email || '',
           suggested_nickname: data.suggested_nickname || '',
-          profile_image: data.profile_image || ''
+          profile_image: data.profile_image || '',
+          signup_token: data.signup_token || ''
         })
       } else {
+        // sessionStorage에 signup 데이터 저장 (보안: URL에 토큰 노출 방지)
+        sessionStorage.setItem('social_signup_data', JSON.stringify({
+          provider: 'apple',
+          provider_id: data.provider_id,
+          email: data.email || '',
+          suggested_nickname: data.suggested_nickname || '',
+          profile_image: data.profile_image || '',
+          signup_token: data.signup_token || ''
+        }))
         navigateTo({
-          path: '/auth/apple/setup',
-          query: {
-            provider: 'apple',
-            provider_id: data.provider_id,
-            email: data.email || '',
-            suggested_nickname: data.suggested_nickname,
-            profile_image: data.profile_image || ''
-          }
+          path: '/auth/apple/setup'
         })
       }
     } else {
