@@ -211,7 +211,7 @@ function AppContent() {
             setWebViewKey((prev) => prev + 1);
           }
         } else if (data.needsSignup) {
-          const signupUrl = `${WEB_APP_URL}/auth/kakao/setup?provider=kakao&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+          const signupUrl = `${WEB_APP_URL}/auth/kakao/setup?provider=kakao&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}&signup_token=${encodeURIComponent(data.signup_token || '')}`;
           pendingUrlRef.current = signupUrl;
           setPendingUrl(signupUrl);
           setShowLogin(false);
@@ -303,7 +303,7 @@ function AppContent() {
         }
       } else if (data.needsSignup) {
         console.log('[Apple Login] Needs signup');
-        const signupUrl = `${WEB_APP_URL}/auth/apple/setup?provider=apple&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+        const signupUrl = `${WEB_APP_URL}/auth/apple/setup?provider=apple&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}&signup_token=${encodeURIComponent(data.signup_token || '')}`;
         pendingUrlRef.current = signupUrl;
         setPendingUrl(signupUrl);
         setShowLogin(false);
@@ -335,7 +335,7 @@ function AppContent() {
         setShowLogin(false);
         setWebViewKey((prev) => prev + 1);
       } else if (data.needsSignup) {
-        const signupUrl = `${WEB_APP_URL}/auth/${provider}/setup?provider=${provider}&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}`;
+        const signupUrl = `${WEB_APP_URL}/auth/${provider}/setup?provider=${provider}&provider_id=${data.provider_id}&email=${data.email || ''}&suggested_nickname=${encodeURIComponent(data.suggested_nickname || '')}&profile_image=${encodeURIComponent(data.profile_image || '')}&signup_token=${encodeURIComponent(data.signup_token || '')}`;
         pendingUrlRef.current = signupUrl;
         setPendingUrl(signupUrl);
         setShowLogin(false);
