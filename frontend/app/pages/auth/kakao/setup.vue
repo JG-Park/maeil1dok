@@ -102,6 +102,7 @@ const profileImage = ref<string | null>(null)
 const loading = ref(false)
 const kakaoId = ref<string | null>(null)
 const email = ref<string | null>(null)
+const signupToken = ref<string | null>(null)
 const nicknameError = ref('')
 const isNicknameChecked = ref(false)
 let nicknameCheckTimeout: ReturnType<typeof setTimeout> | null = null
@@ -145,24 +146,51 @@ const checkNickname = async () => {
 }
 
 onMounted(() => {
-  // URL 쿼리에서 정보 가져오기
-  kakaoId.value = route.query.kakao_id as string || null
-  nickname.value = route.query.suggested_nickname as string || ''
-  profileImage.value = route.query.profile_image as string || null
-  email.value = route.query.email as string || null
-
+  // sessionStorage에서 소셜 회원가입 데이터 읽기 (우선), 없으면 URL 쿼리 fallback
+  const storedData = sessionStorage.getItem('social_signup_data')
+  if (storedData) {
+    try {
+      const data = JSON.parse(storedData)
+      kakaoId.value = data.provider_id || null
+      nickname.value = data.suggested_nickname || ''
+      profileImage.value = data.profile_image || null
+      email.value = data.email || null
+      signupToken.value = data.signup_token || null
+      sessionStorage.removeItem('social_signup_data')
+    } catch {
+      sessionStorage.removeItem('social_signup_data')
+    }
+  }
+  
+  // sessionStorage에 데이터가 없는 경우 URL 쿼리에서 읽기 (앱 딥링크 등)
   if (!kakaoId.value) {
+    kakaoId.value = route.query.kakao_id as string || route.query.provider_id as string || null
+    nickname.value = route.query.suggested_nickname as string || ''
+    profileImage.value = route.query.profile_image as string || null
+    email.value = route.query.email as string || null
+    signupToken.value = route.query.signup_token as string || null
+  }
+
+  if (!kakaoId.value && !signupToken.value) {
     navigateTo('/login')
+    return
+  }
+
+  // SNS에서 전달된 닉네임이 있으면 자동 검증
+  if (nickname.value.trim().length >= 2) {
+    checkNickname()
   }
 })
 
 const handleSubmit = async () => {
-  if (!kakaoId.value || !nickname.value) return
+  if ((!kakaoId.value && !signupToken.value) || !nickname.value) return
 
   loading.value = true
   try {
-    const response = await api.post('/api/v1/auth/complete-kakao-signup/', {
-      kakao_id: kakaoId.value,
+    const response = await api.post('/api/v1/auth/complete-social-signup/', {
+      signup_token: signupToken.value,
+      provider: 'kakao',
+      provider_id: kakaoId.value,
       nickname: nickname.value,
       profile_image: profileImage.value,
       email: email.value
