@@ -33,21 +33,20 @@ const timeGreeting = computed(() => {
 
 <style scoped>
 .hero-section {
-  margin-top: 2rem;
-  margin-bottom: 1rem;
+  margin: 1rem 0 0.5rem;
 }
 
 .greeting {
-  font-size: 1rem;
+  font-size: min(0.875rem, 14px);
   color: var(--text-sub);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .hero-title {
   font-family: var(--font-serif);
-  font-size: 2.5rem;
+  font-size: min(2rem, 32px);
   font-weight: 300;
-  line-height: 1.3;
+  line-height: 1.25;
   color: var(--text-main);
 }
 
@@ -58,7 +57,7 @@ const timeGreeting = computed(() => {
 
 @media (max-width: 480px) {
   .hero-title {
-    font-size: 2rem;
+    font-size: min(1.75rem, 28px);
   }
 }
 </style>
