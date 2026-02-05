@@ -98,14 +98,14 @@ onMounted(() => {
 .container {
   max-width: 768px;
   margin: 0 auto;
-  padding: 0 1.5rem calc(max(6rem, 12vh) + env(safe-area-inset-bottom));
+  padding: 0 1rem calc(max(3rem, 6vh) + env(safe-area-inset-bottom));
   min-height: 100vh;
   position: relative;
 }
 
 /* Header */
 .home-header {
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -179,7 +179,7 @@ onMounted(() => {
 .home-main {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 /* Decoration */
