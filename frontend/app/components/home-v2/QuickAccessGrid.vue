@@ -73,13 +73,13 @@ const profileLink = computed(() => {
 
 <style scoped>
 .quick-access {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .section-title {
   font-family: var(--font-serif);
   font-size: 1.25rem;
-  margin: 0 0 1.5rem;
+  margin: 0 0 0.75rem;
   font-weight: 700;
   color: var(--text-main);
 }
@@ -87,12 +87,12 @@ const profileLink = computed(() => {
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .sub-card {
   background: var(--card-bg);
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 20px;
   box-shadow: var(--paper-shadow);
   transition: all 0.2s;
@@ -111,7 +111,7 @@ const profileLink = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .card-header .icon-box {
@@ -146,7 +146,7 @@ const profileLink = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: var(--text-main);
 }
 
@@ -164,7 +164,7 @@ const profileLink = computed(() => {
 
 @media (max-width: 480px) {
   .sub-card {
-    padding: 1.25rem;
+    padding: 0.875rem;
   }
 }
 

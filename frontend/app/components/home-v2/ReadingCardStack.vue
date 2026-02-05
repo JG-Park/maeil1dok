@@ -433,13 +433,13 @@ function startRandomReading() {
 <style scoped>
 .card-stack {
   position: relative;
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
 }
 
 .reading-card {
   background: var(--card-bg);
   border-radius: 24px;
-  padding: 2rem 1.5rem;
+  padding: 1.25rem 1rem;
   box-shadow: var(--paper-shadow);
   position: relative;
   z-index: 10;
@@ -461,7 +461,7 @@ function startRandomReading() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .card-label {
@@ -507,7 +507,7 @@ function startRandomReading() {
   font-family: var(--font-serif);
   font-size: clamp(1.5rem, 6vw, 2rem);
   font-weight: 500;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: var(--text-main);
   line-height: 1.2;
   word-break: keep-all;
@@ -516,14 +516,14 @@ function startRandomReading() {
 .chapter-range {
   font-size: clamp(0.9375rem, 3.5vw, 1.125rem);
   color: var(--text-sub);
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .progress-minimal {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .progress-bar-bg {
