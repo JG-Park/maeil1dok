@@ -41,7 +41,7 @@ const profileLink = computed(() => {
 /* 글래스모피즘 플로팅 네비게이션 - bible-bottom-area 스타일과 통일 */
 .floating-nav {
   position: fixed;
-  bottom: 16px;
+  bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -60,10 +60,10 @@ const profileLink = computed(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
   /* 레이아웃 */
-  padding: 0.5rem 0.5rem;
+  padding: 0.375rem 0.375rem;
   display: flex;
   justify-content: space-between;
-  gap: 0.25rem;
+  gap: 0.125rem;
 }
 
 .nav-item {
@@ -104,7 +104,14 @@ const profileLink = computed(() => {
 /* iOS 안전영역 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .floating-nav {
-    bottom: calc(16px + env(safe-area-inset-bottom));
+    bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+/* iOS Safari 전용 - safe-area만 사용 (추가 마진 최소화) */
+@supports (-webkit-touch-callout: none) {
+  .floating-nav {
+    bottom: max(8px, env(safe-area-inset-bottom));
   }
 }
 
