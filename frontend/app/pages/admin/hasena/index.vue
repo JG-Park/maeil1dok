@@ -9,7 +9,7 @@
 
       <div v-else-if="!authStore.isAuthenticated.value" class="unauthorized-prompt fade-in">
         <p class="text-lg text-gray-600 mb-4">로그인이 필요한 페이지입니다.</p>
-        <button @click="$router.push('/login')" class="login-button">로그인하기</button>
+        <button @click="$router.push('/login?redirect=/admin/hasena')" class="login-button">로그인하기</button>
       </div>
 
       <div v-else-if="!isStaff" class="unauthorized-prompt fade-in">

@@ -20,7 +20,7 @@
         <p class="text-lg text-gray-600 mb-4">
           로그인이 필요한 페이지입니다.
         </p>
-        <button @click="$router.push('/login')" class="login-button">로그인하기</button>
+        <button @click="$router.push('/login?redirect=/admin/video/intro')" class="login-button">로그인하기</button>
       </div>
 
       <div v-else-if="!isStaff" class="unauthorized-prompt fade-in" style="animation-delay: 0.2s">
@@ -221,7 +221,7 @@ const isUploadFormValid = computed(() => {
 })
 
 // 초기화 완료 여부
-const isAuthLoading = computed(() => !authStore.isInitialized)
+const isAuthLoading = computed(() => !authStore.isInitialized.value)
 
 // 관리자 권한 체크 - 수정
 const isStaff = computed(() => {

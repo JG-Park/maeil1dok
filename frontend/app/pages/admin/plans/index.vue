@@ -31,7 +31,7 @@
         <div class="message-content">
           <h3>로그인이 필요합니다</h3>
           <p>이 페이지는 로그인 후 이용 가능합니다.</p>
-          <button @click="$router.push('/login')" class="login-button">로그인하기</button>
+          <button @click="$router.push('/login?redirect=/admin/plans')" class="login-button">로그인하기</button>
         </div>
       </div>
 
@@ -514,7 +514,7 @@ const planForm = ref({
 })
 
 // 초기화 완료 여부
-const isAuthLoading = computed(() => !authStore.isInitialized)
+const isAuthLoading = computed(() => !authStore.isInitialized.value)
 
 // 관리자 권한 체크
 const isStaff = computed(() => {
