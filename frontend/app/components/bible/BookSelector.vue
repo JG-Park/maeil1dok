@@ -15,7 +15,7 @@
     <div class="version-slide-section">
       <div class="version-scroll-container">
         <button
-          v-for="(name, code) in VERSION_NAMES"
+          v-for="(name, code) in VISIBLE_VERSION_NAMES"
           :key="code"
           :class="['version-chip', { active: code === currentVersion }]"
           @click="$emit('version-select', String(code))"
@@ -154,7 +154,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
-import { useBibleData, type SearchResult, VERSION_NAMES } from '~/composables/useBibleData';
+import { useBibleData, type SearchResult, VISIBLE_VERSION_NAMES } from '~/composables/useBibleData';
 import SearchIcon from '~/components/icons/SearchIcon.vue';
 import XCircleIcon from '~/components/icons/XCircleIcon.vue';
 import SparkleIcon from '~/components/icons/SparkleIcon.vue';

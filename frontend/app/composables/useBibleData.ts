@@ -42,6 +42,14 @@ export const VERSION_CATEGORIES = Object.freeze({
   english: [] as string[],
 });
 
+const UNSUPPORTED_VERSIONS = new Set(['HEB', 'GRK', 'KJV', 'WEB', 'ASV']);
+
+export const VISIBLE_VERSION_NAMES = Object.freeze(
+  Object.fromEntries(
+    Object.entries(VERSION_NAMES).filter(([code]) => !UNSUPPORTED_VERSIONS.has(code))
+  )
+) as Record<string, string>;
+
 export const VERSION_META = Object.freeze({
   HEB: { direction: 'rtl', language: 'hebrew', testament: 'old' },
   GRK: { direction: 'ltr', language: 'greek', testament: 'new' },
