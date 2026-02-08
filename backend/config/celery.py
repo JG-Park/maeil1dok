@@ -11,6 +11,6 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'generate-hasena-summary': {
         'task': 'todos.tasks.generate_hasena_summary_task',
-        'schedule': crontab(minute='*/1', hour='0', day_of_week='1-6'),
+        'schedule': crontab(minute='*/5', hour='0-5', day_of_week='1-6'),
     },
 }

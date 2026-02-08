@@ -19,7 +19,7 @@ def generate_hasena_summary_task(self):
         logger.info(f"Summary already generated for {today_str}, skipping")
         return {'status': 'skipped', 'reason': 'already_generated'}
     
-    if now.hour >= 1:
+    if now.hour >= 6:
         logger.info(f"Outside summary generation window (hour={now.hour})")
         return {'status': 'skipped', 'reason': 'outside_window'}
     
