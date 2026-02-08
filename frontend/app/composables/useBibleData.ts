@@ -38,8 +38,8 @@ export const VERSION_NAMES = Object.freeze({
 
 export const VERSION_CATEGORIES = Object.freeze({
   korean: ['GAE', 'KNT', 'WOORI', 'SAENEW', 'HAN', 'SAE', 'COG', 'COGNEW'],
-  original: ['HEB', 'GRK'],
-  english: ['KJV', 'WEB', 'ASV'],
+  original: [] as string[],
+  english: [] as string[],
 });
 
 export const VERSION_META = Object.freeze({

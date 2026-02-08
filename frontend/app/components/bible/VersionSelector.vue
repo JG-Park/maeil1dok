@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div class="version-category">
+      <div v-if="originalVersions.length" class="version-category">
         <h3 class="category-title">원어 성경</h3>
         <div class="versions-list">
           <button
@@ -55,7 +55,7 @@
         </div>
       </div>
 
-      <div class="version-category">
+      <div v-if="englishVersions.length" class="version-category">
         <h3 class="category-title">영어 역본</h3>
         <div class="versions-list">
           <button
