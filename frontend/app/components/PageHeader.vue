@@ -1,5 +1,5 @@
 <template>
-  <div class="header fade-in">
+  <div class="header">
     <button v-if="showBack" class="back-button" @click="handleBack">
       <ChevronLeftIcon :size="20" />
     </button>
@@ -118,19 +118,4 @@ const handleBack = () => {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  opacity: 0;
-  animation: fadeIn 0.4s ease-out forwards;
-}
 </style>
