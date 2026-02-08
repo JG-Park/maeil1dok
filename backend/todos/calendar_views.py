@@ -18,6 +18,7 @@ from .models import (
     DailyBibleSchedule, UserBibleProgress
 )
 from .serializers import UserPlanDisplaySettingsSerializer
+from .views import book_to_code
 
 
 @api_view(['GET'])
@@ -272,7 +273,9 @@ def get_last_incomplete_positions(request):
                 'color': color,
                 'date': schedule.date.isoformat(),
                 'book': schedule.book,
+                'book_code': book_to_code.get(schedule.book, 'gen'),
                 'chapters': chapters,
+                'start_chapter': schedule.start_chapter,
                 'schedule_id': schedule.id
             })
 

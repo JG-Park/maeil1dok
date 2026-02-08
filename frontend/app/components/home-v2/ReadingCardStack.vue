@@ -21,6 +21,29 @@
       </button>
     </div>
 
+    <!-- 과거 미완료 / 다른 플랜 추천 카드 -->
+    <div v-else-if="cardType === 'pastIncomplete'" class="reading-card main-card past-incomplete-card" @click="goToPastIncomplete">
+      <div class="card-header">
+        <span class="card-label">{{ pastIncompleteIsToday ? 'PLAN INCOMPLETE' : 'CATCH UP' }}</span>
+        <span class="suggestion-badge past-badge">
+          📚 {{ pastIncompleteData?.plan_name }}
+        </span>
+      </div>
+      <h2 class="bible-verse">
+        <template v-if="pastIncompleteIsToday">다른 플랜도<br>읽어보세요!</template>
+        <template v-else>밀린 읽기가<br>있어요</template>
+      </h2>
+      <div class="chapter-range">
+        <template v-if="!pastIncompleteIsToday">{{ pastIncompleteDateStr }} · </template>
+        {{ pastIncompleteData?.book }} {{ pastIncompleteData?.chapters }}
+      </div>
+      
+      <button class="start-btn past-incomplete-btn">
+        {{ pastIncompleteIsToday ? '통독 시작하기' : '밀린 읽기 하러가기' }}
+        <ArrowRightIcon size="16" style="margin-left: 4px;" />
+      </button>
+    </div>
+
     <!-- 하세나 제안 카드 -->
     <div v-else-if="cardType === 'hasena'" class="reading-card main-card hasena-card" @click="goToHasena">
       <div class="card-header">
@@ -151,12 +174,15 @@ const loading = ref(true);
 const todaySchedule = ref<any>(null);
 const nextSchedule = ref<any>(null);
 const progressPercentage = ref(0);
-const cardType = ref<'reading' | 'login' | 'completed' | 'hasena' | 'intro' | 'allDone'>('reading');
+const cardType = ref<'reading' | 'login' | 'completed' | 'hasena' | 'intro' | 'allDone' | 'pastIncomplete'>('reading');
 
 // 하세나/개론 상태
 const hasenaCompleted = ref(false);
 const currentIntro = ref<any>(null);
 const introCompleted = ref(false);
+
+// 과거 미완료 상태
+const pastIncompleteData = ref<any>(null);
 
 // 데이터 로드 함수
 async function loadData() {
@@ -181,7 +207,8 @@ async function loadData() {
       loadProgress(),
       loadHasenaStatus(),
       loadCurrentIntro(),
-      loadNextSchedule()
+      loadNextSchedule(),
+      loadPastIncompletes()
     ]);
     
     // 우선순위 결정 로직
@@ -195,25 +222,32 @@ async function loadData() {
 
 // 카드 타입 결정 로직
 function determineCardType() {
-  // 1. 오늘 통독이 남아있으면 → 통독 카드
+  // 1. 선택된 플랜의 오늘 통독이 남아있으면 → 통독 카드
   if (todaySchedule.value && !todaySchedule.value.isCompleted && !todaySchedule.value.noSchedule) {
     cardType.value = 'reading';
     return;
   }
   
-  // 2. 오늘 통독 완료 후 → 하세나 안했으면 하세나 제안
+  // 2. 선택된 플랜 완료 후 → 다른 플랜 미완료 또는 과거 미완료가 있으면 추천
+  //    (calendar/last-incomplete API가 모든 구독 플랜의 미완료를 반환)
+  if (pastIncompleteData.value) {
+    cardType.value = 'pastIncomplete';
+    return;
+  }
+  
+  // 3. 모든 플랜 미완료 없음 → 하세나 안했으면 하세나 제안
   if (!hasenaCompleted.value) {
     cardType.value = 'hasena';
     return;
   }
   
-  // 3. 하세나도 완료 → 개론 안봤으면 개론 제안
+  // 4. 하세나도 완료 → 개론 안봤으면 개론 제안
   if (currentIntro.value && !introCompleted.value) {
     cardType.value = 'intro';
     return;
   }
   
-  // 4. 모두 완료 → 칭찬 + 다음 통독 미리보기
+  // 5. 구독 중인 모든 플랜 완료 + 하세나 + 개론 모두 완료 → 칭찬
   cardType.value = 'allDone';
 }
 
@@ -340,6 +374,56 @@ async function loadNextSchedule() {
   } catch (error) {
     console.error('Failed to load next schedule', error);
   }
+}
+
+// 과거 미완료 스케줄 로드 (모든 구독 플랜 대상)
+async function loadPastIncompletes() {
+  try {
+    const response = await api.get('/api/v1/todos/calendar/last-incomplete/');
+    if (response.data.success && response.data.positions) {
+      const positions = response.data.positions;
+      if (positions.length > 0) {
+        // 가장 최근 미완료 (API가 이미 날짜 내림차순 정렬)
+        pastIncompleteData.value = positions[0];
+      } else {
+        pastIncompleteData.value = null;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load past incompletes', error);
+    pastIncompleteData.value = null;
+  }
+}
+
+// 과거 미완료가 오늘 날짜인지 (= 다른 플랜의 오늘 미완료)
+const pastIncompleteIsToday = computed(() => {
+  if (!pastIncompleteData.value) return false;
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return pastIncompleteData.value.date === todayStr;
+});
+
+// 과거 미완료 날짜 포맷
+const pastIncompleteDateStr = computed(() => {
+  if (!pastIncompleteData.value) return '';
+  const date = new Date(pastIncompleteData.value.date);
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+});
+
+function goToPastIncomplete() {
+  if (!pastIncompleteData.value) return;
+  const { book_code, start_chapter, plan_id, schedule_id } = pastIncompleteData.value;
+  
+  router.push({
+    path: '/bible',
+    query: {
+      plan: plan_id?.toString(),
+      book: book_code,
+      chapter: start_chapter?.toString(),
+      tongdok: 'true',
+      schedule: schedule_id?.toString()
+    }
+  });
 }
 
 async function loadProgress() {
@@ -582,6 +666,21 @@ function startRandomReading() {
   gap: 1rem;
 }
 
+/* 과거 미완료 카드 스타일 */
+.past-incomplete-card {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.past-incomplete-btn {
+  color: #9A3412 !important;
+  border-bottom-color: #9A3412 !important;
+}
+
+.past-badge {
+  background: rgba(255, 255, 255, 0.7);
+}
+
 /* 하세나 카드 스타일 */
 .hasena-card {
   background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
@@ -693,6 +792,21 @@ function startRandomReading() {
 
 [data-theme="dark"] .main-card {
   background: var(--color-bg-card);
+}
+
+[data-theme="dark"] .past-incomplete-card {
+  background: linear-gradient(135deg, #431407 0%, #7C2D12 100%);
+  border-color: rgba(249, 115, 22, 0.2);
+}
+
+[data-theme="dark"] .past-incomplete-btn {
+  color: #fdba74 !important;
+  border-bottom-color: #fdba74 !important;
+}
+
+[data-theme="dark"] .past-badge {
+  background: rgba(0, 0, 0, 0.4);
+  color: #e5e7eb;
 }
 
 [data-theme="dark"] .hasena-card {
