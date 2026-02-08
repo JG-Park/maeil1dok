@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NuxtError } from '#app'
+import { ref, onMounted } from 'vue'
 
 const props = defineProps({
   error: Object as () => NuxtError
@@ -27,27 +28,46 @@ const errorInfo = errorMessages[statusCode] || {
   title: '오류가 발생했습니다',
   description: props.error?.message || '알 수 없는 오류가 발생했습니다.'
 }
+
+const isAutoRecovering = ref(false)
+const showError = ref(false)
+
+onMounted(() => {
+  if (statusCode === 500) {
+    isAutoRecovering.value = true
+    console.error('[error.vue] SSR 500 error detected, auto-recovering...', props.error?.message)
+    setTimeout(() => {
+      clearError({ redirect: '/' })
+    }, 100)
+  } else {
+    showError.value = true
+  }
+})
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-bg-primary px-4">
+  <!-- 500 에러 자동 복구 중: 로딩 표시 -->
+  <div v-if="isAutoRecovering || !showError" class="min-h-screen flex items-center justify-center bg-bg-primary">
+    <div class="flex flex-col items-center gap-4">
+      <div class="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  </div>
+
+  <!-- 일반 에러 (404, 403 등): 에러 페이지 표시 -->
+  <div v-else class="min-h-screen flex items-center justify-center bg-bg-primary px-4">
     <div class="max-w-md w-full text-center">
-      <!-- 에러 코드 -->
       <div class="mb-6">
         <span class="text-8xl font-bold text-accent-primary">{{ statusCode }}</span>
       </div>
 
-      <!-- 에러 제목 -->
       <h1 class="text-2xl font-bold text-txt-primary mb-3">
         {{ errorInfo.title }}
       </h1>
 
-      <!-- 에러 설명 -->
       <p class="text-txt-secondary mb-8">
         {{ errorInfo.description }}
       </p>
 
-      <!-- 액션 버튼 -->
       <div class="space-y-3">
         <button
           @click="handleError"
@@ -66,7 +86,6 @@ const errorInfo = errorMessages[statusCode] || {
         </button>
       </div>
 
-      <!-- 도움말 링크 -->
       <p class="mt-8 text-sm text-txt-tertiary">
         문제가 계속되면
         <a
