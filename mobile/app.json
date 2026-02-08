@@ -2,7 +2,7 @@
   "expo": {
     "name": "매일일독",
     "slug": "maeil1dok",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -26,6 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.maeil1dok.app",
+      "buildNumber": "1",
       "icon": "./assets/icon-ios.png",
       "usesAppleSignIn": true,
       "infoPlist": {
