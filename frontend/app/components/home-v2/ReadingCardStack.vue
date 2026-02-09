@@ -158,7 +158,7 @@ import { useAuthService } from '~/composables/useAuthService';
 import { useSelectedPlanStore } from '~/stores/selectedPlan';
 import { useSubscriptionStore } from '~/stores/subscription';
 import { useHasenaStore } from '~/stores/hasena';
-import { useBibleData } from '~/composables/useBibleData';
+import { useBibleData, BOOK_ALIASES } from '~/composables/useBibleData';
 import CheckCircleIcon from '~/components/icons/CheckCircleIcon.vue';
 import ArrowRightIcon from '~/components/icons/ArrowRightIcon.vue';
 
@@ -412,18 +412,37 @@ const pastIncompleteDateStr = computed(() => {
 
 function goToPastIncomplete() {
   if (!pastIncompleteData.value) return;
-  const { book_code, start_chapter, plan_id, schedule_id } = pastIncompleteData.value;
+  const { book_code, start_chapter, plan_id, schedule_id, book } = pastIncompleteData.value;
+  
+  // 한글 이름(book)에서 프론트엔드 매핑으로 book code를 직접 변환 (API의 book_code보다 우선)
+  // API의 book_to_code dict에 매칭 안 되면 기본값 'gen'이 반환되는 문제 방지
+  const frontendBookCode = book ? BOOK_ALIASES[book.trim()] : undefined;
+  const resolvedBookCode = frontendBookCode || book_code;
+  
+  // start_chapter가 없으면 chapters 문자열에서 파싱 시도
+  const resolvedChapter = start_chapter ?? parseChapterFromString(pastIncompleteData.value.chapters);
+  
+  if (!resolvedBookCode || resolvedChapter == null) {
+    console.warn('[goToPastIncomplete] Missing navigation data:', { book_code, start_chapter, book, frontendBookCode });
+  }
   
   router.push({
     path: '/bible',
     query: {
       plan: plan_id?.toString(),
-      book: book_code,
-      chapter: start_chapter?.toString(),
+      book: resolvedBookCode,
+      chapter: resolvedChapter?.toString(),
       tongdok: 'true',
       schedule: schedule_id?.toString()
     }
   });
+}
+
+// chapters 문자열 (e.g., "21-24장", "5장")에서 시작 장 번호 추출
+function parseChapterFromString(chapters: string | undefined): number | undefined {
+  if (!chapters) return undefined;
+  const match = chapters.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : undefined;
 }
 
 async function loadProgress() {
